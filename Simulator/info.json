@@ -1,0 +1,11 @@
+{
+    "author": ["OrchidAlloy"],
+    "min_bot_version": "3.0.0rc2",
+    "description": "Crab Simulator generates messages using crab member data",
+    "hidden": false,
+    "install_msg": "Crab Simulator installed",
+    "required_cogs": {},
+    "requirements": [],
+    "short": "Crab Simulator",
+    "tags": ["crab", "fun" ]
+}

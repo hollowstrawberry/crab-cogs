@@ -1,0 +1,7 @@
+{
+	"author" : ["OrchidAlloy"],
+	"install_msg" : "Crab installed",
+	"name" : "RedCrab",
+	"short" : "RedCrab",
+	"description" : "Cogs for the Crab friend group"
+}
