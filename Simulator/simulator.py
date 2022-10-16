@@ -5,7 +5,7 @@ import re
 import aiosqlite as sql
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from discord.ext import commands
+from redbot.core import commands
 from typing import *
 
 HOME_GUILD_ID = 930471371128061962
