@@ -1,4 +1,4 @@
-from .simulator import Simulator
+from .emojisteal import EmojiSteal
 
 def setup(bot):
-    bot.add_cog(Simulator(bot))
+    bot.add_cog(EmojiSteal(bot))
