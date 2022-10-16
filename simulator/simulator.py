@@ -130,7 +130,7 @@ class Simulator(commands.Cog):
             nodes = sum(count_nodes(x.model) for x in self.models.values())
             words = sum(count_words(x.model) for x in self.models.values())
 
-        with open(DB_FILE + ".pickle", "w") as f:
+        with open(DB_FILE + ".pickle", "wb") as f:
             pickle.dump(self.models, f, pickle.HIGHEST_PROTOCOL)
 
         filesize_db = os.path.getsize(DB_FILE) / 1000000
