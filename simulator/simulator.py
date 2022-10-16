@@ -216,6 +216,8 @@ class Simulator(commands.Cog):
         """Set a series of channels that will feed the simulator."""
         await self.config.home_guild_id.set(ctx.guild.id)
         await self.config.input_channel_ids.set([channel.id for channel in channels])
+        self.guild = ctx.guild
+        self.input_channels = channels
         await ctx.react_quietly(EMOJI_SUCCESS)
 
     @simulatorset.command()
@@ -223,6 +225,7 @@ class Simulator(commands.Cog):
     async def outputchannel(self, ctx: commands.Context, channel: discord.TextChannel):
         """Set the channel the simulator will run in."""
         await self.config.output_channel_id.set(channel.id)
+        self.output_channel = channel
         await ctx.react_quietly(EMOJI_SUCCESS)
 
     @simulatorset.command()
@@ -230,6 +233,7 @@ class Simulator(commands.Cog):
     async def participantrole(self, ctx: commands.Context, role: discord.Role):
         """Members must have this role to participate in the simulator."""
         await self.config.participant_role_id.set(role.id)
+        self.role = role
         await ctx.react_quietly(EMOJI_SUCCESS)
 
     @simulatorset.command()
