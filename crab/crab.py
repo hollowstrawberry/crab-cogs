@@ -87,7 +87,7 @@ class Crab(commands.Cog):
         with open(DONUT_FILE, 'w') as file:
             json.dump(data, file)
         hashed = abs(int(hashlib.sha256(bytes(count)).hexdigest(), 16)) + 11
-        donuts = " ".split(await self.config.donuts())
+        donuts = (await self.config.donuts()).split(' ')
         donut = donuts[hashed % len(donuts)]
         await ctx.send(f'{count} {donut}')
         print(f'User {ctx.author.id} now has {count} donuts')
