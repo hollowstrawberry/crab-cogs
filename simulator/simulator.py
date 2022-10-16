@@ -1,12 +1,12 @@
 import discord
 import asyncio
-import pickle
 import random
 import re
 import os
 import aiosqlite as sql
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from pympler.asizeof import asizeof
 from redbot.core import commands, Config
 from typing import *
 
@@ -130,17 +130,14 @@ class Simulator(commands.Cog):
             nodes = sum(count_nodes(x.model) for x in self.models.values())
             words = sum(count_words(x.model) for x in self.models.values())
 
-        with open(DB_FILE + ".pickle", "wb") as f:
-            pickle.dump(self.models, f, pickle.HIGHEST_PROTOCOL)
-
-        filesize_db = os.path.getsize(DB_FILE) / 1000000
-        filesize_pickle = os.path.getsize(DB_FILE + ".pickle") / 1000000
+        filesize = os.path.getsize(DB_FILE) / 1000000
+        objectsize = asizeof(self.models) / 1000000
 
         embed = discord.Embed(title="Simulator Stats", color=0x1DE417)
         embed.add_field(name="Messages", value=f"{messages:,}", inline=True)
         embed.add_field(name="Nodes", value=f"{nodes:,}", inline=True)
         embed.add_field(name="Words", value=f"{words:,}", inline=True)
-        embed.add_field(name="Size", value=f"Database: {filesize_db} MB | Tree: {filesize_pickle} MB")
+        embed.add_field(name="Size", value=f"{round(filesize, 2)} MB (Database), {round(objectsize, 2)} MB (Model)")
         await ctx.send(embed=embed)
 
     @commands.command()
