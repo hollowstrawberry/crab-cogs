@@ -131,20 +131,21 @@ class Simulator(commands.Cog):
 
     @commands.command()
     async def simulatorinfo(self, ctx: commands.Context):
+        """How this works"""
         embed = discord.Embed(title="Simulator", color=COLOR)
         embed.description = \
             f"With this cog you may designate a channel that will send automated messages mimicking your friends " \
             f"using Markov chains. They will have your friends' avatars and nicknames too! " \
-            f"Inspired by /r/SubredditSimulator and similar concepts.\n" \
-            f"It will learn from messages from configured channels, and only from users with the configured role. " \
-            f"Will only support a single guild set by the bot owner.\n" \
-            f"After configuring it with `{ctx.prefix}simulatorset`, you may manually feed past messages using " \
+            f"Inspired by /r/SubredditSimulator and similar concepts.\n\n" \
+            f"🧠 It will learn from messages from configured channels, and only from users with the configured role. " \
+            f"Will only support a single guild set by the bot owner.\n\n" \
+            f"⚙ After configuring it with `{ctx.prefix}simulatorset`, you may manually feed past messages using " \
             f"`{ctx.prefix}feedsimulator [days]`. This takes around 1 minute per 5,000 messages, so be patient! " \
-            f"When the feeding is finished or interrupted, it will send the summary in the same channel." \
-            f"While the simulator is running, a conversation will occur every so many minutes, during which " \
+            f"When the feeding is finished or interrupted, it will send the summary in the same channel.\n\n" \
+            f"♻ While the simulator is running, a conversation will occur every so many minutes, during which " \
             f"comments will be sent every so many seconds. Trying to type in the output channel will delete the " \
-            f"message and trigger a conversation.\n" \
-            f"A user may permanently exclude themselves from their messages being read and analyzed by using the " \
+            f"message and trigger a conversation.\n\n" \
+            f"⚠ A user may permanently exclude themselves from their messages being read and analyzed by using the " \
             f"`{ctx.prefix}dontsimulateme` command. This will also delete all their data."
         await ctx.send(embed=embed)
 
