@@ -11,7 +11,7 @@ from numbers import Number
 from collections import deque
 from collections.abc import Set, Mapping
 from redbot.core import commands, Config
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Tuple
 
 WEBHOOK_NAME = "Simulator"
 DB_FILE = "messages.db"
