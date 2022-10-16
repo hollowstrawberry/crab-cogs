@@ -200,9 +200,6 @@ class Simulator(commands.Cog):
     @commands.is_owner()
     async def startsimulator(self, ctx: commands.Context):
         """Start the simulator in the configured channel."""
-        if self.role not in ctx.author.roles:
-            await ctx.message.add_reaction(EMOJI_FAILURE)
-            return
         if not self.running and not self.feeding:
             asyncio.create_task(self.on_ready())
         await ctx.message.add_reaction(EMOJI_SUCCESS)
@@ -211,9 +208,6 @@ class Simulator(commands.Cog):
     @commands.is_owner()
     async def stopsimulator(self, ctx: commands.Context):
         """Stop the simulator."""
-        if self.role not in ctx.author.roles:
-            await ctx.message.add_reaction(EMOJI_FAILURE)
-            return
         self.running = False
         await ctx.message.add_reaction(EMOJI_SUCCESS)
 
