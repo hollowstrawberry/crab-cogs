@@ -1,7 +1,9 @@
 import discord
 import asyncio
+import pickle
 import random
 import re
+import os
 import aiosqlite as sql
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -23,8 +25,8 @@ SUBTOKENIZER = re.compile(r"( ?https?://(?=[^\s>])|(?<=://)[^\s>]+"         # UR
                           r"| ?<a?:(?=\w)|(?<=:)\w+:\d{10,20}>"             # emojis
                           r"| ?<[@#](?=[\d&!])|(?<=[@#])[!&]?\d{10,20}>)")  # mentions
 
-CONVERSATION_CHANCE_ONEIN = 40
-MESSAGE_CHANCE_ONEIN = 10
+CONVERSATION_CHANCE_ONEIN = 30
+MESSAGE_CHANCE_ONEIN = 5
 CONVERSATION_DELAY = 60
 CONVERSATION_MIN = 4
 CONVERSATION_MAX = 15
@@ -127,7 +129,19 @@ class Simulator(commands.Cog):
             messages = self.message_count
             nodes = sum(count_nodes(x.model) for x in self.models.values())
             words = sum(count_words(x.model) for x in self.models.values())
-        await ctx.send(f"```yaml\nMessages: {messages:,}\nNodes: {nodes:,}\nWords: {words:,}```")
+
+        with open(DB_FILE + ".pickle", "w") as f:
+            pickle.dump(self.models, f, pickle.HIGHEST_PROTOCOL)
+
+        filesize_db = os.path.getsize(DB_FILE) / 1000000
+        filesize_pickle = os.path.getsize(DB_FILE + ".pickle") / 1000000
+
+        embed = discord.Embed(title="Simulator Stats", color=0x1DE417)
+        embed.add_field(name="Messages", value=f"{messages:,}", inline=True)
+        embed.add_field(name="Nodes", value=f"{nodes:,}", inline=True)
+        embed.add_field(name="Words", value=f"{words:,}", inline=True)
+        embed.add_field(name="Size", value=f"Database: {filesize_db} MB | Tree: {filesize_pickle} MB")
+        await ctx.send(embed=embed)
 
     @commands.command()
     async def simulatorcount(self, ctx: commands.Context, word: str, user: Optional[discord.Member] = None):
