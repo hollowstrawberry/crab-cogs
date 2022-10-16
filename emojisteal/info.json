@@ -1,0 +1,11 @@
+{
+    "author": ["OrchidAlloy"],
+    "min_bot_version": "3.0.0rc2",
+    "description": "Steals emojis sent by other people and optionally uploads them to your own server.",
+    "hidden": false,
+    "install_msg": "EmojiSteal installed",
+    "required_cogs": {},
+    "requirements": [],
+    "short": "EmojiSteal",
+    "tags": ["crab", "fun", "emoji" ]
+}

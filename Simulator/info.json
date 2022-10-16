@@ -1,11 +1,11 @@
 {
     "author": ["OrchidAlloy"],
     "min_bot_version": "3.0.0rc2",
-    "description": "Crab Simulator generates messages using crab member data",
+    "description": "Designates a channel that will generate automated messages mimicking your friend group.",
     "hidden": false,
-    "install_msg": "Crab Simulator installed",
+    "install_msg": "Simulator installed. Please read the cog description and configure it with [p]setsimulator",
     "required_cogs": {},
-    "requirements": [],
-    "short": "Crab Simulator",
-    "tags": ["crab", "fun" ]
+    "requirements": ["aiosqlite"],
+    "short": "Simulator",
+    "tags": ["crab", "fun", "simulator", "markov" ]
 }

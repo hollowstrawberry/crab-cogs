@@ -5,15 +5,10 @@ import re
 import aiosqlite as sql
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from redbot.core import commands
+from redbot.core import commands, Config
 from typing import *
 
-HOME_GUILD_ID = 930471371128061962
-INPUT_CHANNEL_IDS = [930471825668988959, 930471371128061965]
-OUTPUT_CHANNEL_ID = 930472235527983174
-ROLE_ID = 930489841421004830
-WEBHOOK_NAME = "CrabSimulator"
-
+WEBHOOK_NAME = "Simulator"
 DB_FILE = "messages.db"
 DB_TABLE_MESSAGES = "messages"
 COMMIT_SIZE = 1000
@@ -27,13 +22,14 @@ TOKENIZER = re.compile(r"( ?https?://[^\s>]+"                # URLs
 SUBTOKENIZER = re.compile(r"( ?https?://(?=[^\s>])|(?<=://)[^\s>]+"         # URLs
                           r"| ?<a?:(?=\w)|(?<=:)\w+:\d{10,20}>"             # emojis
                           r"| ?<[@#](?=[\d&!])|(?<=[@#])[!&]?\d{10,20}>)")  # mentions
-MESSAGE_CHANCE = 1/10
-CONVERSATION_CHANCE = 1/40
+
+CONVERSATION_CHANCE_ONEIN = 40
+MESSAGE_CHANCE_ONEIN = 10
 CONVERSATION_DELAY = 60
 CONVERSATION_MIN = 4
 CONVERSATION_MAX = 15
 
-EMOJI_LOADING = '<a:loading:410612084527595520>'
+EMOJI_LOADING = '⌛'
 EMOJI_SUCCESS = '✅'
 EMOJI_FAILURE = '❌'
 
@@ -58,7 +54,13 @@ class UserModel:
     model: dict
 
 class Simulator(commands.Cog):
+    """Designates a channel that will send automated messages mimicking your friend group.
+    You may feed it messages from designated channels and it will create Markov chains from them.
+    Inspired by /r/SubredditSimulator and similar concepts.
+    Will only support a single guild set by the bot owner."""
+
     def __init__(self, bot: commands.Bot):
+        super().__init__()
         self.bot = bot
         self.running = False
         self.feeding = False
@@ -70,6 +72,18 @@ class Simulator(commands.Cog):
         self.conversation_left = 0
         self.models: Dict[int, UserModel] = {}
         self.message_count = 0
+        self.message_chance = 1 / MESSAGE_CHANCE_ONEIN
+        self.conversation_chance = 1 / CONVERSATION_CHANCE_ONEIN
+        self.config = Config.get_conf(self, identifier=7369756174)
+        default_config = {
+            "home_guild_id": 0,
+            "input_channel_ids": [0],
+            "output_channel_id": 0,
+            "participant_role_id": 0,
+            "message_chance_onein": MESSAGE_CHANCE_ONEIN,
+            "conversation_chance_onein": CONVERSATION_CHANCE_ONEIN,
+        }
+        self.config.register_global(**default_config)
         if self.bot.is_ready():
             asyncio.create_task(self.on_ready())
 
@@ -78,26 +92,7 @@ class Simulator(commands.Cog):
         self.feeding = False
 
     @commands.command()
-    async def startsimulator(self, ctx: commands.Context):
-        """Start the simulator"""
-        if self.role not in ctx.author.roles:
-            await ctx.message.add_reaction(EMOJI_FAILURE)
-            return
-        if not self.running and not self.feeding:
-            asyncio.create_task(self.run_simulator())
-        await ctx.message.add_reaction(EMOJI_SUCCESS)
-
-    @commands.command()
-    async def stopsimulator(self, ctx: commands.Context):
-        """Stop the simulator"""
-        if self.role not in ctx.author.roles:
-            await ctx.message.add_reaction(EMOJI_FAILURE)
-            return
-        self.running = False
-        await ctx.message.add_reaction(EMOJI_SUCCESS)
-
-    @commands.command()
-    async def stats(self, ctx: commands.Context, user: Optional[discord.Member]):
+    async def simulatorstats(self, ctx: commands.Context, user: Optional[discord.Member] = None):
         """Statistics about the simulator, globally or for a user"""
         if self.role not in ctx.author.roles:
             await ctx.message.add_reaction(EMOJI_FAILURE)
@@ -135,7 +130,7 @@ class Simulator(commands.Cog):
         await ctx.send(f"```yaml\nMessages: {messages:,}\nNodes: {nodes:,}\nWords: {words:,}```")
 
     @commands.command()
-    async def count(self, ctx: commands.Context, word: str, user: Optional[discord.Member] = None):
+    async def simulatorcount(self, ctx: commands.Context, word: str, user: Optional[discord.Member] = None):
         """Count instances of a word, globally or for a user"""
         sword = ' ' + word
         if user:
@@ -152,8 +147,29 @@ class Simulator(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
+    async def startsimulator(self, ctx: commands.Context):
+        """Start the simulator in the configured channel."""
+        if self.role not in ctx.author.roles:
+            await ctx.message.add_reaction(EMOJI_FAILURE)
+            return
+        if not self.running and not self.feeding:
+            asyncio.create_task(self.on_ready())
+        await ctx.message.add_reaction(EMOJI_SUCCESS)
+
+    @commands.command()
+    @commands.is_owner()
+    async def stopsimulator(self, ctx: commands.Context):
+        """Stop the simulator."""
+        if self.role not in ctx.author.roles:
+            await ctx.message.add_reaction(EMOJI_FAILURE)
+            return
+        self.running = False
+        await ctx.message.add_reaction(EMOJI_SUCCESS)
+
+    @commands.command()
+    @commands.is_owner()
     async def feedsimulator(self, ctx: commands.Context, days: int):
-        """Feed past messages into the simulator"""
+        """Feed past messages into the simulator from the configured channels from scratch."""
         await ctx.message.add_reaction(EMOJI_LOADING)
         self.running = False
         self.feeding = True
@@ -188,11 +204,55 @@ class Simulator(commands.Cog):
         await ctx.message.remove_reaction(EMOJI_LOADING, self.bot.user)
         await ctx.message.add_reaction(EMOJI_SUCCESS)
 
+    @commands.group(invoke_without_command=True)
+    @commands.is_owner()
+    async def simulatorset(self, ctx: commands.Context):
+        """Set up your simulator."""
+        await ctx.send_help()
+
+    @simulatorset.command()
+    @commands.is_owner()
+    async def inputchannels(self, ctx: commands.Context, *channels: discord.TextChannel):
+        """Set a series of channels that will feed the simulator."""
+        await self.config.home_guild_id.set(ctx.guild.id)
+        await self.config.input_channel_ids.set([channel.id for channel in channels])
+        await ctx.react_quietly(EMOJI_SUCCESS)
+
+    @simulatorset.command()
+    @commands.is_owner()
+    async def outputchannel(self, ctx: commands.Context, channel: discord.TextChannel):
+        """Set the channel the simulator will run in."""
+        await self.config.output_channel_id.set(channel.id)
+        await ctx.react_quietly(EMOJI_SUCCESS)
+
+    @simulatorset.command()
+    @commands.is_owner()
+    async def participantrole(self, ctx: commands.Context, role: discord.Role):
+        """Members must have this role to participate in the simulator."""
+        await self.config.participant_role_id.set(role.id)
+        await ctx.react_quietly(EMOJI_SUCCESS)
+
+    @simulatorset.command()
+    @commands.is_owner()
+    async def conversationchance_onein(self, ctx: commands.Context, chance: int):
+        """The chance that the simulator will start a conversation every minute."""
+        await self.config.conversation_chance_onein.set(max(1, chance))
+        self.conversation_chance = 1 / max(1, chance)
+        await ctx.react_quietly(EMOJI_SUCCESS)
+
+    @simulatorset.command()
+    @commands.is_owner()
+    async def messagechance_onein(self, ctx: commands.Context, chance: int):
+        """The chance that the simulator will send a message every second during a conversation."""
+        await self.config.message_chance_onein.set(max(1, chance))
+        self.message_chance = 1 / max(1, chance)
+        await ctx.react_quietly(EMOJI_SUCCESS)
+
     @commands.Cog.listener()
     async def on_ready(self):
         if not self.running:
-            await self.setup_simulator()
-            await self.run_simulator()
+            if await self.setup_simulator():
+                await self.run_simulator()
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -265,12 +325,21 @@ class Simulator(commands.Cog):
     async def setup_simulator(self):
         """Set up the simulator"""
         try:
+            guild_id = await self.config.home_guild_id()
+            input_channel_ids = await self.config.input_channel_ids()
+            output_channel_id = await self.config.output_channel_id()
+            role_id = await self.config.participant_role_id()
+            self.message_chance = 1 / await self.config.message_chance_onein()
+            self.conversation_chance = 1 / await self.config.conversation_chance_onein()
+            if guild_id == 0 or 0 in input_channel_ids or output_channel_id == 0 or role_id == 0:
+                raise ValueError("You must first set the guild, role, input channels and output channel.")
+
             # discord entities
-            self.guild = self.bot.get_guild(HOME_GUILD_ID)
+            self.guild = self.bot.get_guild(guild_id)
             if self.guild is None: raise KeyError(self.guild.__name__)
-            self.role = self.guild.get_role(ROLE_ID)
-            self.input_channels = [self.guild.get_channel(i) for i in INPUT_CHANNEL_IDS]
-            self.output_channel = self.guild.get_channel(OUTPUT_CHANNEL_ID)
+            self.role = self.guild.get_role(role_id)
+            self.input_channels = [self.guild.get_channel(i) for i in input_channel_ids]
+            self.output_channel = self.guild.get_channel(output_channel_id)
             if self.role is None: raise KeyError(self.role.__name__)
             if any(c is None for c in self.input_channels): raise KeyError(self.input_channels.__name__)
             if self.output_channel is None: raise KeyError(self.output_channel.__name__)
@@ -288,8 +357,9 @@ class Simulator(commands.Cog):
                         self.add_message(row[1], row[2])
                         count += 1
             print(f"Model built with {count} messages")
+            return True
         except Exception as error:
-            print(f'Failed to set up crab simulator: {error}')
+            print(f'Failed to set up the simulator: {error}')
             await self.output_channel.send(f'Failed to set up: {error}')
 
     async def run_simulator(self):
@@ -297,7 +367,7 @@ class Simulator(commands.Cog):
         self.running = True
         while self.running and not self.feeding:
             if self.conversation_left:
-                if random.random() < MESSAGE_CHANCE:
+                if random.random() < self.message_chance:
                     try:
                         self.conversation_left -= 1
                         await self.send_generated_message()
@@ -309,7 +379,7 @@ class Simulator(commands.Cog):
                             pass
                 await asyncio.sleep(1)
             else:
-                if random.random() < CONVERSATION_CHANCE:
+                if random.random() < self.conversation_chance:
                     self.start_conversation()
                 for i in range(CONVERSATION_DELAY):
                     if self.conversation_left or not self.running:

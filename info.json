@@ -1,7 +1,7 @@
 {
 	"author" : ["OrchidAlloy"],
-	"install_msg" : "Crab installed",
-	"name" : "RedCrab",
-	"short" : "RedCrab",
-	"description" : "Cogs for the Crab friend group"
+	"install_msg" : "Thank you for installing my cogs. If you have any questions contact @Orchid#1999",
+	"name" : "crab-cogs",
+	"short" : "crab-cogs",
+	"description" : "Fun cogs originally created for a friend group called Crab."
 }

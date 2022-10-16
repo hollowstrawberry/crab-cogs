@@ -1,11 +1,11 @@
 {
     "author": ["OrchidAlloy"],
     "min_bot_version": "3.0.0rc2",
-    "description": "Fun commands for crabs",
+    "description": "Random fun commands for the crab friend group.",
     "hidden": false,
-    "install_msg": "Crab Fun installed",
+    "install_msg": "Crab cog installed.",
     "required_cogs": {},
-    "requirements": [],
+    "requirements": ["Pillow", "opencv_python_headless"],
     "short": "Crab",
-    "tags": ["crab", "fun" ]
+    "tags": ["crab", "fun"]
 }

@@ -1,37 +1,28 @@
 import os
-import io
 import re
 import json
 import hashlib
-import aiohttp
 import discord
 import cv2
 from PIL import Image
-from redbot.core import commands
+from redbot.core import commands, Config
 from typing import *
 
 DONUT_FILE = "donuts.json"
-REP_FILE = "reputation.json"
 IMG_DL = "download.png"
 IMG_OUT = "output.jpg"
 
-DONUTS = [
-    "<:bluedonut:879880267391705089>", "<:plaindonut:879880268431892560>",
-    "<:greendonut:879880268482232331>", "<:chocchocdonut:879880268658380840>",
-    "<:pinkdonut:879880268704538634>", "<:pinkdonut2:879880268704546826>",
-    "<:plaindonutfull:879892288870961262>", "<:whitedonut:879882533553184848>",
-    "<:chocdonut:879880269140725800>", "<:chocdonutfull:879892288111783966>",
-    "<:whitepinkdonut:879880269434339398>", "<:yellowdonut:879882288270303282>",
-    "<:pinkdonutfull:879892287839154268>", "<:chocplaindonut:879880269560152124>",
-    "<:whitechocdonut:879880269857976371>", "<:pinkplaindonut:879880269937647616>",
-    "<:whitewhitedonut:879892288241815663>", "<:reddonut:879880270105444413>",
-    "<:pinkpinkdonut:879880270168330260>", "<:pinkchocdonut:879880271829299220>"]
-
-
 class Crab(commands.Cog):
-    """Commands you might actually want to use"""
+    """Random fun commands for the crab friend group."""
+
     def __init__(self, bot):
+        super().__init__()
         self.bot = bot
+        self.config = Config.get_conf(self, identifier=6460697574)
+        default_config = {
+            "donuts": "🍩",
+        }
+        self.config.register_global(**default_config)
 
     @commands.command()
     async def rate(self, ctx: commands.Context, *, thing):
@@ -75,6 +66,13 @@ class Crab(commands.Cog):
         print(f'rate {thing} {rating}')
 
     @commands.command()
+    async def pp(self, ctx: commands.Context):
+        """Evaluates your pp"""
+        pp = ctx.author.id % 13
+        await ctx.send(f'Your pp size is {pp} inches')
+        print(f'pp {ctx.author.id} {pp}')
+
+    @commands.group(invoke_without_command=True)
     @commands.cooldown(rate=5, per=5, type=commands.BucketType.channel)
     async def donut(self, ctx: commands.Context):
         """Gives you donuts"""
@@ -89,62 +87,17 @@ class Crab(commands.Cog):
         with open(DONUT_FILE, 'w') as file:
             json.dump(data, file)
         hashed = abs(int(hashlib.sha256(bytes(count)).hexdigest(), 16)) + 11
-        donut = DONUTS[hashed % len(DONUTS)]
+        donuts = " ".split(await self.config.donuts())
+        donut = donuts[hashed % len(donuts)]
         await ctx.send(f'{count} {donut}')
         print(f'User {ctx.author.id} now has {count} donuts')
 
-    @staticmethod
-    async def get_emojis(ctx: commands.Context) -> Optional[List[Tuple[str]]]:
-        reference = ctx.message.reference
-        if not reference:
-            await ctx.send("Reply to a message with this command to steal an emoji")
-            return
-        message = reference.cached_message or await ctx.channel.fetch_message(reference.message_id)
-        if not message:
-            await ctx.send("I couldn't grab that message, sorry")
-            return
-        emojis = re.findall(r"<(a?):(\w+):(\d{10,20})>", message.content)
-        if not emojis:
-            await ctx.send("Can't find an emoji in that message")
-            return
-        return emojis
-
-    @commands.group()
-    async def steal(self, ctx: commands.Context):
-        """Steals emojis you reply to"""
-        if ctx.invoked_subcommand:
-            return
-        if not (emojis := await self.get_emojis(ctx)):
-            return
-        links = [f"https://cdn.discordapp.com/emojis/{m[2]}.{'gif' if m[0] else 'png'}" for m in emojis]
-        await ctx.send('\n'.join(links))
-
-    @steal.command()
-    async def upload(self, ctx: commands.Context, name=None):
-        """Steals emojis you reply to, and uploads it to the server"""
-        if not ctx.message.author.guild_permissions.manage_emojis:
-            await ctx.send("You don't have permission to manage emojis")
-            return
-        if not (emojis := await self.get_emojis(ctx)):
-            return
-        async with aiohttp.ClientSession() as session:
-            for emoji in emojis:
-                link = f"https://cdn.discordapp.com/emojis/{emoji[2]}.{'gif' if emoji[0] else 'png'}"
-                try:
-                    async with session.get(link) as resp:
-                        image = io.BytesIO(await resp.read()).read()
-                except Exception as error:
-                    await ctx.send(f"Couldn't download {emoji[1]}, {type(error).__name__}: {error}")
-                    return
-                try:
-                    added = await ctx.guild.create_custom_emoji(name=name or emoji[1], image=image)
-                except Exception as error:
-                    await ctx.send(f"Couldn't upload {emoji[1]}, {type(error).__name__}: {error}")
-                    return
-                try:
-                    await ctx.message.add_reaction(added)
-                except:
-                    pass
+    @donut.command()
+    @commands.is_owner()
+    async def set(self, ctx: commands.Context, *, emojis: str):
+        """Pass a list of emojis to use for the donut command, separated by spoces"""
+        await self.config.donuts.set(emojis)
+        await ctx.react_quietly("✅")
 
     @commands.command(aliases=["paintme", "paint", "drawme"])
     async def draw(self, ctx: commands.Context, user: Union[discord.User, str] = None):
@@ -170,10 +123,3 @@ class Crab(commands.Cog):
         os.remove(IMG_DL)
         os.remove(IMG_OUT)
         print(f"Successfully painted user {user.id}")
-
-    @commands.command()
-    async def pp(self, ctx: commands.Context):
-        """Evaluates your pp"""
-        pp = ctx.author.id % 13
-        await ctx.send(f'Your pp size is {pp} inches')
-        print(f'pp {ctx.author.id} {pp}')
