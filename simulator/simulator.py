@@ -89,8 +89,8 @@ class UserModel:
     model: dict
 
 class Simulator(commands.Cog):
-    """Designates a channel that will send automated messages mimicking your friends using Markov chains. They will have your friends' avatars and nicknames too! Inspired by /r/SubredditSimulator and similar concepts.
-    Please use the `simulatorinfo` command for more information.
+    """Designates a channel that will send automated messages mimicking your friends using Markov chains. They will have your friends' avatars and nicknames too!
+    Please use the `[p]simulatorinfo` command for more information.
     """
 
     def __init__(self, bot: commands.Bot):
