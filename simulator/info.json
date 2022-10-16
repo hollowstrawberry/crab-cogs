@@ -1,0 +1,11 @@
+{
+    "author": ["OrchidAlloy"],
+    "min_bot_version": "3.0.0rc2",
+    "description": "Designates a channel that will generate automated messages mimicking your friend group.",
+    "hidden": false,
+    "install_msg": "Simulator installed. Please read the cog description and configure it with [p]setsimulator",
+    "required_cogs": {},
+    "requirements": ["aiosqlite"],
+    "short": "Simulator",
+    "tags": ["crab", "fun", "simulator", "markov" ]
+}
