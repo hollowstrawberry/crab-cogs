@@ -162,22 +162,22 @@ class Simulator(commands.Cog):
                 messages = self.models[user.id].frequency
                 nodes = count_nodes(self.models[user.id].model)
                 words = count_words(self.models[user.id].model)
-                filesize = None
                 modelsize = getsize(self.models[user.id]) / 2 ** 20
+                filesize = None
             else:
                 messages = self.message_count
                 nodes = sum(count_nodes(x.model) for x in self.models.values())
                 words = sum(count_words(x.model) for x in self.models.values())
-                filesize = os.path.getsize(DB_FILE) / 2 ** 20
                 modelsize = getsize(self.models) / 2 ** 20
+                filesize = os.path.getsize(DB_FILE) / 2 ** 20
 
             embed = discord.Embed(title="Simulator Stats", color=COLOR)
             embed.add_field(name="Messages", value=f"{messages:,}", inline=True)
             embed.add_field(name="Nodes", value=f"{nodes:,}", inline=True)
             embed.add_field(name="Words", value=f"{words:,}", inline=True)
+            embed.add_field(name="Memory", value=f"{round(modelsize, 2)} MB", inline=True)
             if filesize:
                 embed.add_field(name="Database", value=f"{round(filesize, 2)} MB", inline=True)
-            embed.add_field(name="Memory", value=f"{round(modelsize, 2)} MB", inline=True)
             await ctx.send(embed=embed)
 
     @commands.command()
