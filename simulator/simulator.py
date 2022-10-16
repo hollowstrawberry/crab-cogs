@@ -129,6 +129,8 @@ class Simulator(commands.Cog):
         self.running = False
         self.feeding = False
 
+    # Commands
+
     @commands.command()
     async def simulatorstats(self, ctx: commands.Context, user: Optional[discord.Member] = None):
         """Statistics about the simulator, globally or for a user"""
@@ -249,6 +251,8 @@ class Simulator(commands.Cog):
         await ctx.message.remove_reaction(EMOJI_LOADING, self.bot.user)
         await ctx.message.add_reaction(EMOJI_SUCCESS)
 
+    # Settings
+
     @commands.group(invoke_without_command=True)
     @commands.is_owner()
     async def simulatorset(self, ctx: commands.Context):
@@ -308,6 +312,8 @@ class Simulator(commands.Cog):
         self.comment_chance = 1 / max(1, chance)
         await ctx.react_quietly(EMOJI_SUCCESS)
 
+    # Listeners
+
     @commands.Cog.listener()
     async def on_ready(self):
         if not self.running:
@@ -348,6 +354,8 @@ class Simulator(commands.Cog):
                 if self.add_message(message=edited):
                     await insert_message_db(edited, db)
                 await db.commit()
+
+    # Functions
 
     def add_message(self,
                     user_id: Optional[int] = None,
