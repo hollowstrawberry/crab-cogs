@@ -275,7 +275,7 @@ class Simulator(commands.Cog):
         async with self.config.blacklisted_users() as blacklisted_users:
             if ctx.author.id in blacklisted_users:
                 blacklisted_users.remove(ctx.author.id)
-                self.blacklisted_users.remove(ctx.author.id)
+                if ctx.author.id in self.blacklisted_users: self.blacklisted_users.remove(ctx.author.id)
                 await ctx.send("You will now be able to participate in the simulator again.")
             else:
                 blacklisted_users.append(ctx.author.id)
