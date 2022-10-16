@@ -3,7 +3,7 @@
     "min_bot_version": "3.0.0rc2",
     "description": "Steals emojis sent by other people and optionally uploads them to your own server.",
     "hidden": false,
-    "install_msg": "EmojiSteal installed",
+    "install_msg": "\uD83D\uDE36 `EmojiSteal installed. Load the cog, then try replying to a message with [p]steal or [p]steal upload [emojiname]`",
     "required_cogs": {},
     "requirements": [],
     "short": "EmojiSteal",

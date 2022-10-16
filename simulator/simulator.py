@@ -17,20 +17,24 @@ WEBHOOK_NAME = "Simulator"
 DB_FILE = "messages.db"
 DB_TABLE_MESSAGES = "messages"
 COMMIT_SIZE = 1000
+COLOR = 0x1DE417
 
 CHAIN_END = "🔚"
-TOKENIZER = re.compile(r"( ?https?://[^\s>]+"                # URLs
-                       r"| ?<(@|#|@!|@&|a?:\w+:)\d{10,20}>"  # mentions, emojis
-                       r"| ?@everyone| ?@here"               # pings
-                       r"| ?[\w'-]+"                         # words
-                       r"|[^\w<]+|<)")                       # symbols
-SUBTOKENIZER = re.compile(r"( ?https?://(?=[^\s>])|(?<=://)[^\s>]+"         # URLs
-                          r"| ?<a?:(?=\w)|(?<=:)\w+:\d{10,20}>"             # emojis
-                          r"| ?<[@#](?=[\d&!])|(?<=[@#])[!&]?\d{10,20}>)")  # mentions
+TOKENIZER = re.compile(
+    r"( ?https?://[^\s>]+"                # URLs
+    r"| ?<(@|#|@!|@&|a?:\w+:)\d{10,20}>"  # mentions, emojis
+    r"| ?@everyone| ?@here"               # pings
+    r"| ?[\w'-]+"                         # words
+    r"|[^\w<]+|<)"                        # symbols
+)
+SUBTOKENIZER = re.compile(
+    r"( ?https?://(?=[^\s>])|(?<=://)[^\s>]+"         # URLs
+    r"| ?<a?:(?=\w)|(?<=:)\w+:\d{10,20}>"             # emojis
+    r"| ?<[@#](?=[\d&!])|(?<=[@#])[!&]?\d{10,20}>)"   # mentions
+)
 
-CONVERSATION_CHANCE_ONEIN = 30
-MESSAGE_CHANCE_ONEIN = 5
-CONVERSATION_DELAY = 60
+COMMENT_DELAY = 5
+CONVERSATION_DELAY = 30
 CONVERSATION_MIN = 4
 CONVERSATION_MAX = 15
 
@@ -85,10 +89,13 @@ class UserModel:
     model: dict
 
 class Simulator(commands.Cog):
-    """Designates a channel that will send automated messages mimicking your friend group.
-    You may feed it messages from designated channels and it will create Markov chains from them.
+    """Designates a channel that will send automated messages mimicking your friends using Markov chains.
+    It will feed from messages from configured channels, and only from users with the configured role. Will only support a single guild set by the bot owner.
+    After configuring it with `[p]simulatorset`, you may manually feed past messages using `[p]feedsimulator [days]`. This takes around 1 minute per 5,000 messages, so be patient! When the feeding is finished or interrupted, it will send the summary in the same channel.
+    While the simulator is running, a conversation will occur every so many minutes, during which comments will be sent every so many seconds. Trying to type in the output channel will delete the message and trigger a conversation.
+
     Inspired by /r/SubredditSimulator and similar concepts.
-    Will only support a single guild set by the bot owner."""
+    """
 
     def __init__(self, bot: commands.Bot):
         super().__init__()
@@ -103,16 +110,16 @@ class Simulator(commands.Cog):
         self.conversation_left = 0
         self.models: Dict[int, UserModel] = {}
         self.message_count = 0
-        self.message_chance = 1 / MESSAGE_CHANCE_ONEIN
-        self.conversation_chance = 1 / CONVERSATION_CHANCE_ONEIN
+        self.comment_chance = 1 / COMMENT_DELAY
+        self.conversation_chance = 1 / CONVERSATION_DELAY
         self.config = Config.get_conf(self, identifier=7369756174)
         default_config = {
             "home_guild_id": 0,
             "input_channel_ids": [0],
             "output_channel_id": 0,
             "participant_role_id": 0,
-            "message_chance_onein": MESSAGE_CHANCE_ONEIN,
-            "conversation_chance_onein": CONVERSATION_CHANCE_ONEIN,
+            "comment_delay": COMMENT_DELAY,
+            "conversation_delay": CONVERSATION_DELAY,
         }
         self.config.register_global(**default_config)
         if self.bot.is_ready():
@@ -125,49 +132,53 @@ class Simulator(commands.Cog):
     @commands.command()
     async def simulatorstats(self, ctx: commands.Context, user: Optional[discord.Member] = None):
         """Statistics about the simulator, globally or for a user"""
-        if self.role not in ctx.author.roles:
-            await ctx.message.add_reaction(EMOJI_FAILURE)
-            return
-
-        def count_nodes(tree: dict) -> int:
-            count = 0
-            for node in tree.values():
-                if isinstance(node, dict):
-                    count += count_nodes(node) + 1
-                else:
-                    count += 1
-            return count
-
-        def count_words(tree: dict) -> int:
-            count = 0
-            for node in tree.values():
-                if isinstance(node, dict):
-                    count += count_words(node)
-                elif isinstance(node, int):
-                    count += node
-            return count
-
-        if user:
-            if user.id not in self.models:
-                await ctx.send("User not found")
+        async with ctx.typing():
+            if self.role not in ctx.author.roles:
+                await ctx.message.add_reaction(EMOJI_FAILURE)
                 return
-            messages = self.models[user.id].frequency
-            nodes = count_nodes(self.models[user.id].model)
-            words = count_words(self.models[user.id].model)
-        else:
-            messages = self.message_count
-            nodes = sum(count_nodes(x.model) for x in self.models.values())
-            words = sum(count_words(x.model) for x in self.models.values())
 
-        filesize = os.path.getsize(DB_FILE) / 1000000
-        objectsize = getsize(self.models) / 1000000
+            def count_nodes(tree: dict) -> int:
+                count = 0
+                for node in tree.values():
+                    if isinstance(node, dict):
+                        count += count_nodes(node) + 1
+                    else:
+                        count += 1
+                return count
 
-        embed = discord.Embed(title="Simulator Stats", color=0x1DE417)
-        embed.add_field(name="Messages", value=f"{messages:,}", inline=True)
-        embed.add_field(name="Nodes", value=f"{nodes:,}", inline=True)
-        embed.add_field(name="Words", value=f"{words:,}", inline=True)
-        embed.add_field(name="Size", value=f"{round(filesize, 2)} MB (Database), {round(objectsize, 2)} MB (Model)")
-        await ctx.send(embed=embed)
+            def count_words(tree: dict) -> int:
+                count = 0
+                for node in tree.values():
+                    if isinstance(node, dict):
+                        count += count_words(node)
+                    elif isinstance(node, int):
+                        count += node
+                return count
+
+            if user:
+                if user.id not in self.models:
+                    await ctx.send("User not found")
+                    return
+                messages = self.models[user.id].frequency
+                nodes = count_nodes(self.models[user.id].model)
+                words = count_words(self.models[user.id].model)
+                filesize = None
+                modelsize = getsize(self.models[user.id]) / 2 ** 20
+            else:
+                messages = self.message_count
+                nodes = sum(count_nodes(x.model) for x in self.models.values())
+                words = sum(count_words(x.model) for x in self.models.values())
+                filesize = os.path.getsize(DB_FILE) / 2 ** 20
+                modelsize = getsize(self.models) / 2 ** 20
+
+            embed = discord.Embed(title="Simulator Stats", color=COLOR)
+            embed.add_field(name="Messages", value=f"{messages:,}", inline=True)
+            embed.add_field(name="Nodes", value=f"{nodes:,}", inline=True)
+            embed.add_field(name="Words", value=f"{words:,}", inline=True)
+            if filesize:
+                embed.add_field(name="Database", value=f"{round(filesize, 2)} MB", inline=True)
+            embed.add_field(name="Memory", value=f"{round(modelsize, 2)} MB", inline=True)
+            await ctx.send(embed=embed)
 
     @commands.command()
     async def simulatorcount(self, ctx: commands.Context, word: str, user: Optional[discord.Member] = None):
@@ -251,6 +262,17 @@ class Simulator(commands.Cog):
         await ctx.send_help()
 
     @simulatorset.command()
+    async def showsettings(self, ctx: commands.Context):
+        """Show the current simulator settings"""
+        embed = discord.Embed(title="Simulator Settings", color=COLOR)
+        embed.add_field(name="Input Role", value=self.role.mention if self.role else "None", inline=True)
+        embed.add_field(name="Input Channels", value=' '.join(ch.mention if ch else '' for ch in self.input_channels) or "None", inline=True)
+        embed.add_field(name="Output Channel", value=self.output_channel.mention if self.output_channel else "None", inline=True)
+        embed.add_field(name="Time between conversations", value=f"~{round(1 / self.conversation_chance)} minutes", inline=True)
+        embed.add_field(name="Time between comments", value=f"~{round(1 / self.comment_chance)} seconds", inline=True)
+        await ctx.send(embed=embed)
+
+    @simulatorset.command()
     @commands.is_owner()
     async def inputchannels(self, ctx: commands.Context, *channels: discord.TextChannel):
         """Set a series of channels that will feed the simulator."""
@@ -270,7 +292,7 @@ class Simulator(commands.Cog):
 
     @simulatorset.command()
     @commands.is_owner()
-    async def participantrole(self, ctx: commands.Context, role: discord.Role):
+    async def inputrole(self, ctx: commands.Context, role: discord.Role):
         """Members must have this role to participate in the simulator."""
         await self.config.participant_role_id.set(role.id)
         self.role = role
@@ -278,18 +300,18 @@ class Simulator(commands.Cog):
 
     @simulatorset.command()
     @commands.is_owner()
-    async def conversationchance_onein(self, ctx: commands.Context, chance: int):
-        """The chance that the simulator will start a conversation every minute."""
-        await self.config.conversation_chance_onein.set(max(1, chance))
-        self.conversation_chance = 1 / max(1, chance)
+    async def conversationdelay(self, ctx: commands.Context, minutes: int):
+        """Approximately how many minutes between output conversations (random)"""
+        await self.config.conversation_delay.set(max(1, minutes))
+        self.conversation_chance = 1 / max(1, minutes)
         await ctx.react_quietly(EMOJI_SUCCESS)
 
     @simulatorset.command()
     @commands.is_owner()
-    async def messagechance_onein(self, ctx: commands.Context, chance: int):
-        """The chance that the simulator will send a message every second during a conversation."""
-        await self.config.message_chance_onein.set(max(1, chance))
-        self.message_chance = 1 / max(1, chance)
+    async def commentdelay(self, ctx: commands.Context, chance: int):
+        """Approximately how many minutes between output conversations (random)"""
+        await self.config.comment_delay.set(max(1, chance))
+        self.comment_chance = 1 / max(1, chance)
         await ctx.react_quietly(EMOJI_SUCCESS)
 
     @commands.Cog.listener()
@@ -369,14 +391,15 @@ class Simulator(commands.Cog):
     async def setup_simulator(self):
         """Set up the simulator"""
         try:
+            # config
             guild_id = await self.config.home_guild_id()
             input_channel_ids = await self.config.input_channel_ids()
             output_channel_id = await self.config.output_channel_id()
             role_id = await self.config.participant_role_id()
-            self.message_chance = 1 / await self.config.message_chance_onein()
-            self.conversation_chance = 1 / await self.config.conversation_chance_onein()
+            self.comment_chance = 1 / await self.config.comment_delay()
+            self.conversation_chance = 1 / await self.config.conversation_delay()
             if guild_id == 0 or 0 in input_channel_ids or output_channel_id == 0 or role_id == 0:
-                raise ValueError("You must first set the guild, role, input channels and output channel.")
+                raise ValueError("You must first set the input role, input channels and output channel. They must be in the same guild.")
 
             # discord entities
             self.guild = self.bot.get_guild(guild_id)
@@ -411,7 +434,7 @@ class Simulator(commands.Cog):
         self.running = True
         while self.running and not self.feeding:
             if self.conversation_left:
-                if random.random() < self.message_chance:
+                if random.random() < self.comment_chance:
                     try:
                         self.conversation_left -= 1
                         await self.send_generated_message()
@@ -425,7 +448,7 @@ class Simulator(commands.Cog):
             else:
                 if random.random() < self.conversation_chance:
                     self.start_conversation()
-                for i in range(CONVERSATION_DELAY):
+                for i in range(60):
                     if self.conversation_left or not self.running:
                         break
                     await asyncio.sleep(1)
