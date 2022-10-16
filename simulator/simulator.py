@@ -89,11 +89,8 @@ class UserModel:
     model: dict
 
 class Simulator(commands.Cog):
-    """**Designates a channel that will send automated messages mimicking your friends using Markov chains. They will have your friends' avatars and nicknames too! Inspired by /r/SubredditSimulator and similar concepts.
-    It will learn from messages from configured channels, and only from users with the configured role. Will only support a single guild set by the bot owner.
-    After configuring it with `[p]simulatorset`, you may manually feed past messages using `[p]feedsimulator [days]`. This takes around 1 minute per 5,000 messages, so be patient! When the feeding is finished or interrupted, it will send the summary in the same channel.
-    While the simulator is running, a conversation will occur every so many minutes, during which comments will be sent every so many seconds. Trying to type in the output channel will delete the message and trigger a conversation.
-    A user may permanently exclude themselves from their messages being read and analyzed by using the `[p]dontsimulateme` command. This will also delete all their data.
+    """Designates a channel that will send automated messages mimicking your friends using Markov chains. They will have your friends' avatars and nicknames too! Inspired by /r/SubredditSimulator and similar concepts.
+    Please use the `simulatorinfo` command for more information.
     """
 
     def __init__(self, bot: commands.Bot):
@@ -131,6 +128,25 @@ class Simulator(commands.Cog):
         self.feeding = False
 
     # Commands
+
+    @commands.command()
+    async def simulatorinfo(self, ctx: commands.Context):
+        embed = discord.Embed(title="Simulator", color=COLOR)
+        embed.description = \
+            f"With this cog you may designate a channel that will send automated messages mimicking your friends " \
+            f"using Markov chains. They will have your friends' avatars and nicknames too! " \
+            f"Inspired by /r/SubredditSimulator and similar concepts.\n" \
+            f"It will learn from messages from configured channels, and only from users with the configured role. " \
+            f"Will only support a single guild set by the bot owner.\n" \
+            f"After configuring it with `{ctx.prefix}simulatorset`, you may manually feed past messages using " \
+            f"`{ctx.prefix}feedsimulator [days]`. This takes around 1 minute per 5,000 messages, so be patient! " \
+            f"When the feeding is finished or interrupted, it will send the summary in the same channel." \
+            f"While the simulator is running, a conversation will occur every so many minutes, during which " \
+            f"comments will be sent every so many seconds. Trying to type in the output channel will delete the " \
+            f"message and trigger a conversation.\n" \
+            f"A user may permanently exclude themselves from their messages being read and analyzed by using the " \
+            f"`{ctx.prefix}dontsimulateme` command. This will also delete all their data."
+        await ctx.send(embed=embed)
 
     @commands.command()
     async def simulatorstats(self, ctx: commands.Context, user: Optional[discord.Member] = None):

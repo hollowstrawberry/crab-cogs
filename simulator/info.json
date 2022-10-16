@@ -3,7 +3,7 @@
     "min_bot_version": "3.0.0rc2",
     "description": "Designates a channel that will generate automated messages mimicking your friends using Markov chains.",
     "hidden": false,
-    "install_msg": "\uD83C\uDF10 `Simulator installed. Please read the cog description and configure it with [p]setsimulator`",
+    "install_msg": "\uD83C\uDF10 `Simulator installed. Please read the [p]simulatorinfo` for help and important information.",
     "required_cogs": {},
     "requirements": ["aiosqlite"],
     "short": "Simulator",
