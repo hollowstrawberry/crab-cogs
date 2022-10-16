@@ -5,7 +5,7 @@
     "hidden": false,
     "install_msg": "Simulator installed. Please read the cog description and configure it with [p]setsimulator",
     "required_cogs": {},
-    "requirements": ["aiosqlite", "pympler"],
+    "requirements": ["aiosqlite"],
     "short": "Simulator",
     "tags": ["crab", "fun", "simulator", "markov"]
 }

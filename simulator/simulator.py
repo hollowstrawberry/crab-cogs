@@ -3,12 +3,15 @@ import asyncio
 import random
 import re
 import os
+import sys
 import aiosqlite as sql
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from pympler.asizeof import asizeof
+from numbers import Number
+from collections import deque
+from collections.abc import Set, Mapping
 from redbot.core import commands, Config
-from typing import *
+from typing import Optional, Dict, List
 
 WEBHOOK_NAME = "Simulator"
 DB_FILE = "messages.db"
@@ -35,6 +38,8 @@ EMOJI_LOADING = '⌛'
 EMOJI_SUCCESS = '✅'
 EMOJI_FAILURE = '❌'
 
+ZERO_DEPTH_BASES = (str, bytes, Number, range, bytearray)
+
 def format_message(message: discord.Message) -> str:
     content = message.content
     if message.attachments and message.attachments[0].url:
@@ -48,6 +53,30 @@ async def insert_message_db(message: discord.Message, db: sql.Connection):
 async def delete_message_db(message: discord.Message, db: sql.Connection):
     await db.execute(f'DELETE FROM {DB_TABLE_MESSAGES} WHERE id=? LIMIT 1;',
                      [message.id])
+
+def getsize(obj_0):
+    """Recursively iterate to sum size of object & members.
+    https://stackoverflow.com/a/30316760"""
+    _seen_ids = set()
+    def inner(obj):
+        obj_id = id(obj)
+        if obj_id in _seen_ids:
+            return 0
+        _seen_ids.add(obj_id)
+        size = sys.getsizeof(obj)
+        if isinstance(obj, ZERO_DEPTH_BASES):
+            pass  # bypass remaining control flow and return
+        elif isinstance(obj, (tuple, list, Set, deque)):
+            size += sum(inner(i) for i in obj)
+        elif isinstance(obj, Mapping) or hasattr(obj, 'items'):
+            size += sum(inner(k) + inner(v) for k, v in getattr(obj, 'items')())
+        # Check for custom object instances - may subclass above too
+        if hasattr(obj, '__dict__'):
+            size += inner(vars(obj))
+        if hasattr(obj, '__slots__'):  # can have __slots__ with __dict__
+            size += sum(inner(getattr(obj, s)) for s in obj.__slots__ if hasattr(obj, s))
+        return size
+    return inner(obj_0)
 
 @dataclass
 class UserModel:
@@ -131,7 +160,7 @@ class Simulator(commands.Cog):
             words = sum(count_words(x.model) for x in self.models.values())
 
         filesize = os.path.getsize(DB_FILE) / 1000000
-        objectsize = asizeof(self.models) / 1000000
+        objectsize = getsize(self.models) / 1000000
 
         embed = discord.Embed(title="Simulator Stats", color=0x1DE417)
         embed.add_field(name="Messages", value=f"{messages:,}", inline=True)
