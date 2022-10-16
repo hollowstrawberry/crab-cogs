@@ -17,6 +17,8 @@ After configuring it with `[p]simulatorset`, you may manually feed past messages
 
 While the simulator is running, a conversation will occur every so many minutes, during which comments will be sent every so many seconds. Trying to type in the output channel will delete the message and trigger a conversation.
 
+A user may permanently exclude themselves from their messages being read and analyzed by using the `[p]dontsimulateme` command. This will also delete all their data.
+
 Inspired by /r/SubredditSimulator and similar concepts.
 
 ![simulator](https://media.discordapp.net/attachments/541768631445618689/1031334469904384100/unknown.png)

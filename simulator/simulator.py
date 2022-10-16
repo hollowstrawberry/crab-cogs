@@ -89,12 +89,11 @@ class UserModel:
     model: dict
 
 class Simulator(commands.Cog):
-    """Designates a channel that will send automated messages mimicking your friends using Markov chains. They will have your friends' avatars and nicknames too!
+    """**Designates a channel that will send automated messages mimicking your friends using Markov chains. They will have your friends' avatars and nicknames too! Inspired by /r/SubredditSimulator and similar concepts.
     It will learn from messages from configured channels, and only from users with the configured role. Will only support a single guild set by the bot owner.
     After configuring it with `[p]simulatorset`, you may manually feed past messages using `[p]feedsimulator [days]`. This takes around 1 minute per 5,000 messages, so be patient! When the feeding is finished or interrupted, it will send the summary in the same channel.
     While the simulator is running, a conversation will occur every so many minutes, during which comments will be sent every so many seconds. Trying to type in the output channel will delete the message and trigger a conversation.
-
-    Inspired by /r/SubredditSimulator and similar concepts.
+    A user may permanently exclude themselves from their messages being read and analyzed by using the `[p]dontsimulateme` command. This will also delete all their data.
     """
 
     def __init__(self, bot: commands.Bot):
@@ -107,6 +106,7 @@ class Simulator(commands.Cog):
         self.output_channel: Optional[discord.TextChannel] = None
         self.role: Optional[discord.Role] = None
         self.webhook: Optional[discord.Webhook] = None
+        self.blacklisted_users: List[int] = []
         self.conversation_left = 0
         self.models: Dict[int, UserModel] = {}
         self.message_count = 0
@@ -118,6 +118,7 @@ class Simulator(commands.Cog):
             "input_channel_ids": [0],
             "output_channel_id": 0,
             "participant_role_id": 0,
+            "blacklisted_users": [],
             "comment_delay": COMMENT_DELAY,
             "conversation_delay": CONVERSATION_DELAY,
         }
@@ -251,6 +252,23 @@ class Simulator(commands.Cog):
         await ctx.message.remove_reaction(EMOJI_LOADING, self.bot.user)
         await ctx.message.add_reaction(EMOJI_SUCCESS)
 
+    @commands.command()
+    async def dontsimulateme(self, ctx: commands.Context):
+        """Excludes you from your messages being read and analyzed by the simulator."""
+        async with self.config.blacklisted_users() as blacklisted_users:
+            if ctx.author.id in blacklisted_users:
+                blacklisted_users.remove(ctx.author.id)
+                self.blacklisted_users.remove(ctx.author.id)
+                await ctx.send("You will now be able to participate in the simulator again.")
+            else:
+                blacklisted_users.append(ctx.author.id)
+                self.blacklisted_users.append(ctx.author.id)
+                self.models.pop(ctx.author.id, None)
+                async with sql.connect(DB_FILE) as db:
+                    await db.execute(f"DELETE FROM {DB_TABLE_MESSAGES} WHERE user_id = ?", ctx.author.id)
+                    await db.commit()
+                await ctx.send("All your simulator data has been erased and your messages won't be analyzed anymore.")
+
     # Settings
 
     @commands.group(invoke_without_command=True)
@@ -323,13 +341,12 @@ class Simulator(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         """Processes new incoming messages"""
-        if message.channel in self.input_channels and not message.author.bot and self.role in message.author.roles:
+        if self.is_valid_input_message(message):
             if self.add_message(message=message):
                 async with sql.connect(DB_FILE) as db:
                     await insert_message_db(message, db)
                     await db.commit()
-        elif message.channel == self.output_channel and not message.author.bot \
-                and message.type == discord.MessageType.default:
+        elif message.channel == self.output_channel and not message.author.bot and message.type == discord.MessageType.default:
             try:
                 await message.delete()
             except:
@@ -340,7 +357,7 @@ class Simulator(commands.Cog):
     @commands.Cog.listener()
     async def on_message_delete(self, message: discord.Message):
         """Processes deleted messages"""
-        if message.channel in self.input_channels and not message.author.bot and self.role in message.author.roles:
+        if self.is_valid_input_message(message):
             async with sql.connect(DB_FILE) as db:
                 await delete_message_db(message, db)
                 await db.commit()
@@ -348,7 +365,7 @@ class Simulator(commands.Cog):
     @commands.Cog.listener()
     async def on_message_edit(self, message: discord.Message, edited: discord.Message):
         """Processes edited messages"""
-        if message.channel in self.input_channels and not message.author.bot and self.role in message.author.roles:
+        if self.is_valid_input_message(message):
             async with sql.connect(DB_FILE) as db:
                 await delete_message_db(message, db)
                 if self.add_message(message=edited):
@@ -356,6 +373,10 @@ class Simulator(commands.Cog):
                 await db.commit()
 
     # Functions
+
+    def is_valid_input_message(self, message: discord.Message) -> bool:
+        return message.channel in self.input_channels and not message.author.bot \
+               and self.role in message.author.roles and message.author.id not in self.blacklisted_users
 
     def add_message(self,
                     user_id: Optional[int] = None,
@@ -461,7 +482,7 @@ class Simulator(commands.Cog):
     async def send_generated_message(self):
         user_id, content = self.generate_message()
         user = self.guild.get_member(int(user_id))
-        if user is None:
+        if user is None or user.id in self.blacklisted_users:
             return
         await self.webhook.send(username=user.display_name,
                                 avatar_url=user.avatar_url,
