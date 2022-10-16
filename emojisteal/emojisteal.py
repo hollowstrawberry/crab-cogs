@@ -27,11 +27,9 @@ class EmojiSteal(commands.Cog):
             return
         return emojis
 
-    @commands.group()
+    @commands.group(invoke_without_command=True)
     async def steal(self, ctx: commands.Context):
         """Steals the emojis of the message you reply to."""
-        if ctx.invoked_subcommand:
-            return
         if not (emojis := await self.get_emojis(ctx)):
             return
         links = [f"https://cdn.discordapp.com/emojis/{m[2]}.{'gif' if m[0] else 'png'}" for m in emojis]
