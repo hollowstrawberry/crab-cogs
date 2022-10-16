@@ -282,7 +282,7 @@ class Simulator(commands.Cog):
                 self.blacklisted_users.append(ctx.author.id)
                 self.models.pop(ctx.author.id, None)
                 async with sql.connect(DB_FILE) as db:
-                    await db.execute(f"DELETE FROM {DB_TABLE_MESSAGES} WHERE user_id = ?", ctx.author.id)
+                    await db.execute(f"DELETE FROM {DB_TABLE_MESSAGES} WHERE user_id = ?", [ctx.author.id])
                     await db.commit()
                 await ctx.send("All your simulator data has been erased and your messages won't be analyzed anymore.")
 
