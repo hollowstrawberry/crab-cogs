@@ -120,14 +120,14 @@ class Crab(commands.Cog):
         # load image
         await user.avatar_url.save(cog_data_path(self).joinpath(IMG_DL))
         Image.open(cog_data_path(self).joinpath(IMG_DL)).convert('RGB').resize((256, 256), Image.BICUBIC).save(cog_data_path(self).joinpath(IMG_OUT))
-        img = cv2.imread(cog_data_path(self).joinpath(IMG_OUT), cv2.IMREAD_COLOR)
+        img = cv2.imread(str(cog_data_path(self).joinpath(IMG_OUT)), cv2.IMREAD_COLOR)
         # apply morphology open to smooth the outline
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (8, 8))
         morph = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
         # brighten dark regions
         result = cv2.normalize(morph, None, 20, 255, cv2.NORM_MINMAX)
         # save and send
-        cv2.imwrite(cog_data_path(self).joinpath(IMG_OUT), result)
+        cv2.imwrite(str(cog_data_path(self).joinpath(IMG_OUT)), result)
         await ctx.send(file=discord.File(str(cog_data_path(self).joinpath(IMG_OUT))))
         os.remove(cog_data_path(self).joinpath(IMG_DL))
         os.remove(cog_data_path(self).joinpath(IMG_OUT))
