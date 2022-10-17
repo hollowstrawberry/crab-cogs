@@ -6,6 +6,7 @@ import discord
 import cv2
 from PIL import Image
 from redbot.core import commands, Config
+from redbot.core.data_manager import cog_data_path
 from typing import *
 
 DONUT_FILE = "donuts.json"
@@ -77,14 +78,14 @@ class Crab(commands.Cog):
     async def donut(self, ctx: commands.Context):
         """Gives you donuts"""
         try:
-            with open(DONUT_FILE, 'r') as file:
+            with open(cog_data_path(self).joinpath(DONUT_FILE), 'r') as file:
                 data = json.load(file)
         except FileNotFoundError:
-            with open(DONUT_FILE, 'w+'):
+            with open(cog_data_path(self).joinpath(DONUT_FILE), 'w+'):
                 data = {}
         count = data.get(str(ctx.author.id), 0) + 1
         data[str(ctx.author.id)] = count
-        with open(DONUT_FILE, 'w') as file:
+        with open(cog_data_path(self).joinpath(DONUT_FILE), 'w') as file:
             json.dump(data, file)
         hashed = abs(int(hashlib.sha256(bytes(count)).hexdigest(), 16)) + 11
         donuts = (await self.config.donuts()).split(' ')
@@ -109,8 +110,8 @@ class Crab(commands.Cog):
         elif isinstance(user, str):
             return await ctx.send("who?")
         # load image
-        await user.avatar_url.save(IMG_DL)
-        Image.open(IMG_DL).convert('RGB').resize((256, 256), Image.BICUBIC).save(IMG_OUT)
+        await user.avatar_url.save(cog_data_path(self).joinpath(IMG_DL))
+        Image.open(cog_data_path(self).joinpath(IMG_DL)).convert('RGB').resize((256, 256), Image.BICUBIC).save(cog_data_path(self).joinpath(IMG_OUT))
         img = cv2.imread(IMG_OUT, cv2.IMREAD_COLOR)
         # apply morphology open to smooth the outline
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (8, 8))
@@ -119,7 +120,7 @@ class Crab(commands.Cog):
         result = cv2.normalize(morph, None, 20, 255, cv2.NORM_MINMAX)
         # save and send
         cv2.imwrite(IMG_OUT, result)
-        await ctx.send(file=discord.File(IMG_OUT))
-        os.remove(IMG_DL)
-        os.remove(IMG_OUT)
+        await ctx.send(file=discord.File(str(cog_data_path(self).joinpath(IMG_OUT))))
+        os.remove(cog_data_path(self).joinpath(IMG_DL))
+        os.remove(cog_data_path(self).joinpath(IMG_OUT))
         print(f"Successfully painted user {user.id}")

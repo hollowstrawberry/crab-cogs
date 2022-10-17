@@ -6,6 +6,6 @@
     "install_msg": "\uD83E\uDD80 `Crab cog installed.`",
     "required_cogs": {},
     "requirements": ["Pillow", "opencv_python_headless"],
-    "short": "Crab",
+    "short": "Random fun commands.",
     "tags": ["crab", "fun"]
 }

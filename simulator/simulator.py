@@ -11,6 +11,7 @@ from numbers import Number
 from collections import deque
 from collections.abc import Set, Mapping
 from redbot.core import commands, Config
+from redbot.core.data_manager import cog_data_path
 from typing import Optional, Dict, List, Tuple
 
 WEBHOOK_NAME = "Simulator"
@@ -189,7 +190,7 @@ class Simulator(commands.Cog):
                 nodes = sum(count_nodes(x.model) for x in self.models.values())
                 words = sum(count_words(x.model) for x in self.models.values())
                 modelsize = getsize(self.models) / 2 ** 20
-                filesize = os.path.getsize(DB_FILE) / 2 ** 20
+                filesize = os.path.getsize(cog_data_path(self).joinpath(DB_FILE)) / 2 ** 20
 
             embed = discord.Embed(title="Simulator Stats", color=COLOR)
             embed.add_field(name="Messages", value=f"{messages:,}", inline=True)
@@ -243,7 +244,7 @@ class Simulator(commands.Cog):
             user.model = {}
             user.frequency = 0
         try:
-            async with sql.connect(DB_FILE) as db:
+            async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
                 await db.execute(f"DELETE FROM {DB_TABLE_MESSAGES}")
                 await db.commit()
                 start_date = datetime.now() - timedelta(days=days)
@@ -281,7 +282,7 @@ class Simulator(commands.Cog):
                 blacklisted_users.append(ctx.author.id)
                 self.blacklisted_users.append(ctx.author.id)
                 self.models.pop(ctx.author.id, None)
-                async with sql.connect(DB_FILE) as db:
+                async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
                     await db.execute(f"DELETE FROM {DB_TABLE_MESSAGES} WHERE user_id = ?", [ctx.author.id])
                     await db.commit()
                 await ctx.send("All your simulator data has been erased and your messages won't be analyzed anymore.")
@@ -360,7 +361,7 @@ class Simulator(commands.Cog):
         """Processes new incoming messages"""
         if self.is_valid_input_message(message):
             if self.add_message(message=message):
-                async with sql.connect(DB_FILE) as db:
+                async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
                     await insert_message_db(message, db)
                     await db.commit()
         elif message.channel == self.output_channel and not message.author.bot and message.type == discord.MessageType.default:
@@ -375,7 +376,7 @@ class Simulator(commands.Cog):
     async def on_message_delete(self, message: discord.Message):
         """Processes deleted messages"""
         if self.is_valid_input_message(message):
-            async with sql.connect(DB_FILE) as db:
+            async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
                 await delete_message_db(message, db)
                 await db.commit()
 
@@ -383,7 +384,7 @@ class Simulator(commands.Cog):
     async def on_message_edit(self, message: discord.Message, edited: discord.Message):
         """Processes edited messages"""
         if self.is_valid_input_message(message):
-            async with sql.connect(DB_FILE) as db:
+            async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
                 await delete_message_db(message, db)
                 if self.add_message(message=edited):
                     await insert_message_db(edited, db)
@@ -455,7 +456,7 @@ class Simulator(commands.Cog):
             self.webhook = webhooks[0] if webhooks else await self.output_channel.create_webhook(name=WEBHOOK_NAME)
             # database
             count = 0
-            async with sql.connect(DB_FILE) as db:
+            async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
                 await db.execute(f"CREATE TABLE IF NOT EXISTS {DB_TABLE_MESSAGES} "
                                  f"(id INTEGER PRIMARY KEY, user_id INTEGER, content TEXT NOT NULL);")
                 await db.commit()
