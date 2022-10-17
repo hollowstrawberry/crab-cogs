@@ -122,8 +122,8 @@ class Crab(commands.Cog):
         Image.open(self.input_image(ctx)).convert('RGB').resize((256, 256), Image.BICUBIC).save(self.output_image(ctx))
         img = cv2.imread(self.output_image(ctx), cv2.IMREAD_GRAYSCALE)
         # apply filter
-        img_blurred = cv2.GaussianBlur(img, (35, 35), cv2.BORDER_DEFAULT)
-        result = cv2.divide(img, img_blurred, scale=256)
+        img_inverted_blurred = cv2.GaussianBlur(cv2.bitwise_not(img), (65, 65), cv2.BORDER_DEFAULT)
+        result = cv2.divide(img, img_inverted_blurred, scale=256)
         # save and send
         cv2.imwrite(self.output_image(ctx), result)
         await ctx.send(file=discord.File(self.output_image(ctx)))
