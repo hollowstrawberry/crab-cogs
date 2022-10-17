@@ -143,14 +143,15 @@ class Simulator(commands.Cog):
 
     # Commands
 
-    @commands.group(name="simulator", invoke_without_subcommand=True)
+    @commands.group(name="simulator", invoke_without_command=True)
     async def simulatorcmd(self, ctx: commands.Context):
+        """Main simulator command. Use me!"""
         await ctx.send_help()
 
     @simulatorcmd.command()
     async def info(self, ctx: commands.Context):
         """How this works"""
-        embed = discord.Embed(title="Simulator", color=ctx.embed_color())
+        embed = discord.Embed(title="Simulator", color=await ctx.embed_color())
         embed.description = \
             f"With this cog you may designate a channel that will send automated messages mimicking your friends " \
             f"using Markov chains. They will have your friends' avatars and nicknames too! " \
@@ -210,7 +211,7 @@ class Simulator(commands.Cog):
             modelsize = getsize(self.models) / 2 ** 20
             filesize = os.path.getsize(cog_data_path(self).joinpath(DB_FILE)) / 2 ** 20
 
-        embed = discord.Embed(title="Simulator Stats", color=ctx.embed_color())
+        embed = discord.Embed(title="Simulator Stats", color=await ctx.embed_color())
         embed.add_field(name="Messages", value=f"{messages:,}", inline=True)
         embed.add_field(name="Nodes", value=f"{nodes:,}", inline=True)
         embed.add_field(name="Words", value=f"{words:,}", inline=True)
@@ -243,6 +244,14 @@ class Simulator(commands.Cog):
             await ctx.send("The simulator is currently feeding on past messages. Please wait a few minutes.")
             return
         if not self.simulator.is_running():
+            config_dict = await self.config.get_raw()
+            guild_id = config_dict['home_guild_id']
+            input_channel_ids = config_dict['input_channel_ids']
+            output_channel_id = config_dict['output_channel_id']
+            role_id = config_dict['participant_role_id']
+            if guild_id == 0 or output_channel_id == 0 or role_id == 0 or not input_channel_ids or 0 in input_channel_ids:
+                await ctx.send("You must configure the simulator input role, input channels and output channel. They must be in the same guild.")
+                return
             self.simulator.start()
         self.start_conversation()
         await ctx.message.add_reaction(EMOJI_SUCCESS)
@@ -315,7 +324,7 @@ class Simulator(commands.Cog):
     @set.command()
     async def showsettings(self, ctx: commands.Context):
         """Show the current simulator settings"""
-        embed = discord.Embed(title="Simulator Settings", color=ctx.embed_color())
+        embed = discord.Embed(title="Simulator Settings", color=await ctx.embed_color())
         embed.add_field(name="Input Role", value=self.role.mention if self.role else "None", inline=True)
         embed.add_field(name="Input Channels", value=' '.join(ch.mention if ch else '' for ch in self.input_channels) or "None", inline=True)
         embed.add_field(name="Output Channel", value=self.output_channel.mention if self.output_channel else "None", inline=True)
@@ -429,14 +438,17 @@ class Simulator(commands.Cog):
         try:
             await self.bot.wait_until_ready()
             # config
-            guild_id = await self.config.home_guild_id()
-            input_channel_ids = await self.config.input_channel_ids()
-            output_channel_id = await self.config.output_channel_id()
-            role_id = await self.config.participant_role_id()
-            self.comment_chance = 1 / await self.config.comment_delay()
-            self.conversation_chance = 1 / await self.config.conversation_delay()
+            config_dict = await self.config.get_raw()
+            guild_id = config_dict['home_guild_id']
+            input_channel_ids = config_dict['input_channel_ids']
+            output_channel_id = config_dict['output_channel_id']
+            role_id = config_dict['participant_role_id']
+            self.comment_chance = 1 / config_dict['comment_delay']
+            self.conversation_chance = 1 / config_dict['conversation_delay']
             if guild_id == 0 or output_channel_id == 0 or role_id == 0 or not input_channel_ids or 0 in input_channel_ids:
-                raise ValueError("You must first set the input role, input channels and output channel. They must be in the same guild.")
+                log.info("You must configure the simulator input role, input channels and output channel. They must be in the same guild.")
+                self.simulator.stop()
+                return False
             # discord entities
             self.guild = self.bot.get_guild(guild_id)
             if self.guild is None: raise KeyError(self.guild.__name__)
@@ -465,7 +477,8 @@ class Simulator(commands.Cog):
             error_msg = f'Failed to set up the simulator - {type(error).__name__}: {error}'
             log.error(error_msg, exc_info=True)
             self.simulator.stop()
-            await self.output_channel.send(error_msg)
+            if self.output_channel:
+                await self.output_channel.send(error_msg)
             return False
 
     # Functions
