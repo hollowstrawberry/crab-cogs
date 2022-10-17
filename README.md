@@ -26,7 +26,7 @@ Designates a channel that will send automated messages mimicking your friends us
 
 🧠 It will learn from messages from configured channels, and only from users with the configured role. Will only support a single guild set by the bot owner.
 
-⚙ After configuring it with `[p]simulatorset`, you may manually feed past messages using `[p]feedsimulator [days]`. This takes around 1 minute per 5,000 messages, so be patient! When the feeding is finished or interrupted, it will send the summary in the same channel.
+⚙ After configuring it with `[p]simulator set`, you may manually feed past messages using `[p]feedsimulator [days]`. This takes around 1 minute per 5,000 messages, so be patient! When the feeding is finished or interrupted, it will send the summary in the same channel.
 
 ♻ While the simulator is running, a conversation will occur every so many minutes, during which comments will be sent every so many seconds. Trying to type in the output channel will delete the message and trigger a conversation.
 

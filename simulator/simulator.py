@@ -97,25 +97,27 @@ class UserModel:
 
 class Simulator(commands.Cog):
     """Designates a channel that will send automated messages mimicking your friends using Markov chains. They will have your friends' avatars and nicknames too!
-    Please use the `[p]simulatorinfo` command for more information.
+    Please use the `[p]simulator info` command for more information.
     """
 
     def __init__(self, bot: commands.Bot):
         super().__init__()
+        # Define variables
         self.bot = bot
-        self.feeding = False
-        self.seconds = 0
         self.guild: Optional[discord.Guild] = None
         self.input_channels: Optional[List[discord.TextChannel]] = None
         self.output_channel: Optional[discord.TextChannel] = None
         self.role: Optional[discord.Role] = None
         self.webhook: Optional[discord.Webhook] = None
         self.blacklisted_users: List[int] = []
-        self.conversation_left = 0
         self.models: Dict[int, UserModel] = {}
-        self.message_count = 0
         self.comment_chance = 1 / COMMENT_DELAY
         self.conversation_chance = 1 / CONVERSATION_DELAY
+        self.message_count = 0
+        self.seconds = 0
+        self.conversation_left = 0
+        self.feeding = False
+        # Config
         self.config = Config.get_conf(self, identifier=7369756174)
         default_config = {
             "home_guild_id": 0,
@@ -127,6 +129,7 @@ class Simulator(commands.Cog):
             "conversation_delay": CONVERSATION_DELAY,
         }
         self.config.register_global(**default_config)
+        # Start simulator if possible
         self.simulator.start()
 
     def cog_unload(self):
@@ -140,17 +143,22 @@ class Simulator(commands.Cog):
 
     # Commands
 
-    @commands.command()
-    async def simulatorinfo(self, ctx: commands.Context):
+    @commands.group(name="simulator", invoke_without_command=True)
+    async def simulatorcmd(self, ctx: commands.Context):
+        """Main simulator command. Use me!"""
+        await ctx.send_help()
+
+    @simulatorcmd.command()
+    async def info(self, ctx: commands.Context):
         """How this works"""
-        embed = discord.Embed(title="Simulator", color=ctx.embed_color())
+        embed = discord.Embed(title="Simulator", color=await ctx.embed_color())
         embed.description = \
             f"With this cog you may designate a channel that will send automated messages mimicking your friends " \
             f"using Markov chains. They will have your friends' avatars and nicknames too! " \
             f"Inspired by /r/SubredditSimulator and similar concepts.\n\n" \
             f"🧠 It will learn from messages from configured channels, and only from users with the configured role. " \
             f"Will only support a single guild set by the bot owner.\n\n" \
-            f"⚙ After configuring it with `{ctx.prefix}simulatorset`, you may manually feed past messages using " \
+            f"⚙ After configuring it with `{ctx.prefix}simulator set`, you may manually feed past messages using " \
             f"`{ctx.prefix}feedsimulator [days]`. This takes around 1 minute per 5,000 messages, so be patient! " \
             f"When the feeding is finished or interrupted, it will send the summary in the same channel.\n\n" \
             f"♻ While the simulator is running, a conversation will occur every so many minutes, during which " \
@@ -160,8 +168,8 @@ class Simulator(commands.Cog):
             f"`{ctx.prefix}dontsimulateme` command. This will also delete all their data."
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=["simulatorstats"])
-    async def simstats(self, ctx: commands.Context, user: Optional[discord.Member] = None):
+    @simulatorcmd.command()
+    async def stats(self, ctx: commands.Context, user: Optional[discord.Member] = None):
         """Statistics about the simulator, globally or for a user"""
         if self.role not in ctx.author.roles:
             await ctx.message.add_reaction(EMOJI_FAILURE)
@@ -203,7 +211,7 @@ class Simulator(commands.Cog):
             modelsize = getsize(self.models) / 2 ** 20
             filesize = os.path.getsize(cog_data_path(self).joinpath(DB_FILE)) / 2 ** 20
 
-        embed = discord.Embed(title="Simulator Stats", color=ctx.embed_color())
+        embed = discord.Embed(title="Simulator Stats", color=await ctx.embed_color())
         embed.add_field(name="Messages", value=f"{messages:,}", inline=True)
         embed.add_field(name="Nodes", value=f"{nodes:,}", inline=True)
         embed.add_field(name="Words", value=f"{words:,}", inline=True)
@@ -212,8 +220,8 @@ class Simulator(commands.Cog):
             embed.add_field(name="Database", value=f"{round(filesize, 2)} MB", inline=True)
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=["simulatorcount"])
-    async def simcount(self, ctx: commands.Context, word: str, user: Optional[discord.Member] = None):
+    @simulatorcmd.command()
+    async def count(self, ctx: commands.Context, word: str, user: Optional[discord.Member] = None):
         """Count instances of a word, globally or for a user"""
         sword = ' ' + word
         if user:
@@ -228,28 +236,36 @@ class Simulator(commands.Cog):
             children = sum(len(m.model.get(word, {}) | m.model.get(sword, {})) for m in self.models.values())
         await ctx.send(f"```yaml\nOccurrences: {occurences:,}\nWords that follow: {children:,}```")
 
-    @commands.command()
+    @simulatorcmd.command()
     @commands.is_owner()
-    async def startsimulator(self, ctx: commands.Context):
+    async def start(self, ctx: commands.Context):
         """Start the simulator in the configured channel."""
         if self.feeding:
             await ctx.send("The simulator is currently feeding on past messages. Please wait a few minutes.")
             return
         if not self.simulator.is_running():
+            config_dict = await self.config.get_raw()
+            guild_id = config_dict['home_guild_id']
+            input_channel_ids = config_dict['input_channel_ids']
+            output_channel_id = config_dict['output_channel_id']
+            role_id = config_dict['participant_role_id']
+            if guild_id == 0 or output_channel_id == 0 or role_id == 0 or not input_channel_ids or 0 in input_channel_ids:
+                await ctx.send("You must configure the simulator input role, input channels and output channel. They must be in the same guild.")
+                return
             self.simulator.start()
         self.start_conversation()
         await ctx.message.add_reaction(EMOJI_SUCCESS)
 
-    @commands.command()
+    @simulatorcmd.command()
     @commands.is_owner()
-    async def stopsimulator(self, ctx: commands.Context):
+    async def stop(self, ctx: commands.Context):
         """Stop the simulator."""
         self.simulator.stop()
         await ctx.message.add_reaction(EMOJI_SUCCESS)
 
-    @commands.command()
+    @simulatorcmd.command()
     @commands.is_owner()
-    async def feedsimulator(self, ctx: commands.Context, days: int):
+    async def feed(self, ctx: commands.Context, days: int):
         """Feed past messages into the simulator from the configured channels from scratch."""
         await ctx.message.add_reaction(EMOJI_LOADING)
         self.simulator.stop()
@@ -300,15 +316,15 @@ class Simulator(commands.Cog):
 
     # Settings
 
-    @commands.group(invoke_without_command=True)
-    async def simulatorset(self, ctx: commands.Context):
+    @simulatorcmd.group(invoke_without_command=True)
+    async def set(self, ctx: commands.Context):
         """Set up your simulator."""
         await ctx.send_help()
 
-    @simulatorset.command()
+    @set.command()
     async def showsettings(self, ctx: commands.Context):
         """Show the current simulator settings"""
-        embed = discord.Embed(title="Simulator Settings", color=ctx.embed_color())
+        embed = discord.Embed(title="Simulator Settings", color=await ctx.embed_color())
         embed.add_field(name="Input Role", value=self.role.mention if self.role else "None", inline=True)
         embed.add_field(name="Input Channels", value=' '.join(ch.mention if ch else '' for ch in self.input_channels) or "None", inline=True)
         embed.add_field(name="Output Channel", value=self.output_channel.mention if self.output_channel else "None", inline=True)
@@ -316,7 +332,7 @@ class Simulator(commands.Cog):
         embed.add_field(name="Time between comments", value=f"~{round(1 / self.comment_chance)} seconds", inline=True)
         await ctx.send(embed=embed)
 
-    @simulatorset.command()
+    @set.command()
     @commands.is_owner()
     async def inputchannels(self, ctx: commands.Context, *channels: discord.TextChannel):
         """Set a series of channels that will feed the simulator."""
@@ -326,7 +342,7 @@ class Simulator(commands.Cog):
         self.input_channels = channels
         await ctx.react_quietly(EMOJI_SUCCESS)
 
-    @simulatorset.command()
+    @set.command()
     @commands.is_owner()
     async def outputchannel(self, ctx: commands.Context, channel: discord.TextChannel):
         """Set the channel the simulator will run in."""
@@ -334,7 +350,7 @@ class Simulator(commands.Cog):
         self.output_channel = channel
         await ctx.react_quietly(EMOJI_SUCCESS)
 
-    @simulatorset.command()
+    @set.command()
     @commands.is_owner()
     async def inputrole(self, ctx: commands.Context, role: discord.Role):
         """Members must have this role to participate in the simulator."""
@@ -342,7 +358,7 @@ class Simulator(commands.Cog):
         self.role = role
         await ctx.react_quietly(EMOJI_SUCCESS)
 
-    @simulatorset.command()
+    @set.command()
     @commands.is_owner()
     async def conversationdelay(self, ctx: commands.Context, minutes: int):
         """Approximately how many minutes between output conversations (random)"""
@@ -350,7 +366,7 @@ class Simulator(commands.Cog):
         self.conversation_chance = 1 / max(1, minutes)
         await ctx.react_quietly(EMOJI_SUCCESS)
 
-    @simulatorset.command()
+    @set.command()
     @commands.is_owner()
     async def commentdelay(self, ctx: commands.Context, chance: int):
         """Approximately how many minutes between output conversations (random)"""
@@ -422,14 +438,17 @@ class Simulator(commands.Cog):
         try:
             await self.bot.wait_until_ready()
             # config
-            guild_id = await self.config.home_guild_id()
-            input_channel_ids = await self.config.input_channel_ids()
-            output_channel_id = await self.config.output_channel_id()
-            role_id = await self.config.participant_role_id()
-            self.comment_chance = 1 / await self.config.comment_delay()
-            self.conversation_chance = 1 / await self.config.conversation_delay()
-            if guild_id == 0 or 0 in input_channel_ids or output_channel_id == 0 or role_id == 0:
-                raise ValueError("You must first set the input role, input channels and output channel. They must be in the same guild.")
+            config_dict = await self.config.get_raw()
+            guild_id = config_dict['home_guild_id']
+            input_channel_ids = config_dict['input_channel_ids']
+            output_channel_id = config_dict['output_channel_id']
+            role_id = config_dict['participant_role_id']
+            self.comment_chance = 1 / config_dict['comment_delay']
+            self.conversation_chance = 1 / config_dict['conversation_delay']
+            if guild_id == 0 or output_channel_id == 0 or role_id == 0 or not input_channel_ids or 0 in input_channel_ids:
+                log.info("You must configure the simulator input role, input channels and output channel. They must be in the same guild.")
+                self.simulator.stop()
+                return False
             # discord entities
             self.guild = self.bot.get_guild(guild_id)
             if self.guild is None: raise KeyError(self.guild.__name__)
@@ -458,7 +477,8 @@ class Simulator(commands.Cog):
             error_msg = f'Failed to set up the simulator - {type(error).__name__}: {error}'
             log.error(error_msg, exc_info=True)
             self.simulator.stop()
-            await self.output_channel.send(error_msg)
+            if self.output_channel:
+                await self.output_channel.send(error_msg)
             return False
 
     # Functions
