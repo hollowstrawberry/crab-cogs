@@ -1,5 +1,4 @@
 import discord
-import asyncio
 import random
 import re
 import os
@@ -9,6 +8,7 @@ import aiosqlite as sql
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from numbers import Number
+from discord.ext import tasks
 from collections import deque
 from redbot.core import commands, Config
 from redbot.core.data_manager import cog_data_path
@@ -103,8 +103,8 @@ class Simulator(commands.Cog):
     def __init__(self, bot: commands.Bot):
         super().__init__()
         self.bot = bot
-        self.running = False
         self.feeding = False
+        self.seconds = 0
         self.guild: Optional[discord.Guild] = None
         self.input_channels: Optional[List[discord.TextChannel]] = None
         self.output_channel: Optional[discord.TextChannel] = None
@@ -127,12 +127,10 @@ class Simulator(commands.Cog):
             "conversation_delay": CONVERSATION_DELAY,
         }
         self.config.register_global(**default_config)
-        if self.bot.is_ready():
-            asyncio.create_task(self.on_ready())
+        self.simulator.start()
 
     def cog_unload(self):
-        self.running = False
-        self.feeding = False
+        self.simulator.stop()
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         self.models.pop(user_id, None)
@@ -233,15 +231,17 @@ class Simulator(commands.Cog):
     @commands.is_owner()
     async def startsimulator(self, ctx: commands.Context):
         """Start the simulator in the configured channel."""
-        if not self.running and not self.feeding:
-            asyncio.create_task(self.on_ready())
+        if self.feeding:
+            await ctx.send("The simulator is currently feeding on past messages. Please wait a few minutes.")
+            return
+        self.simulator.start()
         await ctx.message.add_reaction(EMOJI_SUCCESS)
 
     @commands.command()
     @commands.is_owner()
     async def stopsimulator(self, ctx: commands.Context):
         """Stop the simulator."""
-        self.running = False
+        self.simulator.stop()
         await ctx.message.add_reaction(EMOJI_SUCCESS)
 
     @commands.command()
@@ -249,7 +249,7 @@ class Simulator(commands.Cog):
     async def feedsimulator(self, ctx: commands.Context, days: int):
         """Feed past messages into the simulator from the configured channels from scratch."""
         await ctx.message.add_reaction(EMOJI_LOADING)
-        self.running = False
+        self.simulator.stop()
         self.feeding = True
         self.message_count = 0
         for user in self.models.values():
@@ -272,12 +272,11 @@ class Simulator(commands.Cog):
                                 await db.commit()
                     await db.commit()
         except Exception as error:
-            await ctx.send(f"{type(error).__name__}: {error}\n"
-                           f"Loaded {self.message_count} messages, "
-                           f"{self.message_count // COMMIT_SIZE * COMMIT_SIZE} to database")
+            self.message_count = self.message_count // COMMIT_SIZE * COMMIT_SIZE
+            await ctx.send(f"Feeding stopped due to an error - {type(error).__name__}: {error}\n")
         finally:
             self.feeding = False
-        asyncio.create_task(self.run_simulator())
+        self.simulator.start()
         await ctx.send(f"Loaded {self.message_count} messages")
         await ctx.message.remove_reaction(EMOJI_LOADING, self.bot.user)
         await ctx.message.add_reaction(EMOJI_SUCCESS)
@@ -299,7 +298,6 @@ class Simulator(commands.Cog):
     # Settings
 
     @commands.group(invoke_without_command=True)
-    @commands.is_owner()
     async def simulatorset(self, ctx: commands.Context):
         """Set up your simulator."""
         await ctx.send_help()
@@ -358,12 +356,6 @@ class Simulator(commands.Cog):
         await ctx.react_quietly(EMOJI_SUCCESS)
 
     # Listeners
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-        if not self.running:
-            if await self.setup_simulator():
-                await self.run_simulator()
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -479,30 +471,25 @@ class Simulator(commands.Cog):
             log.error(error_msg, exc_info=True)
             await self.output_channel.send(error_msg)
 
-    async def run_simulator(self):
+    @tasks.loop(seconds=1, reconnect=True)
+    async def simulator(self):
         """Run the simulator"""
-        self.running = True
-        while self.running and not self.feeding:
-            if self.conversation_left:
-                if random.random() < self.comment_chance:
+        if self.conversation_left:
+            if random.random() < self.comment_chance:
+                try:
+                    self.conversation_left -= 1
+                    await self.send_generated_message()
+                except Exception as error:
+                    error_msg = f'{type(error).__name__}: {error}'
+                    log.error(error_msg, exc_info=True)
                     try:
-                        self.conversation_left -= 1
-                        await self.send_generated_message()
-                    except Exception as error:
-                        error_msg = f'{type(error).__name__}: {error}'
-                        log.error(error_msg, exc_info=True)
-                        try:
-                            await self.output_channel.send(error_msg)
-                        except:
-                            pass
-                await asyncio.sleep(1)
-            else:
-                if random.random() < self.conversation_chance:
-                    self.start_conversation()
-                for i in range(60):
-                    if self.conversation_left or not self.running:
-                        break
-                    await asyncio.sleep(1)
+                        await self.output_channel.send(error_msg)
+                    except:
+                        pass
+        else:
+            self.seconds = (self.seconds + 1) % 60
+            if self.seconds == 0 and random.random() < self.conversation_chance:
+                self.start_conversation()
 
     def start_conversation(self):
         self.conversation_left = random.randrange(CONVERSATION_MIN, CONVERSATION_MAX + 1)
