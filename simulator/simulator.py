@@ -10,10 +10,14 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from numbers import Number
 from collections import deque
-from collections.abc import Set, Mapping
 from redbot.core import commands, Config
 from redbot.core.data_manager import cog_data_path
-from typing import Optional, Dict, List, Tuple
+from typing import *
+
+__red_end_user_data_statement__ =\
+    "This cog will locally store and analyze past and future messages sent by participating users, " \
+    "in order to generate new messages in an owner-configured output channel. " \
+    "You may opt out completely and delete your simulator data with the [p]dontsimulateme command."
 
 log = logging.getLogger("red.crab-cogs.simulator")
 
@@ -130,6 +134,12 @@ class Simulator(commands.Cog):
     def cog_unload(self):
         self.running = False
         self.feeding = False
+
+    async def red_delete_data_for_user(self, requester: str, user_id: int):
+        self.models.pop(user_id, None)
+        async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
+            await db.execute(f"DELETE FROM {DB_TABLE_MESSAGES} WHERE user_id = ?", [user_id])
+            await db.commit()
 
     # Commands
 
@@ -284,10 +294,7 @@ class Simulator(commands.Cog):
             else:
                 blacklisted_users.append(ctx.author.id)
                 self.blacklisted_users.append(ctx.author.id)
-                self.models.pop(ctx.author.id, None)
-                async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
-                    await db.execute(f"DELETE FROM {DB_TABLE_MESSAGES} WHERE user_id = ?", [ctx.author.id])
-                    await db.commit()
+                await self.red_delete_data_for_user(user_id=ctx.author.id, requester="user")
                 await ctx.send("All your simulator data has been erased and your messages won't be analyzed anymore.")
 
     # Settings

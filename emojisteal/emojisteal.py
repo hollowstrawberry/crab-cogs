@@ -11,6 +11,9 @@ class EmojiSteal(commands.Cog):
         super().__init__()
         self.bot = bot
 
+    async def red_delete_data_for_user(self, requester: str, user_id: int):
+        pass
+
     @staticmethod
     async def get_emojis(ctx: commands.Context) -> Optional[List[Tuple[str]]]:
         reference = ctx.message.reference

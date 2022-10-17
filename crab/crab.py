@@ -25,6 +25,17 @@ class Crab(commands.Cog):
         }
         self.config.register_global(**default_config)
 
+    async def red_delete_data_for_user(self, requester: str, user_id: int):
+        try:
+            with open(cog_data_path(self).joinpath(DONUT_FILE), 'r') as file:
+                data = json.load(file)
+            if data:
+                data.pop(str(user_id), None)
+            with open(cog_data_path(self).joinpath(DONUT_FILE), 'w') as file:
+                json.dump(data, file)
+        except FileNotFoundError:
+            pass
+
     @commands.command()
     async def rate(self, ctx: commands.Context, *, thing):
         """Gives a unique rating to anything you want"""
