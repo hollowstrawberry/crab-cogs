@@ -236,6 +236,7 @@ class Simulator(commands.Cog):
             return
         if not self.simulator.is_running():
             self.simulator.start()
+        self.start_conversation()
         await ctx.message.add_reaction(EMOJI_SUCCESS)
 
     @commands.command()
