@@ -162,7 +162,7 @@ class Simulator(commands.Cog):
             f"`{ctx.prefix}dontsimulateme` command. This will also delete all their data."
         await ctx.send(embed=embed)
 
-    @commands.command(aliases="simulatorstats")
+    @commands.command(aliases=["simulatorstats"])
     async def simstats(self, ctx: commands.Context, user: Optional[discord.Member] = None):
         """Statistics about the simulator, globally or for a user"""
         async with ctx.typing():
