@@ -14,11 +14,6 @@ from redbot.core import commands, Config
 from redbot.core.data_manager import cog_data_path
 from typing import *
 
-__red_end_user_data_statement__ =\
-    "This cog will locally store and analyze past and future messages sent by participating users, " \
-    "in order to generate new messages in an owner-configured output channel. " \
-    "You may opt out completely and delete your simulator data with the [p]dontsimulateme command."
-
 log = logging.getLogger("red.crab-cogs.simulator")
 
 WEBHOOK_NAME = "Simulator"
