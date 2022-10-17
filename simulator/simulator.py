@@ -103,6 +103,7 @@ class Simulator(commands.Cog):
     def __init__(self, bot: commands.Bot):
         super().__init__()
         self.bot = bot
+        self.setup = False
         self.feeding = False
         self.seconds = 0
         self.guild: Optional[discord.Guild] = None
@@ -432,6 +433,8 @@ class Simulator(commands.Cog):
 
     async def setup_simulator(self):
         """Set up the simulator"""
+        if self.setup:
+            return True
         try:
             # config
             guild_id = await self.config.home_guild_id()
@@ -465,6 +468,7 @@ class Simulator(commands.Cog):
                         self.add_message(row[1], row[2])
                         count += 1
             log.info(f"Simulator model built with {count} messages")
+            self.setup = True
             return True
         except Exception as error:
             error_msg = f'Failed to set up the simulator - {type(error).__name__}: {error}'
@@ -474,6 +478,9 @@ class Simulator(commands.Cog):
     @tasks.loop(seconds=1, reconnect=True)
     async def simulator(self):
         """Run the simulator"""
+        if not await self.setup_simulator():
+            self.simulator.stop()
+            return
         if self.conversation_left:
             if random.random() < self.comment_chance:
                 try:
