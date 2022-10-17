@@ -1,0 +1,11 @@
+{
+    "author": ["OrchidAlloy"],
+    "min_bot_version": "3.0.0rc2",
+    "description": "A couple fun image filters for your friends' avatars.",
+    "hidden": false,
+    "install_msg": "🖌️ `Draw cog installed.`",
+    "required_cogs": {},
+    "requirements": ["Pillow", "opencv_python_headless"],
+    "short": "Fun image filters",
+    "tags": ["crab", "fun", "image", "draw", "filters"]
+}

@@ -42,7 +42,11 @@ This cog will store and analyze messages sent by participating users. With your 
 
 A few fun commands, including:
 
+* `autoreact` lets you configure emojis that will be added to any message containing a specific text.  
+* `donut` will give you a donut. Your donut score is persistent. `donut set` will set a list of emojis to choose from. [Some donut emojis here](https://imgur.com/a/9hW2RRf)  
 * `rate` will give a random but unique rating to anything you ask  
 * `pp` will give you a random but unique pp size  
-* `draw` and `paint` will take someone's avatar and apply a filter  
-* `donut` will give you a donut. Your donut score is persistent. `donut set` will set a list of emojis to choose from. [Some donut emojis here](https://imgur.com/a/9hW2RRf)
+
+## 🖌️ Draw
+
+A couple fun image filters for your friends' avatars.
