@@ -415,9 +415,10 @@ class Simulator(commands.Cog):
                 self.start_conversation()
 
     @simulator.before_loop()
-    async def setup_simulator(self) -> bool:
+    async def setup_simulator(self, coro) -> bool:
         """Set up the simulator"""
         try:
+            await self.bot.wait_until_ready()
             # config
             guild_id = await self.config.home_guild_id()
             input_channel_ids = await self.config.input_channel_ids()
@@ -454,6 +455,7 @@ class Simulator(commands.Cog):
         except Exception as error:
             error_msg = f'Failed to set up the simulator - {type(error).__name__}: {error}'
             log.error(error_msg, exc_info=True)
+            self.simulator.stop()
             await self.output_channel.send(error_msg)
             return False
 
