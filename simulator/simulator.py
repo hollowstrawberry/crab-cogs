@@ -163,53 +163,54 @@ class Simulator(commands.Cog):
     @commands.command(aliases=["simulatorstats"])
     async def simstats(self, ctx: commands.Context, user: Optional[discord.Member] = None):
         """Statistics about the simulator, globally or for a user"""
-        async with ctx.typing():
-            if self.role not in ctx.author.roles:
-                await ctx.message.add_reaction(EMOJI_FAILURE)
+        if self.role not in ctx.author.roles:
+            await ctx.message.add_reaction(EMOJI_FAILURE)
+            return
+        
+        await ctx.trigger_typing()
+
+        def count_nodes(tree: dict) -> int:
+            count = 0
+            for node in tree.values():
+                if isinstance(node, dict):
+                    count += count_nodes(node) + 1
+                else:
+                    count += 1
+            return count
+
+        def count_words(tree: dict) -> int:
+            count = 0
+            for node in tree.values():
+                if isinstance(node, dict):
+                    count += count_words(node)
+                elif isinstance(node, int):
+                    count += node
+            return count
+
+        if user:
+            if user.id not in self.models:
+                await ctx.send("User not found")
                 return
+            messages = self.models[user.id].frequency
+            nodes = count_nodes(self.models[user.id].model)
+            words = count_words(self.models[user.id].model)
+            modelsize = getsize(self.models[user.id]) / 2 ** 20
+            filesize = None
+        else:
+            messages = self.message_count
+            nodes = sum(count_nodes(x.model) for x in self.models.values())
+            words = sum(count_words(x.model) for x in self.models.values())
+            modelsize = getsize(self.models) / 2 ** 20
+            filesize = os.path.getsize(cog_data_path(self).joinpath(DB_FILE)) / 2 ** 20
 
-            def count_nodes(tree: dict) -> int:
-                count = 0
-                for node in tree.values():
-                    if isinstance(node, dict):
-                        count += count_nodes(node) + 1
-                    else:
-                        count += 1
-                return count
-
-            def count_words(tree: dict) -> int:
-                count = 0
-                for node in tree.values():
-                    if isinstance(node, dict):
-                        count += count_words(node)
-                    elif isinstance(node, int):
-                        count += node
-                return count
-
-            if user:
-                if user.id not in self.models:
-                    await ctx.send("User not found")
-                    return
-                messages = self.models[user.id].frequency
-                nodes = count_nodes(self.models[user.id].model)
-                words = count_words(self.models[user.id].model)
-                modelsize = getsize(self.models[user.id]) / 2 ** 20
-                filesize = None
-            else:
-                messages = self.message_count
-                nodes = sum(count_nodes(x.model) for x in self.models.values())
-                words = sum(count_words(x.model) for x in self.models.values())
-                modelsize = getsize(self.models) / 2 ** 20
-                filesize = os.path.getsize(cog_data_path(self).joinpath(DB_FILE)) / 2 ** 20
-
-            embed = discord.Embed(title="Simulator Stats", color=ctx.embed_color())
-            embed.add_field(name="Messages", value=f"{messages:,}", inline=True)
-            embed.add_field(name="Nodes", value=f"{nodes:,}", inline=True)
-            embed.add_field(name="Words", value=f"{words:,}", inline=True)
-            embed.add_field(name="Memory", value=f"{round(modelsize, 2)} MB", inline=True)
-            if filesize:
-                embed.add_field(name="Database", value=f"{round(filesize, 2)} MB", inline=True)
-            await ctx.send(embed=embed)
+        embed = discord.Embed(title="Simulator Stats", color=ctx.embed_color())
+        embed.add_field(name="Messages", value=f"{messages:,}", inline=True)
+        embed.add_field(name="Nodes", value=f"{nodes:,}", inline=True)
+        embed.add_field(name="Words", value=f"{words:,}", inline=True)
+        embed.add_field(name="Memory", value=f"{round(modelsize, 2)} MB", inline=True)
+        if filesize:
+            embed.add_field(name="Database", value=f"{round(filesize, 2)} MB", inline=True)
+        await ctx.send(embed=embed)
 
     @commands.command(aliases=["simulatorcount"])
     async def simcount(self, ctx: commands.Context, word: str, user: Optional[discord.Member] = None):
