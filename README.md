@@ -1,14 +1,26 @@
 # crab-cogs
 
-My Red Discord bot modules.
+This is an addon for [Red bot](https://github.com/Cog-Creators/Red-DiscordBot) for Discord, with features that I developed for my own friend group (called crab).
 
-## EmojiSteal
+### Installation
+
+To add one of these cogs to your instance of Red, send the following commands one by one (`[p]` is your prefix):
+```
+[p]load downloader
+[p]repo add crab-cogs https://github.com/orchidalloy/crab-cogs
+[p]cog install crab-cogs [emojisteal/simulator/crab]
+[p]load [emojisteal/simulator/crab]
+```
+
+You may be prompted to respond with "I agree" after the second line.
+
+## 😶 EmojiSteal
 
 Steals emojis sent by other people and optionally uploads them to your own server.
 
 ![emojisteal](https://media.discordapp.net/attachments/541768631445618689/1031335118926782484/unknown.png)
 
-## Simulator
+## 🧠 Simulator
 
 Designates a channel that will send automated messages mimicking your friends using Markov chains. They will have your friends' avatars and nicknames too! Inspired by /r/SubredditSimulator and similar concepts.
 
@@ -22,7 +34,11 @@ Designates a channel that will send automated messages mimicking your friends us
 
 ![simulator](https://media.discordapp.net/attachments/541768631445618689/1031334469904384100/unknown.png)
 
-## Crab
+### ⚠ Usage Warning
+
+This cog will store and analyze messages sent by participating users. With your permission it may also download a lot of existing message data, following Discord ratelimits. It will then store a model in memory whose approximate RAM usage is 60 MB per 100,000 messages analyzed.
+
+## 🦀 Crab
 
 A few fun commands, including:
 
