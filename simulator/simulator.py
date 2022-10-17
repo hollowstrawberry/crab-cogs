@@ -4,6 +4,7 @@ import random
 import re
 import os
 import sys
+import logging
 import aiosqlite as sql
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -13,6 +14,8 @@ from collections.abc import Set, Mapping
 from redbot.core import commands, Config
 from redbot.core.data_manager import cog_data_path
 from typing import Optional, Dict, List, Tuple
+
+log = logging.getLogger("red.crab-cogs.simulator")
 
 WEBHOOK_NAME = "Simulator"
 DB_FILE = "messages.db"
@@ -441,7 +444,6 @@ class Simulator(commands.Cog):
             self.conversation_chance = 1 / await self.config.conversation_delay()
             if guild_id == 0 or 0 in input_channel_ids or output_channel_id == 0 or role_id == 0:
                 raise ValueError("You must first set the input role, input channels and output channel. They must be in the same guild.")
-
             # discord entities
             self.guild = self.bot.get_guild(guild_id)
             if self.guild is None: raise KeyError(self.guild.__name__)
@@ -464,11 +466,12 @@ class Simulator(commands.Cog):
                     async for row in cursor:
                         self.add_message(row[1], row[2])
                         count += 1
-            print(f"Model built with {count} messages")
+            log.info(f"Simulator model built with {count} messages")
             return True
         except Exception as error:
-            print(f'Failed to set up the simulator: {error}')
-            await self.output_channel.send(f'Failed to set up: {error}')
+            error_msg = f'Failed to set up the simulator - {type(error).__name__}: {error}'
+            log.error(error_msg, exc_info=True)
+            await self.output_channel.send(error_msg)
 
     async def run_simulator(self):
         """Run the simulator"""
@@ -480,9 +483,10 @@ class Simulator(commands.Cog):
                         self.conversation_left -= 1
                         await self.send_generated_message()
                     except Exception as error:
-                        print(f'{type(error).__name__}: {error}')
+                        error_msg = f'{type(error).__name__}: {error}'
+                        log.error(error_msg, exc_info=True)
                         try:
-                            await self.output_channel.send(f'{type(error).__name__}: {error}')
+                            await self.output_channel.send(error_msg)
                         except:
                             pass
                 await asyncio.sleep(1)

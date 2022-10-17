@@ -64,14 +64,12 @@ class Crab(commands.Cog):
             rating = hashed % 11
 
         await ctx.send(f'I give {thing} a {rating}/10')
-        print(f'rate {thing} {rating}')
 
     @commands.command()
     async def pp(self, ctx: commands.Context):
         """Evaluates your pp"""
         pp = ctx.author.id % 13
         await ctx.send(f'Your pp size is {pp} inches')
-        print(f'pp {ctx.author.id} {pp}')
 
     @commands.group(invoke_without_command=True)
     @commands.cooldown(rate=5, per=5, type=commands.BucketType.channel)
@@ -91,7 +89,6 @@ class Crab(commands.Cog):
         donuts = (await self.config.donuts()).split(' ')
         donut = donuts[hashed % len(donuts)]
         await ctx.send(f'{count} {donut}')
-        print(f'User {ctx.author.id} now has {count} donuts')
 
     @donut.command()
     @commands.is_owner()
@@ -123,4 +120,3 @@ class Crab(commands.Cog):
         await ctx.send(file=discord.File(str(cog_data_path(self).joinpath(IMG_OUT))))
         os.remove(cog_data_path(self).joinpath(IMG_DL))
         os.remove(cog_data_path(self).joinpath(IMG_OUT))
-        print(f"Successfully painted user {user.id}")
