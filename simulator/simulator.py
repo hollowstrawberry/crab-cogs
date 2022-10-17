@@ -103,7 +103,6 @@ class Simulator(commands.Cog):
     def __init__(self, bot: commands.Bot):
         super().__init__()
         self.bot = bot
-        self.setup = False
         self.feeding = False
         self.seconds = 0
         self.guild: Optional[discord.Guild] = None
@@ -235,7 +234,8 @@ class Simulator(commands.Cog):
         if self.feeding:
             await ctx.send("The simulator is currently feeding on past messages. Please wait a few minutes.")
             return
-        self.simulator.start()
+        if not self.simulator.is_running():
+            self.simulator.start()
         await ctx.message.add_reaction(EMOJI_SUCCESS)
 
     @commands.command()
@@ -392,49 +392,31 @@ class Simulator(commands.Cog):
                     await insert_message_db(edited, db)
                 await db.commit()
 
-    # Functions
+    # Loop
 
-    def is_valid_input_message(self, message: discord.Message) -> bool:
-        return message.channel in self.input_channels and not message.author.bot \
-               and self.role in message.author.roles and message.author.id not in self.blacklisted_users
+    @tasks.loop(seconds=1, reconnect=True)
+    async def simulator(self):
+        """Run the simulator"""
+        if self.conversation_left:
+            if random.random() < self.comment_chance:
+                try:
+                    self.conversation_left -= 1
+                    await self.send_generated_message()
+                except Exception as error:
+                    error_msg = f'{type(error).__name__}: {error}'
+                    log.error(error_msg, exc_info=True)
+                    try:
+                        await self.output_channel.send(error_msg)
+                    except:
+                        pass
+        else:
+            self.seconds = (self.seconds + 1) % 60
+            if self.seconds == 0 and random.random() < self.conversation_chance:
+                self.start_conversation()
 
-    def add_message(self,
-                    user_id: Optional[int] = None,
-                    content: Optional[str] = None,
-                    message: Optional[discord.Message] = None) -> bool:
-        """Add a message to the model"""
-        if message:
-            user_id = message.author.id
-            content = format_message(message)
-        content = content.replace(CHAIN_END, '') if content else ''
-        if not content:
-            return False
-        tokens = [m.group(1) for m in TOKENIZER.finditer(content)]
-        if not tokens:
-            return False
-        for i in range(len(tokens)):  # treat special objects as 2 separate tokens, for better chains
-            subtokens = [m.group(0) for m in SUBTOKENIZER.finditer(tokens[i])]
-            if ''.join(subtokens) == tokens[i]:
-                tokens.pop(i)
-                for j in range(len(subtokens)):
-                    tokens.insert(i+j, subtokens[j])
-        tokens.append(CHAIN_END)
-        previous = ""
-        self.models.setdefault(int(user_id), UserModel(int(user_id), 0, {}))
-        user = self.models[int(user_id)]
-        user.frequency += 1
-        for token in tokens:
-            # Add token or increment its weight by 1
-            user.model.setdefault(previous, {})
-            user.model[previous][token] = user.model[previous].get(token, 0) + 1
-            previous = token
-        self.message_count += 1
-        return True
-
-    async def setup_simulator(self):
+    @simulator.before_loop()
+    async def setup_simulator(self) -> bool:
         """Set up the simulator"""
-        if self.setup:
-            return True
         try:
             # config
             guild_id = await self.config.home_guild_id()
@@ -468,35 +450,51 @@ class Simulator(commands.Cog):
                         self.add_message(row[1], row[2])
                         count += 1
             log.info(f"Simulator model built with {count} messages")
-            self.setup = True
             return True
         except Exception as error:
             error_msg = f'Failed to set up the simulator - {type(error).__name__}: {error}'
             log.error(error_msg, exc_info=True)
             await self.output_channel.send(error_msg)
+            return False
 
-    @tasks.loop(seconds=1, reconnect=True)
-    async def simulator(self):
-        """Run the simulator"""
-        if not await self.setup_simulator():
-            self.simulator.stop()
-            return
-        if self.conversation_left:
-            if random.random() < self.comment_chance:
-                try:
-                    self.conversation_left -= 1
-                    await self.send_generated_message()
-                except Exception as error:
-                    error_msg = f'{type(error).__name__}: {error}'
-                    log.error(error_msg, exc_info=True)
-                    try:
-                        await self.output_channel.send(error_msg)
-                    except:
-                        pass
-        else:
-            self.seconds = (self.seconds + 1) % 60
-            if self.seconds == 0 and random.random() < self.conversation_chance:
-                self.start_conversation()
+    # Functions
+
+    def is_valid_input_message(self, message: discord.Message) -> bool:
+        return message.channel in self.input_channels and not message.author.bot \
+               and self.role in message.author.roles and message.author.id not in self.blacklisted_users
+
+    def add_message(self,
+                    user_id: Optional[int] = None,
+                    content: Optional[str] = None,
+                    message: Optional[discord.Message] = None) -> bool:
+        """Add a message to the model"""
+        if message:
+            user_id = message.author.id
+            content = format_message(message)
+        content = content.replace(CHAIN_END, '') if content else ''
+        if not content:
+            return False
+        tokens = [m.group(1) for m in TOKENIZER.finditer(content)]
+        if not tokens:
+            return False
+        for i in range(len(tokens)):  # treat special objects as 2 separate tokens, for better chains
+            subtokens = [m.group(0) for m in SUBTOKENIZER.finditer(tokens[i])]
+            if ''.join(subtokens) == tokens[i]:
+                tokens.pop(i)
+                for j in range(len(subtokens)):
+                    tokens.insert(i + j, subtokens[j])
+        tokens.append(CHAIN_END)
+        previous = ""
+        self.models.setdefault(int(user_id), UserModel(int(user_id), 0, {}))
+        user = self.models[int(user_id)]
+        user.frequency += 1
+        for token in tokens:
+            # Add token or increment its weight by 1
+            user.model.setdefault(previous, {})
+            user.model[previous][token] = user.model[previous].get(token, 0) + 1
+            previous = token
+        self.message_count += 1
+        return True
 
     def start_conversation(self):
         self.conversation_left = random.randrange(CONVERSATION_MIN, CONVERSATION_MAX + 1)
