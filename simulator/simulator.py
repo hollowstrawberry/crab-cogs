@@ -143,7 +143,7 @@ class Simulator(commands.Cog):
     @commands.command()
     async def simulatorinfo(self, ctx: commands.Context):
         """How this works"""
-        embed = discord.Embed(title="Simulator", color=ctx.embed_color)
+        embed = discord.Embed(title="Simulator", color=ctx.embed_color())
         embed.description = \
             f"With this cog you may designate a channel that will send automated messages mimicking your friends " \
             f"using Markov chains. They will have your friends' avatars and nicknames too! " \
@@ -202,7 +202,7 @@ class Simulator(commands.Cog):
                 modelsize = getsize(self.models) / 2 ** 20
                 filesize = os.path.getsize(cog_data_path(self).joinpath(DB_FILE)) / 2 ** 20
 
-            embed = discord.Embed(title="Simulator Stats", color=ctx.embed_color)
+            embed = discord.Embed(title="Simulator Stats", color=ctx.embed_color())
             embed.add_field(name="Messages", value=f"{messages:,}", inline=True)
             embed.add_field(name="Nodes", value=f"{nodes:,}", inline=True)
             embed.add_field(name="Words", value=f"{words:,}", inline=True)
@@ -305,7 +305,7 @@ class Simulator(commands.Cog):
     @simulatorset.command()
     async def showsettings(self, ctx: commands.Context):
         """Show the current simulator settings"""
-        embed = discord.Embed(title="Simulator Settings", color=ctx.embed_color)
+        embed = discord.Embed(title="Simulator Settings", color=ctx.embed_color())
         embed.add_field(name="Input Role", value=self.role.mention if self.role else "None", inline=True)
         embed.add_field(name="Input Channels", value=' '.join(ch.mention if ch else '' for ch in self.input_channels) or "None", inline=True)
         embed.add_field(name="Output Channel", value=self.output_channel.mention if self.output_channel else "None", inline=True)
