@@ -162,8 +162,8 @@ class Simulator(commands.Cog):
             f"`{ctx.prefix}dontsimulateme` command. This will also delete all their data."
         await ctx.send(embed=embed)
 
-    @commands.command()
-    async def simulatorstats(self, ctx: commands.Context, user: Optional[discord.Member] = None):
+    @commands.command(aliases="simulatorstats")
+    async def simstats(self, ctx: commands.Context, user: Optional[discord.Member] = None):
         """Statistics about the simulator, globally or for a user"""
         async with ctx.typing():
             if self.role not in ctx.author.roles:
@@ -213,8 +213,8 @@ class Simulator(commands.Cog):
                 embed.add_field(name="Database", value=f"{round(filesize, 2)} MB", inline=True)
             await ctx.send(embed=embed)
 
-    @commands.command()
-    async def simulatorcount(self, ctx: commands.Context, word: str, user: Optional[discord.Member] = None):
+    @commands.command(aliases=["simulatorcount"])
+    async def simcount(self, ctx: commands.Context, word: str, user: Optional[discord.Member] = None):
         """Count instances of a word, globally or for a user"""
         sword = ' ' + word
         if user:
