@@ -166,7 +166,7 @@ class Simulator(commands.Cog):
         if self.role not in ctx.author.roles:
             await ctx.message.add_reaction(EMOJI_FAILURE)
             return
-        
+
         await ctx.trigger_typing()
 
         def count_nodes(tree: dict) -> int:

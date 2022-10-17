@@ -122,7 +122,7 @@ class Crab(commands.Cog):
         Image.open(self.input_image(ctx)).convert('RGB').resize((256, 256), Image.BICUBIC).save(self.output_image(ctx))
         img = cv2.imread(self.output_image(ctx), cv2.IMREAD_GRAYSCALE)
         # apply filter
-        img_blurred = cv2.GaussianBlur(img, (21, 21), 0, 0)
+        img_blurred = cv2.GaussianBlur(img, (15, 15), 0, 0)
         result = cv2.divide(img, img_blurred, scale=256)
         # save and send
         cv2.imwrite(self.output_image(ctx), result)
