@@ -44,5 +44,5 @@ A few fun commands, including:
 
 * `rate` will give a random but unique rating to anything you ask  
 * `pp` will give you a random but unique pp size  
-* `draw` will take someone's avatar and apply a paint filter  
+* `draw` and `paint` will take someone's avatar and apply a filter  
 * `donut` will give you a donut. Your donut score is persistent. `donut set` will set a list of emojis to choose from. [Some donut emojis here](https://imgur.com/a/9hW2RRf)
