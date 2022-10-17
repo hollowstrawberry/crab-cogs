@@ -414,8 +414,8 @@ class Simulator(commands.Cog):
             if self.seconds == 0 and random.random() < self.conversation_chance:
                 self.start_conversation()
 
-    @simulator.before_loop()
-    async def setup_simulator(self, coro) -> bool:
+    @simulator.before_loop
+    async def setup_simulator(self) -> bool:
         """Set up the simulator"""
         try:
             await self.bot.wait_until_ready()
