@@ -143,11 +143,11 @@ class Simulator(commands.Cog):
 
     # Commands
 
-    @commands.group(invoke_without_subcommand=True)
-    async def simulator(self, ctx: commands.Context):
+    @commands.group(name="simulator", invoke_without_subcommand=True)
+    async def simulatorcmd(self, ctx: commands.Context):
         await ctx.send_help()
 
-    @simulator.command()
+    @simulatorcmd.command()
     async def info(self, ctx: commands.Context):
         """How this works"""
         embed = discord.Embed(title="Simulator", color=ctx.embed_color())
@@ -167,7 +167,7 @@ class Simulator(commands.Cog):
             f"`{ctx.prefix}dontsimulateme` command. This will also delete all their data."
         await ctx.send(embed=embed)
 
-    @simulator.command()
+    @simulatorcmd.command()
     async def stats(self, ctx: commands.Context, user: Optional[discord.Member] = None):
         """Statistics about the simulator, globally or for a user"""
         if self.role not in ctx.author.roles:
@@ -219,7 +219,7 @@ class Simulator(commands.Cog):
             embed.add_field(name="Database", value=f"{round(filesize, 2)} MB", inline=True)
         await ctx.send(embed=embed)
 
-    @simulator.command()
+    @simulatorcmd.command()
     async def count(self, ctx: commands.Context, word: str, user: Optional[discord.Member] = None):
         """Count instances of a word, globally or for a user"""
         sword = ' ' + word
@@ -235,7 +235,7 @@ class Simulator(commands.Cog):
             children = sum(len(m.model.get(word, {}) | m.model.get(sword, {})) for m in self.models.values())
         await ctx.send(f"```yaml\nOccurrences: {occurences:,}\nWords that follow: {children:,}```")
 
-    @simulator.command()
+    @simulatorcmd.command()
     @commands.is_owner()
     async def start(self, ctx: commands.Context):
         """Start the simulator in the configured channel."""
@@ -247,14 +247,14 @@ class Simulator(commands.Cog):
         self.start_conversation()
         await ctx.message.add_reaction(EMOJI_SUCCESS)
 
-    @simulator.command()
+    @simulatorcmd.command()
     @commands.is_owner()
     async def stop(self, ctx: commands.Context):
         """Stop the simulator."""
         self.simulator.stop()
         await ctx.message.add_reaction(EMOJI_SUCCESS)
 
-    @simulator.command()
+    @simulatorcmd.command()
     @commands.is_owner()
     async def feed(self, ctx: commands.Context, days: int):
         """Feed past messages into the simulator from the configured channels from scratch."""
@@ -307,7 +307,7 @@ class Simulator(commands.Cog):
 
     # Settings
 
-    @simulator.group(invoke_without_command=True)
+    @simulatorcmd.group(invoke_without_command=True)
     async def set(self, ctx: commands.Context):
         """Set up your simulator."""
         await ctx.send_help()
