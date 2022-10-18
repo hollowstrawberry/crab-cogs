@@ -8,11 +8,11 @@ To add one of these cogs to your instance of Red, send the following commands on
 ```
 [p]load downloader
 [p]repo add crab-cogs https://github.com/orchidalloy/crab-cogs
-[p]cog install crab-cogs [emojisteal/simulator/crab]
-[p]load [emojisteal/simulator/crab]
+[p]cog install crab-cogs [cog name]
+[p]load [cog name]
 ```
 
-You may be prompted to respond with "I agree" after the second line.
+You may be prompted to respond with "I agree" after the second command.
 
 ## 🧠 Simulator
 
