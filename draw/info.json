@@ -1,9 +1,9 @@
 {
     "author": ["OrchidAlloy"],
-    "min_bot_version": "3.0.0rc2",
+    "min_bot_version": "3.0.0",
     "description": "A couple fun image filters for your friends' avatars.",
     "hidden": false,
-    "install_msg": "🖌️ `Draw cog installed.`",
+    "install_msg": "🖌️ __**Draw**__ ```Draw cog installed. Instructions:\n1. Load it with [p]load draw\n2. View commands with [p]help Draw```",
     "required_cogs": {},
     "requirements": ["Pillow", "opencv_python_headless"],
     "short": "Fun image filters",
