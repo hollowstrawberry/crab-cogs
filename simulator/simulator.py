@@ -484,7 +484,7 @@ class Simulator(commands.Cog):
             await ctx.send("No data to show yet.")
             return False
         if self.guild != ctx.guild:
-            await ctx.send(f"The simulator only runs in the {ctx.guild.name} server.")
+            await ctx.send(f"The simulator only runs in the {self.guild.name} server.")
             return False
         if self.role not in ctx.author.roles and not ctx.author.guild_permissions.administrator and not self.bot.is_owner(ctx.author):
             await ctx.send(f"You must have the {self.role.name} role to participate in the simulator and view stats.")
@@ -534,7 +534,7 @@ class Simulator(commands.Cog):
     async def send_generated_message(self):
         user_id, content = self.generate_message()
         user = self.guild.get_member(int(user_id))
-        if user is None or user.id in self.blacklisted_users:
+        if not user or not content or user.id in self.blacklisted_users:
             return
         await self.webhook.send(username=user.display_name,
                                 avatar_url=user.avatar_url,
