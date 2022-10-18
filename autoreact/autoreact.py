@@ -15,7 +15,7 @@ class Autoreact(commands.Cog):
 
     async def load_config(self):
         all_config = await self.config.all_guilds()
-        self.autoreacts = {guild_id: conf['autoreact'] for guild_id, conf in all_config.items()}
+        self.autoreacts = {guild_id: conf['autoreacts'] for guild_id, conf in all_config.items()}
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         pass
