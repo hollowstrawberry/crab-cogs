@@ -52,7 +52,7 @@ class EmojiSteal(commands.Cog):
         names = [''.join(re.findall(r"\w+", name)) for name in names]
         names = [name if len(name) >= 2 else None for name in names]
         async with aiohttp.ClientSession() as session:
-            for emoji, name in zip_longest(emojis, names)[:len(emojis)]:
+            for emoji, name in list(zip_longest(emojis, names))[:len(emojis)]:
                 link = f"https://cdn.discordapp.com/emojis/{emoji[2]}.{'gif' if emoji[0] else 'png'}"
                 try:
                     async with session.get(link) as resp:
