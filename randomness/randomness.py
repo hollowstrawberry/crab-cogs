@@ -85,5 +85,5 @@ class Randomness(commands.Cog):
             emojistr = DESSERTS
         else:
             emojistr = ' '.join(emojis)
-        await self.config.donuts.set(emojis)
+        await self.config.donuts.set(emojistr)
         await ctx.react_quietly("✅")
