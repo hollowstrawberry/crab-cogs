@@ -478,12 +478,12 @@ class Simulator(commands.Cog):
 
     # Functions
 
-    async def check_participant(self, ctx: commands.Context) ->bool:
+    async def check_participant(self, ctx: commands.Context) -> bool:
         if not self.models or not self.guild or not self.role:
             await ctx.send("No data to show yet.")
             return False
         if self.guild != ctx.guild:
-            await ctx.send("The simulator only runs in the {ctx.guild.name} server.")
+            await ctx.send(f"The simulator only runs in the {ctx.guild.name} server.")
             return False
         if self.role not in ctx.author.roles and not ctx.author.guild_permissions.administrator and not self.bot.is_owner(ctx.author):
             await ctx.send(f"You must have the {self.role.name} role to participate in the simulator and view stats.")
