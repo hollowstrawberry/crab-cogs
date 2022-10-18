@@ -1,4 +1,6 @@
+import re
 import discord
+from emoji import is_emoji
 from redbot.core import commands, Config
 from typing import *
 
@@ -43,8 +45,11 @@ class Autoreact(commands.Cog):
     @autoreact.command()
     @commands.has_permissions(manage_guild=True)
     @commands.bot_has_permissions(add_reactions=True)
-    async def add(self, ctx: commands.Context, emoji: discord.Reaction, *, text: str):
+    async def add(self, ctx: commands.Context, emoji: Union[discord.Emoji, str], *, text: str):
         """Add a new autoreact with an emoji to a text"""
+        if isinstance(emoji, str) and not is_emoji(emoji):
+            await ctx.send("Sorry, that doesn't seem to be a valid emoji to react with.")
+            return
         if len(text) > 200:
             await ctx.send("Sorry, the target text may not be longer than 200 characters.")
             return
