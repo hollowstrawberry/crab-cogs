@@ -134,7 +134,7 @@ class Simulator(commands.Cog):
 
     # Commands
 
-    @commands.group(name="simulator", invoke_without_command=True)
+    @commands.group(name="simulator", aliases=["sim"], invoke_without_command=True)
     async def simulatorcmd(self, ctx: commands.Context):
         """Main simulator command. Use me!"""
         await ctx.send_help()
