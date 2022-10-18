@@ -1,4 +1,6 @@
 from .crab import Crab
 
 async def setup(bot):
-    bot.add_cog(await Crab(bot).load_config())
+    cog = Crab(bot)
+    await cog.load_config()
+    bot.add_cog(cog)

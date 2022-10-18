@@ -23,10 +23,9 @@ class Crab(commands.Cog):
         self.config.register_global(**default_global_config)
         self.config.register_guild(**default_guild_config)
 
-    async def load_config(self) -> 'Crab':
+    async def load_config(self):
         all_config = await self.config.all_guilds()
         self.autoreact = {guild_id: conf['autoreact'] for guild_id, conf in all_config.items()}
-        return self
 
     def donut_file(self) -> str:
         return str(cog_data_path(self).joinpath("donuts.json"))
