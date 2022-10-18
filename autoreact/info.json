@@ -1,0 +1,11 @@
+{
+    "author": ["OrchidAlloy"],
+    "min_bot_version": "3.0.0",
+    "description": "Reacts to specific text with configured emojis.",
+    "hidden": false,
+    "install_msg": "✅ `Autoreact cog installed.`",
+    "required_cogs": {},
+    "requirements": [],
+    "short": "Reacts to specific text with configured emojis.",
+    "tags": ["crab", "fun", "emoji", "react", "auto"]
+}

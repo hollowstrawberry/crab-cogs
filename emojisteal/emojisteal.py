@@ -1,9 +1,22 @@
 import io
 import re
 import aiohttp
+from dataclasses import dataclass
 from itertools import zip_longest
 from redbot.core import commands
 from typing import *
+
+
+@dataclass(init=True, order=True)
+class StolenEmoji:
+    animated: bool
+    name: str
+    id: int
+
+    @property
+    def link(self):
+        return f"https://cdn.discordapp.com/emojis/{self.id}.{'gif' if self.animated else 'png'}"
+
 
 class EmojiSteal(commands.Cog):
     """Steals emojis sent by other people and optionally uploads them to your own server."""
@@ -16,7 +29,7 @@ class EmojiSteal(commands.Cog):
         pass
 
     @staticmethod
-    async def get_emojis(ctx: commands.Context) -> Optional[List[Tuple[str]]]:
+    async def get_emojis(ctx: commands.Context) -> Optional[List[StolenEmoji]]:
         reference = ctx.message.reference
         if not reference:
             await ctx.send("Reply to a message with this command to steal an emoji")
@@ -25,19 +38,18 @@ class EmojiSteal(commands.Cog):
         if not message:
             await ctx.send("I couldn't grab that message, sorry")
             return
-        emojis = re.findall(r"<(a?):(\w+):(\d{10,20})>", message.content)
-        if not emojis:
+        results = re.findall(r"<(a?):(\w+):(\d{10,20})>", message.content)
+        if not results:
             await ctx.send("Can't find an emoji in that message")
             return
-        return emojis
+        return [StolenEmoji(*result) for result in results]
 
     @commands.group(invoke_without_command=True)
     async def steal(self, ctx: commands.Context):
-        """Steals the emojis of the message you reply to."""
+        """Steals the emojis of the message you reply to. Can also upload them."""
         if not (emojis := await self.get_emojis(ctx)):
             return
-        links = [f"https://cdn.discordapp.com/emojis/{m[2]}.{'gif' if m[0] else 'png'}" for m in emojis]
-        await ctx.send('\n'.join(links))
+        await ctx.send('\n'.join(emoji.link for emoji in emojis))
 
     @steal.command()
     @commands.has_permissions(manage_emojis=True)
@@ -55,17 +67,16 @@ class EmojiSteal(commands.Cog):
             for emoji, name in zip_longest(emojis, names):
                 if not emoji:
                     break
-                link = f"https://cdn.discordapp.com/emojis/{emoji[2]}.{'gif' if emoji[0] else 'png'}"
                 try:
-                    async with session.get(link) as resp:
+                    async with session.get(emoji.link) as resp:
                         image = io.BytesIO(await resp.read()).read()
                 except Exception as error:
-                    await ctx.send(f"Couldn't download {emoji[1]}, {type(error).__name__}: {error}")
+                    await ctx.send(f"Couldn't download {emoji.name}, {type(error).__name__}: {error}")
                     return
                 try:
-                    added = await ctx.guild.create_custom_emoji(name=name or emoji[1], image=image)
+                    added = await ctx.guild.create_custom_emoji(name=name or emoji.name, image=image)
                 except Exception as error:
-                    await ctx.send(f"Couldn't upload {emoji[1]}, {type(error).__name__}: {error}")
+                    await ctx.send(f"Couldn't upload {emoji.name}, {type(error).__name__}: {error}")
                     return
                 try:
                     await ctx.message.add_reaction(added)

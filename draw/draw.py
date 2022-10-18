@@ -24,14 +24,14 @@ class Draw(commands.Cog):
 
     @commands.command(aliases=["drawme", "sketch", "sketchme"])
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
-    async def draw(self, ctx: commands.Context, user: Union[discord.User, str] = None):
+    async def draw(self, ctx: commands.Context, user: Union[discord.User, discord.Member, str] = None):
         """Produces a pencil drawing of you or someone else"""
         if user == "me" or user is None:
             user = ctx.author
         elif user == "you" or user == "yourself":
             user = self.bot.user
         elif isinstance(user, str):
-            return await ctx.send("Who?")
+            return await ctx.send("Can't find a user with that name.")
         await ctx.trigger_typing()
         # load image
         await user.avatar_url.save(self.input_image(ctx))
@@ -49,14 +49,14 @@ class Draw(commands.Cog):
 
     @commands.command(aliases=["paintme"])
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
-    async def paint(self, ctx: commands.Context, user: Union[discord.User, str] = None):
+    async def paint(self, ctx: commands.Context, user: Union[discord.User, discord.Member, str] = None):
         """Produces an oil painting of you or someone else"""
         if user == "me" or user is None:
             user = ctx.author
         elif user == "you" or user == "yourself":
             user = self.bot.user
         elif isinstance(user, str):
-            return await ctx.send("Who?")
+            return await ctx.send("Can't find a user with that name.")
         await ctx.trigger_typing()
         # load image
         await user.avatar_url.save(self.input_image(ctx))
