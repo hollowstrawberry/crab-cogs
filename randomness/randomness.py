@@ -80,8 +80,8 @@ class Randomness(commands.Cog):
     @donut.command()
     @commands.is_owner()
     async def set(self, ctx: commands.Context, *emojis: str):
-        """Pass space-separated emojis to use for the donut command, or \"default\" to reset."""
-        if emojis == "default" or emojis == "reset":
+        """Pass space-separated emojis to use for the donut command."""
+        if not emojis:
             emojistr = DESSERTS
         else:
             emojistr = ' '.join(emojis)
