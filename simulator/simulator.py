@@ -154,7 +154,7 @@ class Simulator(commands.Cog):
             f"🧠 It will learn from messages from configured channels, and only from users with the configured role. " \
             f"Will only support a single guild set by the bot owner.\n\n" \
             f"⚙ After configuring it with `{ctx.prefix}simulator set`, you may manually feed past messages using " \
-            f"`{ctx.prefix}feedsimulator [days]`. This takes around 1 minute per 5,000 messages, so be patient! " \
+            f"`{ctx.prefix}simulator feed [days]`. This takes around 1 minute per 5,000 messages, so be patient! " \
             f"When the feeding is finished or interrupted, it will send the summary in the same channel.\n\n" \
             f"♻ While the simulator is running, a conversation will occur every so many minutes, during which " \
             f"comments will be sent every so many seconds. Trying to type in the output channel will delete the " \
@@ -166,10 +166,8 @@ class Simulator(commands.Cog):
     @simulatorcmd.command()
     async def stats(self, ctx: commands.Context, user: Optional[discord.Member] = None):
         """Statistics about the simulator, globally or for a user"""
-        if self.role not in ctx.author.roles:
-            await ctx.message.add_reaction(EMOJI_FAILURE)
+        if not await self.check_participant(ctx):
             return
-
         await ctx.trigger_typing()
 
         def count_nodes(tree: dict) -> int:
@@ -192,7 +190,7 @@ class Simulator(commands.Cog):
 
         if user:
             if user.id not in self.models:
-                await ctx.send("User not found")
+                await ctx.send("No data found for this user.")
                 return
             messages = self.models[user.id].frequency
             nodes = count_nodes(self.models[user.id].model)
@@ -218,10 +216,12 @@ class Simulator(commands.Cog):
     @simulatorcmd.command()
     async def count(self, ctx: commands.Context, word: str, user: Optional[discord.Member] = None):
         """Count instances of a word, globally or for a user"""
+        if not await self.check_participant(ctx):
+            return
         sword = ' ' + word
         if user:
             if user.id not in self.models:
-                await ctx.send("This users' messages are not being recorded")
+                await ctx.send("No data found for this user.")
                 return
             occurences = sum(x.get(word, 0) + x.get(sword, 0) for x in self.models[user.id].model.values())
             children = len(self.models[user.id].model.get(word, {}) | self.models[user.id].model.get(sword, {}))
@@ -477,6 +477,18 @@ class Simulator(commands.Cog):
             return False
 
     # Functions
+
+    async def check_participant(self, ctx: commands.Context) ->bool:
+        if not self.models or not self.guild or not self.role:
+            await ctx.send("No data to show yet.")
+            return False
+        if self.guild != ctx.guild:
+            await ctx.send("The simulator only runs in the {ctx.guild.name} server.")
+            return False
+        if self.role not in ctx.author.roles and not ctx.author.guild_permissions.administrator and not self.bot.is_owner(ctx.author):
+            await ctx.send(f"You must have the {self.role.name} role to participate in the simulator and view stats.")
+            return False
+        return True
 
     def is_valid_input_message(self, message: discord.Message) -> bool:
         return message.channel in self.input_channels and not message.author.bot \
