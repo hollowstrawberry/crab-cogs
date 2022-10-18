@@ -40,7 +40,7 @@ Steals emojis sent by other people (sends the image by default, useful for mobil
 
 ## ⏺ Autoreact
 
-Lets you configure emojis that will be added to any message containing a specific text.  
+Lets you configure emojis that will be added to any message containing specific text.  
 
 ![Autoreact with the word NOW](https://media.discordapp.net/attachments/541768631445618689/1031957798382207086/unknown.png)
 

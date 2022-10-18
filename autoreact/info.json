@@ -1,11 +1,11 @@
 {
     "author": ["OrchidAlloy"],
     "min_bot_version": "3.0.0",
-    "description": "Lets you configure emojis that will be added to any message containing a specific text.",
+    "description": "Lets you configure emojis that will be added to any message containing specific text.",
     "hidden": false,
     "install_msg": "⏺ __**Autoreact**__\n```Autoreact cog installed. Instructions:\n1. Load it with [p]load autoreact\n2. Start adding emojis to specific text with [p]autoreact add [emoji] [text]```",
     "required_cogs": {},
     "requirements": ["emoji"],
-    "short": "Reacts to specific messages with an emoji.",
+    "short": "Reacts to specific messages with emojis.",
     "tags": ["crab", "fun", "emoji", "react", "auto"]
 }
