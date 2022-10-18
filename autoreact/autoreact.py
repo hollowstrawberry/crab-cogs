@@ -1,4 +1,3 @@
-import re
 import discord
 from emoji import is_emoji
 from redbot.core import commands, Config
@@ -105,7 +104,7 @@ class Autoreact(commands.Cog):
         embed.set_footer(text=f"Page {page}")
         if ctx.guild.id in self.autoreact and self.autoreact[ctx.guild.id]:
             autoreacts = [f"{emoji} {text if '`' in text else f'`{text}`'}"
-                          for text, emoji in self.autoreact[ctx.guild.id].items()]
+                          for text, emoji in self.autoreact[ctx.guild.id]]
             autoreacts = autoreacts[10*(page-1):10*page]
             if autoreacts:
                 embed.description = '\n'.join(autoreacts)
