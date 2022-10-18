@@ -38,7 +38,7 @@ Steals emojis sent by other people (sends the image by default, useful for mobil
 
 ![emojisteal](https://media.discordapp.net/attachments/541768631445618689/1031335118926782484/unknown.png)
 
-## ✅ Autoreact
+## ⏺ Autoreact
 
 Lets you configure emojis that will be added to any message containing a specific text.  
 
@@ -48,7 +48,7 @@ Lets you configure emojis that will be added to any message containing a specifi
 
 A couple fun image filters for your friends' avatars. May take a minute to install due to the image processing libraries (opencv and Pillow).
 
-## 🦀 Randomness
+## 🎲 Randomness
 
 A few fun commands involving randomness, including:
 

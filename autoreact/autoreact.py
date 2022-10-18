@@ -3,7 +3,7 @@ from redbot.core import commands, Config
 from typing import *
 
 class Autoreact(commands.Cog):
-    """Reacts to specific text with configured emojis."""
+    """Lets you configure emojis that will be added to any message containing a specific text."""
 
     def __init__(self, bot):
         super().__init__()
@@ -49,10 +49,14 @@ class Autoreact(commands.Cog):
             await ctx.send("Sorry, the target text may not be longer than 200 characters.")
             return
         async with self.config.guild(ctx.guild).autoreact() as autoreact:
+            old_emoji = autoreact.pop(text, None)
             autoreact[text] = str(emoji)
             self.autoreact.setdefault(ctx.guild.id, {})
             self.autoreact[ctx.guild.id][text] = str(emoji)
-        await ctx.react_quietly("✅")
+            if old_emoji:
+                await ctx.send(f"Replaced {old_emoji} with {emoji}")
+            else:
+                await ctx.react_quietly("✅")
 
     @autoreact.command()
     @commands.has_permissions(manage_guild=True)

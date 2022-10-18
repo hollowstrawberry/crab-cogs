@@ -44,7 +44,7 @@ class EmojiSteal(commands.Cog):
             return
         return [StolenEmoji(*result) for result in results]
 
-    @commands.group(invoke_without_command=True)
+    @commands.group(aliases=["emojisteal", "stealemoji", "stealemojis"], invoke_without_command=True)
     async def steal(self, ctx: commands.Context):
         """Steals the emojis of the message you reply to. Can also upload them."""
         if not (emojis := await self.get_emojis(ctx)):

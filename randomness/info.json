@@ -3,9 +3,9 @@
     "min_bot_version": "3.0.0",
     "description": "A few fun commands involving randomness.",
     "hidden": false,
-    "install_msg": "\uD83E\uDD80 `Randomness cog installed.`",
+    "install_msg": "\uD83C\uDFB2 `Randomness cog installed.`",
     "required_cogs": {},
     "requirements": [],
-    "short": "Random fun commands.",
+    "short": "A few fun commands involving randomness.",
     "tags": ["crab", "fun", "random", "misc"]
 }
