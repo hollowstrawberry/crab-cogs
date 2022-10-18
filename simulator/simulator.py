@@ -7,9 +7,7 @@ import logging
 import aiosqlite as sql
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from numbers import Number
 from discord.ext import tasks
-from collections import deque
 from redbot.core import commands, Config
 from redbot.core.data_manager import cog_data_path
 from typing import *
@@ -42,9 +40,6 @@ CONVERSATION_MAX = 15
 
 EMOJI_LOADING = '⌛'
 EMOJI_SUCCESS = '✅'
-EMOJI_FAILURE = '❌'
-
-ZERO_DEPTH_BASES = (str, bytes, Number, range, bytearray)
 
 def format_message(message: discord.Message) -> str:
     content = message.content
@@ -70,9 +65,9 @@ def getsize(obj_0):
             return 0
         _seen_ids.add(obj_id)
         size = sys.getsizeof(obj)
-        if isinstance(obj, ZERO_DEPTH_BASES):
+        if isinstance(obj, (str, bytes, int, float, range, bytearray)):
             pass  # bypass remaining control flow and return
-        elif isinstance(obj, (tuple, list, Set, deque)):
+        elif isinstance(obj, (tuple, list, Set, Deque)):
             size += sum(inner(i) for i in obj)
         elif isinstance(obj, Mapping) or hasattr(obj, 'items'):
             size += sum(inner(k) + inner(v) for k, v in getattr(obj, 'items')())
@@ -492,8 +487,10 @@ class Simulator(commands.Cog):
         return True
 
     def is_valid_input_message(self, message: discord.Message) -> bool:
-        return self.input_channels and message.channel in self.input_channels and not message.author.bot \
-               and self.role in message.author.roles and message.author.id not in self.blacklisted_users
+        return message.guild and not message.author.bot \
+               and self.input_channels and message.channel in self.input_channels  \
+               and self.role and self.role in message.author.roles \
+               and message.author.id not in self.blacklisted_users
 
     def add_message(self,
                     user_id: Optional[int] = None,
