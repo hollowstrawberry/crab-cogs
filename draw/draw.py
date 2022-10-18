@@ -16,6 +16,12 @@ class Draw(commands.Cog):
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         pass
 
+    def input_image(self, ctx: commands.Context) -> str:
+        return str(cog_data_path(self).joinpath(f"download_{ctx.command.name}_{ctx.author.id}.png"))
+
+    def output_image(self, ctx: commands.Context) -> str:
+        return str(cog_data_path(self).joinpath(f"output_{ctx.command.name}_{ctx.author.id}.jpg"))
+
     @commands.command(aliases=["drawme", "sketch", "sketchme"])
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     async def draw(self, ctx: commands.Context, user: Union[discord.User, str] = None):
@@ -65,9 +71,3 @@ class Draw(commands.Cog):
         await ctx.send(file=discord.File(self.output_image(ctx)))
         os.remove(self.input_image(ctx))
         os.remove(self.output_image(ctx))
-
-    def input_image(self, ctx: commands.Context) -> str:
-        return str(cog_data_path(self).joinpath(f"download_{ctx.command.name}_{ctx.author.id}.png"))
-
-    def output_image(self, ctx: commands.Context) -> str:
-        return str(cog_data_path(self).joinpath(f"output_{ctx.command.name}_{ctx.author.id}.jpg"))

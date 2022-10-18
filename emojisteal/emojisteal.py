@@ -1,6 +1,7 @@
 import io
 import re
 import aiohttp
+from itertools import zip_longest
 from redbot.core import commands
 from typing import *
 
@@ -41,15 +42,17 @@ class EmojiSteal(commands.Cog):
     @steal.command()
     @commands.has_permissions(manage_emojis=True)
     @commands.bot_has_permissions(manage_emojis=True)
-    async def upload(self, ctx: commands.Context, name=None):
+    async def upload(self, ctx: commands.Context, *names: str):
         """Steals emojis you reply to and uploads them to this server."""
         if not ctx.message.author.guild_permissions.manage_emojis:
             await ctx.send("You don't have permission to manage emojis")
             return
         if not (emojis := await self.get_emojis(ctx)):
             return
+        names = [''.join(re.findall(r"\w+", name)) for name in names]
+        names = [name if len(name) >= 2 else None for name in names]
         async with aiohttp.ClientSession() as session:
-            for emoji in emojis:
+            for emoji, name in zip_longest(emojis, names)[:len(emojis)]:
                 link = f"https://cdn.discordapp.com/emojis/{emoji[2]}.{'gif' if emoji[0] else 'png'}"
                 try:
                     async with session.get(link) as resp:
