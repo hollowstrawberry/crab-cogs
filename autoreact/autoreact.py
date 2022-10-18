@@ -38,14 +38,14 @@ class Autoreact(commands.Cog):
     @commands.group(invoke_without_command=True)
     @commands.guild_only()
     async def autoreact(self, ctx: commands.Context):
-        """Reacts to a specific text with an emoji"""
+        """Reacts to a specific text with an emoji."""
         await ctx.send_help()
 
     @autoreact.command()
     @commands.has_permissions(manage_guild=True)
     @commands.bot_has_permissions(add_reactions=True)
     async def add(self, ctx: commands.Context, emoji: Union[discord.Emoji, str], *, text: str):
-        """Add a new autoreact with an emoji to a text"""
+        """Add a new autoreact with an emoji to a text."""
         if isinstance(emoji, str) and not is_emoji(emoji):
             await ctx.send("Sorry, that doesn't seem to be a valid emoji to react with.")
             return
@@ -95,7 +95,7 @@ class Autoreact(commands.Cog):
 
     @autoreact.command()
     async def list(self, ctx: commands.Context, page: int = 1):
-        """Lists all autoreacts"""
+        """Shows all autoreacts."""
         embed = discord.Embed(title="Server Autoreacts", color=await ctx.embed_color(), description="None")
         embed.set_footer(text=f"Page {page}")
         if ctx.guild.id in self.autoreacts and self.autoreacts[ctx.guild.id]:

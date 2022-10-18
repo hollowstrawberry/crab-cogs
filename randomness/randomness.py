@@ -70,8 +70,8 @@ class Randomness(commands.Cog):
     @commands.cooldown(rate=5, per=5, type=commands.BucketType.channel)
     async def donut(self, ctx: commands.Context):
         """Gives you a random dessert and a score."""
-        count = await self.config.user(ctx.author).donut() + 1
-        await self.config.user(ctx.author).donut.set(count)
+        count = await self.config.user(ctx.author).donuts() + 1
+        await self.config.user(ctx.author).donuts.set(count)
         hashed = abs(int(hashlib.sha256(bytes(count)).hexdigest(), 16)) + 11
         donuts = (await self.config.donuts()).split(' ')
         donut = donuts[hashed % len(donuts)]
