@@ -492,7 +492,7 @@ class Simulator(commands.Cog):
         return True
 
     def is_valid_input_message(self, message: discord.Message) -> bool:
-        return message.channel in self.input_channels and not message.author.bot \
+        return self.input_channels and message.channel in self.input_channels and not message.author.bot \
                and self.role in message.author.roles and message.author.id not in self.blacklisted_users
 
     def add_message(self,
