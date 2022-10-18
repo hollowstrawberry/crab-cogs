@@ -6,8 +6,6 @@ from redbot.core import commands, Config
 from redbot.core.data_manager import cog_data_path
 from typing import *
 
-DONUT_FILE = "donuts.json"
-
 class Crab(commands.Cog):
     """Random fun commands for the crab friend group."""
 
@@ -25,18 +23,20 @@ class Crab(commands.Cog):
         self.config.register_global(**default_global_config)
         self.config.register_guild(**default_guild_config)
 
-    async def load_config(self) -> 'Crab':
+    async def load_config(self):
         all_config = await self.config.all_guilds()
         self.autoreact = {guild_id: conf['autoreact'] for guild_id, conf in all_config.items()}
-        return self
+
+    def donut_file(self) -> str:
+        return str(cog_data_path(self).joinpath("donuts.json"))
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         try:
-            with open(cog_data_path(self).joinpath(DONUT_FILE), 'r') as file:
+            with open(self.donut_file(), 'r') as file:
                 data = json.load(file)
             if data:
                 data.pop(str(user_id), None)
-            with open(cog_data_path(self).joinpath(DONUT_FILE), 'w') as file:
+            with open(self.donut_file(), 'w') as file:
                 json.dump(data, file)
         except FileNotFoundError:
             pass
@@ -107,14 +107,14 @@ class Crab(commands.Cog):
     async def donut(self, ctx: commands.Context):
         """Gives you donuts"""
         try:
-            with open(cog_data_path(self).joinpath(DONUT_FILE), 'r') as file:
+            with open(self.donut_file(), 'r') as file:
                 data = json.load(file)
         except FileNotFoundError:
-            with open(cog_data_path(self).joinpath(DONUT_FILE), 'w+'):
+            with open(self.donut_file(), 'w+'):
                 data = {}
         count = data.get(str(ctx.author.id), 0) + 1
         data[str(ctx.author.id)] = count
-        with open(cog_data_path(self).joinpath(DONUT_FILE), 'w') as file:
+        with open(self.donut_file(), 'w') as file:
             json.dump(data, file)
         hashed = abs(int(hashlib.sha256(bytes(count)).hexdigest(), 16)) + 11
         donuts = (await self.config.donuts()).split(' ')
