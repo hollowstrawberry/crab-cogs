@@ -129,6 +129,7 @@ class Simulator(commands.Cog):
 
     def cog_unload(self):
         self.simulator.stop()
+        self.feeding = False
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         self.models.pop(user_id, None)
