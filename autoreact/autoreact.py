@@ -68,12 +68,10 @@ class Autoreact(commands.Cog):
         """Remove existing autoreacts for a target text."""
         self.autoreacts.setdefault(ctx.guild.id, [])
         async with self.config.guild(ctx.guild).autoreacts() as autoreacts:
-            to_remove = [pair for pair in autoreacts if pair[0] == text]
-            for pair in to_remove:
-                autoreacts.remove(pair)
-                if pair in self.autoreacts[ctx.guild.id]:
-                    self.autoreacts[ctx.guild.id].remove(pair)
-            if to_remove:
+            removed = any(pair[0] == text for pair in autoreacts)
+            autoreacts[:] = [pair for pair in autoreacts if pair[0] != text]
+            self.autoreacts[ctx.guild.id] = list(autoreacts)
+            if removed:
                 await ctx.react_quietly("✅")
             else:
                 await ctx.send("No autoreacts found for that text.")
@@ -87,12 +85,10 @@ class Autoreact(commands.Cog):
             return
         self.autoreacts.setdefault(ctx.guild.id, [])
         async with self.config.guild(ctx.guild).autoreacts() as autoreacts:
-            to_remove = [pair for pair in autoreacts if pair[1] == str(emoji)]
-            for pair in to_remove:
-                autoreacts.remove(pair)
-                if pair in self.autoreacts[ctx.guild.id]:
-                    self.autoreacts[ctx.guild.id].remove(pair)
-            if to_remove:
+            removed = any(pair[1] == emoji for pair in autoreacts)
+            autoreacts[:] = [pair for pair in autoreacts if pair[1] != emoji]
+            self.autoreacts[ctx.guild.id] = list(autoreacts)
+            if removed:
                 await ctx.react_quietly("✅")
             else:
                 await ctx.send("No autoreacts found for that emoji.")
