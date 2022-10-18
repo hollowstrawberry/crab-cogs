@@ -1,6 +1,6 @@
 {
     "author": ["OrchidAlloy"],
-    "min_bot_version": "3.0.0rc2",
+    "min_bot_version": "3.0.0",
     "description": "A couple fun image filters for your friends' avatars.",
     "hidden": false,
     "install_msg": "🖌️ `Draw cog installed.`",
