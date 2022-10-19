@@ -37,7 +37,6 @@ class Autoreact(commands.Cog):
         if not autoreact:
             return
         if not await self.is_valid_red_message(message):
-            log.warning("oh no")
             return
         for text, emoji in autoreact:
             if text in message.content:
@@ -48,7 +47,7 @@ class Autoreact(commands.Cog):
 
     async def is_valid_red_message(self, message: discord.Message) -> bool:
         return await self.bot.allowed_by_whitelist_blacklist(message.author) \
-               and not await self.bot.ignored_channel_or_guild(message) \
+               and await self.bot.ignored_channel_or_guild(message) \
                and not await self.bot.cog_disabled_in_guild(self, message.guild)
 
     # Commands

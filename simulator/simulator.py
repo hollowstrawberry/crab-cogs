@@ -517,7 +517,7 @@ class Simulator(commands.Cog):
 
     async def is_valid_red_message(self, message: discord.Message) -> bool:
         return await self.bot.allowed_by_whitelist_blacklist(message.author) \
-               and not await self.bot.ignored_channel_or_guild(message) \
+               and await self.bot.ignored_channel_or_guild(message) \
                and not await self.bot.cog_disabled_in_guild(self, message.guild)
 
     def add_message(self,
