@@ -5,7 +5,7 @@ from redbot.core import commands, Config
 from redbot.core.bot import Red
 from typing import *
 
-log = logging.getLogger("red.crab-cogs.simulator")
+log = logging.getLogger("red.crab-cogs.autoreact")
 
 class Autoreact(commands.Cog):
     """Lets you configure emojis that will be added to any message containing specific text."""
@@ -37,6 +37,7 @@ class Autoreact(commands.Cog):
         if not autoreact:
             return
         if not await self.is_valid_red_message(message):
+            log.warning("oh no")
             return
         for text, emoji in autoreact:
             if text in message.content:
