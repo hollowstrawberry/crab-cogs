@@ -261,6 +261,9 @@ class Simulator(commands.Cog):
     async def feed(self, ctx: commands.Context, days: int):
         """Feed past messages into the simulator from the configured channels from scratch."""
         await ctx.message.add_reaction(EMOJI_LOADING)
+        if not await self.setup_simulator():
+            await ctx.send("Failed to set up the simulator. Make sure you configured it first, and check the bot's logs.")
+            return
         self.simulator.stop()
         self.feeding = True
         self.message_count = 0
@@ -407,6 +410,7 @@ class Simulator(commands.Cog):
         async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
             await delete_message_db(message, db)
             await db.commit()
+        self.message_count -= 1
 
     @commands.Cog.listener()
     async def on_message_edit(self, message: discord.Message, edited: discord.Message):
