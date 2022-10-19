@@ -1,12 +1,16 @@
 import discord
+import logging
 from emoji import is_emoji
 from redbot.core import commands, Config
+from redbot.core.bot import Red
 from typing import *
+
+log = logging.getLogger("red.crab-cogs.simulator")
 
 class Autoreact(commands.Cog):
     """Lets you configure emojis that will be added to any message containing specific text."""
 
-    def __init__(self, bot):
+    def __init__(self, bot: Red):
         super().__init__()
         self.bot = bot
         self.config = Config.get_conf(self, identifier=61757472)
@@ -26,12 +30,25 @@ class Autoreact(commands.Cog):
     async def on_message(self, message: discord.Message):
         if not message.guild or message.author.bot:
             return
+        channel_perms = message.channel.permissions_for(message.guild.me)
+        if not channel_perms.add_reactions:
+            return
         autoreact = self.autoreacts.get(message.guild.id, None)
         if not autoreact:
             return
+        if not await self.is_valid_red_message(message):
+            return
         for text, emoji in autoreact:
             if text in message.content:
-                await message.add_reaction(emoji)
+                try:
+                    await message.add_reaction(emoji)
+                except Exception as error:
+                    log.warning(f"Failed to react with {emoji} - {type(error).__name__}: {error}", exc_info=True)
+
+    async def is_valid_red_message(self, message: discord.Message) -> bool:
+        return await self.bot.allowed_by_whitelist_blacklist(message.author) \
+               and not await self.bot.ignored_channel_or_guild(message) \
+               and not await self.bot.cog_disabled_in_guild(self, message.guild)
 
     # Commands
 
@@ -82,6 +99,9 @@ class Autoreact(commands.Cog):
         """Remove existing autoreacts for an emoji."""
         if isinstance(emoji, str) and not is_emoji(emoji):
             await ctx.send("Sorry, that doesn't seem to be a valid emoji.")
+            return
+        if isinstance(emoji, discord.Emoji) and emoji not in self.bot.emojis:
+            await ctx.send("I must be in the same guild as an emoji to be able to use it!")
             return
         self.autoreacts.setdefault(ctx.guild.id, [])
         async with self.config.guild(ctx.guild).autoreacts() as autoreacts:

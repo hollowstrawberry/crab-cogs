@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from discord.ext import tasks
 from redbot.core import commands, Config
+from redbot.core.bot import Red
 from redbot.core.data_manager import cog_data_path
 from typing import *
 
@@ -90,12 +91,12 @@ class Simulator(commands.Cog):
     Please use the `[p]simulator info` command for more information.
     """
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: Red):
         super().__init__()
         # Define variables
         self.bot = bot
         self.guild: Optional[discord.Guild] = None
-        self.input_channels: Optional[List[discord.TextChannel]] = None
+        self.input_channels: List[discord.TextChannel] = []
         self.output_channel: Optional[discord.TextChannel] = None
         self.role: Optional[discord.Role] = None
         self.webhook: Optional[discord.Webhook] = None
@@ -229,6 +230,7 @@ class Simulator(commands.Cog):
 
     @simulatorcmd.command()
     @commands.is_owner()
+    @commands.bot_has_permissions(manage_webhooks=True)
     async def start(self, ctx: commands.Context):
         """Start the simulator in the configured channel."""
         if self.feeding:
@@ -327,6 +329,9 @@ class Simulator(commands.Cog):
     @commands.is_owner()
     async def inputchannels(self, ctx: commands.Context, *channels: discord.TextChannel):
         """Set a series of channels that will feed the simulator."""
+        if self.output_channel and self.output_channel in channels:
+            await ctx.send("A channel cannot be simulator input and output at the same time.")
+            return
         await self.config.home_guild_id.set(ctx.guild.id)
         await self.config.input_channel_ids.set([channel.id for channel in channels])
         self.guild = ctx.guild
@@ -337,6 +342,9 @@ class Simulator(commands.Cog):
     @commands.is_owner()
     async def outputchannel(self, ctx: commands.Context, channel: discord.TextChannel):
         """Set the channel the simulator will run in."""
+        if channel in self.input_channels:
+            await ctx.send("A channel cannot be simulator input and output at the same time.")
+            return
         await self.config.output_channel_id.set(channel.id)
         self.output_channel = channel
         await ctx.react_quietly(EMOJI_SUCCESS)
@@ -360,7 +368,7 @@ class Simulator(commands.Cog):
     @set.command()
     @commands.is_owner()
     async def commentdelay(self, ctx: commands.Context, chance: int):
-        """Approximately how many minutes between output conversations (random)"""
+        """Approximately how many seconds between individual messages in a conversation (random)"""
         await self.config.comment_delay.set(max(1, chance))
         self.comment_chance = 1 / max(1, chance)
         await ctx.react_quietly(EMOJI_SUCCESS)
@@ -370,12 +378,18 @@ class Simulator(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         """Processes new incoming messages"""
+        if not self.is_valid_event_message(message):
+            return
         if self.is_valid_input_message(message):
+            if not await self.is_valid_red_message(message):
+                return
             if self.add_message(message=message):
                 async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
                     await insert_message_db(message, db)
                     await db.commit()
-        elif message.channel == self.output_channel and not message.author.bot and message.type == discord.MessageType.default:
+        elif message.channel == self.output_channel:
+            if not await self.is_valid_red_message(message):
+                return
             try:
                 await message.delete()
             except:
@@ -386,20 +400,26 @@ class Simulator(commands.Cog):
     @commands.Cog.listener()
     async def on_message_delete(self, message: discord.Message):
         """Processes deleted messages"""
-        if self.is_valid_input_message(message):
-            async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
-                await delete_message_db(message, db)
-                await db.commit()
+        if not self.is_valid_event_message(message) or not self.is_valid_input_message(message):
+            return
+        if not await self.is_valid_red_message(message):
+            return
+        async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
+            await delete_message_db(message, db)
+            await db.commit()
 
     @commands.Cog.listener()
     async def on_message_edit(self, message: discord.Message, edited: discord.Message):
         """Processes edited messages"""
-        if self.is_valid_input_message(message):
-            async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
-                await delete_message_db(message, db)
-                if self.add_message(message=edited):
-                    await insert_message_db(edited, db)
-                await db.commit()
+        if not self.is_valid_event_message(message) or not self.is_valid_input_message(message):
+            return
+        if not await self.is_valid_red_message(message):
+            return
+        async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
+            await delete_message_db(message, db)
+            if self.add_message(message=edited):
+                await insert_message_db(edited, db)
+            await db.commit()
 
     # Loop
 
@@ -486,11 +506,19 @@ class Simulator(commands.Cog):
             return False
         return True
 
+    @staticmethod
+    def is_valid_event_message(message: discord.Message) -> bool:
+        return message.guild and not message.author.bot and message.type == discord.MessageType.default
+
     def is_valid_input_message(self, message: discord.Message) -> bool:
-        return message.guild and not message.author.bot \
-               and self.input_channels and message.channel in self.input_channels  \
+        return self.input_channels and message.channel in self.input_channels  \
                and self.role and self.role in message.author.roles \
                and message.author.id not in self.blacklisted_users
+
+    async def is_valid_red_message(self, message: discord.Message) -> bool:
+        return await self.bot.allowed_by_whitelist_blacklist(message.author) \
+               and not await self.bot.ignored_channel_or_guild(message) \
+               and not await self.bot.cog_disabled_in_guild(self, message.guild)
 
     def add_message(self,
                     user_id: Optional[int] = None,
