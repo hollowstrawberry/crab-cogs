@@ -53,7 +53,7 @@ async def insert_message_db(message: discord.Message, db: sql.Connection):
                      [message.id, message.author.id, format_message(message)])
 
 async def delete_message_db(message: discord.Message, db: sql.Connection):
-    await db.execute(f'DELETE FROM {DB_TABLE_MESSAGES} WHERE id=? LIMIT 1;',
+    await db.execute(f'DELETE FROM {DB_TABLE_MESSAGES} WHERE id=?;',
                      [message.id])
 
 def getsize(obj_0):
