@@ -49,19 +49,6 @@ ERROR_SETUP = "Failed to set up the simulator. Make sure it is configured correc
 ERROR_FEEDING = "The simulator is currently feeding on past messages. Please wait a few minutes."
 ERROR_CHANNELS = "A channel cannot be simulator input and output at the same time."
 
-def format_message(message: discord.Message) -> str:
-    content = message.content
-    if message.attachments and message.attachments[0].url:
-        content += (' ' if content else '') + message.attachments[0].url
-    return content
-
-async def insert_message_db(message: discord.Message, db: sql.Connection):
-    await db.execute(f'INSERT INTO {DB_TABLE_MESSAGES} VALUES (?, ?, ?);',
-                     [message.id, message.author.id, format_message(message)])
-
-async def delete_message_db(message: discord.Message, db: sql.Connection):
-    await db.execute(f'DELETE FROM {DB_TABLE_MESSAGES} WHERE id=?;',
-                     [message.id])
 
 def getsize(obj_0):
     """Recursively iterate to sum size of object & members.
@@ -87,16 +74,19 @@ def getsize(obj_0):
         return size
     return inner(obj_0)
 
+
 @dataclass
 class UserModel:
     user_id: int
     frequency: int
     model: dict
 
+
 class Stage(enum.Enum):
     NONE = enum.auto()
     SETTING_UP = enum.auto()
     READY = enum.auto()
+
 
 class Simulator(commands.Cog):
     """Designates a channel that will send automated messages mimicking your friends using Markov chains. They will have your friends' avatars and nicknames too!
@@ -377,7 +367,7 @@ class Simulator(commands.Cog):
                 return
             if self.add_message(message=message):
                 async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
-                    await insert_message_db(message, db)
+                    await self.insert_message_db(message, db)
                     await db.commit()
         elif message.channel == self.output_channel:
             if not await self.is_valid_red_message(message):
@@ -399,7 +389,7 @@ class Simulator(commands.Cog):
         if not await self.is_valid_red_message(message):
             return
         async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
-            await delete_message_db(message, db)
+            await self.delete_message_db(message, db)
             await db.commit()
         self.message_count -= 1
 
@@ -413,10 +403,11 @@ class Simulator(commands.Cog):
         if not await self.is_valid_red_message(message):
             return
         async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
-            await delete_message_db(message, db)
-            if self.add_message(message=edited):
-                await insert_message_db(edited, db)
+            await self.delete_message_db(message, db)
             await db.commit()
+            if self.add_message(message=edited):
+                await self.insert_message_db(edited, db)
+                await db.commit()
 
     # Loop
 
@@ -491,6 +482,10 @@ class Simulator(commands.Cog):
 
     async def feeder(self, ctx: commands.Context, days: int):
         try:
+            self.message_count = 0
+            for user in self.models.values():
+                user.model = {}
+                user.frequency = 0
             async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
                 await db.execute(f"DELETE FROM {DB_TABLE_MESSAGES}")
                 await db.commit()
@@ -500,7 +495,7 @@ class Simulator(commands.Cog):
                         if message.author.bot:
                             continue
                         if self.add_message(message=message):
-                            await insert_message_db(message, db)
+                            await self.insert_message_db(message, db)
                             if self.message_count % COMMIT_SIZE == 0:
                                 await db.commit()
                     await db.commit()
@@ -558,13 +553,30 @@ class Simulator(commands.Cog):
                and await self.bot.ignored_channel_or_guild(message) \
                and not await self.bot.cog_disabled_in_guild(self, message.guild)
 
+    @staticmethod
+    def format_message(message: discord.Message) -> str:
+        content = message.content
+        if message.attachments and message.attachments[0].url:
+            content += (' ' if content else '') + message.attachments[0].url
+        return content
+
+    @staticmethod
+    async def insert_message_db(message: discord.Message, db: sql.Connection):
+        await db.execute(f'INSERT INTO {DB_TABLE_MESSAGES} VALUES (?, ?, ?);',
+                         [message.id, message.author.id, Simulator.format_message(message)])
+
+    @staticmethod
+    async def delete_message_db(message: discord.Message, db: sql.Connection):
+        await db.execute(f'DELETE FROM {DB_TABLE_MESSAGES} WHERE id=?;',
+                         [message.id])
+
     # Simulator Functions
 
     def add_message(self, user_id: Optional[int] = None, content: Optional[str] = None, message: Optional[discord.Message] = None) -> bool:
         """Add a message to the model"""
         if message:
             user_id = message.author.id
-            content = format_message(message)
+            content = self.format_message(message)
         content = content.replace(CHAIN_END, '') if content else ''
         if not content:
             return False
