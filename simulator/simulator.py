@@ -261,7 +261,7 @@ class Simulator(commands.Cog):
 
     @simulatorcmd.command()
     @commands.is_owner()
-    async def feed(self, ctx: commands.Context, days: int):
+    async def feed(self, ctx: commands.Context, days: Optional[int] = None):
         """Feed past messages into the simulator from the configured channels from scratch."""
         if self.feeding_task and not self.feeding_task.done():
             self.feeding_task.cancel()
@@ -271,6 +271,13 @@ class Simulator(commands.Cog):
         if self.stage == Stage.NONE and not await self.setup_simulator():
             await ctx.send(ERROR_SETUP)
             return
+        if days is None or days < 0:
+            await ctx.send_help()
+            return
+        self.message_count = 0
+        for user in self.models.values():
+            user.model = {}
+            user.frequency = 0
         self.feeding_task = asyncio.create_task(self.feeder(ctx, days))
         await ctx.send("Started feeding. This may take 1 minute per 5000 messages, so be patient!\n"
                        "When the process is finished or interrupted, the summary will be sent in this channel.")
@@ -482,10 +489,6 @@ class Simulator(commands.Cog):
 
     async def feeder(self, ctx: commands.Context, days: int):
         try:
-            self.message_count = 0
-            for user in self.models.values():
-                user.model = {}
-                user.frequency = 0
             async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
                 await db.execute(f"DELETE FROM {DB_TABLE_MESSAGES}")
                 await db.commit()
