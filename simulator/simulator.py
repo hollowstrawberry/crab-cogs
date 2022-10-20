@@ -266,7 +266,6 @@ class Simulator(commands.Cog):
         if self.feeding_task and not self.feeding_task.done():
             self.feeding_task.cancel()
             return
-        self.simulator.stop()
         if self.stage == Stage.NONE and not await self.setup_simulator():
             await ctx.send(ERROR_SETUP)
             return
@@ -277,13 +276,14 @@ class Simulator(commands.Cog):
             await ctx.send_help()
             return
         await ctx.message.add_reaction(EMOJI_LOADING)
+        self.simulator.stop()
         self.message_count = 0
         for user in self.models.values():
             user.model = {}
             user.frequency = 0
         self.feeding_task = asyncio.create_task(self.feeder(ctx, days))
-        await ctx.send("Started feeding. This may take 1 minute per 5000 messages, so be patient!\n"
-                       "When the process is finished or interrupted, the summary will be sent in this channel.")
+        await ctx.send("```Started feeding. This may take 1 minute per 5000 messages, so be patient!\n"
+                       "When the process is finished or interrupted, the summary will be sent in this channel.```")
 
     @commands.command()
     async def dontsimulateme(self, ctx: commands.Context):
