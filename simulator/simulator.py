@@ -47,6 +47,7 @@ EMOJI_SUCCESS = '✅'
 ERROR_CONFIG = "You must configure the simulator input role, input channels and output channel. They must be in the same guild."
 ERROR_SETUP = "Failed to set up the simulator. Make sure it is configured correctly and check your logs for errors."
 ERROR_FEEDING = "The simulator is currently feeding on past messages. Please wait a few minutes."
+ERROR_BOOTING = "The simulator is booting up. Wait a minute for it to finish."
 ERROR_CHANNELS = "A channel cannot be simulator input and output at the same time."
 
 
@@ -241,8 +242,7 @@ class Simulator(commands.Cog):
             await ctx.send(ERROR_FEEDING)
             return
         if not self.simulator.is_running():
-            config_dict = await self.config.get_raw()
-            if not self.is_configured(config_dict):
+            if not self.is_configured(await self.config.get_raw()):
                 await ctx.send(ERROR_CONFIG)
                 return
             if self.stage == Stage.NONE and not await self.setup_simulator():
@@ -266,14 +266,17 @@ class Simulator(commands.Cog):
         if self.feeding_task and not self.feeding_task.done():
             self.feeding_task.cancel()
             return
-        await ctx.message.add_reaction(EMOJI_LOADING)
         self.simulator.stop()
         if self.stage == Stage.NONE and not await self.setup_simulator():
             await ctx.send(ERROR_SETUP)
             return
+        if self.stage == Stage.SETTING_UP:
+            await ctx.send(ERROR_BOOTING)
+            return
         if days is None or days < 0:
             await ctx.send_help()
             return
+        await ctx.message.add_reaction(EMOJI_LOADING)
         self.message_count = 0
         for user in self.models.values():
             user.model = {}
@@ -473,7 +476,7 @@ class Simulator(commands.Cog):
                 async with db.execute(f"SELECT * FROM {DB_TABLE_MESSAGES}") as cursor:
                     async for row in cursor:
                         self.add_message(row[1], row[2])
-            log.info(f"Simulator model built with {self.message_count} messages")
+            log.info(f"Simulator model built from {self.message_count} messages")
             self.stage = Stage.READY
             return True
         except Exception as error:
@@ -504,13 +507,13 @@ class Simulator(commands.Cog):
                     await db.commit()
         except asyncio.CancelledError:
             self.message_count = self.message_count // COMMIT_SIZE * COMMIT_SIZE
-            await ctx.send("Feeding has been interrupted.")
+            await ctx.send("Simulator feeding has been interrupted.")
         except Exception as error:
             self.message_count = self.message_count // COMMIT_SIZE * COMMIT_SIZE
-            await ctx.send(f"Feeding stopped due to an error - {type(error).__name__}: {error}\n")
+            await ctx.send(f"Simulator feeding stopped due to an error - {type(error).__name__}: {error}\n")
         finally:
             self.simulator.start()
-            await ctx.send(f"Loaded {self.message_count} messages")
+            await ctx.send(f"Simulator model built from {self.message_count} messages.")
             try:
                 await ctx.message.remove_reaction(EMOJI_LOADING, self.bot.user)
                 await ctx.message.add_reaction(EMOJI_SUCCESS)
@@ -524,8 +527,10 @@ class Simulator(commands.Cog):
             await ctx.send(f"The simulator is not set up yet. Configure it with `{ctx.prefix}simulator set`")
             return False
         if self.stage == Stage.SETTING_UP:
-            await ctx.send(f"The simulator is booting up. Wait a minute for it to finish.")
+            await ctx.send(ERROR_BOOTING)
             return False
+        if self.feeding_task and not self.feeding_task.done():
+            await ctx.send(ERROR_FEEDING)
         if self.guild != ctx.guild:
             await ctx.send(f"The simulator only runs in the {self.guild.name} server.")
             return False
