@@ -1,9 +1,11 @@
 import discord
+import asyncio
 import random
 import re
 import os
 import sys
 import logging
+import enum
 import aiosqlite as sql
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -42,19 +44,12 @@ CONVERSATION_MAX = 15
 EMOJI_LOADING = '⌛'
 EMOJI_SUCCESS = '✅'
 
-def format_message(message: discord.Message) -> str:
-    content = message.content
-    if message.attachments and message.attachments[0].url:
-        content += (' ' if content else '') + message.attachments[0].url
-    return content
+ERROR_CONFIG = "You must configure the simulator input role, input channels and output channel. They must be in the same guild."
+ERROR_SETUP = "Failed to set up the simulator. Make sure it is configured correctly and check your logs for errors."
+ERROR_FEEDING = "The simulator is currently feeding on past messages. Please wait a few minutes."
+ERROR_BOOTING = "The simulator is booting up. Wait a minute for it to finish."
+ERROR_CHANNELS = "A channel cannot be simulator input and output at the same time."
 
-async def insert_message_db(message: discord.Message, db: sql.Connection):
-    await db.execute(f'INSERT INTO {DB_TABLE_MESSAGES} VALUES (?, ?, ?);',
-                     [message.id, message.author.id, format_message(message)])
-
-async def delete_message_db(message: discord.Message, db: sql.Connection):
-    await db.execute(f'DELETE FROM {DB_TABLE_MESSAGES} WHERE id=?;',
-                     [message.id])
 
 def getsize(obj_0):
     """Recursively iterate to sum size of object & members.
@@ -80,11 +75,19 @@ def getsize(obj_0):
         return size
     return inner(obj_0)
 
+
 @dataclass
 class UserModel:
     user_id: int
     frequency: int
     model: dict
+
+
+class Stage(enum.Enum):
+    NONE = enum.auto()
+    SETTING_UP = enum.auto()
+    READY = enum.auto()
+
 
 class Simulator(commands.Cog):
     """Designates a channel that will send automated messages mimicking your friends using Markov chains. They will have your friends' avatars and nicknames too!
@@ -104,10 +107,11 @@ class Simulator(commands.Cog):
         self.models: Dict[int, UserModel] = {}
         self.comment_chance = 1 / COMMENT_DELAY
         self.conversation_chance = 1 / CONVERSATION_DELAY
+        self.stage = Stage.NONE
+        self.feeding_task: Optional[asyncio.Task] = None
         self.message_count = 0
         self.seconds = 0
         self.conversation_left = 0
-        self.feeding = False
         # Config
         self.config = Config.get_conf(self, identifier=7369756174)
         default_config = {
@@ -125,7 +129,8 @@ class Simulator(commands.Cog):
 
     def cog_unload(self):
         self.simulator.stop()
-        self.feeding = False
+        if self.feeding_task and not self.feeding_task.done():
+            self.feeding_task.cancel()
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         self.models.pop(user_id, None)
@@ -233,17 +238,15 @@ class Simulator(commands.Cog):
     @commands.bot_has_permissions(manage_webhooks=True)
     async def start(self, ctx: commands.Context):
         """Start the simulator in the configured channel."""
-        if self.feeding:
-            await ctx.send("The simulator is currently feeding on past messages. Please wait a few minutes.")
+        if self.feeding_task and not self.feeding_task.done():
+            await ctx.send(ERROR_FEEDING)
             return
         if not self.simulator.is_running():
-            config_dict = await self.config.get_raw()
-            guild_id = config_dict['home_guild_id']
-            input_channel_ids = config_dict['input_channel_ids']
-            output_channel_id = config_dict['output_channel_id']
-            role_id = config_dict['participant_role_id']
-            if guild_id == 0 or output_channel_id == 0 or role_id == 0 or not input_channel_ids or 0 in input_channel_ids:
-                await ctx.send("You must configure the simulator input role, input channels and output channel. They must be in the same guild.")
+            if not self.is_configured(await self.config.get_raw()):
+                await ctx.send(ERROR_CONFIG)
+                return
+            if self.stage == Stage.NONE and not await self.setup_simulator():
+                await ctx.send(ERROR_SETUP)
                 return
             self.simulator.start()
         self.start_conversation()
@@ -258,43 +261,29 @@ class Simulator(commands.Cog):
 
     @simulatorcmd.command()
     @commands.is_owner()
-    async def feed(self, ctx: commands.Context, days: int):
+    async def feed(self, ctx: commands.Context, days: Optional[int] = None):
         """Feed past messages into the simulator from the configured channels from scratch."""
-        await ctx.message.add_reaction(EMOJI_LOADING)
-        if not await self.setup_simulator():
-            await ctx.send("Failed to set up the simulator. Make sure you configured it first, and check the bot's logs.")
+        if self.feeding_task and not self.feeding_task.done():
+            self.feeding_task.cancel()
             return
+        if self.stage == Stage.NONE and not await self.setup_simulator():
+            await ctx.send(ERROR_SETUP)
+            return
+        if self.stage == Stage.SETTING_UP:
+            await ctx.send(ERROR_BOOTING)
+            return
+        if days is None or days < 0:
+            await ctx.send_help()
+            return
+        await ctx.message.add_reaction(EMOJI_LOADING)
         self.simulator.stop()
-        self.feeding = True
         self.message_count = 0
         for user in self.models.values():
             user.model = {}
             user.frequency = 0
-        try:
-            async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
-                await db.execute(f"DELETE FROM {DB_TABLE_MESSAGES}")
-                await db.commit()
-                start_date = datetime.now() - timedelta(days=days)
-                for channel in self.input_channels:
-                    async for message in channel.history(after=start_date, limit=None):
-                        if not self.feeding:
-                            break
-                        if message.author.bot:
-                            continue
-                        if self.add_message(message=message):
-                            await insert_message_db(message, db)
-                            if self.message_count % COMMIT_SIZE == 0:
-                                await db.commit()
-                    await db.commit()
-        except Exception as error:
-            self.message_count = self.message_count // COMMIT_SIZE * COMMIT_SIZE
-            await ctx.send(f"Feeding stopped due to an error - {type(error).__name__}: {error}\n")
-        finally:
-            self.feeding = False
-        self.simulator.start()
-        await ctx.send(f"Loaded {self.message_count} messages")
-        await ctx.message.remove_reaction(EMOJI_LOADING, self.bot.user)
-        await ctx.message.add_reaction(EMOJI_SUCCESS)
+        self.feeding_task = asyncio.create_task(self.feeder(ctx, days))
+        await ctx.send("```Started feeding. This may take 1 minute per 5000 messages, so be patient!\n"
+                       "When the process is finished or interrupted, the summary will be sent in this channel.```")
 
     @commands.command()
     async def dontsimulateme(self, ctx: commands.Context):
@@ -333,7 +322,7 @@ class Simulator(commands.Cog):
     async def inputchannels(self, ctx: commands.Context, *channels: discord.TextChannel):
         """Set a series of channels that will feed the simulator."""
         if self.output_channel and self.output_channel in channels:
-            await ctx.send("A channel cannot be simulator input and output at the same time.")
+            await ctx.send(ERROR_CHANNELS)
             return
         await self.config.home_guild_id.set(ctx.guild.id)
         await self.config.input_channel_ids.set([channel.id for channel in channels])
@@ -346,7 +335,7 @@ class Simulator(commands.Cog):
     async def outputchannel(self, ctx: commands.Context, channel: discord.TextChannel):
         """Set the channel the simulator will run in."""
         if channel in self.input_channels:
-            await ctx.send("A channel cannot be simulator input and output at the same time.")
+            await ctx.send(ERROR_CHANNELS)
             return
         await self.config.output_channel_id.set(channel.id)
         self.output_channel = channel
@@ -388,7 +377,7 @@ class Simulator(commands.Cog):
                 return
             if self.add_message(message=message):
                 async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
-                    await insert_message_db(message, db)
+                    await self.insert_message_db(message, db)
                     await db.commit()
         elif message.channel == self.output_channel:
             if not await self.is_valid_red_message(message):
@@ -403,33 +392,37 @@ class Simulator(commands.Cog):
     @commands.Cog.listener()
     async def on_message_delete(self, message: discord.Message):
         """Processes deleted messages"""
-        if not self.is_valid_event_message(message) or not self.is_valid_input_message(message):
+        if not self.is_valid_event_message(message):
+            return
+        if not self.is_valid_input_message(message):
             return
         if not await self.is_valid_red_message(message):
             return
         async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
-            await delete_message_db(message, db)
+            await self.delete_message_db(message, db)
             await db.commit()
         self.message_count -= 1
 
     @commands.Cog.listener()
     async def on_message_edit(self, message: discord.Message, edited: discord.Message):
         """Processes edited messages"""
-        if not self.is_valid_event_message(message) or not self.is_valid_input_message(message):
+        if not self.is_valid_event_message(message):
+            return
+        if not self.is_valid_input_message(message):
             return
         if not await self.is_valid_red_message(message):
             return
         async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
-            await delete_message_db(message, db)
-            if self.add_message(message=edited):
-                await insert_message_db(edited, db)
+            await self.delete_message_db(message, db)
             await db.commit()
+            if self.add_message(message=edited):
+                await self.insert_message_db(edited, db)
+                await db.commit()
 
     # Loop
 
     @tasks.loop(seconds=1, reconnect=True)
     async def simulator(self):
-        """Run the simulator"""
         if self.conversation_left:
             if random.random() < self.comment_chance:
                 try:
@@ -449,21 +442,20 @@ class Simulator(commands.Cog):
 
     @simulator.before_loop
     async def setup_simulator(self) -> bool:
-        """Set up the simulator"""
+        self.stage = Stage.SETTING_UP
         try:
-            await self.bot.wait_until_ready()
+            await self.bot.wait_until_red_ready()
             # config
             config_dict = await self.config.get_raw()
+            if not self.is_configured(config_dict):
+                self.simulator.stop()
+                return False
             guild_id = config_dict['home_guild_id']
             input_channel_ids = config_dict['input_channel_ids']
             output_channel_id = config_dict['output_channel_id']
             role_id = config_dict['participant_role_id']
             self.comment_chance = 1 / config_dict['comment_delay']
             self.conversation_chance = 1 / config_dict['conversation_delay']
-            if guild_id == 0 or output_channel_id == 0 or role_id == 0 or not input_channel_ids or 0 in input_channel_ids:
-                log.info("You must configure the simulator input role, input channels and output channel. They must be in the same guild.")
-                self.simulator.stop()
-                return False
             # discord entities
             self.guild = self.bot.get_guild(guild_id)
             if self.guild is None: raise KeyError(self.guild.__name__)
@@ -477,7 +469,6 @@ class Simulator(commands.Cog):
             webhooks = [w for w in webhooks if w.user == self.bot.user and w.name == WEBHOOK_NAME]
             self.webhook = webhooks[0] if webhooks else await self.output_channel.create_webhook(name=WEBHOOK_NAME)
             # database
-            count = 0
             async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
                 await db.execute(f"CREATE TABLE IF NOT EXISTS {DB_TABLE_MESSAGES} "
                                  f"(id INTEGER PRIMARY KEY, user_id INTEGER, content TEXT NOT NULL);")
@@ -485,23 +476,70 @@ class Simulator(commands.Cog):
                 async with db.execute(f"SELECT * FROM {DB_TABLE_MESSAGES}") as cursor:
                     async for row in cursor:
                         self.add_message(row[1], row[2])
-                        count += 1
-            log.info(f"Simulator model built with {count} messages")
+            log.info(f"Simulator model built from {self.message_count} messages")
+            self.stage = Stage.READY
             return True
         except Exception as error:
             error_msg = f'Failed to set up the simulator - {type(error).__name__}: {error}'
             log.error(error_msg, exc_info=True)
             self.simulator.stop()
-            if self.output_channel:
+            self.stage = Stage.NONE
+            try:
                 await self.output_channel.send(error_msg)
+            except Exception:
+                pass
             return False
 
-    # Functions
+    async def feeder(self, ctx: commands.Context, days: int):
+        embed = discord.Embed(color=await ctx.embed_color())
+        try:
+            async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
+                await db.execute(f"DELETE FROM {DB_TABLE_MESSAGES}")
+                await db.commit()
+                start_date = datetime.now() - timedelta(days=days)
+                for channel in self.input_channels:
+                    async for message in channel.history(after=start_date, limit=None):
+                        if message.author.bot:
+                            continue
+                        if self.add_message(message=message):
+                            await self.insert_message_db(message, db)
+                            if self.message_count % COMMIT_SIZE == 0:
+                                await db.commit()
+                    await db.commit()
+        except asyncio.CancelledError:
+            self.message_count = self.message_count // COMMIT_SIZE * COMMIT_SIZE
+            embed.title = "⚠ Simulator - Stopped"
+            embed.description = "Feeding has been interrupted.\n"
+        except Exception as error:
+            embed.title = "⚠ Simulator - Error"
+            embed.description = f"Feeding stopped due to an error.\n"
+            embed.add_field(name=type(error).__name__, value=str(error))
+            self.message_count = self.message_count // COMMIT_SIZE * COMMIT_SIZE
+        else:
+            embed.title = f"{EMOJI_SUCCESS} Simulator - Success"
+            embed.description = "Feeding has completed and the simulator will start now.\n"
+            self.simulator.start()
+            self.start_conversation()
+        finally:
+            embed.add_field(name="🧠 Model Built", value=f"Analyzed {self.message_count} messages")
+            await ctx.send(embed=embed)
+            try:
+                await ctx.message.remove_reaction(EMOJI_LOADING, self.bot.user)
+                await ctx.message.add_reaction(EMOJI_SUCCESS)
+            except Exception:
+                pass
+
+    # Helper Functions
 
     async def check_participant(self, ctx: commands.Context) -> bool:
-        if not self.models or not self.guild or not self.role:
-            await ctx.send("No data to show yet.")
+        if self.stage == Stage.NONE:
+            await ctx.send(f"The simulator is not set up yet. Configure it with `{ctx.prefix}simulator set`")
             return False
+        if self.stage == Stage.SETTING_UP:
+            await ctx.send(ERROR_BOOTING)
+            return False
+        if self.feeding_task and not self.feeding_task.done():
+            await ctx.send(ERROR_FEEDING)
         if self.guild != ctx.guild:
             await ctx.send(f"The simulator only runs in the {self.guild.name} server.")
             return False
@@ -509,6 +547,14 @@ class Simulator(commands.Cog):
             await ctx.send(f"You must have the {self.role.name} role to participate in the simulator and view stats.")
             return False
         return True
+
+    @staticmethod
+    def is_configured(config: dict) -> bool:
+        guild_id = config['home_guild_id']
+        input_channel_ids = config['input_channel_ids']
+        output_channel_id = config['output_channel_id']
+        role_id = config['participant_role_id']
+        return guild_id != 0 and output_channel_id != 0 and role_id != 0 and input_channel_ids and 0 not in input_channel_ids
 
     @staticmethod
     def is_valid_event_message(message: discord.Message) -> bool:
@@ -524,14 +570,30 @@ class Simulator(commands.Cog):
                and await self.bot.ignored_channel_or_guild(message) \
                and not await self.bot.cog_disabled_in_guild(self, message.guild)
 
-    def add_message(self,
-                    user_id: Optional[int] = None,
-                    content: Optional[str] = None,
-                    message: Optional[discord.Message] = None) -> bool:
+    @staticmethod
+    def format_message(message: discord.Message) -> str:
+        content = message.content
+        if message.attachments and message.attachments[0].url:
+            content += (' ' if content else '') + message.attachments[0].url
+        return content
+
+    @staticmethod
+    async def insert_message_db(message: discord.Message, db: sql.Connection):
+        await db.execute(f'INSERT INTO {DB_TABLE_MESSAGES} VALUES (?, ?, ?);',
+                         [message.id, message.author.id, Simulator.format_message(message)])
+
+    @staticmethod
+    async def delete_message_db(message: discord.Message, db: sql.Connection):
+        await db.execute(f'DELETE FROM {DB_TABLE_MESSAGES} WHERE id=?;',
+                         [message.id])
+
+    # Simulator Functions
+
+    def add_message(self, user_id: Optional[int] = None, content: Optional[str] = None, message: Optional[discord.Message] = None) -> bool:
         """Add a message to the model"""
         if message:
             user_id = message.author.id
-            content = format_message(message)
+            content = self.format_message(message)
         content = content.replace(CHAIN_END, '') if content else ''
         if not content:
             return False
