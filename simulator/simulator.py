@@ -517,10 +517,11 @@ class Simulator(commands.Cog):
             self.message_count = self.message_count // COMMIT_SIZE * COMMIT_SIZE
         else:
             embed.title = f"{EMOJI_SUCCESS} Simulator - Success"
-            embed.description = "The simulator will start shortly.\n"
+            embed.description = "Feeding has completed and the simulator will start now.\n"
             self.simulator.start()
+            self.start_conversation()
         finally:
-            embed.add_field(name="Model Built", value=f"Analyzed {self.message_count} messages")
+            embed.add_field(name="🧠 Model Built", value=f"Analyzed {self.message_count} messages")
             await ctx.send(embed=embed)
             try:
                 await ctx.message.remove_reaction(EMOJI_LOADING, self.bot.user)
