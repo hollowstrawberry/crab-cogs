@@ -129,7 +129,7 @@ class Simulator(commands.Cog):
 
     def cog_unload(self):
         self.simulator.stop()
-        if self.feeding_task:
+        if self.feeding_task and not self.feeding_task.done():
             self.feeding_task.cancel()
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
@@ -491,6 +491,7 @@ class Simulator(commands.Cog):
             return False
 
     async def feeder(self, ctx: commands.Context, days: int):
+        embed = discord.Embed(color=await ctx.embed_color(), description="")
         try:
             async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
                 await db.execute(f"DELETE FROM {DB_TABLE_MESSAGES}")
@@ -507,13 +508,20 @@ class Simulator(commands.Cog):
                     await db.commit()
         except asyncio.CancelledError:
             self.message_count = self.message_count // COMMIT_SIZE * COMMIT_SIZE
-            await ctx.send("Simulator feeding has been interrupted.")
+            embed.title = "⚠ Simulator - Stopped"
+            embed.description = "Feeding has been interrupted.\n"
         except Exception as error:
+            embed.title = "⚠ Simulator - Error"
+            embed.description = f"Feeding stopped due to an error.\n"
+            embed.add_field(name=type(error).__name__, value=str(error))
             self.message_count = self.message_count // COMMIT_SIZE * COMMIT_SIZE
-            await ctx.send(f"Simulator feeding stopped due to an error - {type(error).__name__}: {error}\n")
-        finally:
+        else:
+            embed.title = f"{EMOJI_SUCCESS} Simulator - Success"
+            embed.description = "The simulator will start shortly.\n"
             self.simulator.start()
-            await ctx.send(f"Simulator model built from {self.message_count} messages.")
+        finally:
+            embed.description += f"Model built from {self.message_count} messages."
+            await ctx.send(embed=embed)
             try:
                 await ctx.message.remove_reaction(EMOJI_LOADING, self.bot.user)
                 await ctx.message.add_reaction(EMOJI_SUCCESS)
