@@ -153,15 +153,15 @@ class Simulator(commands.Cog):
             f"With this cog you may designate a channel that will send automated messages mimicking your friends " \
             f"using Markov chains. They will have your friends' avatars and nicknames too! " \
             f"Inspired by /r/SubredditSimulator and similar concepts.\n\n" \
-            f"🧠 It will learn from messages from configured channels, and only from users with the configured role. " \
-            f"Will only support a single guild set by the bot owner.\n\n" \
-            f"⚙ After configuring it with `{ctx.prefix}simulator set`, you may manually feed past messages using " \
-            f"`{ctx.prefix}simulator feed [days]`. This takes around 1 minute per 5,000 messages, so be patient! " \
-            f"When the feeding is finished or interrupted, it will send the summary in the same channel.\n\n" \
-            f"♻ While the simulator is running, a conversation will occur every so many minutes, during which " \
+            f"🧠 It will learn from new messages sent in configured channels, and only from users with the " \
+            f"configured role. Will only support a single guild.\n\n" \
+            f"⚙ The bot owner must configure it with `{ctx.prefix}simulator set`, then they may manually feed past " \
+            f"messages using `{ctx.prefix}simulator feed [days]`. This takes around 1 minute per 5,000 messages, " \
+            f"so be patient! When the feeding is finished or interrupted, it will send the summary in the same channel.\n\n" \
+            f"🔄 While the simulator is running, a conversation will occur every so many minutes, during which " \
             f"comments will be sent every so many seconds. Trying to type in the output channel will delete the " \
             f"message and trigger a conversation.\n\n" \
-            f"⚠ A user may permanently exclude themselves from their messages being read and analyzed by using the " \
+            f"👤 A user may permanently exclude themselves from their messages being read and analyzed by using the " \
             f"`{ctx.prefix}dontsimulateme` command. This will also delete all their data."
         await ctx.send(embed=embed)
 
@@ -352,7 +352,7 @@ class Simulator(commands.Cog):
     @set.command()
     @commands.is_owner()
     async def conversationdelay(self, ctx: commands.Context, minutes: int):
-        """Approximately how many minutes between output conversations (random)"""
+        """Simulated conversations will occur randomly according to this value in minutes."""
         await self.config.conversation_delay.set(max(1, minutes))
         self.conversation_chance = 1 / max(1, minutes)
         await ctx.react_quietly(EMOJI_SUCCESS)
@@ -360,7 +360,7 @@ class Simulator(commands.Cog):
     @set.command()
     @commands.is_owner()
     async def commentdelay(self, ctx: commands.Context, chance: int):
-        """Approximately how many seconds between individual messages in a conversation (random)"""
+        """Messages will be sent during simulated conversations randomly according to this value in seconds."""
         await self.config.comment_delay.set(max(1, chance))
         self.comment_chance = 1 / max(1, chance)
         await ctx.react_quietly(EMOJI_SUCCESS)
@@ -579,12 +579,12 @@ class Simulator(commands.Cog):
 
     @staticmethod
     async def insert_message_db(message: discord.Message, db: sql.Connection):
-        await db.execute(f'INSERT INTO {DB_TABLE_MESSAGES} VALUES (?, ?, ?);',
+        await db.execute(f'INSERT INTO {DB_TABLE_MESSAGES} VALUES (?, ?, ?)',
                          [message.id, message.author.id, Simulator.format_message(message)])
 
     @staticmethod
     async def delete_message_db(message: discord.Message, db: sql.Connection):
-        await db.execute(f'DELETE FROM {DB_TABLE_MESSAGES} WHERE id=?;',
+        await db.execute(f'DELETE FROM {DB_TABLE_MESSAGES} WHERE id=?',
                          [message.id])
 
     # Simulator Functions
