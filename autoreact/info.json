@@ -7,5 +7,5 @@
     "required_cogs": {},
     "requirements": ["emoji"],
     "short": "Reacts to specific messages with emojis.",
-    "tags": ["crab", "fun", "emoji", "react", "auto"]
+    "tags": ["crab", "fun", "emoji", "react", "auto", "reaction"]
 }
