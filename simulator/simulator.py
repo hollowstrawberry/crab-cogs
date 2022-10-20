@@ -520,7 +520,7 @@ class Simulator(commands.Cog):
             embed.description = "The simulator will start shortly.\n"
             self.simulator.start()
         finally:
-            embed.add_field(name="Model Built", value=f"{self.message_count} messages.")
+            embed.add_field(name="Model Built", value=f"Analyzed {self.message_count} messages")
             await ctx.send(embed=embed)
             try:
                 await ctx.message.remove_reaction(EMOJI_LOADING, self.bot.user)
