@@ -491,7 +491,7 @@ class Simulator(commands.Cog):
             return False
 
     async def feeder(self, ctx: commands.Context, days: int):
-        embed = discord.Embed(color=await ctx.embed_color(), description="")
+        embed = discord.Embed(color=await ctx.embed_color())
         try:
             async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
                 await db.execute(f"DELETE FROM {DB_TABLE_MESSAGES}")
@@ -520,7 +520,7 @@ class Simulator(commands.Cog):
             embed.description = "The simulator will start shortly.\n"
             self.simulator.start()
         finally:
-            embed.description += f"Model built from {self.message_count} messages."
+            embed.add_field(name="Model Built", value=f"{self.message_count} messages.")
             await ctx.send(embed=embed)
             try:
                 await ctx.message.remove_reaction(EMOJI_LOADING, self.bot.user)
