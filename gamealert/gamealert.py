@@ -9,13 +9,6 @@ from typing import *
 log = logging.getLogger("red.crab-cogs.gamealert")
 
 
-class Alert(NamedTuple):
-    game_name: str
-    response: str
-    delay_minutes: int
-    channel_id: int
-
-
 class GameAlert(commands.Cog):
     """Sends a configured message when a user has been playing a specific game for some time."""
 
@@ -23,12 +16,13 @@ class GameAlert(commands.Cog):
         super().__init__()
         self.bot = bot
         self.config = Config.get_conf(self, identifier=6761656165)
-        self.alerts: Dict[int, List[Alert]] = {}
+        self.alerts: Dict[int, List[dict]] = {}
         self.alerted: List[int] = []
         self.config.register_guild(alerts=[])
         self.alert_loop.start()
 
     async def load_config(self):
+        await self.config.clear_all_guilds()
         all_config = await self.config.all_guilds()
         self.alerts = {guild_id: conf['alerts'] for guild_id, conf in all_config.items()}
 
@@ -50,19 +44,19 @@ class GameAlert(commands.Cog):
             for member in guild.members:
                 if member.activity and member.activity.name and member.activity.created_at:
                     log.info(f"{member.activity.name} created_at:{member.activity.created_at}")
-                    alert = next(iter(a for a in self.alerts[guild.id] if a.game_name == member.activity.name), None)
-                    if alert and (datetime.utcnow() - member.activity.created_at) > timedelta.min(alert.delay_minutes):
+                    alert = next(iter(a for a in self.alerts[guild.id] if a['game_name'] == member.activity.name), None)
+                    if alert and (datetime.utcnow() - member.activity.created_at) > timedelta.min(alert['delay_minutes']):
                         if member.id in self.alerted or not await self.bot.allowed_by_whitelist_blacklist(member):
                             continue
-                        channel = guild.get_channel(alert.channel_id)
-                        message = alert.response\
+                        channel = guild.get_channel(alert['channel_id'])
+                        message = alert['message']\
                             .replace("{user}", member.nick)\
                             .replace("{mention}", member.mention)
                         try:
                             await channel.send(message)
                             self.alerted.append(member.id)
                         except Exception as error:
-                            log.warning(f"Failed to send game alert in {alert.channel_id} - {type(error).__name__}: {error}", exc_info=True)
+                            log.warning(f"Failed to send game alert in {alert['channel_id']} - {type(error).__name__}: {error}", exc_info=True)
                 elif member.id in self.alerted:
                     self.alerted.remove(member.id)
 
@@ -88,8 +82,8 @@ class GameAlert(commands.Cog):
             await ctx.send("Sorry, the message may not be longer than 1000 characters.")
             return
         async with self.config.guild(ctx.guild).alerts() as alerts:
-            alert = Alert(game, message, max(delay, 0), ctx.channel.id)
-            old_alert = [a for a in alerts if a.game_name == alert.game_name]
+            alert = {'game_name': game, 'message': message, 'delay_minutes': max(delay, 0), 'channel_id': ctx.channel.id}
+            old_alert = [a for a in alerts if a.game_name == alert['game_name']]
             for a in old_alert:
                 alerts.remove(a)
             alerts.append(alert)
@@ -116,7 +110,7 @@ class GameAlert(commands.Cog):
         embed = discord.Embed(title="Server Game Alerts", color=await ctx.embed_color(), description="None")
         embed.set_footer(text=f"Page {page}")
         if ctx.guild.id in self.alerts and self.alerts[ctx.guild.id]:
-            alerts = [f"- {alert.game_name} in <#{alert.channel_id}> after {alert.delay_minutes} minutes"
+            alerts = [f"- {alert['game_name']} in <#{alert['channel_id']}> after {alert['delay_minutes']} minutes"
                       for alert in self.alerts[ctx.guild.id]]
             alerts = alerts[10*(page-1):10*page]
             if alerts:
@@ -128,5 +122,5 @@ class GameAlert(commands.Cog):
         """Shows the message for an alert for a game."""
         alert = None
         if ctx.guild.id in self.alerts and self.alerts[ctx.guild.id]:
-            alert = next(iter(a for a in self.alerts[ctx.guild.id] if a.game_name == game), None)
-        await ctx.send(f"```\n{alert.response}```" if alert else "No alert found for that game.")
+            alert = next(iter(a for a in self.alerts[ctx.guild.id] if a['game_name'] == game), None)
+        await ctx.send(f"```\n{alert['response']}```" if alert else "No alert found for that game.")
