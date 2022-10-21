@@ -1,7 +1,6 @@
 import discord
 import logging
 from datetime import datetime, timedelta
-from dataclasses import dataclass
 from discord.ext import tasks
 from redbot.core import commands, Config
 from redbot.core.bot import Red
@@ -9,15 +8,12 @@ from typing import *
 
 log = logging.getLogger("red.crab-cogs.gamealert")
 
-@dataclass(init=True, order=True)
-class Alert(dict):
+
+class Alert(NamedTuple):
     game_name: str
     response: str
     delay_minutes: int
     channel_id: int
-
-    def __getattr__(self, item):
-        return self[item]
 
 
 class GameAlert(commands.Cog):
