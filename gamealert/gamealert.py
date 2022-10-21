@@ -48,10 +48,10 @@ class GameAlert(commands.Cog):
             if await self.bot.cog_disabled_in_guild(self, guild):
                 continue
             for member in guild.members:
-                if member.activity and member.activity.name:
-                    log.info(f"{member.activity.name} created_at:{member.activity.created_at} start:{member.activity.start}")
+                if member.activity and member.activity.name and member.activity.created_at:
+                    log.info(f"{member.activity.name} created_at:{member.activity.created_at}")
                     alert = next(iter(a for a in self.alerts[guild.id] if a.game_name == member.activity.name), None)
-                    if alert and (datetime.utcnow() - member.activity.start) > timedelta.min(alert.delay_minutes):
+                    if alert and (datetime.utcnow() - member.activity.created_at) > timedelta.min(alert.delay_minutes):
                         if member.id in self.alerted or not await self.bot.allowed_by_whitelist_blacklist(member):
                             continue
                         channel = guild.get_channel(alert.channel_id)
