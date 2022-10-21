@@ -117,10 +117,10 @@ class Autoreact(commands.Cog):
     async def list(self, ctx: commands.Context, page: int = 1):
         """Shows all autoreacts."""
         embed = discord.Embed(title="Server Autoreacts", color=await ctx.embed_color(), description="None")
-        embed.set_footer(text=f"Page {page}")
         if ctx.guild.id in self.autoreacts and self.autoreacts[ctx.guild.id]:
             autoreacts = [f"{emoji} {text if '`' in text else f'`{text}`'}"
                           for text, emoji in self.autoreacts[ctx.guild.id]]
+            embed.set_footer(text=f"Page {page}/{(9+len(autoreacts))//10}")
             autoreacts = autoreacts[10*(page-1):10*page]
             if autoreacts:
                 embed.description = '\n'.join(autoreacts)

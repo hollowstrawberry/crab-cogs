@@ -84,7 +84,7 @@ class GameAlert(commands.Cog):
             return
         async with self.config.guild(ctx.guild).alerts() as alerts:
             alert = {'game_name': game, 'message': message, 'delay_minutes': max(delay, 0), 'channel_id': ctx.channel.id}
-            old_alert = [a for a in alerts if a.game_name == alert['game_name']]
+            old_alert = [a for a in alerts if a['game_name'] == alert['game_name']]
             for a in old_alert:
                 alerts.remove(a)
             alerts.append(alert)
@@ -109,10 +109,10 @@ class GameAlert(commands.Cog):
     async def list(self, ctx: commands.Context, page: int = 1):
         """Shows all game alerts."""
         embed = discord.Embed(title="Server Game Alerts", color=await ctx.embed_color(), description="None")
-        embed.set_footer(text=f"Page {page}")
         if ctx.guild.id in self.alerts and self.alerts[ctx.guild.id]:
             alerts = [f"- {alert['game_name']} in <#{alert['channel_id']}> after {alert['delay_minutes']} minutes"
                       for alert in self.alerts[ctx.guild.id]]
+            embed.set_footer(text=f"Page {page}/{(9+len(alerts))//10}")
             alerts = alerts[10*(page-1):10*page]
             if alerts:
                 embed.description = '\n'.join(alerts)
