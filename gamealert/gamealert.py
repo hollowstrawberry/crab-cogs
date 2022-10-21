@@ -22,7 +22,6 @@ class GameAlert(commands.Cog):
         self.alert_loop.start()
 
     async def load_config(self):
-        await self.config.clear_all_guilds()
         all_config = await self.config.all_guilds()
         self.alerts = {guild_id: conf['alerts'] for guild_id, conf in all_config.items()}
 
@@ -58,6 +57,7 @@ class GameAlert(commands.Cog):
                         except Exception as error:
                             log.warning(f"Failed to send game alert in {alert['channel_id']} - {type(error).__name__}: {error}", exc_info=True)
                 elif member.id in self.alerted:
+                    log.info(f"{member.name} no activity")
                     self.alerted.remove(member.id)
 
     @alert_loop.before_loop
