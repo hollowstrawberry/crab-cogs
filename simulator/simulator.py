@@ -125,10 +125,10 @@ class Simulator(commands.Cog):
         }
         self.config.register_global(**default_config)
         # Start simulator if possible
-        self.simulator.start()
+        self.simulator_loop.start()
 
     def cog_unload(self):
-        self.simulator.stop()
+        self.simulator_loop.stop()
         if self.feeding_task and not self.feeding_task.done():
             self.feeding_task.cancel()
 
@@ -141,11 +141,11 @@ class Simulator(commands.Cog):
     # Commands
 
     @commands.group(name="simulator", aliases=["sim"], invoke_without_command=True)
-    async def simulatorcmd(self, ctx: commands.Context):
+    async def simulator(self, ctx: commands.Context):
         """Main simulator command. Use me!"""
         await ctx.send_help()
 
-    @simulatorcmd.command()
+    @simulator.command()
     async def info(self, ctx: commands.Context):
         """How this works"""
         embed = discord.Embed(title="Simulator", color=await ctx.embed_color())
@@ -165,7 +165,7 @@ class Simulator(commands.Cog):
             f"`{ctx.prefix}dontsimulateme` command. This will also delete all their data."
         await ctx.send(embed=embed)
 
-    @simulatorcmd.command()
+    @simulator.command()
     async def stats(self, ctx: commands.Context, user: Optional[discord.Member] = None):
         """Statistics about the simulator, globally or for a user"""
         if not await self.check_participant(ctx):
@@ -215,7 +215,7 @@ class Simulator(commands.Cog):
             embed.add_field(name="Database", value=f"{round(filesize, 2)} MB", inline=True)
         await ctx.send(embed=embed)
 
-    @simulatorcmd.command()
+    @simulator.command()
     async def count(self, ctx: commands.Context, word: str, user: Optional[discord.Member] = None):
         """Count instances of a word, globally or for a user"""
         if not await self.check_participant(ctx):
@@ -233,7 +233,7 @@ class Simulator(commands.Cog):
             children = sum(len(m.model.get(word, {}) | m.model.get(sword, {})) for m in self.models.values())
         await ctx.send(f"```yaml\nOccurrences: {occurences:,}\nWords that follow: {children:,}```")
 
-    @simulatorcmd.command()
+    @simulator.command()
     @commands.is_owner()
     @commands.bot_has_permissions(manage_webhooks=True)
     async def start(self, ctx: commands.Context):
@@ -241,25 +241,25 @@ class Simulator(commands.Cog):
         if self.feeding_task and not self.feeding_task.done():
             await ctx.send(ERROR_FEEDING)
             return
-        if not self.simulator.is_running():
+        if not self.simulator_loop.is_running():
             if not self.is_configured(await self.config.get_raw()):
                 await ctx.send(ERROR_CONFIG)
                 return
             if self.stage == Stage.NONE and not await self.setup_simulator():
                 await ctx.send(ERROR_SETUP)
                 return
-            self.simulator.start()
+            self.simulator_loop.start()
         self.start_conversation()
         await ctx.message.add_reaction(EMOJI_SUCCESS)
 
-    @simulatorcmd.command()
+    @simulator.command()
     @commands.is_owner()
     async def stop(self, ctx: commands.Context):
         """Stop the simulator."""
-        self.simulator.stop()
+        self.simulator_loop.stop()
         await ctx.message.add_reaction(EMOJI_SUCCESS)
 
-    @simulatorcmd.command()
+    @simulator.command()
     @commands.is_owner()
     async def feed(self, ctx: commands.Context, days: Optional[int] = None):
         """Feed past messages into the simulator from the configured channels from scratch."""
@@ -276,7 +276,7 @@ class Simulator(commands.Cog):
             await ctx.send_help()
             return
         await ctx.message.add_reaction(EMOJI_LOADING)
-        self.simulator.stop()
+        self.simulator_loop.stop()
         self.message_count = 0
         for user in self.models.values():
             user.model = {}
@@ -301,7 +301,7 @@ class Simulator(commands.Cog):
 
     # Settings
 
-    @simulatorcmd.group(invoke_without_command=True)
+    @simulator.group(invoke_without_command=True)
     async def set(self, ctx: commands.Context):
         """Set up your simulator."""
         await ctx.send_help()
@@ -422,7 +422,7 @@ class Simulator(commands.Cog):
     # Loop
 
     @tasks.loop(seconds=1, reconnect=True)
-    async def simulator(self):
+    async def simulator_loop(self):
         if self.conversation_left:
             if random.random() < self.comment_chance:
                 try:
@@ -440,7 +440,7 @@ class Simulator(commands.Cog):
             if self.seconds == 0 and random.random() < self.conversation_chance:
                 self.start_conversation()
 
-    @simulator.before_loop
+    @simulator_loop.before_loop
     async def setup_simulator(self) -> bool:
         self.stage = Stage.SETTING_UP
         try:
@@ -448,7 +448,7 @@ class Simulator(commands.Cog):
             # config
             config_dict = await self.config.get_raw()
             if not self.is_configured(config_dict):
-                self.simulator.stop()
+                self.simulator_loop.stop()
                 return False
             guild_id = config_dict['home_guild_id']
             input_channel_ids = config_dict['input_channel_ids']
@@ -482,7 +482,7 @@ class Simulator(commands.Cog):
         except Exception as error:
             error_msg = f'Failed to set up the simulator - {type(error).__name__}: {error}'
             log.error(error_msg, exc_info=True)
-            self.simulator.stop()
+            self.simulator_loop.stop()
             self.stage = Stage.NONE
             try:
                 await self.output_channel.send(error_msg)
@@ -518,7 +518,7 @@ class Simulator(commands.Cog):
         else:
             embed.title = f"{EMOJI_SUCCESS} Simulator - Success"
             embed.description = "Feeding has completed and the simulator will start now.\n"
-            self.simulator.start()
+            self.simulator_loop.start()
             self.start_conversation()
         finally:
             embed.add_field(name="🧠 Model Built", value=f"Analyzed {self.message_count} messages")

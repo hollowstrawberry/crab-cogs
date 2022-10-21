@@ -1,0 +1,11 @@
+{
+    "author": ["OrchidAlloy"],
+    "min_bot_version": "3.0.0",
+    "description": "Sends a configured message when a user has been playing a specific game for too long.",
+    "hidden": false,
+    "install_msg": "📢 __**GameAlert**__\n```GameAlert cog installed. Instructions:\n1. Load it with [p]load gamealert\n2. Check out [p]help gamealert add\n3. Start adding alerts with [p]gamealert add```",
+    "required_cogs": {},
+    "requirements": [],
+    "short": "Send a message when someone is playing a game too long.\"",
+    "tags": ["crab", "fun", "game", "alert", "notification", "joke", "health"]
+}
