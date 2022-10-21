@@ -42,9 +42,7 @@ class GameAlert(commands.Cog):
                 continue
             for member in guild.members:
                 activity = next(iter(act for act in member.activities if act.type == discord.ActivityType.playing), None)
-                log.info(f"{member.name} {activity}")
                 if activity and activity.name and activity.created_at:
-                    log.info(f"{activity.name} created_at:{activity.created_at}")
                     alert = next(iter(a for a in self.alerts[guild.id] if a['game_name'] == activity.name), None)
                     if alert and (datetime.utcnow() - activity.created_at) > timedelta.min * alert['delay_minutes']:
                         if member.id in self.alerted or not await self.bot.allowed_by_whitelist_blacklist(member):
