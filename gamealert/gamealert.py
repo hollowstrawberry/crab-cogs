@@ -29,7 +29,6 @@ class GameAlert(commands.Cog):
         self.alert_loop.start()
 
     async def load_config(self):
-        await self.config.clear_all_guilds()
         all_config = await self.config.all_guilds()
         self.alerts = {guild_id: conf['alerts'] for guild_id, conf in all_config.items()}
 
