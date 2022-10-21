@@ -16,6 +16,9 @@ class Alert(dict):
     delay_minutes: int
     channel_id: int
 
+    def __getattr__(self, item):
+        return self[item]
+
 
 class GameAlert(commands.Cog):
     """Sends a configured message when a user has been playing a specific game for some time."""
