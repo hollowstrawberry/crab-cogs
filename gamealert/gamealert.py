@@ -10,7 +10,7 @@ from typing import *
 log = logging.getLogger("red.crab-cogs.gamealert")
 
 @dataclass(init=True, order=True)
-class Alert:
+class Alert(dict):
     game_name: str
     response: str
     delay_minutes: int
@@ -54,9 +54,7 @@ class GameAlert(commands.Cog):
                         channel = guild.get_channel(alert.channel_id)
                         message = alert.response\
                             .replace("{user}", member.nick)\
-                            .replace("{mention}", member.mention)\
-                            .replace("{game}", alert.game_name)\
-                            .replace("{minutes}", str(alert.delay_minutes))
+                            .replace("{mention}", member.mention)
                         try:
                             await channel.send(message)
                             self.alerted.append(member.id)
@@ -78,7 +76,7 @@ class GameAlert(commands.Cog):
     async def add(self, ctx: commands.Context, game: str, delay: int, *, message: str):
         """Add a new game alert to this channel. Usage:
         `[p]gamealert add \"game\" <delay in minutes> <message>`
-        The message may contain {user}, {mention}, {game}, {minutes}"""
+        The message may contain {user} or {mention}"""
         if len(message) > 1000:
             await ctx.send("Sorry, the message may not be longer than 1000 characters.")
             return
