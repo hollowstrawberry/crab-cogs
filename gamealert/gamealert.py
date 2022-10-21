@@ -18,7 +18,7 @@ class Alert(dict):
 
 
 class GameAlert(commands.Cog):
-    """Sends a configured message when a user has been playing a specific game for too long."""
+    """Sends a configured message when a user has been playing a specific game for some time."""
 
     def __init__(self, bot: Red):
         super().__init__()
@@ -45,8 +45,8 @@ class GameAlert(commands.Cog):
             if await self.bot.cog_disabled_in_guild(self, guild):
                 continue
             for member in guild.members:
-                if member.activity:
-                    log.debug(f"{member.activity.name} {datetime.utcnow() - member.activity.start}")
+                log.info(f"{member.activity.name} created_at:{member.activity.created_at} start:{member.activity.start}")
+                if member.activity and member.activity.start:
                     alert = next(iter(a for a in self.alerts[guild.id] if a.game_name == member.activity.name), None)
                     if alert and (datetime.utcnow() - member.activity.start) > timedelta.min(alert.delay_minutes):
                         if member.id in self.alerted or not await self.bot.allowed_by_whitelist_blacklist(member):
@@ -68,7 +68,7 @@ class GameAlert(commands.Cog):
     @commands.group(invoke_without_command=True)
     @commands.guild_only()
     async def gamealert(self, ctx: commands.Context):
-        """Send a message when someone is playing a game too long."""
+        """Send a message when someone is playing a game for some time."""
         await ctx.send_help()
 
     @gamealert.command()
@@ -110,7 +110,7 @@ class GameAlert(commands.Cog):
         embed.set_footer(text=f"Page {page}")
         if ctx.guild.id in self.alerts and self.alerts[ctx.guild.id]:
             alerts = [f"- {alert.game_name} in <#{alert.channel_id}> after {alert.delay_minutes} minutes"
-                          for alert in self.alerts[ctx.guild.id]]
+                      for alert in self.alerts[ctx.guild.id]]
             alerts = alerts[10*(page-1):10*page]
             if alerts:
                 embed.description = '\n'.join(alerts)
@@ -121,7 +121,5 @@ class GameAlert(commands.Cog):
         """Shows the message for an alert for a game."""
         alert = None
         if ctx.guild.id in self.alerts and self.alerts[ctx.guild.id]:
-            alerts = [a for a in self.alerts[ctx.guild.id] if a.game_name == game]
-            if alerts:
-                alert = alerts[0]
+            alert = next(iter(a for a in self.alerts[ctx.guild.id] if a.game_name == game), None)
         await ctx.send(f"```\n{alert.response}```" if alert else "No alert found for that game.")
