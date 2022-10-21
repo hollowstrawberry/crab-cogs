@@ -41,6 +41,7 @@ class GameAlert(commands.Cog):
             if await self.bot.cog_disabled_in_guild(self, guild):
                 continue
             for member in guild.members:
+                log.info(f"{member.name}")
                 if member.activity and member.activity.name and member.activity.created_at:
                     log.info(f"{member.activity.name} created_at:{member.activity.created_at}")
                     alert = next(iter(a for a in self.alerts[guild.id] if a['game_name'] == member.activity.name), None)
@@ -57,7 +58,6 @@ class GameAlert(commands.Cog):
                         except Exception as error:
                             log.warning(f"Failed to send game alert in {alert['channel_id']} - {type(error).__name__}: {error}", exc_info=True)
                 elif member.id in self.alerted:
-                    log.info(f"{member.name} no activity")
                     self.alerted.remove(member.id)
 
     @alert_loop.before_loop
