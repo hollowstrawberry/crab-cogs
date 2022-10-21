@@ -124,4 +124,4 @@ class GameAlert(commands.Cog):
         alert = None
         if ctx.guild.id in self.alerts and self.alerts[ctx.guild.id]:
             alert = next(iter(a for a in self.alerts[ctx.guild.id] if a['game_name'] == game), None)
-        await ctx.send(f"```\n{alert['response']}```" if alert else "No alert found for that game.")
+        await ctx.send(f"```\n{alert['message']}```" if alert else "No alert found for that game.")
