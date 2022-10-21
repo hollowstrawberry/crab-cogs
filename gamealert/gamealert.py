@@ -41,7 +41,7 @@ class GameAlert(commands.Cog):
             if await self.bot.cog_disabled_in_guild(self, guild):
                 continue
             for member in guild.members:
-                activity = next(iter(act for act in member.activities if isinstance(act, discord.Game)), None)
+                activity = next(iter(act for act in member.activities if act.type == discord.ActivityType.playing), None)
                 log.info(f"{member.name} {activity}")
                 if activity and activity.name and activity.created_at:
                     log.info(f"{activity.name} created_at:{activity.created_at}")
