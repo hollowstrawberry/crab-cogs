@@ -27,10 +27,14 @@ class GameAlert(commands.Cog):
         self.alerts: Dict[int, List[Alert]] = {}
         self.alerted: List[int] = []
         self.config.register_guild(alerts=[])
+        self.alert_loop.start()
 
     async def load_config(self):
         all_config = await self.config.all_guilds()
         self.alerts = {guild_id: conf['alerts'] for guild_id, conf in all_config.items()}
+
+    def cog_unload(self):
+        self.alert_loop.stop()
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         pass
@@ -62,6 +66,10 @@ class GameAlert(commands.Cog):
                             log.warning(f"Failed to send game alert in {alert.channel_id} - {type(error).__name__}: {error}", exc_info=True)
                 elif member.id in self.alerted:
                     self.alerted.remove(member.id)
+
+    @alert_loop.before_loop
+    async def alert_loop_before(self):
+        await self.bot.wait_until_red_ready()
 
     # Commands
 
