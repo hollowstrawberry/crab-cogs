@@ -76,8 +76,8 @@ class GameAlert(commands.Cog):
     @gamealert.command()
     @commands.has_permissions(manage_guild=True)
     async def add(self, ctx: commands.Context, game: str, delay: int, *, message: str):
-        """Add a new game alert to this channel. Usage:\n
-        [p]gamealert add \"game\" <delay in minutes> <message>\n
+        """Add a new game alert to this channel. Usage:
+        `[p]gamealert add \"game\" <delay in minutes> <message>`
         The message may contain {user}, {mention}, {game}, {minutes}"""
         if len(message) > 1000:
             await ctx.send("Sorry, the message may not be longer than 1000 characters.")
