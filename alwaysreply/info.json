@@ -1,0 +1,11 @@
+{
+    "author": ["OrchidAlloy"],
+    "min_bot_version": "3.0.0",
+    "description": "Commands will always reply to the original message.",
+    "hidden": false,
+    "install_msg": "💬 __**AlwaysReply**__ ```AlwaysReply cog installed. Commands should now always reply to the original message. Unload the cog to revert.```",
+    "required_cogs": {},
+    "requirements": [],
+    "short": "Commands will always reply to the original message.",
+    "tags": ["crab", "reply", "utility"]
+}
