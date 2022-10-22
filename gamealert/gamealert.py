@@ -94,7 +94,7 @@ class GameAlert(commands.Cog):
     async def remove(self, ctx: commands.Context, *, game: str):
         """Remove an existing game alert by its game name."""
         async with self.config.guild(ctx.guild).alerts() as alerts:
-            old_alert = [a for a in alerts if a.game_name == game]
+            old_alert = [a for a in alerts if a['game_name'] == game]
             for a in old_alert:
                 alerts.remove(a)
             self.alerts[ctx.guild.id] = list(alerts)
