@@ -14,7 +14,7 @@ class CustomContext(commands.Context):
         if 'reference' not in kwargs:
             kwargs['reference'] = self.message
 
-        return await super(DPYContext).send(content=content, **kwargs)
+        return await super(DPYContext).send(content, **kwargs)
 
 class AlwaysReply(commands.Cog):
     """Makes the bot always reply to commands"""
