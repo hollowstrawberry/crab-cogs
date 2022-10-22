@@ -5,7 +5,7 @@ from discord.ext.commands import Context as DPYContext
 old_ctx_send = commands.Context.send
 
 class CustomContext(commands.Context):
-    async def send(self, content, **kwargs):
+    async def send(self, content: str = None, **kwargs):
         _filter = kwargs.pop("filter", None)
 
         if _filter and content:
