@@ -4,7 +4,7 @@ from discord.ext.commands import Context as DPYContext
 
 old_ctx_send = commands.Context.send
 
-class CustomContext(DPYContext):
+class CustomContext(commands.Context):
     async def send(self, content, **kwargs):
         _filter = kwargs.pop("filter", None)
 
@@ -14,8 +14,7 @@ class CustomContext(DPYContext):
         if 'reference' not in kwargs:
             kwargs['reference'] = self.message
 
-        return await super().send(content=content, **kwargs)
-
+        return await super(DPYContext).send(content=content, **kwargs)
 
 class AlwaysReply(commands.Cog):
     """Makes the bot always reply to commands"""
