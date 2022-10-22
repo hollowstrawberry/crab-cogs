@@ -12,7 +12,7 @@ class CustomContext(commands.Context):
             content = _filter(str(content))
 
         if 'reference' not in kwargs:
-            kwargs['reference'] = super(DPYContext).message
+            kwargs['reference'] = super(DPYContext).__getattribute__('message')
 
         return await super(DPYContext).send(content, **kwargs)
 
