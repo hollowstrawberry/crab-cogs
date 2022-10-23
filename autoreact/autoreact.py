@@ -41,7 +41,7 @@ class Autoreact(commands.Cog):
         if not await self.is_valid_red_message(message):
             return
         for emoji, regex in autoreact.items():
-            if regex.match(message.content):
+            if regex.search(message.content):
                 try:
                     await message.add_reaction(emoji)
                 except Exception as error:
