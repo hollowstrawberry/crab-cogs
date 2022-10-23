@@ -16,11 +16,11 @@ class Autoreact(commands.Cog):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=61757472)
         self.autoreacts: Dict[int, Dict[str, re.Pattern]] = {}
-        self.config.register_guild(autoreact_regex={})
+        self.config.register_guild(autoreact_regexes={})
 
     async def load_config(self):
         all_config = await self.config.all_guilds()
-        self.autoreacts = {guild_id: {emoji: re.compile(text) for emoji, text in conf['autoreact_regex']}
+        self.autoreacts = {guild_id: {emoji: re.compile(text) for emoji, text in conf['autoreact_regexes']}
                            for guild_id, conf in all_config.items()}
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
@@ -83,7 +83,7 @@ class Autoreact(commands.Cog):
             return
         emoji = str(emoji)
         self.autoreacts.setdefault(ctx.guild.id, {})
-        async with self.config.guild(ctx.guild).autoreact_regex() as autoreacts:
+        async with self.config.guild(ctx.guild).autoreact_regexes() as autoreacts:
             autoreacts[emoji] = pattern.pattern
             self.autoreacts[ctx.guild.id][emoji] = pattern
             await ctx.react_quietly("✅")
@@ -97,7 +97,7 @@ class Autoreact(commands.Cog):
             return
         emoji = str(emoji)
         self.autoreacts.setdefault(ctx.guild.id, {})
-        async with self.config.guild(ctx.guild).autoreact_regex() as autoreacts:
+        async with self.config.guild(ctx.guild).autoreact_regexes() as autoreacts:
             removed1 = autoreacts.pop(emoji, None)
             removed2 = self.autoreacts[ctx.guild.id].pop(emoji, None)
             if removed1 or removed2:
