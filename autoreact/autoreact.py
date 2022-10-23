@@ -16,7 +16,7 @@ class Autoreact(commands.Cog):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=61757472)
         self.autoreacts: Dict[int, Dict[str, re.Pattern]] = {}
-        self.config.register_guild(autoreact_regex=[])
+        self.config.register_guild(autoreact_regex={})
 
     async def load_config(self):
         all_config = await self.config.all_guilds()
@@ -84,7 +84,7 @@ class Autoreact(commands.Cog):
         emoji = str(emoji)
         self.autoreacts.setdefault(ctx.guild.id, {})
         async with self.config.guild(ctx.guild).autoreact_regex() as autoreacts:
-            autoreacts[emoji] = pattern
+            autoreacts[emoji] = pattern.pattern
             self.autoreacts[ctx.guild.id][emoji] = pattern
             await ctx.react_quietly("✅")
 
