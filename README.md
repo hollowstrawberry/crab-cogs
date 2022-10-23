@@ -40,13 +40,13 @@ Steals emojis sent by other people (sends the image by default, useful for mobil
 
 ## ⏺ Autoreact
 
-Lets you configure emojis that will be added to any message containing specific text.  
+Lets you configure emojis that will be added to any message containing text matching a regex.  
 
 ![Autoreact with the word NOW](https://media.discordapp.net/attachments/541768631445618689/1031957798382207086/unknown.png)
 
-## 🖌️ Draw
+## 📢 GameAlert
 
-A couple fun image filters for your friends' avatars. May take a minute to install due to the image processing libraries (opencv and Pillow).
+Sends a configured message when a user has been playing a specific game for some time.
 
 ## 🎲 Randomness
 
@@ -56,4 +56,6 @@ A few fun commands involving randomness, including:
 * `rate` will give a unique rating from 1 to 10 to anything you ask. The bot won't change its mind!  
 * `pp` will evaluate your pp size. You can't change it, just like real life.  
 
+## 🖌️ Draw
 
+A couple fun image filters for your friends' avatars. May take a minute to install due to the image processing libraries (opencv and Pillow).
