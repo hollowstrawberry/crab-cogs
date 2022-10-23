@@ -74,6 +74,8 @@ class Autoreact(commands.Cog):
         if len(pattern) > 400:
             await ctx.send("Sorry, the regex may not be longer than 400 characters.")
             return
+        if pattern.startswith('`') and pattern.endswith('`'):
+            pattern = pattern.strip('`')
         try:
             pattern = re.compile(pattern)
         except Exception as error:
