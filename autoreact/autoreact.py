@@ -16,7 +16,7 @@ class Autoreact(commands.Cog):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=61757472)
         self.autoreacts: Dict[int, Dict[str, re.Pattern]] = {}
-        self.config.register_guild(autoreacts=[])
+        self.config.register_guild(autoreact_regex=[])
 
     async def load_config(self):
         all_config = await self.config.all_guilds()
