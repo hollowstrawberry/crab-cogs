@@ -20,7 +20,7 @@ class Autoreact(commands.Cog):
 
     async def load_config(self):
         all_config = await self.config.all_guilds()
-        self.autoreacts = {guild_id: {emoji: re.compile(text) for emoji, text in conf['autoreact_regexes']}
+        self.autoreacts = {guild_id: {emoji: re.compile(text) for emoji, text in conf['autoreact_regexes'].items()}
                            for guild_id, conf in all_config.items()}
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
