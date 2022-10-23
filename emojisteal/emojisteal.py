@@ -33,7 +33,7 @@ class EmojiSteal(commands.Cog):
         results = re.findall(r"<(a?):(\w+):(\d{10,20})>", content)
         return [StolenEmoji(*result) for result in results]
 
-    @commands.group(aliases=["emojilink", "getemoji", "getimage"])
+    @commands.command(aliases=["emojilink", "getemoji", "getimage"])
     async def getlink(self, ctx: commands.Context, *, emoji: Union[int, str]):
         """Get the link for a custom emoji."""
         if isinstance(emoji, int):
