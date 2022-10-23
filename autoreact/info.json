@@ -7,5 +7,6 @@
     "required_cogs": {},
     "requirements": ["emoji"],
     "short": "Reacts to specific messages with emojis.",
+    "end_user_data_statement": "This cog does not store any user data.",
     "tags": ["crab", "fun", "emoji", "react", "auto", "reaction"]
 }

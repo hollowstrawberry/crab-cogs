@@ -29,33 +29,28 @@ class EmojiSteal(commands.Cog):
         pass
 
     @staticmethod
-    async def get_emojis(content: str) -> Optional[List[StolenEmoji]]:
+    def get_emojis(content: str) -> Optional[List[StolenEmoji]]:
         results = re.findall(r"<(a?):(\w+):(\d{10,20})>", content)
         return [StolenEmoji(*result) for result in results]
 
-    @commands.command(aliases=["emojilink", "getemoji", "getimage"])
-    async def getlink(self, ctx: commands.Context, *, emoji: Union[int, str]):
-        """Get the link for a custom emoji."""
-        if isinstance(emoji, int):
-            emojis = [StolenEmoji(False, "example", emoji)]
-        elif not (emojis := await self.get_emojis(emoji)):
-            await ctx.send("Invalid emoji or emoji ID")
-            return
-        await ctx.send('\n'.join(emoji.link for emoji in emojis))
-
-    @commands.group(aliases=["emojisteal", "stealemoji", "stealemojis"], invoke_without_command=True)
-    async def steal(self, ctx: commands.Context):
-        """Steals the emojis of the message you reply to. Can also upload them."""
+    async def ctx_steal(self, ctx: commands.Context) -> Optional[List[StolenEmoji]]:
         reference = ctx.message.reference
         if not reference:
             await ctx.send("Reply to a message with this command to steal an emoji")
-            return
+            return None
         message = reference.cached_message or await ctx.channel.fetch_message(reference.message_id)
         if not message:
             await ctx.send("I couldn't grab that message, sorry")
-            return
-        if not (emojis := await self.get_emojis(message.content)):
+            return None
+        if not (emojis := self.get_emojis(message.content)):
             await ctx.send("Can't find an emoji in that message")
+            return None
+        return emojis
+
+    @commands.group(aliases=["emojisteal", "stealemoji", "stealemojis"], invoke_without_command=True)
+    async def steal(self, ctx: commands.Context):
+        """Steals the emojis of the message you reply to. Can also upload them with [p]steal upload."""
+        if not (emojis := await self.ctx_steal(ctx)):
             return
         await ctx.send('\n'.join(emoji.link for emoji in emojis))
 
@@ -64,19 +59,7 @@ class EmojiSteal(commands.Cog):
     @commands.bot_has_permissions(manage_emojis=True)
     async def upload(self, ctx: commands.Context, *names: str):
         """Steals emojis you reply to and uploads them to this server."""
-        if not ctx.message.author.guild_permissions.manage_emojis:
-            await ctx.send("You don't have permission to manage emojis")
-            return
-        reference = ctx.message.reference
-        if not reference:
-            await ctx.send("Reply to a message with this command to steal an emoji")
-            return
-        message = reference.cached_message or await ctx.channel.fetch_message(reference.message_id)
-        if not message:
-            await ctx.send("I couldn't grab that message, sorry")
-            return
-        if not (emojis := await self.get_emojis(message.content)):
-            await ctx.send("Can't find an emoji in that message")
+        if not (emojis := await self.ctx_steal(ctx)):
             return
         names = [''.join(re.findall(r"\w+", name)) for name in names]
         names = [name if len(name) >= 2 else None for name in names]
@@ -99,3 +82,13 @@ class EmojiSteal(commands.Cog):
                     await ctx.message.add_reaction(added)
                 except:
                     pass
+
+    @commands.command(aliases=["emojilink", "getemoji", "getimage"])
+    async def getlink(self, ctx: commands.Context, *, emoji: Union[int, str]):
+        """Get the image link for custom emojis or an emoji ID."""
+        if isinstance(emoji, int):
+            emojis = [StolenEmoji(False, "e", emoji), StolenEmoji(True, "e", emoji)]
+        elif not (emojis := self.get_emojis(emoji)):
+            await ctx.send("Invalid emoji or emoji ID")
+            return
+        await ctx.send('\n'.join(emoji.link for emoji in emojis))

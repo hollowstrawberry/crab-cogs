@@ -6,6 +6,7 @@
     "install_msg": "📢 __**GameAlert**__\n```GameAlert cog installed. Instructions:\n1. Load it with [p]load gamealert\n2. Check out [p]help gamealert add\n3. Start adding alerts with [p]gamealert add```",
     "required_cogs": {},
     "requirements": [],
-    "short": "Send a message when someone is playing a game for some time.\"",
+    "short": "Send a message when someone is playing a game for some time.",
+    "end_user_data_statement": "This cog does not store any user data.",
     "tags": ["crab", "fun", "game", "alert", "notification", "joke", "health"]
 }

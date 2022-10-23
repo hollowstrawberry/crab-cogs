@@ -7,5 +7,6 @@
     "required_cogs": {},
     "requirements": ["Pillow", "opencv_python_headless"],
     "short": "Fun image filters",
+    "end_user_data_statement": "This cog does not store any user data.",
     "tags": ["crab", "fun", "image", "draw", "filters"]
 }

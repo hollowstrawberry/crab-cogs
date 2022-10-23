@@ -6,9 +6,11 @@ import os
 import sys
 import logging
 import enum
+import json
 import aiosqlite as sql
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from pathlib import Path
 from discord.ext import tasks
 from redbot.core import commands, Config
 from redbot.core.bot import Red
@@ -145,24 +147,18 @@ class Simulator(commands.Cog):
         """Main simulator command. Use me!"""
         await ctx.send_help()
 
-    @simulator.command()
+    @simulator.command(aliases=["help"])
     async def info(self, ctx: commands.Context):
         """How this works"""
+        info_json = Path(__file__).parent.absolute() / "info.json"
+        with info_json.open(encoding="utf-8") as file:
+            document = json.load(file)
+            log.info(info_json)
         embed = discord.Embed(title="Simulator", color=await ctx.embed_color())
-        embed.description = \
-            f"With this cog you may designate a channel that will send automated messages mimicking your friends " \
-            f"using Markov chains. They will have your friends' avatars and nicknames too! " \
-            f"Inspired by /r/SubredditSimulator and similar concepts.\n\n" \
-            f"🧠 It will learn from new messages sent in configured channels, and only from users with the " \
-            f"configured role. Will only support a single guild.\n\n" \
-            f"⚙ The bot owner must configure it with `{ctx.prefix}simulator set`, then they may manually feed past " \
-            f"messages using `{ctx.prefix}simulator feed [days]`. This takes around 1 minute per 5,000 messages, " \
-            f"so be patient! When the feeding is finished or interrupted, it will send the summary in the same channel.\n\n" \
-            f"🔄 While the simulator is running, a conversation will occur every so many minutes, during which " \
-            f"comments will be sent every so many seconds. Trying to type in the output channel will delete the " \
-            f"message and trigger a conversation.\n\n" \
-            f"👤 A user may permanently exclude themselves from their messages being read and analyzed by using the " \
-            f"`{ctx.prefix}dontsimulateme` command. This will also delete all their data."
+        embed.description = document["description"]
+        usage_warning = re.search(r"(?im)Usage Warning: ([^\n]+)", document["install_msg"])
+        if usage_warning:
+            embed.add_field(name="⚠ Usage Warning", value=usage_warning.group(1))
         await ctx.send(embed=embed)
 
     @simulator.command()
@@ -360,7 +356,7 @@ class Simulator(commands.Cog):
     @set.command()
     @commands.is_owner()
     async def commentdelay(self, ctx: commands.Context, chance: int):
-        """Messages will be sent during simulated conversations randomly according to this value in seconds."""
+        """Messages will be sent randomly during simulated conversations according to this value in seconds."""
         await self.config.comment_delay.set(max(1, chance))
         self.comment_chance = 1 / max(1, chance)
         await ctx.react_quietly(EMOJI_SUCCESS)
