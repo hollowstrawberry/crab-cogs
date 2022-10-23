@@ -111,8 +111,8 @@ class Autoreact(commands.Cog):
         """Shows all autoreacts."""
         embed = discord.Embed(title="Server Autoreacts", color=await ctx.embed_color(), description="None")
         if ctx.guild.id in self.autoreacts and self.autoreacts[ctx.guild.id]:
-            autoreacts = [f"{emoji} {text if '`' in text else f'`{text}`'}"
-                          for text, emoji in self.autoreacts[ctx.guild.id].items()]
+            autoreacts = [f"{emoji} {regex.pattern if '`' in regex.pattern else f'`{regex.pattern}`'}"
+                          for emoji, regex in self.autoreacts[ctx.guild.id].items()]
             embed.set_footer(text=f"Page {page}/{(9+len(autoreacts))//10}")
             autoreacts = autoreacts[10*(page-1):10*page]
             if autoreacts:
