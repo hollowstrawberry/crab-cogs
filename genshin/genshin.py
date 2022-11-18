@@ -22,8 +22,8 @@ BANNERS = {
     }
 }
 
-FIVESTARS = set(sum(banner["5star"] + banner["5starfeatured"] + banner["5starweapon"] for banner in BANNERS.values()))
-FOURSTARS = set(sum(banner["4star"] + banner["4starfeatured"] + banner["4starweapon"] for banner in BANNERS.values()))
+FIVESTARS = set(sum([banner["5star"] + banner["5starfeatured"] + banner["5starweapon"] for banner in BANNERS.values()], []))
+FOURSTARS = set(sum([banner["4star"] + banner["4starfeatured"] + banner["4starweapon"] for banner in BANNERS.values()], []))
 PULL_IMG = {
     "Hu Tao": "https://cdn.discordapp.com/attachments/541768631445618689/818653017892061194/unknown.png"
 }
