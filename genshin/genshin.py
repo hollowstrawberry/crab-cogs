@@ -107,7 +107,12 @@ class Genshin(commands.Cog):
     def formatitem(cls, item):
         return f'{item}{" ⭐⭐⭐⭐⭐" if item in FIVESTARS else ""}{" ⭐⭐⭐⭐" if item in FOURSTARS else ""}'
 
-    @commands.command(aliases=["pull", "wish"])
+    @commands.group(aliases=["genshinimpact"], invoke_without_command=True)
+    async def genshin(self, ctx: commands.Context):
+        """Base genshin command. Use me!"""
+        await ctx.send_help()
+
+    @genshin.command(aliases=["pull", "wish", "summon"])
     async def pull1(self, ctx: commands.Context, *, etc=""):
         """Makes 1 Genshin Impact wish (Hu Tao banner)"""
         if etc == '10':
@@ -118,7 +123,7 @@ class Genshin(commands.Cog):
         embed.set_image(url=PULL_IMG.get(pulled, ""))
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=["wish10"])
+    @genshin.command(aliases=["wish10", "summon10"])
     async def pull10(self, ctx: commands.Context):
         """Makes 10 Genshin Impact wishes (Hu Tao banner)"""
         pulled = await self.pullx(ctx.author, 10)
@@ -130,7 +135,7 @@ class Genshin(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=["inventory"])
+    @genshin.command(aliases=["inventory"])
     async def inv(self, ctx: commands.Context):
         """View your Genshin Impact inventory"""
         inv = await self.config.user(ctx.author).inv()
