@@ -45,105 +45,98 @@ class Genshin(commands.Cog):
 
     # Commands
 
-    class Genshin(commands.Cog):
-        """Genshin Impact banner simulator commands"""
-
-        def __init__(self, bot):
-            self.bot = bot
-            self.banner = banner
-
-        def pull(self, userdata):
-            roll = random()
-            if userdata["no5starf"] >= 179:  # featured 5 star pity
+    def pull(self, userdata):
+        roll = random()
+        if userdata["no5starf"] >= 179:  # featured 5 star pity
+            possible = self.banner["5starfeatured"]
+        elif userdata["no5star"] >= 89 or roll < 0.006:  # 5 star
+            if random() > 0.5:
                 possible = self.banner["5starfeatured"]
-            elif userdata["no5star"] >= 89 or roll < 0.006:  # 5 star
-                if random() > 0.5:
-                    possible = self.banner["5starfeatured"]
-                elif random() > 0.5 and self.banner["5starweapon"]:
-                    possible = self.banner["5starweapon"]
-                else:
-                    possible = self.banner["5star"]
-            elif userdata["no4starf"] >= 19:  # featured 4 star pity
+            elif random() > 0.5 and self.banner["5starweapon"]:
+                possible = self.banner["5starweapon"]
+            else:
+                possible = self.banner["5star"]
+        elif userdata["no4starf"] >= 19:  # featured 4 star pity
+            possible = self.banner["4starfeatured"]
+        elif userdata["no4star"] >= 9 or roll < 0.051:  # 4 star
+            if random() > 0.5:
                 possible = self.banner["4starfeatured"]
-            elif userdata["no4star"] >= 9 or roll < 0.051:  # 4 star
-                if random() > 0.5:
-                    possible = self.banner["4starfeatured"]
-                elif random() > 0.5 and self.banner["4starweapon"]:
-                    possible = self.banner["4starweapon"]
-                else:
-                    possible = self.banner["4star"]
-            else:  # 3 star
-                possible = self.banner["3star"]
-
-            result = choice(possible)
-            if result in fourstars:
-                userdata["no4star"] = 0
-                if result in self.banner["4starfeatured"]:
-                    userdata["no4starf"] = 0
-                else:
-                    userdata["no4starf"] += 1
-                userdata["no5star"] += 1
-                userdata["no5starf"] += 1
+            elif random() > 0.5 and self.banner["4starweapon"]:
+                possible = self.banner["4starweapon"]
             else:
-                userdata["no4star"] += 1
+                possible = self.banner["4star"]
+        else:  # 3 star
+            possible = self.banner["3star"]
+
+        result = choice(possible)
+        if result in fourstars:
+            userdata["no4star"] = 0
+            if result in self.banner["4starfeatured"]:
+                userdata["no4starf"] = 0
+            else:
                 userdata["no4starf"] += 1
-                if result in fivestars:
-                    userdata["no5star"] = 0
-                    if result in self.banner["5starfeatured"]:
-                        userdata["no5starf"] = 0
-                    else:
-                        userdata["no5starf"] += 1
+            userdata["no5star"] += 1
+            userdata["no5starf"] += 1
+        else:
+            userdata["no4star"] += 1
+            userdata["no4starf"] += 1
+            if result in fivestars:
+                userdata["no5star"] = 0
+                if result in self.banner["5starfeatured"]:
+                    userdata["no5starf"] = 0
                 else:
-                    userdata["no5star"] += 1
-
-            userdata["inv"][result] = userdata["inv"].get(result, 0) + 1
-            return result
-
-        async def pullx(self, user: discord.User, x: int):
-            userdata = await self.config.user(user).get_raw()
-            pulled = []
-            for _ in range(x):
-                pulled.append(self.pull(userdata))
-            await self.config.user(user).set_raw(userdata)
-            return pulled
-
-        @classmethod
-        def formatitem(cls, item):
-            return f'{item}{" ⭐⭐⭐⭐⭐" if item in fivestars else ""}{" ⭐⭐⭐⭐" if item in fourstars else ""}'
-
-        @commands.command(aliases=["pull", "wish"])
-        async def pull1(self, ctx: commands.Context, *, etc=""):
-            """Makes 1 Genshin Impact wish (Hu Tao banner)"""
-            if etc == '10':
-                return await self.pull10(ctx)
-            pulled = (await self.pullx(ctx.author, 1))[0]
-            embed = discord.Embed(title="Your pull", description=self.formatitem(pulled), color=await ctx.embed_color())
-            embed.set_thumbnail(url=wish_img5 if pulled in fivestars else wish_img4 if pulled in fourstars else wish_img)
-            embed.set_image(url=pull_img.get(pulled, ""))
-            await ctx.send(embed=embed)
-
-        @commands.command(aliases=["wish10"])
-        async def pull10(self, ctx: commands.Context):
-            """Makes 10 Genshin Impact wishes (Hu Tao banner)"""
-            pulled = await self.pullx(ctx.author, 10)
-            pulledf = "\n".join(self.formatitem(p) for p in pulled)
-            embed = discord.Embed(title="Your pulls", description=f"```md\n{pulledf}```", color=await ctx.embed_color())
-            embed.set_thumbnail(url=wish_img5 if any(p in fivestars for p in pulled) else
-                                wish_img4 if any(p in fourstars for p in pulled) else wish_img)
-            embed.set_image(url=next((pull_img.get(p) for p in pulled if p in pull_img), ""))
-
-            await ctx.send(embed=embed)
-
-        @commands.command(aliases=["inventory"])
-        async def inv(self, ctx: commands.Context):
-            """View your Genshin Impact inventory"""
-            inv = await self.config.user(ctx.author).inv()
-            if not inv:
-                await ctx.send("You haven't pulled anything yet.")
+                    userdata["no5starf"] += 1
             else:
-                s = "```md"
-                for key, value in inv.items():
-                    if key not in self.banner["3star"]:
-                        s += f'\n{value} x {key}{" ⭐⭐⭐⭐⭐" if key in fivestars else ""}'
-                embed = discord.Embed(title="Your inventory", description=s + "```", color=await ctx.embed_color())
-                await ctx.send(embed=embed)
+                userdata["no5star"] += 1
+
+        userdata["inv"][result] = userdata["inv"].get(result, 0) + 1
+        return result
+
+    async def pullx(self, user: discord.User, x: int):
+        userdata = await self.config.user(user).get_raw()
+        pulled = []
+        for _ in range(x):
+            pulled.append(self.pull(userdata))
+        await self.config.user(user).set_raw(userdata)
+        return pulled
+
+    @classmethod
+    def formatitem(cls, item):
+        return f'{item}{" ⭐⭐⭐⭐⭐" if item in fivestars else ""}{" ⭐⭐⭐⭐" if item in fourstars else ""}'
+
+    @commands.command(aliases=["pull", "wish"])
+    async def pull1(self, ctx: commands.Context, *, etc=""):
+        """Makes 1 Genshin Impact wish (Hu Tao banner)"""
+        if etc == '10':
+            return await self.pull10(ctx)
+        pulled = (await self.pullx(ctx.author, 1))[0]
+        embed = discord.Embed(title="Your pull", description=self.formatitem(pulled), color=await ctx.embed_color())
+        embed.set_thumbnail(url=wish_img5 if pulled in fivestars else wish_img4 if pulled in fourstars else wish_img)
+        embed.set_image(url=pull_img.get(pulled, ""))
+        await ctx.send(embed=embed)
+
+    @commands.command(aliases=["wish10"])
+    async def pull10(self, ctx: commands.Context):
+        """Makes 10 Genshin Impact wishes (Hu Tao banner)"""
+        pulled = await self.pullx(ctx.author, 10)
+        pulledf = "\n".join(self.formatitem(p) for p in pulled)
+        embed = discord.Embed(title="Your pulls", description=f"```md\n{pulledf}```", color=await ctx.embed_color())
+        embed.set_thumbnail(url=wish_img5 if any(p in fivestars for p in pulled) else
+                            wish_img4 if any(p in fourstars for p in pulled) else wish_img)
+        embed.set_image(url=next((pull_img.get(p) for p in pulled if p in pull_img), ""))
+
+        await ctx.send(embed=embed)
+
+    @commands.command(aliases=["inventory"])
+    async def inv(self, ctx: commands.Context):
+        """View your Genshin Impact inventory"""
+        inv = await self.config.user(ctx.author).inv()
+        if not inv:
+            await ctx.send("You haven't pulled anything yet.")
+        else:
+            s = "```md"
+            for key, value in inv.items():
+                if key not in self.banner["3star"]:
+                    s += f'\n{value} x {key}{" ⭐⭐⭐⭐⭐" if key in fivestars else ""}'
+            embed = discord.Embed(title="Your inventory", description=s + "```", color=await ctx.embed_color())
+            await ctx.send(embed=embed)
