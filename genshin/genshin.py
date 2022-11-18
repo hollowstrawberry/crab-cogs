@@ -99,7 +99,7 @@ class Genshin(commands.Cog):
             userdata["inv"][result] = userdata["inv"].get(result, 0) + 1
             return result
 
-        def pullx(self, user: discord.User, x: int):
+        async def pullx(self, user: discord.User, x: int):
             userdata = await self.config.user(user).get_raw()
             pulled = []
             for _ in range(x):
@@ -116,7 +116,7 @@ class Genshin(commands.Cog):
             """Makes 1 Genshin Impact wish (Hu Tao banner)"""
             if etc == '10':
                 return await self.pull10(ctx)
-            pulled = self.pullx(ctx.author, 1)[0]
+            pulled = (await self.pullx(ctx.author, 1))[0]
             embed = discord.Embed(title="Your pull", description=self.formatitem(pulled), color=await ctx.embed_color())
             embed.set_thumbnail(url=wish_img5 if pulled in fivestars else wish_img4 if pulled in fourstars else wish_img)
             embed.set_image(url=pull_img.get(pulled, ""))
@@ -125,7 +125,7 @@ class Genshin(commands.Cog):
         @commands.command(aliases=["wish10"])
         async def pull10(self, ctx: commands.Context):
             """Makes 10 Genshin Impact wishes (Hu Tao banner)"""
-            pulled = self.pullx(ctx.author, 10)
+            pulled = await self.pullx(ctx.author, 10)
             pulledf = "\n".join(self.formatitem(p) for p in pulled)
             embed = discord.Embed(title="Your pulls", description=f"```md\n{pulledf}```", color=await ctx.embed_color())
             embed.set_thumbnail(url=wish_img5 if any(p in fivestars for p in pulled) else
