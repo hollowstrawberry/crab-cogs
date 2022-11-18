@@ -100,7 +100,7 @@ class Genshin(commands.Cog):
         pulled = []
         for _ in range(x):
             pulled.append(self.pull(userdata))
-        await self.config.user(user).set_raw(userdata)
+        await self.config.user(user).set_raw(value=userdata)
         return pulled
 
     @classmethod
