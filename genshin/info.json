@@ -1,0 +1,12 @@
+{
+    "author": ["OrchidAlloy"],
+    "min_bot_version": "3.0.0",
+    "description": "Simulates Genshin Impact gacha pulls.",
+    "hidden": false,
+    "install_msg": "🌠 __**Genshin**__\n```Genshin cog installed. Instructions:\n1. Load it with [p]load genshin\n2. Check out [p]help genshin```",
+    "required_cogs": {},
+    "requirements": [],
+    "short": "Simulates Genshin Impact gacha pulls.",
+    "end_user_data_statement": "This cog stores user IDs to keep track of your inventory.",
+    "tags": ["crab", "fun", "game", "gacha", "genshin", "impact", "random"]
+}

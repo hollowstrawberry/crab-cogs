@@ -16,7 +16,6 @@ class Randomness(commands.Cog):
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         await self.config.user_from_id(user_id).clear()
-        pass
 
     # Commands
 
