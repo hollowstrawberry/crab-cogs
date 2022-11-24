@@ -31,13 +31,17 @@ class Verify(commands.Cog):
         if uid < 1:
             await ctx.send("Invalid UID! Please try again. You can find your UID in your profile in-game.")
             return
-        if not role or role.id not in await self.config.guild(ctx.guild).roles():
-            await ctx.send(f"Invalid role {role}! Please try again.")
+        roles = await self.config.guild(ctx.guild).roles()
+        if not role or role.id not in roles:
+            await ctx.send(f"Role must be one of: {', '.join(v for k, v in roles.items())}. Please try again.")
             return
         author: discord.Member = ctx.author
         await self.config.member(author).username.set(username)
         await self.config.member(author).uid.set(uid)
-        await author.edit(nick=username)
+        try:
+            await author.edit(nick=username)
+        except:
+            pass
         await author.add_roles(role)
         await ctx.send("✅ Verification complete")
 
