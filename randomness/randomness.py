@@ -63,10 +63,10 @@ class Randomness(commands.Cog):
     async def pp(self, ctx: commands.Context, *, etc=""):
         """Evaluates your pp size."""
         if etc:
-            await ctx.reply(f'You can't view someone else's pp')
+            await ctx.reply(f"You can't view someone else's pp")
         else:
             pp = ctx.author.id % 13
-            await ctx.reply(f'Your pp size is {pp} inches')
+            await ctx.reply(f"Your pp size is {pp} inches")
 
     @commands.group(aliases=["dessert"], invoke_without_command=True)
     @commands.cooldown(rate=5, per=5, type=commands.BucketType.channel)
