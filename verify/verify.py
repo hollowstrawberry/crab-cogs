@@ -33,7 +33,7 @@ class Verify(commands.Cog):
             return
         roles = await self.config.guild(ctx.guild).roles()
         if not role or role.id not in roles:
-            await ctx.send(f"Role must be one of: {', '.join(v for k, v in roles.items())}. Please try again.")
+            await ctx.send(f"Role {role.id} must be one of: {', '.join(k for k, v in roles.items())}. Please try again.")
             return
         author: discord.Member = ctx.author
         await self.config.member(author).username.set(username)
