@@ -3,12 +3,12 @@ from redbot.core import commands, Config
 from typing import Union
 
 class Verify(commands.Cog):
-    """Verify yourself."""
+    """Allows users to verify themselves with their Dislyte information."""
 
     def __init__(self, bot):
         super().__init__()
         self.bot = bot
-        self.config = Config.get_conf(self, identifier=6460697574)
+        self.config = Config.get_conf(self, identifier=646973679)
         self.config.register_guild(roles={})
         self.config.register_member(username="*None*", uid=0)
 
@@ -52,6 +52,7 @@ class Verify(commands.Cog):
         embed = discord.Embed(description=member.mention, color=await ctx.embed_color())
         embed.add_field(name="Username", value=await self.config.member(member).username())
         embed.add_field(name="UID", value=await self.config.member(member).uid())
+        embed.set_thumbnail(url=member.avatar_url)
         await ctx.send(embed=embed)
 
     @commands.mod()
