@@ -10,7 +10,7 @@ class Verify(commands.Cog):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=6460697574)
         self.config.register_guild(roles={})
-        self.config.register_member(username="", uid=0)
+        self.config.register_member(username="*None*", uid=0)
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         guilds = await self.config.all_guilds()
@@ -23,6 +23,7 @@ class Verify(commands.Cog):
     @commands.bot_has_permissions(manage_nicknames=True, manage_roles=True)
     @commands.command()
     async def verify(self, ctx: commands.Context, username: str, uid: int, role: discord.Role):
+        """Verify yourself in this server."""
         username = username.strip()
         if not username:
             await ctx.send("Invalid username!")
@@ -40,7 +41,6 @@ class Verify(commands.Cog):
         await author.add_roles(role)
         await ctx.send("✅ Verification complete")
 
-    @commands.mod()
     @commands.guild_only()
     @commands.command(aliases=["verification"])
     async def profile(self, ctx: commands.Context, member: discord.Member):
