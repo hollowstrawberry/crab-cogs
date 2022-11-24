@@ -32,7 +32,7 @@ class Verify(commands.Cog):
             await ctx.send("Invalid UID! Please try again. You can find your UID in your profile in-game.")
             return
         roles = await self.config.guild(ctx.guild).roles()
-        if not role or role.id not in roles.keys():
+        if not role or str(role.id) not in roles:
             await ctx.send(f"Role must be one of: {', '.join(roles.values())}. Please try again.")
             return
         author: discord.Member = ctx.author
@@ -70,7 +70,7 @@ class Verify(commands.Cog):
     async def add(self, ctx: commands.Context, role: discord.Role):
         """Add a role a user can choose upon verification"""
         async with self.config.guild(ctx.guild).roles() as roles:
-            roles[role.id] = role.name
+            roles[str(role.id)] = role.name
         await ctx.send(f"Added {role.name} to the roles a user can choose upon verification.")
 
     @verifyset_role.command()
@@ -78,6 +78,7 @@ class Verify(commands.Cog):
         """Remove a role a user can choose upon verification"""
         if isinstance(role, discord.Role):
             role = role.id
+        role = str(role)
         async with self.config.guild(ctx.guild).roles() as roles:
             if role in roles:
                 roles.pop(role)
