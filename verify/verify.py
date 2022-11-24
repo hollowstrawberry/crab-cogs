@@ -26,13 +26,13 @@ class Verify(commands.Cog):
         """Verify yourself in this server."""
         username = username.strip()
         if not username:
-            await ctx.send("Invalid username!")
+            await ctx.send("Invalid username! Please try again.")
             return
         if uid < 1:
-            await ctx.send("Invalid UID!")
+            await ctx.send("Invalid UID! Please try again. You can find your UID in your profile in-game.")
             return
         if not role or role.id not in await self.config.guild(ctx.guild).roles():
-            await ctx.send("Invalid role!")
+            await ctx.send(f"Invalid role {role}! Please try again.")
             return
         author: discord.Member = ctx.author
         await self.config.member(author).username.set(username)
