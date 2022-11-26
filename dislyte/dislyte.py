@@ -41,8 +41,8 @@ class Dislyte(commands.Cog):
         enemy_speed_str = f"{enemy_speed_min}~{enemy_speed_max}" if enemy_speed_min != enemy_speed_max else f"{enemy_speed_min}"
         embed = discord.Embed(title="Speed Calculation", color=await ctx.embed_color())
         embed.add_field(name="Your AP", value=f"{your_ap}%", inline=True)
-        embed.add_field(name="Enemy AP", value=f"{enemy_ap}%", inline=False)
-        embed.add_field(name="Your Speed", value=f"{your_speed}", inline=True)
+        embed.add_field(name="Enemy AP", value=f"{enemy_ap}%", inline=True)
+        embed.add_field(name="Your Speed", value=f"{your_speed}", inline=False)
         embed.add_field(name="Enemy Speed", value=enemy_speed_str, inline=False)
         await ctx.send(embed=embed)
 
