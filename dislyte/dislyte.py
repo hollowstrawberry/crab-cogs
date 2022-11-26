@@ -2,8 +2,8 @@ import discord
 from redbot.core import commands, Config
 from typing import Union
 
-class Verify(commands.Cog):
-    """Allows users to verify themselves with their Dislyte information."""
+class Dislyte(commands.Cog):
+    """Commands for the game Dislyte"""
 
     def __init__(self, bot):
         super().__init__()
@@ -19,11 +19,38 @@ class Verify(commands.Cog):
 
     # Commands
 
+    @commands.command()
+    async def speed(self, ctx: commands.Context,
+                    your_base_speed: int, your_bonus_speed: int, your_captain_bonus: int, your_ap: int, enemy_ap: int):
+        """Calculates speed of an enemy esper based on its AP and your own esper's speed."""
+        if your_base_speed < 90 or your_base_speed > 110:
+            await ctx.send("Base speed must be between 90 and 110")
+            return
+        if your_bonus_speed < 0 or your_bonus_speed > 300:
+            await ctx.send("Bonus speed must be between 0 and 300")
+            return
+        if your_captain_bonus < 15 or your_captain_bonus > 35:
+            await ctx.send("Captain bonus must be between 15 and 35 (%)")
+            return
+        if your_ap < 0 or your_ap > 100 or enemy_ap < 0 or enemy_ap > 100:
+            await ctx.send("AP must be between 0 and 100 (%)")
+            return
+        your_speed = int(your_base_speed * (1 + (your_captain_bonus / 100)))
+        enemy_speed_min = int(your_speed / (your_ap if your_ap == 100 else your_ap + 0.5) * (enemy_ap if enemy_ap == 100 else enemy_ap - 0.5))
+        enemy_speed_max = int(your_speed / (your_ap if your_ap == 100 else your_ap - 0.5) * (enemy_ap if enemy_ap == 100 else enemy_ap + 0.5))
+        enemy_speed_str = f"{enemy_speed_min}~{enemy_speed_max}" if enemy_speed_min != enemy_speed_max else f"{enemy_speed_min}"
+        embed = discord.Embed(title="Speed Calculation", color=await ctx.embed_color())
+        embed.add_field(name="Your AP", value=f"{your_ap}%", inline=True)
+        embed.add_field(name="Your Speed", value=f"{your_speed}", inline=True)
+        embed.add_field(name="Enemy AP", value=f"{enemy_ap}%", inline=True)
+        embed.add_field(name="Enemy Speed", value=enemy_speed_str, inline=True)
+        await ctx.send(embed=embed)
+
     @commands.guild_only()
     @commands.bot_has_permissions(manage_nicknames=True, manage_roles=True)
     @commands.command()
     async def verify(self, ctx: commands.Context, username: str, uid: int, role: discord.Role):
-        """Verify yourself in this server."""
+        """Verify yourself in this server. Takes in your Dislyte username, UID, and the role you wish to obtain."""
         username = username.strip()
         if not username:
             await ctx.send("Invalid username! Please try again.")
@@ -46,8 +73,8 @@ class Verify(commands.Cog):
         await ctx.send("✅ Verification complete")
 
     @commands.guild_only()
-    @commands.command(aliases=["verification"])
-    async def profile(self, ctx: commands.Context, member: discord.Member):
+    @commands.command()
+    async def verification(self, ctx: commands.Context, member: discord.Member):
         """View verification info for a member."""
         embed = discord.Embed(description=member.mention, color=await ctx.embed_color())
         embed.add_field(name="Username", value=await self.config.member(member).username())
@@ -59,7 +86,7 @@ class Verify(commands.Cog):
     @commands.guild_only()
     @commands.group(invoke_without_command=True)
     async def verifyset(self, ctx: commands.Context):
-        """Verify configuration"""
+        """Configuration for [p]verify"""
         await ctx.send_help()
 
     @verifyset.group(name="role", invoke_without_command=True)
