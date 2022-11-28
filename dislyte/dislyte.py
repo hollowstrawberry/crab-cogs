@@ -82,7 +82,7 @@ class Dislyte(commands.Cog):
     @commands.command()
     async def dislyteverifyother(self, ctx: commands.Context, member: discord.Member, uid: int, username: str = None):
         """Manually verify another user as a mod."""
-        await self.config.member(member).username.set(username or member.nick)
+        await self.config.member(member).username.set(username or member.display_name)
         await self.config.member(member).uid.set(uid)
         if username:
             try:
