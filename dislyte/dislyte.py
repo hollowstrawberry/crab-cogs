@@ -77,6 +77,20 @@ class Dislyte(commands.Cog):
             await author.add_roles(role)
         await ctx.send("✅ Verification complete")
 
+    @commands.mod()
+    @commands.guild_only()
+    @commands.command()
+    async def dislyteverifyother(self, ctx: commands.Context, member: discord.Member, uid: int, username: str = None):
+        """Manually verify another user as a mod."""
+        await self.config.member(member).username.set(username or member.nick)
+        await self.config.member(member).uid.set(uid)
+        if username:
+            try:
+                await member.edit(nick=username)
+            except:
+                pass
+        await ctx.send("✅ Verification complete")
+
     @commands.guild_only()
     @commands.command()
     async def dislyteinfo(self, ctx: commands.Context, member: discord.Member):
