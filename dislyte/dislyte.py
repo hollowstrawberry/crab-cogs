@@ -50,19 +50,22 @@ class Dislyte(commands.Cog):
     @commands.guild_only()
     @commands.bot_has_permissions(manage_nicknames=True, manage_roles=True)
     @commands.command()
-    async def verify(self, ctx: commands.Context, username: str, uid: int, role: discord.Role):
-        """Verify yourself in this server. Takes in your Dislyte username, UID, and the role you wish to obtain."""
+    async def dislyteverify(self, ctx: commands.Context, username: str, uid: int, role: discord.Role = None):
+        """Verify yourself with your Dislyte username, UID, and optionally choosing a role to get."""
         username = username.strip()
         if not username:
             await ctx.send("Invalid username! Please try again.")
             return
-        if uid < 1:
+        if uid < 0:
             await ctx.send("Invalid UID! Please try again. You can find your UID in your profile in-game.")
             return
         roles = await self.config.guild(ctx.guild).roles()
-        if not role or str(role.id) not in roles:
-            await ctx.send(f"Role must be one of: {', '.join(roles.values())}. Please try again.")
-            return
+        if roles:
+            if len(roles) == 1:
+                role = roles[0]
+            if not role or str(role.id) not in roles:
+                await ctx.send(f"You must choose a role between: {', '.join(roles.values())}. Please try again.")
+                return
         author: discord.Member = ctx.author
         await self.config.member(author).username.set(username)
         await self.config.member(author).uid.set(uid)
@@ -70,12 +73,13 @@ class Dislyte(commands.Cog):
             await author.edit(nick=username)
         except:
             pass
-        await author.add_roles(role)
+        if role:
+            await author.add_roles(role)
         await ctx.send("✅ Verification complete")
 
     @commands.guild_only()
     @commands.command()
-    async def verification(self, ctx: commands.Context, member: discord.Member):
+    async def dislyteinfo(self, ctx: commands.Context, member: discord.Member):
         """View verification info for a member."""
         embed = discord.Embed(description=member.mention, color=await ctx.embed_color())
         embed.add_field(name="Username", value=await self.config.member(member).username())
@@ -86,24 +90,23 @@ class Dislyte(commands.Cog):
     @commands.mod()
     @commands.guild_only()
     @commands.group(invoke_without_command=True)
-    async def verifyset(self, ctx: commands.Context):
-        """Configuration for [p]verify"""
+    async def dislyteset(self, ctx: commands.Context):
+        """Configuration for [p]dislyteverify"""
         await ctx.send_help()
 
-    @verifyset.group(name="role", invoke_without_command=True)
-    async def verifyset_role(self, ctx: commands.Context):
-        """Add roles a user can choose upon verification"""
-        await ctx.send_help()
-
-    @verifyset_role.command()
-    async def add(self, ctx: commands.Context, role: discord.Role):
+    @dislyteset.command()
+    async def roleadd(self, ctx: commands.Context, role: discord.Role):
         """Add a role a user can choose upon verification"""
         async with self.config.guild(ctx.guild).roles() as roles:
             roles[str(role.id)] = role.name
-        await ctx.send(f"Added {role.name} to the roles a user can choose upon verification.")
+            if len(roles) == 1:
+                await ctx.send(f"{role.name} will now be given to users who verify themselves. "
+                               f"Add more roles to let the user choose manually.")
+            else:
+                await ctx.send(f"Added {role.name} to the roles a user can choose upon verification.")
 
-    @verifyset_role.command()
-    async def remove(self, ctx: commands.Context, role: Union[discord.Role, int, str]):
+    @dislyteset.command()
+    async def roleremove(self, ctx: commands.Context, role: Union[discord.Role, int, str]):
         """Remove a role a user can choose upon verification"""
         if isinstance(role, discord.Role):
             role = role.id
@@ -117,8 +120,8 @@ class Dislyte(commands.Cog):
                         roles.pop(k)
         await ctx.send(f"Removed role from verification")
 
-    @verifyset_role.command()
-    async def list(self, ctx: commands.Context):
+    @dislyteset.command()
+    async def rolelist(self, ctx: commands.Context):
         """List roles a user can choose upon verification"""
         roles = await self.config.guild(ctx.guild).roles()
         embed = discord.Embed(title="Verification Roles", color=await ctx.embed_color(),
