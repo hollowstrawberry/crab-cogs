@@ -60,13 +60,13 @@ class Dislyte(commands.Cog):
             await ctx.send("Invalid UID! Please try again. You can find your UID in your profile in-game.")
             return
         roles = await self.config.guild(ctx.guild).roles()
+        author: discord.Member = ctx.author
         if roles:
             if len(roles) == 1:
                 role = roles[0]
-            if not role or str(role.id) not in roles:
+            if not role or (str(role.id) not in roles and role not in author.roles):
                 await ctx.send(f"You must choose a role between: {', '.join(roles.values())}. Please try again.")
                 return
-        author: discord.Member = ctx.author
         await self.config.member(author).username.set(username)
         await self.config.member(author).uid.set(uid)
         try:
