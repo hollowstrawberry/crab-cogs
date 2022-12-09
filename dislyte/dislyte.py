@@ -32,8 +32,8 @@ class Dislyte(commands.Cog):
         if your_captain_bonus < 0 or your_captain_bonus > 35:
             await ctx.send("Captain bonus must be between 0 and 35 (%)")
             return
-        if your_ap < 0 or your_ap > 100 or enemy_ap < 0 or enemy_ap > 100:
-            await ctx.send("AP must be between 0 and 100 (%)")
+        if your_ap < 20 or your_ap > 100 or enemy_ap < 20 or enemy_ap > 100:
+            await ctx.send("AP must be between 20 and 100 (%)")
             return
         your_speed = int(your_base_speed * (1 + (your_captain_bonus / 100))) + your_bonus_speed
         enemy_speed = int(your_speed / your_ap * enemy_ap)
