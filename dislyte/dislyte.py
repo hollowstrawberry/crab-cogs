@@ -22,7 +22,7 @@ class Dislyte(commands.Cog):
     @commands.command()
     async def speed(self, ctx: commands.Context,
                     your_base_speed: int, your_bonus_speed: int, your_captain_bonus: int, your_ap: int, enemy_ap: int):
-        """Calculates speed of an enemy esper based on its AP and your own esper's speed."""
+        """Calculates total speed of an enemy esper."""
         if your_base_speed < 90 or your_base_speed > 110:
             await ctx.send("Base speed must be between 90 and 110")
             return
@@ -45,6 +45,32 @@ class Dislyte(commands.Cog):
         embed.add_field(name="Enemy AP", value=f"{enemy_ap}%", inline=True)
         embed.add_field(name="Your Speed", value=f"{your_speed}", inline=False)
         embed.add_field(name="Enemy Speed", value=enemy_speed_str, inline=False)
+        await ctx.send(embed=embed)
+
+    @commands.command()
+    async def speedbonus(self, ctx: commands.Context,
+                         your_base_speed: int, your_bonus_speed: int, your_captain_bonus: int, your_ap: int,
+                         enemy_base_speed: int, enemy_captain_bonus: int, enemy_ap: int):
+        """Calculates speed bonus from relics of an enemy esper."""
+        if your_base_speed < 90 or your_base_speed > 110 or enemy_base_speed < 90 or enemy_base_speed > 110:
+            await ctx.send("Base speed must be between 90 and 110")
+            return
+        if your_bonus_speed < 0 or your_bonus_speed > 300:
+            await ctx.send("Bonus speed must be between 0 and 300")
+            return
+        if your_captain_bonus < 0 or your_captain_bonus > 35 or enemy_captain_bonus < 0 or enemy_captain_bonus > 35:
+            await ctx.send("Captain bonus must be between 0 and 35 (%)")
+            return
+        if your_ap < 20 or your_ap > 100 or enemy_ap < 20 or enemy_ap > 100:
+            await ctx.send("AP must be between 20 and 100 (%)")
+            return
+        your_speed = int(your_base_speed * (1 + (your_captain_bonus / 100))) + your_bonus_speed
+        enemy_speed = int(your_speed / your_ap * enemy_ap)
+        enemy_bonus_speed = int(round(enemy_speed - (enemy_base_speed * (1 + (enemy_bonus_speed / 100)))))
+        embed = discord.Embed(title="🕊️ Speed Calculation", color=await ctx.embed_color())
+        embed.add_field(name="Your AP", value=f"{your_ap}%", inline=True)
+        embed.add_field(name="Enemy AP", value=f"{enemy_ap}%", inline=True)
+        embed.add_field(name="Enemy Bonus Speed", value=f"~{enemy_bonus_speed}", inline=False)      
         await ctx.send(embed=embed)
 
     @commands.guild_only()
