@@ -68,8 +68,6 @@ class Dislyte(commands.Cog):
         enemy_speed = your_speed / your_ap * enemy_ap
         enemy_bonus_speed = enemy_speed - (enemy_base_speed * (1 + (enemy_captain_bonus / 100)))
         embed = discord.Embed(title="🕊️ Speed Calculation", color=await ctx.embed_color())
-        embed.add_field(name="Your AP", value=f"{your_ap}%", inline=True)
-        embed.add_field(name="Enemy AP", value=f"{enemy_ap}%", inline=True)
         embed.add_field(name="Enemy Total Speed", value=f"{int(round(enemy_speed))} (±1)", inline=False)
         embed.add_field(name="Enemy Speed", value=f"+{int(round(enemy_bonus_speed))} (±1)", inline=False)      
         await ctx.send(embed=embed)
