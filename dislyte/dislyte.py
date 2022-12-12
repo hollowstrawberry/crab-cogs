@@ -64,13 +64,13 @@ class Dislyte(commands.Cog):
         if your_ap < 20 or your_ap > 100 or enemy_ap < 20 or enemy_ap > 100:
             await ctx.send("AP must be between 20 and 100 (%)")
             return
-        your_speed = int(your_base_speed * (1 + (your_captain_bonus / 100))) + your_bonus_speed
-        enemy_speed = int(your_speed / your_ap * enemy_ap)
+        your_speed = (your_base_speed * (1 + (your_captain_bonus / 100))) + your_bonus_speed
+        enemy_speed = your_speed / your_ap * enemy_ap
         enemy_bonus_speed = int(round(enemy_speed - (enemy_base_speed * (1 + (enemy_captain_bonus / 100)))))
         embed = discord.Embed(title="🕊️ Speed Calculation", color=await ctx.embed_color())
         embed.add_field(name="Your AP", value=f"{your_ap}%", inline=True)
         embed.add_field(name="Enemy AP", value=f"{enemy_ap}%", inline=True)
-        embed.add_field(name="Enemy Bonus Speed", value=f"~{enemy_bonus_speed}", inline=False)      
+        embed.add_field(name="Enemy Bonus Speed", value=f"{enemy_bonus_speed} ± 1", inline=False)      
         await ctx.send(embed=embed)
 
     @commands.guild_only()
