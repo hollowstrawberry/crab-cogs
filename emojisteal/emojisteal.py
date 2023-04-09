@@ -39,7 +39,7 @@ class EmojiSteal(commands.Cog):
         if not reference:
             await ctx.send("Reply to a message with this command to steal an emoji")
             return None
-        message = reference.cached_message or await ctx.channel.fetch_message(reference.message_id)
+        message = await ctx.channel.fetch_message(reference.message_id)
         if not message:
             await ctx.send("I couldn't grab that message, sorry")
             return None
@@ -64,10 +64,12 @@ class EmojiSteal(commands.Cog):
             return
         names = [''.join(re.findall(r"\w+", name)) for name in names]
         names = [name if len(name) >= 2 else None for name in names]
-        emojis2 = []
-        [emojis2.append(x) for x in emojis if x not in emojis2]
+        clean_emojis = []
+        for emoji in emojis:
+            if emoji not in clean_emojis:
+                clean_emojis.append(emoji)
         async with aiohttp.ClientSession() as session:
-            for emoji, name in zip_longest(emojis2, names):
+            for emoji, name in zip_longest(clean_emojis, names):
                 if not emoji:
                     break
                 try:
@@ -89,13 +91,13 @@ class EmojiSteal(commands.Cog):
     @commands.command(hidden=True)
     async def stealslash(self, ctx: commands.Context, *, msg: str):
         id = msg.split(' ')[1].split('=')[1]
-        ctx.message.reference = discord.MessageReference(message_id=int(id), channel_id=ctx.channel.id, guild_id=ctx.guild.id if ctx.guild else None)
+        ctx.message.reference = discord.MessageReference(message_id=int(id), channel_id=ctx.channel.id)
         await self.steal(ctx)
 
     @commands.command(hidden=True)
     async def stealuploadslash(self, ctx: commands.Context, *, msg: str):
         id = msg.split(' ')[1].split('=')[1]
-        ctx.message.reference = discord.MessageReference(message_id=int(id), channel_id=ctx.channel.id, guild_id=ctx.guild.id if ctx.guild else None)
+        ctx.message.reference = discord.MessageReference(message_id=int(id), channel_id=ctx.channel.id)
         await self.upload(ctx)
 
     @commands.command(aliases=["emojilink", "getemoji", "getimage"])
