@@ -88,7 +88,7 @@ class EmojiSteal(commands.Cog):
 
     @commands.command(hidden=True)
     async def stealslash(self, ctx: commands.Context, msg: str):
-        raise msg
+        raise Exception(msg)
         ctx.message.reference = discord.MessageReference(message_id=0)
         await self.steal(ctx)
 
