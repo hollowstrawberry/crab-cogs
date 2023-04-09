@@ -97,7 +97,7 @@ class EmojiSteal(commands.Cog):
     @commands.command(hidden=True)
     async def stealuploadslash(self, ctx: commands.Context, *, msg: str):
         id = msg.split(' ')[1].split('=')[1]
-        ctx.message = await ctx.send("...")
+        ctx.message = await ctx.send("Stealing...")
         ctx.message.reference = discord.MessageReference(message_id=int(id), channel_id=ctx.channel.id)
         await self.upload(ctx)
 
