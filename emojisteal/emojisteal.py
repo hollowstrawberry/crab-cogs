@@ -39,17 +39,18 @@ class EmojiSteal(commands.Cog):
             if not reference:
                 await ctx.send("Reply to a message with this command to steal an emoji")
                 return None
-            message = reference.cached_message or await ctx.channel.fetch_message(reference.message_id)
+            fetched = reference.cached_message or await ctx.channel.fetch_message(reference.message_id)
+            message = fetched.content if fetched else None
         if not message:
             await ctx.send("I couldn't grab that message, sorry")
             return None
-        if not (emojis := self.get_emojis(message.content)):
+        if not (emojis := self.get_emojis(message)):
             await ctx.send("Can't find an emoji in that message")
             return None
         return emojis
 
     @commands.group(aliases=["emojisteal", "stealemoji", "stealemojis"], invoke_without_command=True)
-    async def steal(self, ctx: commands.Context, message=None):
+    async def steal(self, ctx: commands.Context, message:str=None):
         """Steals the emojis of the message you reply to. Can also upload them with [p]steal upload."""
         if not (emojis := await self.ctx_steal(ctx, message)):
             return
@@ -58,9 +59,9 @@ class EmojiSteal(commands.Cog):
     @steal.command()
     @commands.has_permissions(manage_emojis=True)
     @commands.bot_has_permissions(manage_emojis=True)
-    async def upload(self, ctx: commands.Context, *names: str):
+    async def upload(self, ctx: commands.Context, message:str=None *names: str):
         """Steals emojis you reply to and uploads them to this server."""
-        if not (emojis := await self.ctx_steal(ctx)):
+        if not (emojis := await self.ctx_steal(ctx, message)):
             return
         names = [''.join(re.findall(r"\w+", name)) for name in names]
         names = [name if len(name) >= 2 else None for name in names]
