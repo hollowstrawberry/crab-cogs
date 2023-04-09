@@ -33,7 +33,7 @@ class EmojiSteal(commands.Cog):
         results = re.findall(r"<(a?):(\w+):(\d{10,20})>", content)
         return [StolenEmoji(*result) for result in results]
 
-    async def ctx_steal(self, ctx: commands.Context) -> Optional[List[StolenEmoji]]:
+    async def ctx_steal(self, ctx: commands.Context, message) -> Optional[List[StolenEmoji]]:
         if not message:
             reference = ctx.message.reference
             if not reference:
