@@ -43,7 +43,7 @@ class EmojiSteal(commands.Cog):
         if not message:
             await ctx.send("I couldn't grab that message, sorry")
             return None
-        if not (emojis := self.get_emojis(message)):
+        if not (emojis := self.get_emojis(message.content)):
             await ctx.send("Can't find an emoji in that message")
             return None
         return emojis
@@ -91,7 +91,6 @@ class EmojiSteal(commands.Cog):
     @commands.command(hidden=True)
     async def stealslash(self, ctx: commands.Context, *, msg: str):
         id = msg.split(' ')[1].split('=')[1]
-        raise Exception(id)
         ctx.message.reference = discord.MessageReference(message_id=int(id), channel_id=ctx.channel.id)
         await self.steal(ctx)
 
