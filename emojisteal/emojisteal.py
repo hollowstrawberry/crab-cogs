@@ -87,13 +87,14 @@ class EmojiSteal(commands.Cog):
                     pass
 
     @commands.command(hidden=True)
-    async def stealslash(self, ctx: commands.Context, msgid: str):
-        ctx.message.reference = discord.MessageReference(message_id=int(msgid))
+    async def stealslash(self, ctx: commands.Context, msg: str):
+        raise msg
+        ctx.message.reference = discord.MessageReference(message_id=0)
         await self.steal(ctx)
 
     @commands.command(hidden=True)
-    async def stealuploadslash(self, ctx: commands.Context, msgid: str):
-        ctx.message.reference = discord.MessageReference(message_id=int(msgid))
+    async def stealuploadslash(self, ctx: commands.Context, msg: str):
+        ctx.message.reference = discord.MessageReference(message_id=0)
         await self.upload(ctx)
 
     @commands.command(aliases=["emojilink", "getemoji", "getimage"])
