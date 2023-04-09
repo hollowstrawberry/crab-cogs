@@ -34,11 +34,12 @@ class EmojiSteal(commands.Cog):
         return [StolenEmoji(*result) for result in results]
 
     async def ctx_steal(self, ctx: commands.Context) -> Optional[List[StolenEmoji]]:
-        reference = ctx.message.reference
-        if not reference:
-            await ctx.send("Reply to a message with this command to steal an emoji")
-            return None
-        message = reference.cached_message or await ctx.channel.fetch_message(reference.message_id)
+        if not message:
+            reference = ctx.message.reference
+            if not reference:
+                await ctx.send("Reply to a message with this command to steal an emoji")
+                return None
+            message = reference.cached_message or await ctx.channel.fetch_message(reference.message_id)
         if not message:
             await ctx.send("I couldn't grab that message, sorry")
             return None
@@ -48,9 +49,9 @@ class EmojiSteal(commands.Cog):
         return emojis
 
     @commands.group(aliases=["emojisteal", "stealemoji", "stealemojis"], invoke_without_command=True)
-    async def steal(self, ctx: commands.Context):
+    async def steal(self, ctx: commands.Context, message=None):
         """Steals the emojis of the message you reply to. Can also upload them with [p]steal upload."""
-        if not (emojis := await self.ctx_steal(ctx)):
+        if not (emojis := await self.ctx_steal(ctx, message)):
             return
         await ctx.send('\n'.join(emoji.link for emoji in emojis))
 
