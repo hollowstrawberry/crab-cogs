@@ -59,7 +59,7 @@ class EmojiSteal(commands.Cog):
     @steal.command()
     @commands.has_permissions(manage_emojis=True)
     @commands.bot_has_permissions(manage_emojis=True)
-    async def upload(self, ctx: commands.Context, message:str=None *names: str):
+    async def upload(self, ctx: commands.Context, message:str=None, *names: str):
         """Steals emojis you reply to and uploads them to this server."""
         if not (emojis := await self.ctx_steal(ctx, message)):
             return
