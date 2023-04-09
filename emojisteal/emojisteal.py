@@ -1,6 +1,7 @@
 import io
 import re
 import aiohttp
+import discord
 from dataclasses import dataclass
 from itertools import zip_longest
 from redbot.core import commands
@@ -33,14 +34,12 @@ class EmojiSteal(commands.Cog):
         results = re.findall(r"<(a?):(\w+):(\d{10,20})>", content)
         return [StolenEmoji(*result) for result in results]
 
-    async def ctx_steal(self, ctx: commands.Context, message) -> Optional[List[StolenEmoji]]:
-        if not message:
-            reference = ctx.message.reference
-            if not reference:
-                await ctx.send("Reply to a message with this command to steal an emoji")
-                return None
-            fetched = reference.cached_message or await ctx.channel.fetch_message(reference.message_id)
-            message = fetched.content if fetched else None
+    async def ctx_steal(self, ctx: commands.Context) -> Optional[List[StolenEmoji]]:
+        reference = ctx.message.reference
+        if not reference:
+            await ctx.send("Reply to a message with this command to steal an emoji")
+            return None
+        message = reference.cached_message or await ctx.channel.fetch_message(reference.message_id)
         if not message:
             await ctx.send("I couldn't grab that message, sorry")
             return None
@@ -50,23 +49,25 @@ class EmojiSteal(commands.Cog):
         return emojis
 
     @commands.group(aliases=["emojisteal", "stealemoji", "stealemojis"], invoke_without_command=True)
-    async def steal(self, ctx: commands.Context, message:str=None):
+    async def steal(self, ctx: commands.Context):
         """Steals the emojis of the message you reply to. Can also upload them with [p]steal upload."""
-        if not (emojis := await self.ctx_steal(ctx, message)):
+        if not (emojis := await self.ctx_steal(ctx)):
             return
         await ctx.send('\n'.join(emoji.link for emoji in emojis))
 
     @steal.command()
     @commands.has_permissions(manage_emojis=True)
     @commands.bot_has_permissions(manage_emojis=True)
-    async def upload(self, ctx: commands.Context, message:str=None, *names: str):
+    async def upload(self, ctx: commands.Context, *names: str):
         """Steals emojis you reply to and uploads them to this server."""
-        if not (emojis := await self.ctx_steal(ctx, message)):
+        if not (emojis := await self.ctx_steal(ctx)):
             return
         names = [''.join(re.findall(r"\w+", name)) for name in names]
         names = [name if len(name) >= 2 else None for name in names]
+        emojis2 = []
+        [emojis2.append(x) for x in emojis if x not in emojis2]
         async with aiohttp.ClientSession() as session:
-            for emoji, name in zip_longest(emojis, names):
+            for emoji, name in zip_longest(emojis2, names):
                 if not emoji:
                     break
                 try:
@@ -84,6 +85,16 @@ class EmojiSteal(commands.Cog):
                     await ctx.message.add_reaction(added)
                 except:
                     pass
+
+    @commands.command(hidden=True)
+    async def stealslash(self, ctx: commands.Context, msgid: str):
+        ctx.message.reference = discord.MessageReference(message_id=int(msgid))
+        await self.steal(ctx)
+
+    @commands.command(hidden=True)
+    async def stealuploadslash(self, ctx: commands.Context, msgid: str):
+        ctx.message.reference = discord.MessageReference(message_id=int(msgid))
+        await self.upload(ctx)
 
     @commands.command(aliases=["emojilink", "getemoji", "getimage"])
     async def getlink(self, ctx: commands.Context, *, emoji: Union[int, str]):
