@@ -171,7 +171,7 @@ class PromptInspector(commands.Cog):
             return
         self.scan_limit = newlimit * 1024**2
         await self.config.scan_limit.set(self.scan_limit)
-        await ctx.reply('✅')
+        await ctx.react_quietly("✅")
         
 
     @piset.group(invoke_without_command=True)
@@ -189,7 +189,7 @@ class PromptInspector(commands.Cog):
             return
         self.scan_channels.update(ch for ch in channel_ids)
         await self.config.channels.set(list(self.scan_channels))
-        await ctx.reply('✅')
+        await ctx.react_quietly("✅")
 
     @channel.command()
     async def remove(self, ctx: commands.Context, *, channels: str):
@@ -201,7 +201,7 @@ class PromptInspector(commands.Cog):
             return
         self.scan_channels.difference_update(ch for ch in channel_ids)
         await self.config.channels.set(list(self.scan_channels))
-        await ctx.reply('✅')
+        await ctx.react_quietly("✅")
 
     @channel.command()
     async def list(self, ctx: commands.Context):
