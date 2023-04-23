@@ -33,7 +33,7 @@ class ImageLog(commands.Cog):
         attachments = [a for a in message.attachments if a.filename.lower().endswith(IMAGE_TYPES)]
         if not log_channel or not attachments:
             return
-        if await self.bot.cog_disabled_in_guild(self, guild) or await self.is_ignored_channel(guild, channel):
+        if await self.bot.cog_disabled_in_guild(self, guild):
             return
         for attachment in attachments:
             embed = discord.Embed(
