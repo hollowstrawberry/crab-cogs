@@ -58,7 +58,7 @@ class ImageLog(commands.Cog):
         await ctx.react_quietly('✅')
 
     @voicelog.command()
-    async def enable(self, ctx: commands.Context):
+    async def disable(self, ctx: commands.Context):
         """Disable voice log for the whole guild."""
         self.allowedguilds.difference_update(ctx.guild.id)
         await self.config.guild(ctx.guild).enabled.set(False)
