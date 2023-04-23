@@ -39,7 +39,7 @@ class ImageLog(commands.Cog):
             embed = discord.Embed(
                 title="Image deleted",
                 description=message.content[:1990] if message.content else None,
-                color=await ctx.embed_color(),
+                color=message.author.color,
                 timestamp=datetime.utcnow())
             embed.set_author(name=str(message.author), icon_url=str(message.author.avatar_url))
             embed.add_field(f"Channel", channel.mention)
