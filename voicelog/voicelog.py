@@ -49,7 +49,7 @@ class VoiceLog(commands.Cog):
     @voicelog.command()
     async def enable(self, ctx: commands.Context):
         """Enable voice log for the whole guild."""
-        self.allowedguilds.add(ctx.guikd.id)
+        self.allowedguilds.add(ctx.guild.id)
         await self.config.guild(ctx.guild).enabled.set(True)
         await ctx.react_quietly('✅')
 
