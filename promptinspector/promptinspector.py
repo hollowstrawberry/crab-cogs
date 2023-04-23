@@ -55,8 +55,7 @@ class PromptInspector(commands.Cog):
         embed = discord.Embed(title="Here's your image!", color=author.color)
         for key, value in embed_dict.items():
             embed.add_field(name=key, value=value, inline='Prompt' not in key)
-        pfp = author.avatar if author.avatar else author.default_avatar_url
-        embed.set_footer(text=f'Posted by {author.name}#{author.discriminator}', icon_url=pfp)
+        embed.set_footer(text=f'Posted by {author}', icon_url=author.avatar_url)
         return embed
 
     @staticmethod
