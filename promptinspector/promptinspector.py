@@ -1,14 +1,12 @@
 import io
-import os
-import gzip
 import asyncio
 import discord
 from discord import Intents, Message, Member, Embed
 from redbot.core import commands, Config
+from typing import Optional
 from collections import OrderedDict
 from PIL import Image
-
-SCAN_LIMIT_BYTES = 20 * 1024**2
+from .stealth import read_info_from_image_stealth
 
 class PromptInspector(commands.Cog):
     """Scans images for AI generation info."""
@@ -17,8 +15,9 @@ class PromptInspector(commands.Cog):
         super().__init__()
         self.bot = bot
         self.scan_channels = set()
+        self.scan_limit = 10 * 1024**2
         self.config = Config.get_conf(self, identifier=7072707469)
-        self.config.register_global(channels=[])
+        self.config.register_global(channels=[], scanlimit=self.scan_limit)
 
     async def load_config(self):
         self.scan_channels = set(await self.config.channels())
@@ -27,115 +26,6 @@ class PromptInspector(commands.Cog):
         pass
 
     # Static methods
-
-    @staticmethod
-    def read_info_from_image_stealth(image):
-        # trying to read stealth pnginfo
-        width, height = image.size
-        pixels = image.load()
-
-        has_alpha = True if image.mode == 'RGBA' else False
-        mode = None
-        compressed = False
-        binary_data = ''
-        buffer_a = ''
-        buffer_rgb = ''
-        index_a = 0
-        index_rgb = 0
-        sig_confirmed = False
-        confirming_signature = True
-        reading_param_len = False
-        reading_param = False
-        read_end = False
-        for x in range(width):
-            for y in range(height):
-                if has_alpha:
-                    r, g, b, a = pixels[x, y]
-                    buffer_a += str(a & 1)
-                    index_a += 1
-                else:
-                    r, g, b = pixels[x, y]
-                buffer_rgb += str(r & 1)
-                buffer_rgb += str(g & 1)
-                buffer_rgb += str(b & 1)
-                index_rgb += 3
-                if confirming_signature:
-                    if index_a == len('stealth_pnginfo') * 8:
-                        decoded_sig = bytearray(int(buffer_a[i:i + 8], 2) for i in
-                                                range(0, len(buffer_a), 8)).decode('utf-8', errors='ignore')
-                        if decoded_sig in {'stealth_pnginfo', 'stealth_pngcomp'}:
-                            confirming_signature = False
-                            sig_confirmed = True
-                            reading_param_len = True
-                            mode = 'alpha'
-                            if decoded_sig == 'stealth_pngcomp':
-                                compressed = True
-                            buffer_a = ''
-                            index_a = 0
-                        else:
-                            read_end = True
-                            break
-                    elif index_rgb == len('stealth_pnginfo') * 8:
-                        decoded_sig = bytearray(int(buffer_rgb[i:i + 8], 2) for i in
-                                                range(0, len(buffer_rgb), 8)).decode('utf-8', errors='ignore')
-                        if decoded_sig in {'stealth_rgbinfo', 'stealth_rgbcomp'}:
-                            confirming_signature = False
-                            sig_confirmed = True
-                            reading_param_len = True
-                            mode = 'rgb'
-                            if decoded_sig == 'stealth_rgbcomp':
-                                compressed = True
-                            buffer_rgb = ''
-                            index_rgb = 0
-                elif reading_param_len:
-                    if mode == 'alpha':
-                        if index_a == 32:
-                            param_len = int(buffer_a, 2)
-                            reading_param_len = False
-                            reading_param = True
-                            buffer_a = ''
-                            index_a = 0
-                    else:
-                        if index_rgb == 33:
-                            pop = buffer_rgb[-1]
-                            buffer_rgb = buffer_rgb[:-1]
-                            param_len = int(buffer_rgb, 2)
-                            reading_param_len = False
-                            reading_param = True
-                            buffer_rgb = pop
-                            index_rgb = 1
-                elif reading_param:
-                    if mode == 'alpha':
-                        if index_a == param_len:
-                            binary_data = buffer_a
-                            read_end = True
-                            break
-                    else:
-                        if index_rgb >= param_len:
-                            diff = param_len - index_rgb
-                            if diff < 0:
-                                buffer_rgb = buffer_rgb[:diff]
-                            binary_data = buffer_rgb
-                            read_end = True
-                            break
-                else:
-                    # impossible
-                    read_end = True
-                    break
-            if read_end:
-                break
-        if sig_confirmed and binary_data != '':
-            # Convert binary string to UTF-8 encoded text
-            byte_data = bytearray(int(binary_data[i:i + 8], 2) for i in range(0, len(binary_data), 8))
-            try:
-                if compressed:
-                    decoded_data = gzip.decompress(bytes(byte_data)).decode('utf-8')
-                else:
-                    decoded_data = byte_data.decode('utf-8', errors='ignore')
-                return decoded_data
-            except:
-                pass
-        return None
 
     @staticmethod
     def get_params_from_string(param_str):
@@ -178,7 +68,7 @@ class PromptInspector(commands.Cog):
                 try:
                     info = img.info['parameters']
                 except:
-                    info = PromptInspector.read_info_from_image_stealth(img)
+                    info = read_info_from_image_stealth(img)
                 if info and "Steps" in info:
                     metadata[i] = info
         except Exception as error:
@@ -228,11 +118,9 @@ class PromptInspector(commands.Cog):
             embed.set_thumbnail(url=attachment.url)
             await user_dm.send(embed=embed)
 
-    # Commands
-
     @commands.command(hidden=True)
-    async def viewparameters(self, ctx: discord.ApplicationContext, msg: str):
-        """Get raw list of parameters for every image in this post."""
+    async def viewparameters(self, ctx: commands.Context, *, msg: str):
+        """Get raw list of parameters for every image in this post. Meant to be used as a message command with slashtags."""
         msg_id = int(msg.split(' ')[1].split('=')[1])
         message = await ctx.channel.fetch_message(msg_id)
         attachments = [a for a in message.attachments if a.filename.lower().endswith(".png")]
@@ -255,11 +143,24 @@ class PromptInspector(commands.Cog):
                 f.seek(0)
                 await ctx.reply(file=discord.File(f, "parameters.yaml"))
 
+    # Config commands
+
     @commands.group(invoke_without_command=True)
     @commands.is_owner()
     async def piset(self, ctx: commands.Context):
-        """Owner command to manage channels where images are scanned."""
+        """Owner command to manage prompt inspector settings."""
         await ctx.send_help()
+
+    @piset.command(invoke_without_command=True)
+    async def scanlimit(self, ctx: commands.Context, newlimit: Optional[int]):
+        """Views or set the filesize limit for scanned images in MB."""
+        if not newlimit or newlimit < 0 or newlimit > 1024:
+            await ctx.reply(f"The current prompt inspector scan limit is {self.scan_limit // 1024**2} MB.")
+            return
+        self.scan_limit = newlimit * 1024**2
+        await self.config.scan_limit.set(self.scan_limit)
+        await ctx.reply('✅')
+        
 
     @piset.group(invoke_without_command=True)
     async def channel(self, ctx: commands.Context):
