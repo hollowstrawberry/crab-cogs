@@ -38,7 +38,7 @@ class ImageLog(commands.Cog):
         for attachment in attachments:
             embed = discord.Embed(
                 title="Image deleted",
-                description=message.content[:1990] if message.content else None,
+                description=message.content[:1990] if message.content else "",
                 color=message.author.color,
                 timestamp=datetime.utcnow())
             embed.set_author(name=str(message.author), icon_url=str(message.author.avatar_url))
