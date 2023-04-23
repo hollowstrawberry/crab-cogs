@@ -120,17 +120,16 @@ class PromptInspector(commands.Cog):
         metadata = OrderedDict()
         tasks = [self.read_attachment_metadata(i, attachment, metadata) for i, attachment in enumerate(attachments)]
         await asyncio.gather(*tasks)
-        user_dm = await self.bot.get_user(ctx.user_id).create_dm()
         if not metadata:
             embed = self.get_embed({}, message.author)
             embed.description = f"This post contains no image generation data.\nTell {message.author.mention} to install [this extension](<https://github.com/ashen-sensored/sd_webui_stealth_pnginfo>)."
             embed.set_thumbnail(url=attachments[0].url)
-            await user_dm.send(embed=embed)
+            await ctx.member.send(embed=embed)
             return
         for attachment, data in [(attachments[i], data) for i, data in metadata.items()]:
             embed = self.get_embed(self.get_params_from_string(data), message.author)
             embed.set_thumbnail(url=attachment.url)
-            await user_dm.send(embed=embed)
+            await ctx.member.send(embed=embed)
 
     @commands.command(hidden=True)
     async def viewparameters(self, ctx: commands.Context, *, msg: str):
