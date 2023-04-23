@@ -28,6 +28,7 @@ class VoiceLog(commands.Cog):
             return
         if await self.bot.cog_disabled_in_guild(self, guild):
             return
+        print("oof 1")
         embed = discord.Embed(color=member.color, timestamp=datetime.utcnow())
         if not before.channel:
             embed.set_author(name="Connected", icon_url=str(member.avatar_url))
@@ -38,6 +39,7 @@ class VoiceLog(commands.Cog):
         else:
             embed.set_author(name="Moved", icon_url=str(member.avatar_url))
             embed.description = f"{member.mention} has moved from {before.channel.mention} to {after.channel.mention}"
+        print("oof 2")
         await (after.channel or before.channel).send(embed=embed)
 
     @commands.group(invoke_without_command=True)
