@@ -27,10 +27,6 @@ class VoiceLog(commands.Cog):
         if before.channel == after.channel:
             return
         if await self.bot.cog_disabled_in_guild(self, guild):
-            return 
-        if after.channel and await self.is_ignored_channel(guild, after.channel):
-            return
-        if before.channel and await self.is_ignored_channel(guild, before.channel):
             return
         embed = discord.Embed(color=member.color, timestamp=datetime.utcnow())
         if not before.channel:
