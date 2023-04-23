@@ -53,13 +53,13 @@ class VoiceLog(commands.Cog):
     @voicelog.command()
     async def enable(self, ctx: commands.Context):
         """Enable voice log for the whole guild."""
-        self.allowedguilds.update(ctx.guild.id)
+        self.allowedguilds.update([ctx.guild.id])
         await self.config.guild(ctx.guild).enabled.set(True)
         await ctx.react_quietly('✅')
 
     @voicelog.command()
     async def disable(self, ctx: commands.Context):
         """Disable voice log for the whole guild."""
-        self.allowedguilds.difference_update(ctx.guild.id)
+        self.allowedguilds.difference_update([ctx.guild.id])
         await self.config.guild(ctx.guild).enabled.set(False)
         await ctx.react_quietly('✅')
