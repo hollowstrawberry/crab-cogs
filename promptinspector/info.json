@@ -8,5 +8,5 @@
     "requirements": ["Pillow"],
     "short": "Scans images for AI generation info.",
     "end_user_data_statement": "This cog does not store user data.",
-    "tags": ["crab", "messages", "scan", "ai"]
+    "tags": ["crab", "message", "scan", "ai", "image"]
 }
