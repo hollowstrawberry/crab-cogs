@@ -21,6 +21,7 @@ class VoiceLog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+        print("oof 0")
         guild = member.guild
         if guild.id not in self.allowedguilds:
             return
