@@ -188,7 +188,7 @@ class PromptInspector(commands.Cog):
 
     # Events
 
-    @commands.event
+    @commands.Cog.listener()
     async def on_message(self, message: Message):
         # Scan images in allowed channels
         if message.channel.id in self.scan_channels:
@@ -201,7 +201,7 @@ class PromptInspector(commands.Cog):
                     return
 
 
-    @commands.event
+    @commands.Cog.listener()
     async def on_raw_reaction_add(self, ctx: discord.RawReactionActionEvent):
         """Send image metadata in reacted post to user DMs"""
         if ctx.emoji.name != '🔎' or ctx.channel_id not in self.scan_channels or ctx.member.bot:
