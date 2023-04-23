@@ -122,7 +122,7 @@ class PromptInspector(commands.Cog):
         await asyncio.gather(*tasks)
         if not metadata:
             embed = self.get_embed({}, message.author)
-            embed.description = f"This post contains no image generation data.\nTell {message.author.mention} to install [this extension](<https://github.com/ashen-sensored/sd_webui_stealth_pnginfo>)."
+            embed.description = f"This post contains no image generation data."
             embed.set_thumbnail(url=attachments[0].url)
             await ctx.member.send(embed=embed)
             return
