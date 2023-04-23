@@ -2,7 +2,7 @@ import discord
 from datetime import datetime
 from redbot.core import commands, Config
 
-class ImageLog(commands.Cog):
+class VoiceLog(commands.Cog):
     """Logs users joining and leaving a VC, inside the VC chat itself."""
 
     def __init__(self, bot):
