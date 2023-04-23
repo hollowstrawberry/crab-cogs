@@ -42,7 +42,7 @@ class ImageLog(commands.Cog):
                 color=message.author.color,
                 timestamp=datetime.utcnow())
             embed.set_author(name=str(message.author), icon_url=str(message.author.avatar_url))
-            embed.add_field(f"Channel", channel.mention)
+            embed.add_field(name=f"Channel", value=channel.mention)
             if channel.permissions_for(guild.me).view_audit_log:
                 deleter = None
                 async for log in guild.audit_logs(limit=2, action=discord.AuditLogAction.message_delete):
@@ -53,9 +53,9 @@ class ImageLog(commands.Cog):
                     if channel.permissions_for(message.author).manage_messages:
                         return # self delete by mod
                     deleter = message.author
-                embed.add_field("Probably deleted by", deleter.mention)
+                embed.add_field(name="Probably deleted by", value=deleter.mention)
             else:
-                embed.add_field("Missing audit log permission", "Oops")
+                embed.add_field(name="Missing audit log permission", value="Oops")
             img = io.BytesIO()
             try:
                 await attachment.save(img, use_cached=True)
