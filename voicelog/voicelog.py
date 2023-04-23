@@ -21,7 +21,6 @@ class VoiceLog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
-        print("oof 0")
         guild = member.guild
         if guild.id not in self.allowedguilds:
             return
@@ -29,7 +28,6 @@ class VoiceLog(commands.Cog):
             return
         if await self.bot.cog_disabled_in_guild(self, guild):
             return
-        print("oof 1")
         embed = discord.Embed(color=member.color, timestamp=datetime.utcnow())
         if not before.channel:
             embed.set_author(name="Connected", icon_url=str(member.avatar_url))
@@ -40,7 +38,6 @@ class VoiceLog(commands.Cog):
         else:
             embed.set_author(name="Moved", icon_url=str(member.avatar_url))
             embed.description = f"{member.mention} has moved from {before.channel.mention} to {after.channel.mention}"
-        print("oof 2")
         await (after.channel or before.channel).send(embed=embed)
 
     @commands.group(invoke_without_command=True)
@@ -52,13 +49,13 @@ class VoiceLog(commands.Cog):
     @voicelog.command()
     async def enable(self, ctx: commands.Context):
         """Enable voice log for the whole guild."""
-        self.allowedguilds.update([ctx.guild.id])
+        self.allowedguilds.add(ctx.guikd.id)
         await self.config.guild(ctx.guild).enabled.set(True)
         await ctx.react_quietly('✅')
 
     @voicelog.command()
     async def disable(self, ctx: commands.Context):
         """Disable voice log for the whole guild."""
-        self.allowedguilds.difference_update([ctx.guild.id])
+        self.allowedguilds.remove(ctx.guild.id)
         await self.config.guild(ctx.guild).enabled.set(False)
         await ctx.react_quietly('✅')
