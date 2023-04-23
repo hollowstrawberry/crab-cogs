@@ -1,7 +1,6 @@
 import io
 import asyncio
 import discord
-from discord import Intents, Message, Member, Embed
 from redbot.core import commands, Config
 from typing import Optional
 from collections import OrderedDict
@@ -52,8 +51,8 @@ class PromptInspector(commands.Cog):
         return output_dict
 
     @staticmethod
-    def get_embed(embed_dict: dict, author: Member):
-        embed = Embed(title="Here's your image!", color=author.color)
+    def get_embed(embed_dict: dict, author: discord.Member):
+        embed = discord.Embed(title="Here's your image!", color=author.color)
         for key, value in embed_dict.items():
             embed.add_field(name=key, value=value, inline='Prompt' not in key)
         pfp = author.avatar if author.avatar else author.default_avatar_url
@@ -79,16 +78,31 @@ class PromptInspector(commands.Cog):
     # Events
 
     @commands.Cog.listener()
-    async def on_message(self, message: Message):
+    async def on_message(self, message: discord.Message):
         # Scan images in allowed channels
-        if message.channel.id in self.scan_channels:
-            attachments = [a for a in message.attachments if a.filename.lower().endswith(".png") and a.size < SCAN_LIMIT_BYTES]
-            for i, attachment in enumerate(attachments): # Scan one at a time as usually the first image in a post is AI-generated
-                metadata = OrderedDict()
-                await self.read_attachment_metadata(i, attachment, metadata)
-                if metadata:
-                    await message.add_reaction('🔎')
-                    return
+        if not message.guild or message.author.bot:
+            return
+        channel_perms = message.channel.permissions_for(message.guild.me)
+        if not channel_perms.add_reactions:
+            return
+        if not message.channel.id in self.scan_channels:
+            return
+        attachments = [a for a in message.attachments if a.filename.lower().endswith(".png") and a.size < self.scan_limit]
+        if not attachments:
+            return
+        if not await self.is_valid_red_message(message):
+            return
+        for i, attachment in enumerate(attachments): # Scan one at a time as usually the first image in a post is AI-generated
+            metadata = OrderedDict()
+            await self.read_attachment_metadata(i, attachment, metadata)
+            if metadata:
+                await message.add_reaction('🔎')
+                return
+                
+    async def is_valid_red_message(self, message: discord.Message) -> bool:
+        return await self.bot.allowed_by_whitelist_blacklist(message.author) \
+               and await self.bot.ignored_channel_or_guild(message) \
+               and not await self.bot.cog_disabled_in_guild(self, message.guild)
 
 
     @commands.Cog.listener()
