@@ -1,0 +1,12 @@
+{
+    "author": ["OrchidAlloy"],
+    "min_bot_version": "3.0.0",
+    "description": "Logs deleted images for moderation purposes.",
+    "hidden": true,
+    "install_msg": "🎐 __**ImageLog**__ ```Cog installed. Instructions:\n1. Load it with [p]load imagelog\n2. Set the log channel with [p]imagelog setchannel```",
+    "required_cogs": {},
+    "requirements": [],
+    "short": "Logs deleted images for moderation purposes.",
+    "end_user_data_statement": "This cog does not store user data.",
+    "tags": ["crab", "message", "scan", "log", "image", "moderation"]
+}

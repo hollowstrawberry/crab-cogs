@@ -1,0 +1,12 @@
+{
+    "author": ["OrchidAlloy"],
+    "min_bot_version": "3.0.0",
+    "description": "Logs users joining and leaving a VC, inside the VC chat itself.",
+    "hidden": false,
+    "install_msg": "🎤 __**VoiceLog**__ ```Cog installed. Instructions:\n1. Load it with [p]load voicelog\n2. Enable for your guild with [p]voicelog enable```",
+    "required_cogs": {},
+    "requirements": [],
+    "short": "Logs users joining and leaving a VC, inside the VC chat itself.",
+    "end_user_data_statement": "This cog does not store user data.",
+    "tags": ["crab", "voice", "log", "moderation"]
+}
