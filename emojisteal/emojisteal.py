@@ -90,12 +90,14 @@ class EmojiSteal(commands.Cog):
 
     @commands.command(hidden=True)
     async def stealslash(self, ctx: commands.Context, *, msg: str):
+        """Steals emojis from a message silently. Add this as a message slashtag."""
         id = msg.split(' ')[1].split('=')[1]
         ctx.message.reference = discord.MessageReference(message_id=int(id), channel_id=ctx.channel.id)
         await self.steal(ctx)
 
     @commands.command(hidden=True)
     async def stealuploadslash(self, ctx: commands.Context, *, msg: str):
+        """Steals emojis from a message and uploads them to this guild. Add this as a message slashtag."""
         id = msg.split(' ')[1].split('=')[1]
         ctx.message = await ctx.send("Stealing...")
         ctx.message.reference = discord.MessageReference(message_id=int(id), channel_id=ctx.channel.id)
