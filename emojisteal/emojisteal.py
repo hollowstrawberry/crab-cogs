@@ -5,7 +5,7 @@ import discord
 from dataclasses import dataclass
 from itertools import zip_longest
 from redbot.core import commands
-from typing import *
+from typing import Optional, Union, List
 
 
 @dataclass(init=True, order=True)
@@ -20,7 +20,7 @@ class StolenEmoji:
 
 
 class EmojiSteal(commands.Cog):
-    """Steals emojis sent by other people and optionally uploads them to your own server."""
+    """Steals emojis sent by other people and optionally uploads them to your own server. Supports context menu commands with slashtags:\n  [p]st global message "Steal Emojis" {c:stealslash {message} {hide}}"""
 
     def __init__(self, bot):
         super().__init__()
