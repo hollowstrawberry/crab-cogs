@@ -112,7 +112,6 @@ class EasyTranslate(commands.Cog):
         await self.translate(ctx, language, content=optional_input)
 
     async def translate_slash(self, ctx: discord.Interaction, message: discord.Message):
-        """Translate a message into your preferred language."""
         language = await self.config.user(message.author).preferred_language()
         await self.translate(ctx, language, message=message)
 
