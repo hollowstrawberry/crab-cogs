@@ -44,8 +44,14 @@ class EasyTranslate(commands.Cog):
         self.translator = googletrans.Translator()
         self.config = Config.get_conf(self, identifier=14000606, force_registration=True)
         self.config.register_user(preferred_language="english")
-        context_menu = app_commands.ContextMenu(name='Translate', callback=self.translate_slash)
-        self.bot.tree.add_command(context_menu)
+        self.context_menu = app_commands.ContextMenu(name='Translate', callback=self.translate_slash)
+        self.bot.tree.add_command(self.context_menu)
+
+    async def cog_unload(self) -> None:
+        self.bot.tree.remove_command(self.context_menu.name, type=self.context_menu.type)
+
+    async def red_delete_data_for_user(self, requester: str, user_id: int):
+        pass
 
     @staticmethod
     def convert_language(language: str):
