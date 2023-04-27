@@ -1,12 +1,12 @@
 {
     "author": ["OrchidAlloy"],
-    "min_bot_version": "3.0.0",
-    "description": "Steals emojis sent by other people and optionally uploads them to your own server. Can also get an image link to an emoji of your own choosing, useful for mobile. Supports context menu commands with slashtags:\n  [p]st global message \"Steal Emojis\" {c:stealslash {message} {hide}}",
+    "min_bot_version": "3.5.0",
+    "description": "Steals emojis sent by other people and optionally uploads them to your own server. Can also get an image link to an emoji of your own choosing, useful for mobile. Supports context menu commands.",
     "hidden": false,
-    "install_msg": "\uD83D\uDE36 __**EmojiSteal**__ ```EmojiSteal installed. Instructions:\n1. Load the cog with [p]load emojisteal\n2. Try replying to a message containing emojis from another server with [p]steal or [p]steal upload [emojiname]\n3. Optionally, install slashtags and add a context menu command like this:\n  [p]st global message {c:stealslash {message} {hide}}\n  {c:stealuploadslash {message} {hide}}```",
+    "install_msg": "\uD83D\uDE36 __**EmojiSteal**__ ```EmojiSteal installed. Instructions:\n1. Load the cog with [p]load emojisteal\n2. Try replying to a message containing emojis from another server with [p]steal or [p]steal upload [emojiname]\n3. Optionally, enable the context menu commands with [p]slash enablecog emojisteal```",
     "required_cogs": {},
     "requirements": [],
     "short": "Steals emojis sent by other people.",
     "end_user_data_statement": "This cog does not store any user data.",
-    "tags": ["crab", "fun", "emoji", "steal", "image", "slash"]
+    "tags": ["crab", "fun", "emoji", "steal", "image", "slash", "message", "context", "menu"]
 }

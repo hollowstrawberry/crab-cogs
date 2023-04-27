@@ -14,7 +14,7 @@ class VoiceLog(commands.Cog):
 
     async def load_config(self):
         all_config = await self.config.all_guilds()
-        self.logchannels = set(guild_id for guild_id, conf in all_config.items() if conf['enabled'])
+        self.allowedguilds = set(guild_id for guild_id, conf in all_config.items() if conf['enabled'])
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         pass

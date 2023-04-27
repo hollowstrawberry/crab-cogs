@@ -1,6 +1,6 @@
 {
     "author": ["OrchidAlloy"],
-    "min_bot_version": "3.0.0",
+    "min_bot_version": "3.5.0",
     "description": "Lets you configure emojis that will be added to any message containing text matching a regex.",
     "hidden": false,
     "install_msg": "⏺ __**Autoreact**__\n```Autoreact cog installed. Instructions:\n1. Load it with [p]load autoreact\n2. Start adding emojis to specific text with [p]autoreact add [emoji] [text]```",

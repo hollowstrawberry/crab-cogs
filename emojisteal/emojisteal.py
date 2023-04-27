@@ -20,7 +20,7 @@ class StolenEmoji:
 
 
 class EmojiSteal(commands.Cog):
-    """Steals emojis sent by other people and optionally uploads them to your own server. Supports context menu commands with slashtags:\n  [p]st global message "Steal Emojis" {c:stealslash {message} {hide}}"""
+    """Steals emojis sent by other people and optionally uploads them to your own server. Supports context menu commands."""
 
     def __init__(self, bot):
         super().__init__()

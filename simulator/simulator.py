@@ -166,7 +166,7 @@ class Simulator(commands.Cog):
         """Statistics about the simulator, globally or for a user"""
         if not await self.check_participant(ctx):
             return
-        await ctx.trigger_typing()
+        await ctx.typing()
 
         def count_nodes(tree: dict) -> int:
             count = 0

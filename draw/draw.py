@@ -32,7 +32,7 @@ class Draw(commands.Cog):
             user = self.bot.user
         elif isinstance(user, str):
             return await ctx.send("Can't find a user with that name.")
-        await ctx.trigger_typing()
+        await ctx.typing()
         # load image
         await user.avatar_url.save(self.input_image(ctx))
         Image.open(self.input_image(ctx)).convert('RGB').resize((256, 256), Image.BICUBIC).save(self.output_image(ctx))
@@ -57,7 +57,7 @@ class Draw(commands.Cog):
             user = self.bot.user
         elif isinstance(user, str):
             return await ctx.send("Can't find a user with that name.")
-        await ctx.trigger_typing()
+        await ctx.typing()
         # load image
         await user.avatar_url.save(self.input_image(ctx))
         Image.open(self.input_image(ctx)).convert('RGB').resize((256, 256), Image.BICUBIC).save(self.output_image(ctx))
