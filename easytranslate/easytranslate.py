@@ -44,6 +44,8 @@ class EasyTranslate(commands.Cog):
         self.translator = googletrans.Translator()
         self.config = Config.get_conf(self, identifier=14000606, force_registration=True)
         self.config.register_user(preferred_language="english")
+        context_menu = app_commands.ContextMenu(name='Translate', callback=self.translate_slash)
+        self.bot.tree.add_command(context_menu)
 
     @staticmethod
     def convert_language(language: str):
@@ -103,7 +105,6 @@ class EasyTranslate(commands.Cog):
         language = await self.config.user(ctx.author).preferred_language()
         await self.translate(ctx, language, content=optional_input)
 
-    @app_commands.context_menu(name="Translate")
     async def translate_slash(self, ctx: discord.Interaction, message: discord.Message):
         """Translate a message into your preferred language."""
         language = await self.config.user(message.author).preferred_language()
