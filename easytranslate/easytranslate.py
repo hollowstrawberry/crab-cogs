@@ -85,17 +85,15 @@ class EasyTranslate(commands.Cog):
         if not content:
             content = message.content
         content = self.convert_input(content)
-        print(content)
         try:
             task = functools.partial(self.translator.translate, text=content, dest=language)
             result: googletrans.models.Translated = await self.bot.loop.run_in_executor(None, task)
-        except Exception as e:
+        except:
             fail_embed = discord.Embed(description=TRANSLATION_FAILED, color=discord.Color.red())
             if isinstance(ctx, discord.Interaction):
-                await ctx.response().send_message(embed=fail_embed, ephemeral=True)
+                return await ctx.response().send_message(embed=fail_embed, ephemeral=True)
             else:
-                await ctx.send(embed=fail_embed)
-            raise e
+                return await ctx.send(embed=fail_embed)
 
         embed = discord.Embed(description=result.text[:3990], color=await ctx.embed_color())
         source_language_name = googletrans.LANGUAGES.get(result.src.lower(), result.src).title()
