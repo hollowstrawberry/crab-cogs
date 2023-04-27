@@ -1,6 +1,6 @@
 {
     "author": ["OrchidAlloy"],
-    "min_bot_version": "3.5.0",
+    "min_bot_version": "3.5.0.dev363",
     "description": "Logs deleted images for moderation purposes.",
     "hidden": true,
     "install_msg": "🎐 __**ImageLog**__ ```Cog installed. Instructions:\n1. Load it with [p]load imagelog\n2. Set the log channel with [p]imagelog setchannel```",

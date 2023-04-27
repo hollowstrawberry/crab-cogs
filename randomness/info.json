@@ -1,6 +1,6 @@
 {
     "author": ["OrchidAlloy"],
-    "min_bot_version": "3.5.0",
+    "min_bot_version": "3.5.0.dev363",
     "description": "A few fun commands involving randomness: [p]rate, [p]pp, [p]donut",
     "hidden": false,
     "install_msg": "🎲 __**Randomness**__ ```Randomness cog installed. Instructions:\n1. Load it with [p]load randomness\n2. View commands with [p]help Randomness\n3. You may configure the output of [p]donut with [p]donut set```",
