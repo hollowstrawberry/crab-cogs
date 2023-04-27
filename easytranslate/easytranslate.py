@@ -64,7 +64,7 @@ class EasyTranslate(commands.Cog):
 
     @staticmethod
     def convert_input(user_input: str):
-        return CUSTOM_EMOJI.sub("", user_input or "").strip()
+        return CUSTOM_EMOJI.sub("", user_input).strip()
 
     async def translate(self,
                         ctx: Union[commands.Context, discord.Interaction],
@@ -85,6 +85,7 @@ class EasyTranslate(commands.Cog):
         if not content:
             content = message.content
         content = self.convert_input(content)
+        print(content)
         try:
             task = functools.partial(self.translator.translate, text=content, dest=language)
             result: googletrans.models.Translated = await self.bot.loop.run_in_executor(None, task)
