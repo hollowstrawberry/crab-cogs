@@ -86,8 +86,7 @@ class EasyTranslate(commands.Cog):
             content = message.content
         content = self.convert_input(content)
         try:
-            task = functools.partial(self.translator.translate, text=content, dest=language)
-            result: googletrans.models.Translated = await self.bot.loop.run_in_executor(None, task)
+            result = self.translator.translate(text=content, dest=language)
         except:
             return await ctx.send(embed=discord.Embed(description=TRANSLATION_FAILED, color=discord.Color.red()))
 
@@ -121,8 +120,8 @@ class EasyTranslate(commands.Cog):
         """Translate something into a specific language. Can also reply to a message to translate it."""
         await self.translate(ctx, to_language, content=optional_input)
 
-    @commands.command(name="setmylanguage")
-    async def set_my_language(self, ctx:commands.Context, *, language: str):
+    @commands.hybrid_command(name="setmylanguage")
+    async def set_my_language(self, ctx: commands.Context, *, language: str):
         """Set your preferred language when translating."""
         language = self.convert_language(language)
         if not language:
