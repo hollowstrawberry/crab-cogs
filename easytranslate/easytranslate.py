@@ -40,7 +40,7 @@ class EasyTranslate(commands.Cog):
     """Translate messages using Google Translate for free. Supports context menus."""
 
     def __init__(self, bot):
-        self.bot = bot
+        self.bot: commands.Bot = bot
         self.translator = googletrans.Translator()
         self.config = Config.get_conf(self, identifier=14000606, force_registration=True)
         self.config.register_user(preferred_language="english")
