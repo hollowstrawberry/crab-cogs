@@ -3,9 +3,9 @@
     "min_bot_version": "3.0.0",
     "description": "Translate messages using Google Translate for free. Supports context menu commands with slashtags:\n  [p]st global message \"Translate\" {c:translateslash {message} {hide}}",
     "hidden": false,
-    "install_msg": "🎌 __**EasyTranslate**__ ```EasyTranslate installed. Instructions:\n1. Load the cog with [p]load easytranslate\n2. Try replying to a message with [p]translate or [p]translate to [language]\n3. Optionally, your users may set their default language for translation with [p]setmylanguage\n4. Optionally, install slashtags and add a context menu command like this:\n  [p]st global message {c:translateslash {message} {hide}}```",
+    "install_msg": "🎌 __**EasyTranslate**__ ```EasyTranslate installed. Instructions:\n1. Load the cog with [p]load easytranslate\n2. Right click a message -> Apps -> Translate\n3. Your users may set their default language for translation with [p]setmylanguage```",
     "required_cogs": {},
-    "requirements": [],
+    "requirements": ["googletrans"],
     "short": "Translate messages using Google Translate for free.",
     "end_user_data_statement": "This cog does not store any user data.",
     "tags": ["crab", "useful", "translate", "translation", "slash"]

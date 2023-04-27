@@ -37,7 +37,7 @@ CUSTOM_EMOJI = re.compile("<(?P<animated>a?):(?P<name>[a-zA-Z0-9_]{2,32}):(?P<id
 
 
 class EasyTranslate(commands.Cog):
-    """Translate messages using Google Translate for free. Supports context menu commands with slashtags:\n  [p]st global message "Translate" {c:translateslash {message} {hide}}"""
+    """Translate messages using Google Translate for free. Supports context menus."""
 
     def __init__(self, bot):
         self.bot = bot
