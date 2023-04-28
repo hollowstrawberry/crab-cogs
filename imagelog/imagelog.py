@@ -41,7 +41,7 @@ class ImageLog(commands.Cog):
                 description=message.content[:1990] if message.content else "",
                 color=message.author.color,
                 timestamp=datetime.utcnow())
-            embed.set_author(name=str(message.author), icon_url=str(message.author.avatar_url))
+            embed.set_author(name=str(message.author), icon_url=str(message.author.display_avatar.url))
             embed.add_field(name=f"Channel", value=channel.mention)
             if channel.permissions_for(guild.me).view_audit_log:
                 deleter = None

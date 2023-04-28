@@ -166,7 +166,7 @@ class Simulator(commands.Cog):
         """Statistics about the simulator, globally or for a user"""
         if not await self.check_participant(ctx):
             return
-        await ctx.trigger_typing()
+        await ctx.typing()
 
         def count_nodes(tree: dict) -> int:
             count = 0
@@ -624,7 +624,7 @@ class Simulator(commands.Cog):
         if not user or not content or user.id in self.blacklisted_users:
             return
         await self.webhook.send(username=user.display_name,
-                                avatar_url=user.avatar_url,
+                                avatar_url=user.display_avatar.url,
                                 content=content,
                                 allowed_mentions=discord.AllowedMentions.none())
 

@@ -14,7 +14,7 @@ class VoiceLog(commands.Cog):
 
     async def load_config(self):
         all_config = await self.config.all_guilds()
-        self.logchannels = set(guild_id for guild_id, conf in all_config.items() if conf['enabled'])
+        self.allowedguilds = set(guild_id for guild_id, conf in all_config.items() if conf['enabled'])
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         pass
@@ -30,13 +30,13 @@ class VoiceLog(commands.Cog):
             return
         embed = discord.Embed(color=member.color, timestamp=datetime.utcnow())
         if not before.channel:
-            embed.set_author(name="Connected", icon_url=str(member.avatar_url))
+            embed.set_author(name="Connected", icon_url=member.display_avatar.url)
             embed.description = f"{member.mention} has joined {after.channel.mention}"
         elif not after.channel:
-            embed.set_author(name="Disconnected", icon_url=str(member.avatar_url))
+            embed.set_author(name="Disconnected", icon_url=member.display_avatar.url)
             embed.description = f"{member.mention} has left {before.channel.mention}"
         else:
-            embed.set_author(name="Moved", icon_url=str(member.avatar_url))
+            embed.set_author(name="Moved", icon_url=member.display_avatar.url)
             embed.description = f"{member.mention} has moved from {before.channel.mention} to {after.channel.mention}"
         await (after.channel or before.channel).send(embed=embed)
 

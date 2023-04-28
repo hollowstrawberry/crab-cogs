@@ -1,9 +1,9 @@
 {
     "author": ["OrchidAlloy"],
-    "min_bot_version": "3.0.0",
+    "min_bot_version": "3.5.0.dev363",
     "description": "Scans images for AI generation info and lets the user view it with a reaction or an application command.",
     "hidden": false,
-    "install_msg": "📎 __**PromptInspector**__ ```Cog installed. Instructions:\n1. Load it with [p]load promptinspector\n2. Add channels to scan with [p]piset channel add\n3. You may add a slashtag: [p]st global message \"View Parameters\" {c:viewparameters {message} {hide}}```",
+    "install_msg": "📎 __**PromptInspector**__ ```Cog installed. Instructions:\n1. Load it with [p]load promptinspector\n2A. Add channels to scan with [p]piset channel add\n2B. Enable the context menu with [p]slash enablecog promptinspector, then [p]slash sync```",
     "required_cogs": {},
     "requirements": ["Pillow"],
     "short": "Scans images for AI generation info.",

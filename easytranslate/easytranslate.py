@@ -21,15 +21,15 @@ SOFTWARE.
 """
 
 import re
-import typing
 import functools
-import googletrans, googletrans.models
-
+import googletrans
 import discord
-from redbot.core import commands, Config
-from redbot.core.utils.chat_formatting import pagify
+from redbot.core import commands, app_commands, Config
+from redbot.core.bot import Red
+from typing import Union
+from googletrans.models import Translated
 
-MISSING_INPUTS = "Please provide a message ID/link, some text to translate, or reply to the original message."
+MISSING_INPUTS = "Please provide some text to translate, or reply to a message to translate it."
 MISSING_MESSAGE = "`Nothing to translate.`"
 LANGUAGE_NOT_FOUND = "`That's not an available language, please try again.`"
 TRANSLATION_FAILED = "`Something went wrong while translating. If this keeps happening, contact the bot owner.`"
@@ -38,13 +38,22 @@ CUSTOM_EMOJI = re.compile("<(?P<animated>a?):(?P<name>[a-zA-Z0-9_]{2,32}):(?P<id
 
 
 class EasyTranslate(commands.Cog):
-    """Translate messages using Google Translate for free. Supports context menu commands with slashtags:\n  [p]st global message "Translate" {c:translateslash {message} {hide}}"""
+    """Translate messages using Google Translate for free. Supports context menu commands."""
 
     def __init__(self, bot):
-        self.bot = bot
+        super().__init__()
+        self.bot: Red = bot
         self.translator = googletrans.Translator()
         self.config = Config.get_conf(self, identifier=14000606, force_registration=True)
         self.config.register_user(preferred_language="english")
+        self.context_menu = app_commands.ContextMenu(name='Translate', callback=self.translate_slash)
+        self.bot.tree.add_command(self.context_menu)
+
+    async def cog_unload(self) -> None:
+        self.bot.tree.remove_command(self.context_menu.name, type=self.context_menu.type)
+
+    async def red_delete_data_for_user(self, requester: str, user_id: int):
+        pass
 
     @staticmethod
     def convert_language(language: str):
@@ -56,82 +65,66 @@ class EasyTranslate(commands.Cog):
         return language
 
     @staticmethod
-    async def convert_input(context: commands.Context, user_input: str):
-        to_translate, to_reply = None, None
+    def convert_input(user_input: str):
+        return CUSTOM_EMOJI.sub("", user_input).strip()
+
+    async def translate(self, ctx: Union[commands.Context, discord.Interaction],
+                        language: str, *, content: str = None, message: discord.Message = None):
+        """Translates a message or string and responds in the provided context."""
+        if not (language := self.convert_language(language)):
+            return await ctx.send(LANGUAGE_NOT_FOUND)
+        if not content and not message:
+            reference = ctx.message.reference
+            if not reference:
+                return await ctx.send(MISSING_INPUTS)
+            message = reference.resolved or reference.cached_message or await ctx.channel.fetch_message(reference.message_id)
+            if not message:
+                return await ctx.send(MISSING_INPUTS)
+        if not content:
+            content = message.content
+        content = self.convert_input(content)
         try:
-            if not user_input:
-                raise commands.BadArgument
-            # case 1: argument points to a message
-            converted_message: discord.Message = await commands.MessageConverter().convert(ctx=context, argument=user_input)
-            to_translate = converted_message.content
-            to_reply = converted_message
-        except commands.BadArgument:
-            # case 2: argument is text to translate
-            if user_input:
-                to_translate = user_input
-                to_reply = context.message
-            # case 3: argument is empty but there is a message reference
-            elif context.message.reference and isinstance(context.message.reference.resolved, discord.Message):
-                to_translate = context.message.reference.resolved.content
-                to_reply = context.message.reference.resolved
+            task = functools.partial(self.translator.translate, text=content, dest=language)
+            result: Translated = await self.bot.loop.run_in_executor(None, task)
+        except:
+            fail_embed = discord.Embed(description=TRANSLATION_FAILED, color=discord.Color.red())
+            if isinstance(ctx, discord.Interaction):
+                return await ctx.response.send_message(embed=fail_embed, ephemeral=True)
+            else:
+                return await ctx.send(embed=fail_embed)
 
-        if to_reply and to_reply.channel.id != context.channel.id:
-            to_reply = context.message
+        embed = discord.Embed(description=result.text[:3990], color=await self.bot.get_embed_color(ctx.channel))
+        source_language_name = googletrans.LANGUAGES.get(result.src.lower(), result.src).title()
+        dest_language_name = googletrans.LANGUAGES.get(result.dest.lower(), result.dest).title()
+        embed.set_footer(text=f"{source_language_name} → {dest_language_name}")
 
-        return CUSTOM_EMOJI.sub("", to_translate or "").strip(), to_reply
-
-    @staticmethod
-    def result_embed(res: googletrans.models.Translated, color: discord.Color, author: discord.Member):
-        embed = discord.Embed(description=res.text[:3990], color=color)
-        embed.set_footer(text=f"{googletrans.LANGUAGES.get(res.src.lower(), res.src).title()} → {googletrans.LANGUAGES.get(res.dest.lower(), res.dest).title()}")
-        if author:
-            embed.set_author(name=author.display_name, icon_url=str(author.avatar_url))
-        return embed
+        if isinstance(ctx, discord.Interaction):
+            embed.set_author(name=message.author.display_name, icon_url=message.author.display_avatar.url)
+            await ctx.response.send_message(embed=embed, ephemeral=True)
+        elif message:
+            await message.reply(embed=embed, mention_author=False)
+        else:
+            await ctx.send(embed=embed)
 
     @commands.bot_has_permissions(embed_links=True)
     @commands.group(name="translate", invoke_without_command=True)
     async def translate_automatic(self, ctx: commands.Context, *, optional_input: str = ""):
         """Translate something into your preferred language. Can also reply to a message to translate it."""
         language = await self.config.user(ctx.author).preferred_language()
-        await self.translate_to(ctx, language, optional_input=optional_input)
+        await self.translate(ctx, language, content=optional_input)
+
+    async def translate_slash(self, ctx: discord.Interaction, message: discord.Message):
+        language = await self.config.user(message.author).preferred_language()
+        await self.translate(ctx, language, message=message)
 
     @commands.bot_has_permissions(embed_links=True)
     @translate_automatic.command(name="to")
     async def translate_to(self, ctx: commands.Context, to_language: str, *, optional_input: str = ""):
         """Translate something into a specific language. Can also reply to a message to translate it."""
-        if not (to_language := self.convert_language(to_language)):
-            return await ctx.send(LANGUAGE_NOT_FOUND)
-        if not optional_input.isnumeric(): # probably not a slash command
-            await ctx.channel.trigger_typing()
+        await self.translate(ctx, to_language, content=optional_input)
 
-        to_translate, to_reply = await self.convert_input(ctx, optional_input)
-        if not to_translate or not to_reply:
-            return await ctx.send(MISSING_INPUTS)
-        
-        try:
-            task = functools.partial(self.translator.translate, text=to_translate, dest=to_language)
-            result: googletrans.models.Translated = await self.bot.loop.run_in_executor(None, task)
-        except Exception:
-            return await ctx.send(embed=discord.Embed(description=TRANSLATION_FAILED, color=discord.Color.red()))
-
-        embed = self.result_embed(result, await ctx.embed_color(), to_reply.author if (to_reply != ctx.message and not ctx.message.reference) else None)
-
-        if optional_input.isnumeric(): # probably a slash command
-            return await ctx.send(embed=embed)
-
-        try:
-            await to_reply.reply(embed=embed, mention_author=False)
-        except discord.HTTPException:
-            await ctx.send(embed=embed)
-
-    @commands.command(name="translateslash", hidden=True)
-    async def translate_slash(self, ctx: commands.Context, *, msg: str):
-        """Translate a message into your preferred language."""
-        id = msg.split(' ')[1].split('=')[1]
-        await self.translate_automatic(ctx, optional_input=id)
-
-    @commands.command(name="setmylanguage")
-    async def set_my_language(self, ctx:commands.Context, *, language: str):
+    @commands.hybrid_command(name="setmylanguage")
+    async def set_my_language(self, ctx: commands.Context, *, language: str):
         """Set your preferred language when translating."""
         language = self.convert_language(language)
         if not language:
@@ -141,7 +134,7 @@ class EasyTranslate(commands.Cog):
         try:
             success = f"✅ When you translate a message, its language will be {language}"
             task = functools.partial(self.translator.translate, text=success, dest=language)
-            result: googletrans.models.Translated = await self.bot.loop.run_in_executor(None, task)
+            result: Translated = await self.bot.loop.run_in_executor(None, task)
             await ctx.send(result.text)
         except:
             await ctx.send("✅")

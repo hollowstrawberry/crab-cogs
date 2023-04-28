@@ -1,7 +1,7 @@
 import io
 import asyncio
 import discord
-from redbot.core import commands, Config
+from redbot.core import commands, app_commands, Config
 from typing import Optional
 from collections import OrderedDict
 from PIL import Image
@@ -17,9 +17,14 @@ class PromptInspector(commands.Cog):
         self.scan_limit = 10 * 1024**2
         self.config = Config.get_conf(self, identifier=7072707469)
         self.config.register_global(channels=[], scanlimit=self.scan_limit)
+        self.context_menu = app_commands.ContextMenu(name='View Parameters', callback=self.viewparameters)
+        self.bot.tree.add_command(self.context_menu)
 
     async def load_config(self):
         self.scan_channels = set(await self.config.channels())
+
+    async def cog_unload(self) -> None:
+        self.bot.tree.remove_command(self.context_menu.name, type=self.context_menu.type)
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         pass
@@ -55,7 +60,7 @@ class PromptInspector(commands.Cog):
         embed = discord.Embed(title="Here's your image!", color=author.color)
         for key, value in embed_dict.items():
             embed.add_field(name=key, value=value, inline='Prompt' not in key)
-        embed.set_footer(text=f'Posted by {author}', icon_url=author.avatar_url)
+        embed.set_footer(text=f'Posted by {author}', icon_url=author.display_avatar.url)
         return embed
 
     @staticmethod
@@ -84,14 +89,14 @@ class PromptInspector(commands.Cog):
         channel_perms = message.channel.permissions_for(message.guild.me)
         if not channel_perms.add_reactions:
             return
-        if not message.channel.id in self.scan_channels:
+        if message.channel.id not in self.scan_channels:
             return
         attachments = [a for a in message.attachments if a.filename.lower().endswith(".png") and a.size < self.scan_limit]
         if not attachments:
             return
         if not await self.is_valid_red_message(message):
             return
-        for i, attachment in enumerate(attachments): # Scan one at a time as usually the first image in a post is AI-generated
+        for i, attachment in enumerate(attachments):  # Scan one at a time as usually the first image in a post is AI-generated
             metadata = OrderedDict()
             await self.read_attachment_metadata(i, attachment, metadata)
             if metadata:
@@ -102,7 +107,6 @@ class PromptInspector(commands.Cog):
         return await self.bot.allowed_by_whitelist_blacklist(message.author) \
                and await self.bot.ignored_channel_or_guild(message) \
                and not await self.bot.cog_disabled_in_guild(self, message.guild)
-
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, ctx: discord.RawReactionActionEvent):
@@ -130,7 +134,6 @@ class PromptInspector(commands.Cog):
             embed.set_thumbnail(url=attachment.url)
             await ctx.member.send(embed=embed)
 
-    @commands.command(hidden=True)
     async def viewparameters(self, ctx: commands.Context, *, msg: str):
         """Get raw list of parameters for every image in this post. Meant to be used as a message command with slashtags."""
         msg_id = int(msg.split(' ')[1].split('=')[1])
@@ -172,7 +175,6 @@ class PromptInspector(commands.Cog):
         self.scan_limit = newlimit * 1024**2
         await self.config.scan_limit.set(self.scan_limit)
         await ctx.react_quietly("✅")
-        
 
     @piset.group(invoke_without_command=True)
     async def channel(self, ctx: commands.Context):

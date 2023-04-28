@@ -4,7 +4,7 @@ import aiohttp
 import discord
 from dataclasses import dataclass
 from itertools import zip_longest
-from redbot.core import commands
+from redbot.core import commands, app_commands
 from typing import Optional, Union, List
 
 
@@ -20,11 +20,19 @@ class StolenEmoji:
 
 
 class EmojiSteal(commands.Cog):
-    """Steals emojis sent by other people and optionally uploads them to your own server. Supports context menu commands with slashtags:\n  [p]st global message "Steal Emojis" {c:stealslash {message} {hide}}"""
+    """Steals emojis sent by other people and optionally uploads them to your own server. Supports context menu commands."""
 
     def __init__(self, bot):
         super().__init__()
         self.bot = bot
+        self.steal_context = app_commands.ContextMenu(name='Steal Emojis', callback=self.steal_slash)
+        self.steal_upload_context = app_commands.ContextMenu(name='Steal+Upload Emojis', callback=self.steal_upload_slash)
+        self.bot.tree.add_command(self.steal_context)
+        self.bot.tree.add_command(self.steal_upload_context)
+
+    async def cog_unload(self) -> None:
+        self.bot.tree.remove_command(self.steal_context.name, type=self.steal_context.type)
+        self.bot.tree.remove_command(self.steal_upload_context.name, type=self.steal_upload_context.type)
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         pass
@@ -34,12 +42,13 @@ class EmojiSteal(commands.Cog):
         results = re.findall(r"<(a?):(\w+):(\d{10,20})>", content)
         return [StolenEmoji(*result) for result in results]
 
-    async def ctx_steal(self, ctx: commands.Context) -> Optional[List[StolenEmoji]]:
-        reference = ctx.message.reference
-        if not reference:
-            await ctx.send("Reply to a message with this command to steal an emoji")
-            return None
-        message = await ctx.channel.fetch_message(reference.message_id)
+    async def steal(self, *, message: discord.Message = None, ctx: commands.Context = None) -> Optional[List[StolenEmoji]]:
+        if not message:
+            reference = ctx.message.reference
+            if not reference:
+                await ctx.send("Reply to a message with this command to steal an emoji")
+                return None
+            message = await ctx.channel.fetch_message(reference.message_id)
         if not message:
             await ctx.send("I couldn't grab that message, sorry")
             return None
@@ -48,19 +57,31 @@ class EmojiSteal(commands.Cog):
             return None
         return emojis
 
-    @commands.group(aliases=["emojisteal", "stealemoji", "stealemojis"], invoke_without_command=True)
-    async def steal(self, ctx: commands.Context):
+    @commands.group(name="steal", aliases=["emojisteal", "stealemoji", "stealemojis"], invoke_without_command=True)
+    async def steal_command(self, ctx: Union[commands.Context, discord.Interaction]):
         """Steals the emojis of the message you reply to. Can also upload them with [p]steal upload."""
-        if not (emojis := await self.ctx_steal(ctx)):
+        if isinstance(ctx, commands.Context):
+            emojis = await self.steal(ctx=ctx)
+        else:
+            emojis = await self.steal(message=ctx.message)
+        if not emojis:
             return
-        await ctx.send('\n'.join(emoji.link for emoji in emojis))
+        response = '\n'.join([emoji.link for emoji in emojis])
+        if isinstance(ctx, commands.Context):
+            return await ctx.send(response)
+        else:
+            await ctx.response.send_message(content=response, ephemeral=True)
 
-    @steal.command()
+    @steal_command.command(name="upload")
     @commands.has_permissions(manage_emojis=True)
     @commands.bot_has_permissions(manage_emojis=True)
-    async def upload(self, ctx: commands.Context, *names: str):
+    async def steal_upload_command(self, ctx: Union[commands.Context, discord.Interaction], *names: str):
         """Steals emojis you reply to and uploads them to this server."""
-        if not (emojis := await self.ctx_steal(ctx)):
+        if isinstance(ctx, commands.Context):
+            emojis = await self.steal(ctx=ctx)
+        else:
+            emojis = await self.steal(message=ctx.message)
+        if not emojis:
             return
         names = [''.join(re.findall(r"\w+", name)) for name in names]
         names = [name if len(name) >= 2 else None for name in names]
@@ -68,6 +89,7 @@ class EmojiSteal(commands.Cog):
         for emoji in emojis:
             if emoji not in clean_emojis:
                 clean_emojis.append(emoji)
+        added_emojis = []
         async with aiohttp.ClientSession() as session:
             for emoji, name in zip_longest(clean_emojis, names):
                 if not emoji:
@@ -76,32 +98,43 @@ class EmojiSteal(commands.Cog):
                     async with session.get(emoji.link) as resp:
                         image = io.BytesIO(await resp.read()).read()
                 except Exception as error:
-                    await ctx.send(f"Couldn't download {emoji.name}, {type(error).__name__}: {error}")
-                    return
+                    response = f"Couldn't download {emoji.name}, {type(error).__name__}: {error}"
+                    if added_emojis:
+                        response = ' '.join([str(e) for e in added_emojis]) + '\n' + response
+                    if isinstance(ctx, commands.Context):
+                        return await ctx.send(response)
+                    else:
+                        await ctx.edit_original_response(content=response)
                 try:
                     added = await ctx.guild.create_custom_emoji(name=name or emoji.name, image=image)
                 except Exception as error:
-                    await ctx.send(f"Couldn't upload {emoji.name}, {type(error).__name__}: {error}")
-                    return
-                try:
-                    await ctx.message.add_reaction(added)
-                except:
-                    pass
+                    response = f"Couldn't upload {emoji.name}, {type(error).__name__}: {error}"
+                    if added_emojis:
+                        response = ' '.join([str(e) for e in added_emojis]) + '\n' + response
+                    if isinstance(ctx, commands.Context):
+                        return await ctx.send(response)
+                    else:
+                        await ctx.edit_original_response(content=response)
+                added_emojis.append(added)
+                if isinstance(ctx, commands.Context):
+                    try:
+                        await ctx.message.add_reaction(added)
+                    except:
+                        pass
+        return added_emojis
 
-    @commands.command(hidden=True)
-    async def stealslash(self, ctx: commands.Context, *, msg: str):
+    async def steal_slash(self, ctx: discord.Interaction, message: discord.Message):
         """Steals emojis from a message silently. Add this as a message slashtag."""
-        id = msg.split(' ')[1].split('=')[1]
-        ctx.message.reference = discord.MessageReference(message_id=int(id), channel_id=ctx.channel.id)
-        await self.steal(ctx)
+        ctx.message = message  # sigh
+        await self.steal_command(ctx)
 
-    @commands.command(hidden=True)
-    async def stealuploadslash(self, ctx: commands.Context, *, msg: str):
+    async def steal_upload_slash(self, ctx: discord.Interaction, message: discord.Message):
         """Steals emojis from a message and uploads them to this guild. Add this as a message slashtag."""
-        id = msg.split(' ')[1].split('=')[1]
-        ctx.message = await ctx.send("Stealing...")
-        ctx.message.reference = discord.MessageReference(message_id=int(id), channel_id=ctx.channel.id)
-        await self.upload(ctx)
+        await ctx.response.send_message("Stealing...")
+        ctx.message = message
+        emojis = await self.steal_upload_command(ctx)
+        if emojis:
+            await ctx.edit_original_response(content=' '.join([str(e) for e in emojis]))
 
     @commands.command(aliases=["emojilink", "getemoji", "getimage"])
     async def getlink(self, ctx: commands.Context, *, emoji: Union[int, str]):
