@@ -68,8 +68,7 @@ class EasyTranslate(commands.Cog):
     def convert_input(user_input: str) -> str:
         return CUSTOM_EMOJI.sub("", user_input).strip()
 
-    @staticmethod
-    async def language_autocomplete(ctx: discord.Interaction, current: str = "") -> List[app_commands.Choice[str]]:
+    async def language_autocomplete(self, ctx: discord.Interaction, current: str = "") -> List[app_commands.Choice[str]]:
         possible_values = list(googletrans.LANGUAGES.values())
         possible_values.sort()
         current = current.strip()
