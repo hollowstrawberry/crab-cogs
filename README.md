@@ -34,23 +34,37 @@ This cog will store and analyze messages sent by participating users. The bot ow
 
 ## 😶 EmojiSteal
 
-Steals emojis sent by other people (sends the image by default, useful for mobile users). You can optionally upload them to the current server if you have permissions, and even specify new names for them.
+Steals emojis sent by other people, and optionally uploads them to the current server. Supports context menu commands.
 
 ![emojisteal](https://media.discordapp.net/attachments/541768631445618689/1031335118926782484/unknown.png)
 
+## 🎌 EasyTranslate
+
+A simple translation cog with support for context menu commands. Based on the translate cog from ob13-cogs
+
+![easy translate](https://cdn.discordapp.com/attachments/930472312317296760/1100933551148503091/Video.Guru_20230426_195111370.mp4)
+
+## 📎 PromptInspector
+
+Used for AI image generation metadata (stable diffusion). It can scan all images sent in specified channels and put a reaction button on valid ones. It also supports context menus.
+
+## 🎤 VoiceLog
+
+Logs users joining and leaving voicechat, inside the text chat embedded in the voicechat channel itself.
+
 ## ⏺ Autoreact
 
-Lets you configure emojis that will be added to any message containing text matching a regex.  
+Lets you configure emojis that will be added to any message containing text matching a regex. Yes this is silly.  
 
 ![Autoreact with the word NOW](https://media.discordapp.net/attachments/541768631445618689/1031957798382207086/unknown.png)
 
 ## 📢 GameAlert
 
-Sends a configured message when a user has been playing a specific game for some time.
+Sends a configured message when a user has been playing a specific game for some time. Yes this is silly.
 
 ## 🎲 Randomness
 
-A few fun commands involving randomness, including:
+A few fun commands involving random seeds, including:
 
 * `donut` will give you a random dessert and keep track of your score. `donut set` will set a list of emojis to choose from, so you could technically alias this command as anything. [Some donut emojis here](https://imgur.com/a/9hW2RRf)  
 * `rate` will give a unique rating from 1 to 10 to anything you ask. The bot won't change its mind!  
