@@ -114,7 +114,8 @@ class EasyTranslate(commands.Cog):
         embed.set_footer(text=f"{source_language_name} → {dest_language_name}")
 
         if isinstance(ctx, discord.Interaction):
-            embed.set_author(name=message.author.display_name, icon_url=message.author.display_avatar.url)
+            if message:
+                embed.set_author(name=message.author.display_name, icon_url=message.author.display_avatar.url)
             await ctx.response.send_message(embed=embed, ephemeral=True)
         elif message:
             await message.reply(embed=embed, mention_author=False)
