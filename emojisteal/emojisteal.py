@@ -66,7 +66,11 @@ class EmojiSteal(commands.Cog):
             emojis = await self.steal(message=ctx.message)
         if not emojis:
             return
-        await ctx.send('\n'.join(emoji.link for emoji in emojis))
+        response = '\n'.join([emoji.link for emoji in emojis])
+        if isinstance(ctx, commands.Context):
+            return await ctx.send(response)
+        else:
+            await ctx.response.send_message(content=response)
 
     @steal_command.command(name="upload")
     @commands.has_permissions(manage_emojis=True)
@@ -100,7 +104,7 @@ class EmojiSteal(commands.Cog):
                     if isinstance(ctx, commands.Context):
                         return await ctx.send(response)
                     else:
-                        await ctx.response.edit_message(content=response)
+                        await ctx.edit_original_response(content=response)
                 try:
                     added = await ctx.guild.create_custom_emoji(name=name or emoji.name, image=image)
                 except Exception as error:
@@ -110,7 +114,7 @@ class EmojiSteal(commands.Cog):
                     if isinstance(ctx, commands.Context):
                         return await ctx.send(response)
                     else:
-                        await ctx.response.edit_message(content=response)
+                        await ctx.edit_original_response(content=response)
                 added_emojis.append(added)
                 if isinstance(ctx, commands.Context):
                     try:
@@ -130,7 +134,7 @@ class EmojiSteal(commands.Cog):
         ctx.message = message
         emojis = await self.steal_upload_command(ctx)
         if emojis:
-            await ctx.response.edit_message(content=' '.join([str(e) for e in emojis]))
+            await ctx.edit_original_response(content=' '.join([str(e) for e in emojis]))
 
     @commands.command(aliases=["emojilink", "getemoji", "getimage"])
     async def getlink(self, ctx: commands.Context, *, emoji: Union[int, str]):
