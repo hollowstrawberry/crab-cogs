@@ -34,7 +34,7 @@ class Draw(commands.Cog):
             return await ctx.send("Can't find a user with that name.")
         await ctx.typing()
         # load image
-        await user.avatar_url.save(self.input_image(ctx))
+        await user.display_avatar.save(self.input_image(ctx))
         Image.open(self.input_image(ctx)).convert('RGB').resize((256, 256), Image.BICUBIC).save(self.output_image(ctx))
         img = cv2.imread(self.output_image(ctx), cv2.IMREAD_GRAYSCALE)
         # apply filter
@@ -59,7 +59,7 @@ class Draw(commands.Cog):
             return await ctx.send("Can't find a user with that name.")
         await ctx.typing()
         # load image
-        await user.avatar_url.save(self.input_image(ctx))
+        await user.display_avatar.save(self.input_image(ctx))
         Image.open(self.input_image(ctx)).convert('RGB').resize((256, 256), Image.BICUBIC).save(self.output_image(ctx))
         img = cv2.imread(self.output_image(ctx), cv2.IMREAD_COLOR)
         # apply filter
