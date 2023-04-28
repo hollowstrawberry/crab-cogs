@@ -26,7 +26,7 @@ import googletrans
 import discord
 from redbot.core import commands, app_commands, Config
 from redbot.core.bot import Red
-from typing import Union
+from typing import Union, List
 from googletrans.models import Translated
 
 MISSING_INPUTS = "Please provide some text to translate, or reply to a message to translate it."
@@ -49,14 +49,14 @@ class EasyTranslate(commands.Cog):
         self.context_menu = app_commands.ContextMenu(name='Translate', callback=self.translate_slash)
         self.bot.tree.add_command(self.context_menu)
 
-    async def cog_unload(self) -> None:
+    async def cog_unload(self):
         self.bot.tree.remove_command(self.context_menu.name, type=self.context_menu.type)
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         pass
 
     @staticmethod
-    def convert_language(language: str):
+    def convert_language(language: str) -> str:
         language = googletrans.LANGUAGES.get(language, language).lower()
         if language in ("zh", "ch", "chinese"):
             language = "chinese (simplified)"
@@ -65,8 +65,24 @@ class EasyTranslate(commands.Cog):
         return language
 
     @staticmethod
-    def convert_input(user_input: str):
+    def convert_input(user_input: str) -> str:
         return CUSTOM_EMOJI.sub("", user_input).strip()
+
+    @staticmethod
+    async def language_autocomplete(ctx: discord.Interaction, current: str = "") -> List[app_commands.Choice[str]]:
+        possible_values = list(googletrans.LANGUAGES.values())
+        possible_values.sort()
+        current = current.strip()
+        if not current:
+            return possible_values[:25]
+        choices = []
+        # return starting matches first, then any match
+        for val in [val for val in possible_values if val.lower().startswith(current.lower())]:
+            choices.append(val)
+            possible_values.remove(val)
+        for val in [val for val in possible_values if current.lower() in val.lower()]:
+            choices.append(val)
+        return choices[:25]
 
     async def translate(self, ctx: Union[commands.Context, discord.Interaction],
                         language: str, *, content: str = None, message: discord.Message = None):
@@ -113,17 +129,25 @@ class EasyTranslate(commands.Cog):
         language = await self.config.user(ctx.author).preferred_language()
         await self.translate(ctx, language, content=optional_input)
 
+    # context menu set in __init__
     async def translate_slash(self, ctx: discord.Interaction, message: discord.Message):
         language = await self.config.user(message.author).preferred_language()
         await self.translate(ctx, language, message=message)
 
     @commands.bot_has_permissions(embed_links=True)
     @translate_automatic.command(name="to")
-    async def translate_to(self, ctx: commands.Context, to_language: str, *, optional_input: str = ""):
+    async def translate_to(self, ctx: commands.Context, to: str, *, optional_input: str = ""):
         """Translate something into a specific language. Can also reply to a message to translate it."""
-        await self.translate(ctx, to_language, content=optional_input)
+        await self.translate(ctx, to, content=optional_input)
+
+    @app_commands.command(name="translate")
+    @app_commands.autocomplete(to=language_autocomplete)
+    async def translate_to_slash(self, ctx: discord.Interaction, to: str, text: str):
+        """Translate something into a specific language."""
+        await self.translate(ctx, to, content=text)
 
     @commands.hybrid_command(name="setmylanguage")
+    @app_commands.autocomplete(language=language_autocomplete)
     async def set_my_language(self, ctx: commands.Context, *, language: str):
         """Set your preferred language when translating."""
         language = self.convert_language(language)
@@ -138,3 +162,4 @@ class EasyTranslate(commands.Cog):
             await ctx.send(result.text)
         except:
             await ctx.send("✅")
+
