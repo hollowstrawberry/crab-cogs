@@ -70,7 +70,7 @@ class EmojiSteal(commands.Cog):
         if isinstance(ctx, commands.Context):
             return await ctx.send(response)
         else:
-            await ctx.response.send_message(content=response)
+            await ctx.response.send_message(content=response, ephemeral=True)
 
     @steal_command.command(name="upload")
     @commands.has_permissions(manage_emojis=True)
