@@ -162,7 +162,7 @@ class EasyTranslate(commands.Cog):
             success = f"✅ When you translate a message, its language will be {language}"
             task = functools.partial(self.translator.translate, text=success, dest=language)
             result: Translated = await self.bot.loop.run_in_executor(None, task)
-            await ctx.send(result.text)
+            await ctx.send(result.text, ephemeral=True)
         except:
-            await ctx.send("✅")
+            await ctx.send("✅", ephemeral=True)
 
