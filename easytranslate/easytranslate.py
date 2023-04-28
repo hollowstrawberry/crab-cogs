@@ -78,10 +78,10 @@ class EasyTranslate(commands.Cog):
         choices = []
         # return starting matches first, then any match
         for val in [val for val in possible_values if val.lower().startswith(current.lower())]:
-            choices.append(val)
+            choices.append(app_commands.Choice(name=val.title(), value=val))
             possible_values.remove(val)
         for val in [val for val in possible_values if current.lower() in val.lower()]:
-            choices.append(val)
+            choices.append(app_commands.Choice(name=val.title(), value=val))
         return choices[:25]
 
     async def translate(self, ctx: Union[commands.Context, discord.Interaction],
