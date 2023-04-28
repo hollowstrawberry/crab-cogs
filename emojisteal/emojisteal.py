@@ -25,8 +25,8 @@ class EmojiSteal(commands.Cog):
     def __init__(self, bot):
         super().__init__()
         self.bot = bot
-        self.steal_context = app_commands.ContextMenu(name='Translate', callback=self.steal_slash)
-        self.steal_upload_context = app_commands.ContextMenu(name='Translate', callback=self.steal_upload_slash)
+        self.steal_context = app_commands.ContextMenu(name='Steal Emojis', callback=self.steal_slash)
+        self.steal_upload_context = app_commands.ContextMenu(name='Steal+Upload Emojis', callback=self.steal_upload_slash)
         self.bot.tree.add_command(self.steal_context)
         self.bot.tree.add_command(self.steal_upload_context)
 
