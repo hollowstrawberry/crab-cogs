@@ -116,7 +116,10 @@ class EasyTranslate(commands.Cog):
         if isinstance(ctx, discord.Interaction):
             if message:
                 embed.set_author(name=message.author.display_name, icon_url=message.author.display_avatar.url)
-            await ctx.response.send_message(embed=embed, ephemeral=True)
+                ephemeral = True
+            else:
+                ephemeral = False
+            await ctx.response.send_message(embed=embed, ephemeral=ephemeral)
         elif message:
             await message.reply(embed=embed, mention_author=False)
         else:
