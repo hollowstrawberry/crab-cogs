@@ -42,12 +42,13 @@ class EmojiSteal(commands.Cog):
         results = re.findall(r"<(a?):(\w+):(\d{10,20})>", content)
         return [StolenEmoji(*result) for result in results]
 
-    async def ctx_steal(self, ctx: commands.Context) -> Optional[List[StolenEmoji]]:
-        reference = ctx.message.reference
-        if not reference:
-            await ctx.send("Reply to a message with this command to steal an emoji")
-            return None
-        message = await ctx.channel.fetch_message(reference.message_id)
+    async def steal(self, *, message: discord.Message = None, ctx: commands.Context = None) -> Optional[List[StolenEmoji]]:
+        if not message:
+            reference = ctx.message.reference
+            if not reference:
+                await ctx.send("Reply to a message with this command to steal an emoji")
+                return None
+            message = await ctx.channel.fetch_message(reference.message_id)
         if not message:
             await ctx.send("I couldn't grab that message, sorry")
             return None
@@ -59,7 +60,11 @@ class EmojiSteal(commands.Cog):
     @commands.group(name="steal", aliases=["emojisteal", "stealemoji", "stealemojis"], invoke_without_command=True)
     async def steal_command(self, ctx: Union[commands.Context, discord.Interaction]):
         """Steals the emojis of the message you reply to. Can also upload them with [p]steal upload."""
-        if not (emojis := await self.ctx_steal(ctx)):
+        if isinstance(ctx, commands.Context):
+            emojis = await self.steal(ctx=ctx)
+        else:
+            emojis = await self.steal(message=ctx.message)
+        if not emojis:
             return
         await ctx.send('\n'.join(emoji.link for emoji in emojis))
 
@@ -68,7 +73,11 @@ class EmojiSteal(commands.Cog):
     @commands.bot_has_permissions(manage_emojis=True)
     async def steal_upload_command(self, ctx: Union[commands.Context, discord.Interaction], *names: str):
         """Steals emojis you reply to and uploads them to this server."""
-        if not (emojis := await self.ctx_steal(ctx)):
+        if isinstance(ctx, commands.Context):
+            emojis = await self.steal(ctx=ctx)
+        else:
+            emojis = await self.steal(message=ctx.message)
+        if not emojis:
             return
         names = [''.join(re.findall(r"\w+", name)) for name in names]
         names = [name if len(name) >= 2 else None for name in names]
@@ -112,13 +121,13 @@ class EmojiSteal(commands.Cog):
 
     async def steal_slash(self, ctx: discord.Interaction, message: discord.Message):
         """Steals emojis from a message silently. Add this as a message slashtag."""
-        ctx.message.reference = message.to_reference()
+        ctx.message = message  # sigh
         await self.steal_command(ctx)
 
     async def steal_upload_slash(self, ctx: discord.Interaction, message: discord.Message):
         """Steals emojis from a message and uploads them to this guild. Add this as a message slashtag."""
         await ctx.response.send_message("Stealing...")
-        ctx.message.reference = message.to_reference()
+        ctx.message = message
         emojis = await self.steal_upload_command(ctx)
         if emojis:
             await ctx.response.edit_message(content=' '.join([str(e) for e in emojis]))
