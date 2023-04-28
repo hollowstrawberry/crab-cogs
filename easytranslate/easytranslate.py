@@ -134,7 +134,7 @@ class EasyTranslate(commands.Cog):
 
     # context menu set in __init__
     async def translate_slash(self, ctx: discord.Interaction, message: discord.Message):
-        language = await self.config.user(message.author).preferred_language()
+        language = await self.config.user(ctx.user).preferred_language()
         await self.translate(ctx, language, message=message)
 
     @commands.bot_has_permissions(embed_links=True)
