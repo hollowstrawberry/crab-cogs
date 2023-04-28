@@ -134,10 +134,9 @@ class PromptInspector(commands.Cog):
             embed.set_thumbnail(url=attachment.url)
             await ctx.member.send(embed=embed)
 
-    async def viewparameters(self, ctx: commands.Context, *, msg: str):
+    # context menu set in __init__
+    async def viewparameters(self, ctx: commands.Context, message: discord.Message):
         """Get raw list of parameters for every image in this post. Meant to be used as a message command with slashtags."""
-        msg_id = int(msg.split(' ')[1].split('=')[1])
-        message = await ctx.channel.fetch_message(msg_id)
         attachments = [a for a in message.attachments if a.filename.lower().endswith(".png")]
         if not attachments:
             await ctx.reply("This post contains no images.")
