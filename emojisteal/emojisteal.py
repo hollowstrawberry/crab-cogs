@@ -110,12 +110,12 @@ class EmojiSteal(commands.Cog):
                         pass
         return added_emojis
 
-    async def steal_slash(self, ctx: discord.Interaction, *, message: discord.Message):
+    async def steal_slash(self, ctx: discord.Interaction, message: discord.Message):
         """Steals emojis from a message silently. Add this as a message slashtag."""
         ctx.message.reference = message.to_reference()
         await self.steal_command(ctx)
 
-    async def steal_upload_slash(self, ctx: discord.Interaction, *, message: discord.Message):
+    async def steal_upload_slash(self, ctx: discord.Interaction, message: discord.Message):
         """Steals emojis from a message and uploads them to this guild. Add this as a message slashtag."""
         await ctx.response.send_message("Stealing...")
         ctx.message.reference = message.to_reference()
