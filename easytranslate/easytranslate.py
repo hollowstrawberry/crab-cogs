@@ -74,7 +74,7 @@ class EasyTranslate(commands.Cog):
         possible_values.sort()
         current = current.strip()
         if not current:
-            return possible_values[:25]
+            return [app_commands.Choice(name=val.title(), value=val) for val in possible_values][:25]
         choices = []
         # return starting matches first, then any match
         for val in [val for val in possible_values if val.lower().startswith(current.lower())]:
