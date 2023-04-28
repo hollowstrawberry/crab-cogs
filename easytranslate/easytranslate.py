@@ -22,11 +22,12 @@ SOFTWARE.
 
 import re
 import functools
-import googletrans, googletrans.models
-
+import googletrans
 import discord
 from redbot.core import commands, app_commands, Config
+from redbot.core.bot import Red
 from typing import Union
+from googletrans.models import Translated
 
 MISSING_INPUTS = "Please provide some text to translate, or reply to a message to translate it."
 MISSING_MESSAGE = "`Nothing to translate.`"
@@ -41,7 +42,7 @@ class EasyTranslate(commands.Cog):
 
     def __init__(self, bot):
         super().__init__()
-        self.bot: commands.Bot = bot
+        self.bot: Red = bot
         self.translator = googletrans.Translator()
         self.config = Config.get_conf(self, identifier=14000606, force_registration=True)
         self.config.register_user(preferred_language="english")
@@ -67,12 +68,8 @@ class EasyTranslate(commands.Cog):
     def convert_input(user_input: str):
         return CUSTOM_EMOJI.sub("", user_input).strip()
 
-    async def translate(self,
-                        ctx: Union[commands.Context, discord.Interaction],
-                        language: str,
-                        *,
-                        content: str = None,
-                        message: discord.Message = None):
+    async def translate(self, ctx: Union[commands.Context, discord.Interaction],
+                        language: str, *, content: str = None, message: discord.Message = None):
         """Translates a message or string and responds in the provided context."""
         if not (language := self.convert_language(language)):
             return await ctx.send(LANGUAGE_NOT_FOUND)
@@ -88,7 +85,7 @@ class EasyTranslate(commands.Cog):
         content = self.convert_input(content)
         try:
             task = functools.partial(self.translator.translate, text=content, dest=language)
-            result: googletrans.models.Translated = await self.bot.loop.run_in_executor(None, task)
+            result: Translated = await self.bot.loop.run_in_executor(None, task)
         except:
             fail_embed = discord.Embed(description=TRANSLATION_FAILED, color=discord.Color.red())
             if isinstance(ctx, discord.Interaction):
@@ -96,7 +93,7 @@ class EasyTranslate(commands.Cog):
             else:
                 return await ctx.send(embed=fail_embed)
 
-        embed = discord.Embed(description=result.text[:3990], color=await ctx.embed_color())
+        embed = discord.Embed(description=result.text[:3990], color=await self.bot.get_embed_color(ctx.channel))
         source_language_name = googletrans.LANGUAGES.get(result.src.lower(), result.src).title()
         dest_language_name = googletrans.LANGUAGES.get(result.dest.lower(), result.dest).title()
         embed.set_footer(text=f"{source_language_name} → {dest_language_name}")
@@ -137,7 +134,7 @@ class EasyTranslate(commands.Cog):
         try:
             success = f"✅ When you translate a message, its language will be {language}"
             task = functools.partial(self.translator.translate, text=success, dest=language)
-            result: googletrans.models.Translated = await self.bot.loop.run_in_executor(None, task)
+            result: Translated = await self.bot.loop.run_in_executor(None, task)
             await ctx.send(result.text)
         except:
             await ctx.send("✅")
