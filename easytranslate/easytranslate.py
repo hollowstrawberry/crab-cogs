@@ -74,7 +74,7 @@ class EasyTranslate(commands.Cog):
         if not (language := self.convert_language(language)):
             return await ctx.send(LANGUAGE_NOT_FOUND)
         if not content and not message:
-            reference: discord.MessageReference = ctx.message.referece
+            reference = ctx.message.reference
             if not reference:
                 return await ctx.send(MISSING_INPUTS)
             message = reference.resolved or reference.cached_message or await ctx.channel.fetch_message(reference.message_id)
