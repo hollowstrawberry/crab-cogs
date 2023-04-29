@@ -160,11 +160,10 @@ class EmojiSteal(commands.Cog):
             except Exception as error:
                 return await ctx.edit_original_response(content=f"{STICKER_FAIL}, {type(error).__name__}: {error}")
             return await ctx.edit_original_response(content=f"{STICKER_SUCCESS}: {sticker.name}")
-        
-        emojis = list(set(emojis))
+
         added_emojis = []
         async with aiohttp.ClientSession() as session:
-            for emoji in emojis:
+            for emoji in list(set(emojis)):
                 if not self.available_emoji_slots(ctx.guild, emoji.animated):
                     response = EMOJI_SLOTS
                     if added_emojis:
