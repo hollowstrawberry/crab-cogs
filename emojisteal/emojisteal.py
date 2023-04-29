@@ -117,7 +117,7 @@ class EmojiSteal(commands.Cog):
                 if not emoji:
                     break
                 try:
-                    async with session.get(emoji.link) as resp:
+                    async with session.get(emoji.url) as resp:
                         image = io.BytesIO(await resp.read()).read()
                 except Exception as error:
                     response = f"Couldn't download {emoji.name}, {type(error).__name__}: {error}"
@@ -166,4 +166,4 @@ class EmojiSteal(commands.Cog):
         elif not (emojis := self.get_emojis(emoji)):
             await ctx.send("Invalid emoji or emoji ID")
             return
-        await ctx.send('\n'.join(emoji.link for emoji in emojis))
+        await ctx.send('\n'.join(emoji.url for emoji in emojis))
