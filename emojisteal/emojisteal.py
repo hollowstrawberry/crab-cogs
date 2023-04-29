@@ -62,7 +62,7 @@ class EmojiSteal(commands.Cog):
             return None
         return emojis
 
-    @commands.group(name="steal", aliases=["emojisteal", "stealemoji", "stealemojis"], invoke_without_command=True)
+    @commands.group(name="steal", aliases=["emojisteal"], invoke_without_command=True)
     async def steal_command(self, ctx: Union[commands.Context, discord.Interaction]):
         """Steals the emojis and stickers of the message you reply to. Can also upload them with [p]steal upload."""
         if isinstance(ctx, commands.Context):
@@ -92,9 +92,14 @@ class EmojiSteal(commands.Cog):
         if isinstance(emojis[0], discord.StickerItem):
             sticker = emojis[0]
             fp = io.BytesIO()
-            await sticker.save(fp)
-            await ctx.guild.create_sticker(name=sticker.name, description="Stolen sticker", emoji="💰",
-                                           file=discord.File(fp, filename=f"{sticker.name}.{sticker.format}"))
+            try:
+                await sticker.save(fp)
+                await ctx.guild.create_sticker(name=sticker.name, description="Stolen sticker", emoji="💰", file=discord.File(fp))
+            except:
+                if isinstance(ctx, commands.Context):
+                    return await ctx.react_quietly('❌')
+                else:
+                    return await ctx.edit_original_response(content=f"❌ Failed to upload sticker.")
             if isinstance(ctx, commands.Context):
                 return await ctx.react_quietly('✅')
             else:
