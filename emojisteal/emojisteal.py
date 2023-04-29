@@ -181,7 +181,7 @@ class EmojiSteal(commands.Cog):
                     response = f"{EMOJI_FAIL} {emoji.name}, {type(error).__name__}: {error}"
                     if added_emojis:
                         response = ' '.join([str(e) for e in added_emojis]) + '\n' + response
-                    await ctx.edit_original_response(content=response)
+                    return await ctx.edit_original_response(content=response)
                 added_emojis.append(added)
         
         response = ' '.join([str(e) for e in added_emojis])
