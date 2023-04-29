@@ -60,6 +60,12 @@ class EmojiSteal(commands.Cog):
     @commands.group(name="steal", aliases=["emojisteal", "stealemoji", "stealemojis"], invoke_without_command=True)
     async def steal_command(self, ctx: Union[commands.Context, discord.Interaction]):
         """Steals the emojis of the message you reply to. Can also upload them with [p]steal upload."""
+        if ctx.message.stickers:
+            stickers = [sticker.url for sticker in ctx.message.stickers]
+            if isinstance(ctx, commands.Context):
+                return await ctx.send('\n'.join(stickers))
+            else:
+                return await ctx.response.send_message(content='\n'.join(stickers), ephemeral=True)
         if isinstance(ctx, commands.Context):
             emojis = await self.steal(ctx=ctx)
         else:
@@ -70,7 +76,7 @@ class EmojiSteal(commands.Cog):
         if isinstance(ctx, commands.Context):
             return await ctx.send(response)
         else:
-            await ctx.response.send_message(content=response, ephemeral=True)
+            return await ctx.response.send_message(content=response, ephemeral=True)
 
     @steal_command.command(name="upload")
     @commands.has_permissions(manage_emojis=True)
