@@ -1,5 +1,5 @@
 """
-https://github.com/hollowstrawberry/OB13-Cogs/blob/main/translate/translate.py
+https://github.com/Obi-Wan3/OB13-Cogs/blob/main/translate/translate.py
 
 MIT License
 Copyright (c) 2021-present Obi-Wan3
@@ -97,6 +97,8 @@ class EasyTranslate(commands.Cog):
                 return await ctx.send(MISSING_INPUTS)
         if not content:
             content = message.content
+            for embed in message.embeds:
+                content += '\n' + embed.description
         content = self.convert_input(content)
         try:
             task = functools.partial(self.translator.translate, text=content, dest=language)
