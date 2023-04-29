@@ -92,14 +92,8 @@ class EmojiSteal(commands.Cog):
         if isinstance(emojis[0], discord.StickerItem):
             sticker = emojis[0]
             fp = io.BytesIO()
-            try:
-                await sticker.save(fp)
-                await ctx.guild.create_sticker(name=sticker.name, description="Stolen sticker", emoji="💰", file=fp)
-            except:
-                if isinstance(ctx, commands.Context):
-                    return await ctx.react_quietly('❌')
-                else:
-                    return await ctx.edit_original_response(content="❌ Failed to upload new sticker.")
+            await sticker.save(fp)
+            await ctx.guild.create_sticker(name=sticker.name, description="Stolen sticker", emoji="💰", file=fp)
             if isinstance(ctx, commands.Context):
                 return await ctx.react_quietly('✅')
             else:
