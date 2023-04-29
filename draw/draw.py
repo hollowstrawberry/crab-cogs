@@ -22,16 +22,12 @@ class Draw(commands.Cog):
     def output_image(self, ctx: commands.Context) -> str:
         return str(cog_data_path(self).joinpath(f"output_{ctx.command.name}_{ctx.author.id}.jpg"))
 
-    @commands.command(aliases=["drawme", "sketch", "sketchme"])
+    @commands.hybrid_command()
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
-    async def draw(self, ctx: commands.Context, user: Union[discord.User, discord.Member, str] = None):
+    async def draw(self, ctx: commands.Context, user: Union[discord.User, discord.Member] = None):
         """Produces a pencil drawing of you or someone else"""
-        if user == "me" or user is None:
+        if not user:
             user = ctx.author
-        elif user == "you" or user == "yourself":
-            user = self.bot.user
-        elif isinstance(user, str):
-            return await ctx.send("Can't find a user with that name.")
         await ctx.typing()
         # load image
         await user.display_avatar.save(self.input_image(ctx))
@@ -49,14 +45,10 @@ class Draw(commands.Cog):
 
     @commands.command(aliases=["paintme"])
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
-    async def paint(self, ctx: commands.Context, user: Union[discord.User, discord.Member, str] = None):
+    async def paint(self, ctx: commands.Context, user: Union[discord.User, discord.Member] = None):
         """Produces an oil painting of you or someone else"""
-        if user == "me" or user is None:
+        if not user:
             user = ctx.author
-        elif user == "you" or user == "yourself":
-            user = self.bot.user
-        elif isinstance(user, str):
-            return await ctx.send("Can't find a user with that name.")
         await ctx.typing()
         # load image
         await user.display_avatar.save(self.input_image(ctx))
