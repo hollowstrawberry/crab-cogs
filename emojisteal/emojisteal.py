@@ -15,12 +15,12 @@ class StolenEmoji:
     id: int
 
     @property
-    def link(self):
+    def url(self):
         return f"https://cdn.discordapp.com/emojis/{self.id}.{'gif' if self.animated else 'png'}"
 
 
 class EmojiSteal(commands.Cog):
-    """Steals emojis sent by other people and optionally uploads them to your own server. Supports context menu commands."""
+    """Steals emojis and stickers sent by other people and optionally uploads them to your own server. Supports context menu commands."""
 
     def __init__(self, bot):
         super().__init__()
@@ -42,7 +42,10 @@ class EmojiSteal(commands.Cog):
         results = re.findall(r"<(a?):(\w+):(\d{10,20})>", content)
         return [StolenEmoji(*result) for result in results]
 
-    async def steal(self, *, message: discord.Message = None, ctx: commands.Context = None) -> Optional[List[StolenEmoji]]:
+    async def steal(self, *,
+                    message: discord.Message = None,
+                    ctx: commands.Context = None
+                    ) -> Optional[List[Union[StolenEmoji, discord.StickerItem]]]:
         if not message:
             reference = ctx.message.reference
             if not reference:
@@ -52,37 +55,56 @@ class EmojiSteal(commands.Cog):
         if not message:
             await ctx.send("I couldn't grab that message, sorry")
             return None
+        if message.stickers:
+            return message.stickers
         if not (emojis := self.get_emojis(message.content)):
             await ctx.send("Can't find an emoji in that message")
             return None
         return emojis
 
-    @commands.group(name="steal", aliases=["emojisteal", "stealemoji", "stealemojis"], invoke_without_command=True)
+    @commands.group(name="steal", aliases=["emojisteal"], invoke_without_command=True)
     async def steal_command(self, ctx: Union[commands.Context, discord.Interaction]):
-        """Steals the emojis of the message you reply to. Can also upload them with [p]steal upload."""
+        """Steals the emojis and stickers of the message you reply to. Can also upload them with [p]steal upload."""
         if isinstance(ctx, commands.Context):
             emojis = await self.steal(ctx=ctx)
         else:
             emojis = await self.steal(message=ctx.message)
         if not emojis:
             return
-        response = '\n'.join([emoji.link for emoji in emojis])
+        response = '\n'.join([emoji.url for emoji in emojis])
         if isinstance(ctx, commands.Context):
             return await ctx.send(response)
         else:
-            await ctx.response.send_message(content=response, ephemeral=True)
+            return await ctx.response.send_message(content=response, ephemeral=True)
 
     @steal_command.command(name="upload")
     @commands.has_permissions(manage_emojis=True)
     @commands.bot_has_permissions(manage_emojis=True)
     async def steal_upload_command(self, ctx: Union[commands.Context, discord.Interaction], *names: str):
-        """Steals emojis you reply to and uploads them to this server."""
+        """Steals emojis and stickers you reply to and uploads them to this server."""
         if isinstance(ctx, commands.Context):
             emojis = await self.steal(ctx=ctx)
         else:
             emojis = await self.steal(message=ctx.message)
         if not emojis:
             return
+        
+        if isinstance(emojis[0], discord.StickerItem):
+            sticker = emojis[0]
+            fp = io.BytesIO()
+            try:
+                await sticker.save(fp)
+                await ctx.guild.create_sticker(name=sticker.name, description="Stolen sticker", emoji="😶", file=discord.File(fp))
+            except:
+                if isinstance(ctx, commands.Context):
+                    return await ctx.react_quietly('❌')
+                else:
+                    return await ctx.edit_original_response(content=f"❌ Failed to upload sticker.")
+            if isinstance(ctx, commands.Context):
+                return await ctx.react_quietly('✅')
+            else:
+                return await ctx.edit_original_response(content=f"✅ Uploaded sticker: {sticker.name}")
+        
         names = [''.join(re.findall(r"\w+", name)) for name in names]
         names = [name if len(name) >= 2 else None for name in names]
         clean_emojis = []

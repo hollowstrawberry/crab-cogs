@@ -68,8 +68,7 @@ class EasyTranslate(commands.Cog):
     def convert_input(user_input: str) -> str:
         return CUSTOM_EMOJI.sub("", user_input).strip()
 
-    @staticmethod
-    async def language_autocomplete(ctx: discord.Interaction, current: str = "") -> List[app_commands.Choice[str]]:
+    async def language_autocomplete(self, ctx: discord.Interaction, current: str = "") -> List[app_commands.Choice[str]]:
         possible_values = list(googletrans.LANGUAGES.values())
         possible_values.sort()
         current = current.strip()
@@ -115,8 +114,12 @@ class EasyTranslate(commands.Cog):
         embed.set_footer(text=f"{source_language_name} → {dest_language_name}")
 
         if isinstance(ctx, discord.Interaction):
-            embed.set_author(name=message.author.display_name, icon_url=message.author.display_avatar.url)
-            await ctx.response.send_message(embed=embed, ephemeral=True)
+            if message:
+                embed.set_author(name=message.author.display_name, icon_url=message.author.display_avatar.url)
+                ephemeral = True
+            else:
+                ephemeral = False
+            await ctx.response.send_message(embed=embed, ephemeral=ephemeral)
         elif message:
             await message.reply(embed=embed, mention_author=False)
         else:
@@ -131,7 +134,7 @@ class EasyTranslate(commands.Cog):
 
     # context menu set in __init__
     async def translate_slash(self, ctx: discord.Interaction, message: discord.Message):
-        language = await self.config.user(message.author).preferred_language()
+        language = await self.config.user(ctx.user).preferred_language()
         await self.translate(ctx, language, message=message)
 
     @commands.bot_has_permissions(embed_links=True)
@@ -159,7 +162,7 @@ class EasyTranslate(commands.Cog):
             success = f"✅ When you translate a message, its language will be {language}"
             task = functools.partial(self.translator.translate, text=success, dest=language)
             result: Translated = await self.bot.loop.run_in_executor(None, task)
-            await ctx.send(result.text)
+            await ctx.send(result.text, ephemeral=True)
         except:
-            await ctx.send("✅")
+            await ctx.send("✅", ephemeral=True)
 

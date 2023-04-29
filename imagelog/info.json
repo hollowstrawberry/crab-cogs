@@ -7,6 +7,6 @@
     "required_cogs": {},
     "requirements": [],
     "short": "Logs deleted images for moderation purposes.",
-    "end_user_data_statement": "This cog does not store user data.",
+    "end_user_data_statement": "This cog stores images sent by users into a moderation channel until they are manually removed.",
     "tags": ["crab", "message", "scan", "log", "image", "moderation"]
 }

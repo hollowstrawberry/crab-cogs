@@ -19,7 +19,7 @@ class Randomness(commands.Cog):
 
     # Commands
 
-    @commands.command()
+    @commands.hybrid_command()
     async def rate(self, ctx: commands.Context, *, thing):
         """Gives a unique rating to anything you ask."""
         thing = thing.lower()
@@ -59,7 +59,7 @@ class Randomness(commands.Cog):
 
         await ctx.send(f'I give {thing} a {rating}/10')
 
-    @commands.command()
+    @commands.hybrid_command()
     async def pp(self, ctx: commands.Context, *, etc=""):
         """Evaluates your pp size."""
         if etc:
@@ -68,7 +68,7 @@ class Randomness(commands.Cog):
             pp = ctx.author.id % 13
             await ctx.reply(f"Your pp size is {pp} inches")
 
-    @commands.group(aliases=["dessert"], invoke_without_command=True)
+    @commands.hybrid_command(aliases=["dessert"])
     @commands.cooldown(rate=5, per=5, type=commands.BucketType.channel)
     async def donut(self, ctx: commands.Context):
         """Gives you a random dessert and a score."""
@@ -79,9 +79,9 @@ class Randomness(commands.Cog):
         donut = donuts[hashed % len(donuts)]
         await ctx.send(f'{count} {donut}')
 
-    @donut.command()
+    @commands.command()
     @commands.is_owner()
-    async def set(self, ctx: commands.Context, *emojis: str):
+    async def donutset(self, ctx: commands.Context, *emojis: str):
         """Pass space-separated emojis to use for the donut command."""
         if not emojis:
             emojistr = DESSERTS
