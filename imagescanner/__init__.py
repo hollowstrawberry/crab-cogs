@@ -1,9 +1,9 @@
-from .promptinspector import PromptInspector
+from .imagescanner import ImageScanner
 from redbot.core.utils import get_end_user_data_statement
 
 __red_end_user_data_statement__ = get_end_user_data_statement(__file__)
 
 async def setup(bot):
-    cog = PromptInspector(bot)
+    cog = ImageScanner(bot)
     await cog.load_config()
     await bot.add_cog(cog)
