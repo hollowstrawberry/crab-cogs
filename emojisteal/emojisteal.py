@@ -59,7 +59,7 @@ class EmojiSteal(commands.Cog):
     
     @staticmethod
     def available_emoji_slots(guild: discord.Guild, animated: bool):
-        current_emojis = len(em for em in guild.emojis if em.animated == animated)
+        current_emojis = len([em for em in guild.emojis if em.animated == animated])
         return guild.emoji_limit - current_emojis
 
     async def steal_ctx(self, ctx: commands.Context) -> Optional[List[Union[StolenEmoji, discord.StickerItem]]]:
