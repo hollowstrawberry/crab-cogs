@@ -153,7 +153,7 @@ class ImageScanner(commands.Cog):
             for i, att in enumerate(attachments):
                 size_kb, size_mb = round(att.size / 1024), round(att.size / 1024**2, 2)
                 metadata[i] = f"Filename: {att.filename}, Dimensions: {att.width}x{att.height}, "\
-                            + f"Filesize: " + f"{size_mb} MB" if size_mb >= 1.0 else f"{size_kb} KB"
+                            + (f"Filesize: " + f"{size_mb} MB" if size_mb >= 1.0 else f"{size_kb} KB")
         response = "\n\n".join(metadata.values())
         if len(response) < 1980:
             await ctx.response.send_message(f"```yaml\n{response}```", ephemeral=True)
