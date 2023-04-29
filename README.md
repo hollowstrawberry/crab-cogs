@@ -34,7 +34,7 @@ This cog will store and analyze messages sent by participating users. The bot ow
 
 ## 😶 EmojiSteal
 
-Steals emojis and stickers sent by other people, and optionally uploads them to the current server. Supports context menu commands.
+Steals emojis and stickers sent by other people, and optionally uploads them to the current server. Supports context menu commands. Can also upload stickers from mobile.
 
 ![emojisteal](https://media.discordapp.net/attachments/541768631445618689/1031335118926782484/unknown.png)
 
