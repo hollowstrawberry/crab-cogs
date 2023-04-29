@@ -21,7 +21,7 @@ class ImageScanner(commands.Cog):
         self.scan_limit = 10 * 1024**2
         self.config = Config.get_conf(self, identifier=7072707469)
         self.config.register_global(channels=[], scanlimit=self.scan_limit)
-        self.context_menu = app_commands.ContextMenu(name='Image Info', callback=self.viewparameters)
+        self.context_menu = app_commands.ContextMenu(name='Image Info', callback=self.scanimage)
         self.bot.tree.add_command(self.context_menu)
 
     async def load_config(self):
