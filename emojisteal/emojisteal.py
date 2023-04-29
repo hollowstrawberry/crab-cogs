@@ -201,13 +201,14 @@ class EmojiSteal(commands.Cog):
     @commands.command()
     @commands.has_permissions(manage_emojis=True)
     @commands.bot_has_permissions(manage_emojis=True)
-    async def uploadsticker(self, ctx: commands.Context, *, name: str):
+    async def uploadsticker(self, ctx: commands.Context, *, name: str = None):
         """Uploads a sticker to the server, useful for mobile."""
         if len(ctx.guild.stickers) >= ctx.guild.sticker_limit:
             return await ctx.send(content=STICKER_SLOTS)
         if not ctx.message.attachments or not ctx.message.attachments[0].filename.endswith(IMAGE_TYPES):
             return await ctx.send(MISSING_ATTACHMENT)
         await ctx.typing()
+        name = name or ctx.message.attachments[0].filename.split('.')[0]
         fp = io.BytesIO()
         try:
             await ctx.message.attachments[0].save(fp)
