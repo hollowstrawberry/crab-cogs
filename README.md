@@ -16,7 +16,9 @@ You may be prompted to respond with "I agree" after the second command.
 
 ## 🧠 Simulator
 
-Designates a channel that will send automated messages mimicking your friends using Markov chains. They will have your friends' avatars and nicknames too! Inspired by /r/SubredditSimulator and similar concepts.
+The "big" cog of this repo, it is limited to 1 server with settings defined by the owner. The other cogs are more versatile.
+
+Designates a channel that will send automated messages mimicking your friends through Markov chains. They will have your friends' avatars and nicknames too! Inspired by /r/SubredditSimulator and similar concepts.
 
 🧠 It will learn from new messages sent in configured channels, and only from users with the configured role. It will only support a single guild.
 
@@ -34,19 +36,19 @@ This cog will store and analyze messages sent by participating users. The bot ow
 
 ## 😶 EmojiSteal
 
-Steals emojis and stickers sent by other people, and optionally uploads them to the current server. Supports context menu commands. Can also upload stickers from mobile.
+Lets anyone steal emojis and stickers sent by other people, and lets moderators upload them to the current server instantly. Supports context menus. Specially useful if you're on mobile as the Discord app doesn't let you copy emoji links or upload stickers, but this cog has commands for those.
 
 ![emojisteal](https://media.discordapp.net/attachments/541768631445618689/1031335118926782484/unknown.png)
 
 ## 🎌 EasyTranslate
 
-A simple translation cog with support for context menu commands. Based on the translate cog from ob13-cogs
+A simple translation cog with support for context menus and autocomplete. Heavily modified version of the translate cog from ob13-cogs.
 
 ![easy translate](https://cdn.discordapp.com/attachments/930472312317296760/1100933551148503091/Video.Guru_20230426_195111370.mp4)
 
-## 📎 PromptInspector
+## 📎 ImageScanner
 
-Used for AI image generation metadata (stable diffusion). It can scan all images sent in specified channels and put a reaction button on valid ones. It also supports context menus.
+Lets you view information about other people's images with a context menu. It's only really useful for AI image generation metadata (Stable Diffusion). Additionally it can scan all images sent in specified channels and put a reaction button on AI images, and the bot will DM the results.
 
 ## 🎤 VoiceLog
 
