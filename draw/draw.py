@@ -43,7 +43,7 @@ class Draw(commands.Cog):
         os.remove(self.input_image(ctx))
         os.remove(self.output_image(ctx))
 
-    @commands.command(aliases=["paintme"])
+    @commands.hybrid_command()
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     async def paint(self, ctx: commands.Context, user: Union[discord.User, discord.Member] = None):
         """Produces an oil painting of you or someone else"""
