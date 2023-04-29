@@ -40,14 +40,14 @@ class EmojiSteal(commands.Cog):
     def __init__(self, bot):
         super().__init__()
         self.bot = bot
-        self.steal_context = app_commands.ContextMenu(name='Steal Emojis', callback=self.steal_app_command)
-        self.steal_upload_context = app_commands.ContextMenu(name='Steal+Upload Emojis', callback=self.steal_upload_slash)
-        self.bot.tree.add_command(self.steal_context)
-        self.bot.tree.add_command(self.steal_upload_context)
+        self.steal_context_menu = app_commands.ContextMenu(name='Steal Emotes', callback=self.steal_app_command)
+        self.steal_upload_context_menu = app_commands.ContextMenu(name='Steal+Upload Emotes', callback=self.steal_upload_app_command)
+        self.bot.tree.add_command(self.steal_context_menu)
+        self.bot.tree.add_command(self.steal_upload_context_menu)
 
     async def cog_unload(self) -> None:
-        self.bot.tree.remove_command(self.steal_context.name, type=self.steal_context.type)
-        self.bot.tree.remove_command(self.steal_upload_context.name, type=self.steal_upload_context.type)
+        self.bot.tree.remove_command(self.steal_context_menu.name, type=self.steal_context_menu.type)
+        self.bot.tree.remove_command(self.steal_upload_context_menu.name, type=self.steal_upload_context_menu.type)
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         pass
@@ -56,6 +56,11 @@ class EmojiSteal(commands.Cog):
     def get_emojis(content: str) -> Optional[List[StolenEmoji]]:
         results = re.findall(r"<(a?):(\w+):(\d{10,20})>", content)
         return [StolenEmoji(*result) for result in results]
+    
+    @staticmethod
+    def available_emoji_slots(guild: discord.Guild, animated: bool):
+        current_emojis = len(em for em in guild.emojis if em.animated == animated)
+        return guild.emoji_limit - current_emojis
 
     async def steal_ctx(self, ctx: commands.Context) -> Optional[List[Union[StolenEmoji, discord.StickerItem]]]:
         reference = ctx.message.reference
@@ -119,7 +124,7 @@ class EmojiSteal(commands.Cog):
 
         async with aiohttp.ClientSession() as session:
             for emoji, name in zip_longest(clean_emojis, names):
-                if len(ctx.guild.emojis) >= ctx.guild.emoji_limit:
+                if not self.available_emoji_slots(ctx.guild, emoji.animated):
                     return await ctx.send(EMOJI_SLOTS)
                 if not emoji:
                     break
@@ -135,7 +140,7 @@ class EmojiSteal(commands.Cog):
                     pass
 
     # context menu added in __init__
-    async def steal_upload_slash(self, ctx: discord.Interaction, message: discord.Message):
+    async def steal_upload_app_command(self, ctx: discord.Interaction, message: discord.Message):
         if message.stickers:
             emojis = message.stickers
         elif not (emojis := self.get_emojis(message.content)):
@@ -163,6 +168,11 @@ class EmojiSteal(commands.Cog):
         added_emojis = []
         async with aiohttp.ClientSession() as session:
             for emoji in clean_emojis:
+                if not self.available_emoji_slots(ctx.guild, emoji.animated):
+                    response = EMOJI_SLOTS
+                    if added_emojis:
+                        response = ' '.join([str(e) for e in added_emojis]) + '\n' + response
+                    return await ctx.edit_original_response(content=response)
                 try:
                     async with session.get(emoji.url) as resp:
                         image = io.BytesIO(await resp.read()).read()
