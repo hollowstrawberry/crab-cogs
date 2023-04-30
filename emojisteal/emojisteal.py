@@ -211,5 +211,5 @@ class EmojiSteal(commands.Cog):
             sticker = await ctx.guild.create_sticker(
                 name=name, description=f"{UPLOADED_BY} {ctx.author}", emoji=STICKER_EMOJI, file=discord.File(fp))
         except Exception as error:
-            return await ctx.edit_original_response(content=f"{STICKER_FAIL}, {type(error).__name__}: {error}")
+            return await ctx.send(f"{STICKER_FAIL}, {type(error).__name__}: {error}")
         return await ctx.send(f"{STICKER_SUCCESS}: {sticker.name}")
