@@ -6,12 +6,12 @@ from dataclasses import dataclass
 from itertools import zip_longest
 from redbot.core import commands, app_commands
 from typing import Optional, Union, List
+from apnggif import apnggif
 
 IMAGE_TYPES = (".png", ".jpg", ".jpeg", ".gif", ".webp")
 
 MISSING_EMOJIS = "Can't find emojis or stickers in that message."
 MISSING_REFERENCE = "Reply to a message with this command to steal an emoji."
-MISSING_ATTACHMENT = "You must upload an image when using this command."
 MESSAGE_FAIL = "I couldn't grab that message, sorry."
 UPLOADED_BY = "Uploaded by"
 STICKER_DESC = "Stolen sticker"
@@ -22,6 +22,8 @@ STICKER_SLOTS = "⚠ This server doesn't have any more space for stickers!"
 EMOJI_FAIL = "❌ Failed to upload"
 EMOJI_SLOTS = "⚠ This server doesn't have any more space for emojis!"
 INVALID_EMOJI = "Invalid emoji or emoji ID."
+STICKER_ATTACHMENT = "You must upload a PNG image when using this command."
+STICKER_OVER_MAX_FILESIZE = "Stickers may only be up to 500 KB."
 
 @dataclass(init=True, order=True)
 class StolenEmoji:
@@ -188,7 +190,7 @@ class EmojiSteal(commands.Cog):
         """Get the image link for custom emojis or an emoji ID."""
         emoji = emoji.strip()
         if emoji.isnumeric():
-            emojis = [StolenEmoji(False, "e", int(emoji)), StolenEmoji(True, "e", emoji)]
+            emojis = [StolenEmoji(False, "e", int(emoji)), StolenEmoji(True, "e", int(emoji))]
         elif not (emojis := self.get_emojis(emoji)):
             await ctx.send(INVALID_EMOJI)
             return
@@ -201,15 +203,18 @@ class EmojiSteal(commands.Cog):
         """Uploads a sticker to the server, useful for mobile."""
         if len(ctx.guild.stickers) >= ctx.guild.sticker_limit:
             return await ctx.send(content=STICKER_SLOTS)
-        if not ctx.message.attachments or not ctx.message.attachments[0].filename.endswith(IMAGE_TYPES):
-            return await ctx.send(MISSING_ATTACHMENT)
+        if not ctx.message.attachments or not ctx.message.attachments[0].filename.endswith(".png"):
+            return await ctx.send(STICKER_ATTACHMENT)
+        attachment = ctx.message.attachments[0]
+        if attachment.size > 500 * 1024:
+            return await ctx.send(STICKER_OVER_MAX_FILESIZE)
         await ctx.typing()
-        name = name or ctx.message.attachments[0].filename.split('.')[0]
+        name = name or attachment.filename.split('.')[0]
         fp = io.BytesIO()
         try:
-            await ctx.message.attachments[0].save(fp)
+            await attachment.save(fp)
             sticker = await ctx.guild.create_sticker(
                 name=name, description=f"{UPLOADED_BY} {ctx.author}", emoji=STICKER_EMOJI, file=discord.File(fp))
         except Exception as error:
-            return await ctx.edit_original_response(content=f"{STICKER_FAIL}, {type(error).__name__}: {error}")
+            return await ctx.send(f"{STICKER_FAIL}, {type(error).__name__}: {error}")
         return await ctx.send(f"{STICKER_SUCCESS}: {sticker.name}")
