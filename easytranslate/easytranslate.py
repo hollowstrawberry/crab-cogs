@@ -97,7 +97,7 @@ class EasyTranslate(commands.Cog):
                 return await ctx.send(MISSING_INPUTS)
         if not content:
             content = message.content
-            for embed in message.embeds:
+            for embed in [e for e in message.embeds if e.description]:
                 content += '\n' + embed.description
         content = self.convert_input(content)
         try:
