@@ -24,7 +24,7 @@ INVALID_EMOJI = "Invalid emoji or emoji ID."
 STICKER_ATTACHMENT = "You must upload a PNG image when using this command."
 STICKER_OVER_MAX_FILESIZE = "Stickers may only be up to 500 KB."
 
-@dataclass(init=True, order=True)
+@dataclass(init=True, order=True, eq=True, frozen=True)
 class StolenEmoji:
     animated: bool
     name: str
