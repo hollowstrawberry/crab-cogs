@@ -3,7 +3,7 @@ import discord
 from datetime import datetime
 from redbot.core import commands, Config
 
-IMAGE_TYPES = (".png", ".jpg", ".jpeg", ".gif", ".webp")
+IMAGE_TYPES = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
 
 class ImageLog(commands.Cog):
     """Logs deleted images for moderation purposes."""
@@ -22,8 +22,8 @@ class ImageLog(commands.Cog):
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         pass
 
-    @commands.Cog.listener(name="on_raw_message_delete")
-    async def on_raw_message_delete_listener(self, ctx: discord.RawMessageDeleteEvent):
+    @commands.Cog.listener()
+    async def on_raw_message_delete(self, ctx: discord.RawMessageDeleteEvent):
         message = ctx.cached_message
         if not message or not self.logchannels.get(ctx.guild_id, 0):
             return
@@ -33,11 +33,12 @@ class ImageLog(commands.Cog):
         attachments = [a for a in message.attachments if a.filename.lower().endswith(IMAGE_TYPES)]
         if not log_channel or not attachments:
             return
-        if await self.bot.cog_disabled_in_guild(self, guild):
+        if not await self.is_valid_red_message(message):
             return
-        for attachment in attachments:
+        if await self.bot.
+        for i, attachment in enumerate(attachments):
             embed = discord.Embed(
-                title="Image deleted",
+                title="Image deleted" + (f" ({i+1}/{len(attachments)})" if len(attachments) > 1 else ""),
                 description=message.content[:1990] if message.content else "",
                 color=message.author.color,
                 timestamp=datetime.utcnow())
@@ -65,6 +66,11 @@ class ImageLog(commands.Cog):
                 file = discord.File(img, filename=attachment.filename)
             embed.set_image(url=f"attachment://{attachment.filename}")
             await log_channel.send(embed=embed, file=file)
+
+    async def is_valid_red_message(self, message: discord.Message) -> bool:
+        return await self.bot.allowed_by_whitelist_blacklist(message.author) \
+               and await self.bot.ignored_channel_or_guild(message) \
+               and not await self.bot.cog_disabled_in_guild(self, message.guild)
 
     @commands.group(invoke_without_command=True)
     @commands.has_permissions(manage_guild=True)
