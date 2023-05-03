@@ -97,8 +97,9 @@ class EmojiSteal(commands.Cog):
         await ctx.response.send_message(content=response, ephemeral=True)
 
     @steal_command.command(name="upload")
+    @commands.guild_only()
     @commands.has_permissions(manage_emojis=True)
-    @commands.bot_has_permissions(manage_emojis=True)
+    @commands.bot_has_permissions(manage_emojis=True, add_reactions=True)
     async def steal_upload_command(self, ctx: commands.Context, *names: str):
         """Steals emojis and stickers you reply to and uploads them to this server."""
         if not (emojis := await self.steal_ctx(ctx)):
@@ -141,6 +142,7 @@ class EmojiSteal(commands.Cog):
                     pass
 
     # context menu added in __init__
+    @commands.guild_only()
     @commands.has_permissions(manage_emojis=True)
     @commands.bot_has_permissions(manage_emojis=True)
     async def steal_upload_app_command(self, ctx: discord.Interaction, message: discord.Message):
