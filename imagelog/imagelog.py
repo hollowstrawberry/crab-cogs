@@ -2,6 +2,7 @@ import io
 import discord
 from datetime import datetime
 from redbot.core import commands, Config
+from typing import Optional
 
 IMAGE_TYPES = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
 
@@ -13,7 +14,7 @@ class ImageLog(commands.Cog):
         self.bot = bot
         self.logchannels: dict[int, int] = {}
         self.config = Config.get_conf(self, identifier=6961676567)
-        self.config.register_guild(channel=0)
+        self.config.register_guild(channel=0, log_moderator_self_deletes=True)
 
     async def load_config(self):
         all_config = await self.config.all_guilds()
@@ -51,7 +52,7 @@ class ImageLog(commands.Cog):
                         deleter = log.user
                         break
                 if not deleter:
-                    if channel.permissions_for(message.author).manage_messages:
+                    if channel.permissions_for(message.author).manage_messages and not await self.config.guild(guild).log_moderator_self_deletes():
                         return # self delete by mod
                     deleter = message.author
                 embed.add_field(name="Probably deleted by", value=deleter.mention)
@@ -74,6 +75,7 @@ class ImageLog(commands.Cog):
 
     @commands.group(invoke_without_command=True)
     @commands.has_permissions(manage_guild=True)
+    @commands.guild_only()
     async def imagelog(self, ctx: commands.Context):
         """View the current image log channel."""
         channel_id = await self.logchannels.get(ctx.guild.id, 0)
@@ -82,7 +84,7 @@ class ImageLog(commands.Cog):
         else:
             await ctx.reply(f"Image log disabled. You can assign it to the current channel with {ctx.prefix}imagelog setchannel")
 
-    @imagelog.command(invoke_without_command=True)
+    @imagelog.command()
     async def setchannel(self, ctx: commands.Context):
         """Sets the image log channel to the current channel."""
         if ctx.channel.id == self.logchannels.get(ctx.guild.id, 0):
@@ -93,3 +95,11 @@ class ImageLog(commands.Cog):
             self.logchannels[ctx.guild.id] = ctx.channel.id
             await self.config.guild(ctx.guild).channel.set(ctx.channel.id)
             await ctx.reply(f"Set image log channel to {ctx.channel.mention}. Use this command again to remove it.")
+
+    @imagelog.command()
+    async def log_moderator_self_deletes(self, ctx: commands.Context, value: Optional[bool]):
+        """If disabled, users with Manage Message permission that delete their own image won't be logged. Enabled by default. True or False."""
+        if value is not None:
+            await self.config.guild(ctx.guild).log_moderator_self_deletes.set(value)
+        await ctx.send(f"`log_moderator_self_deletes: {await self.config.guild(ctx.guild).log_moderator_self_deletes()}`")
+      
