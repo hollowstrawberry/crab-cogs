@@ -41,7 +41,7 @@ class ImageLog(commands.Cog):
                 title="Image deleted" + (f" ({i+1}/{len(attachments)})" if len(attachments) > 1 else ""),
                 description=message.content[:1990] if message.content else "",
                 color=message.author.color,
-                timestamp=datetime.utcnow())
+                timestamp=datetime.now())
             embed.set_author(name=str(message.author), icon_url=str(message.author.display_avatar.url))
             embed.add_field(name=f"Channel", value=channel.mention)
             if channel.permissions_for(guild.me).view_audit_log:
@@ -83,8 +83,8 @@ class ImageLog(commands.Cog):
         else:
             await ctx.reply(f"Image log disabled. You can assign it to the current channel with {ctx.prefix}imagelog setchannel")
 
-    @imagelog.command()
-    async def setchannel(self, ctx: commands.Context):
+    @imagelog.command(name="setchannel")
+    async def imagelog_setchannel(self, ctx: commands.Context):
         """Sets the image log channel to the current channel."""
         if ctx.channel.id == self.logchannels.get(ctx.guild.id, 0):
             self.logchannels[ctx.guild.id] = 0
@@ -95,8 +95,8 @@ class ImageLog(commands.Cog):
             await self.config.guild(ctx.guild).channel.set(ctx.channel.id)
             await ctx.reply(f"Set image log channel to {ctx.channel.mention}. Use this command again to remove it.")
 
-    @imagelog.command()
-    async def log_moderator_self_deletes(self, ctx: commands.Context, value: Optional[bool]):
+    @imagelog.command(name="log_moderator_self_deletes")
+    async def imagelog_modselfdeletes(self, ctx: commands.Context, value: Optional[bool]):
         """If disabled, users with Manage Message permission that delete their own image won't be logged. Enabled by default. True or False."""
         if value is not None:
             await self.config.guild(ctx.guild).log_moderator_self_deletes.set(value)
