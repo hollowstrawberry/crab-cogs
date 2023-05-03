@@ -29,7 +29,7 @@ class VoiceLog(commands.Cog):
         if await self.bot.cog_disabled_in_guild(self, guild):
             return
 
-        embed = discord.Embed(color=member.color, timestamp=datetime.utcnow())
+        embed = discord.Embed(color=member.color, timestamp=datetime.now())
         if not before.channel:
             embed.set_author(name="Connected", icon_url=member.display_avatar.url)
             embed.description = f"{member.mention} has joined {after.channel.mention}"
