@@ -30,7 +30,7 @@ Designates a channel that will send automated messages mimicking your friends th
 
 ![simulator](https://media.discordapp.net/attachments/541768631445618689/1031334469904384100/unknown.png)
 
-### ⚠ Usage Warning
+### ⚠️ Usage Warning
 
 This cog will store and analyze messages sent by participating users. The bot owner may also make the bot download large amounts of past messages, following Discord ratelimits. It will then store a model in memory whose approximate RAM usage is 60 MB per 100,000 messages analyzed. This data will be stored locally and won't be shared anywhere outside of the target server.
 
@@ -49,6 +49,14 @@ A simple translation cog with support for context menus and autocomplete. Heavil
 ## 📎 ImageScanner
 
 Lets you view information about other people's images with a context menu. It's only really useful for AI image generation metadata (Stable Diffusion). Additionally it can scan all images sent in specified channels and put a reaction button on AI images, and the bot will DM the results.
+
+## 🎐 ImageLog
+
+Logs and stores deleted images in a designated moderation channel. Useful for moderating servers with image boards or similar.
+
+### ⚠️ Usage Warning
+
+You may or may not be liable for keeping content that breaks Discord TOS.
 
 ## 🎤 VoiceLog
 
