@@ -1,6 +1,8 @@
 # crab-cogs
 
-This is an addon for [Red bot](https://github.com/Cog-Creators/Red-DiscordBot) for Discord, with features that I developed for my own friend group (called crab).
+This is an addon for [Red Discord Bot](https://github.com/Cog-Creators/Red-DiscordBot), with features that I developed for my own servers.
+
+These require Red 3.5, which uses the newer Discord interaction features.
 
 ### Installation
 
@@ -30,9 +32,7 @@ Designates a channel that will send automated messages mimicking your friends th
 
 ![simulator](https://media.discordapp.net/attachments/541768631445618689/1031334469904384100/unknown.png)
 
-### ⚠️ Usage Warning
-
-This cog will store and analyze messages sent by participating users. The bot owner may also make the bot download large amounts of past messages, following Discord ratelimits. It will then store a model in memory whose approximate RAM usage is 60 MB per 100,000 messages analyzed. This data will be stored locally and won't be shared anywhere outside of the target server.
+**⚠️ Usage Warning:** This cog will store and analyze messages sent by participating users. The bot owner may also make the bot download large amounts of past messages, following Discord ratelimits. It will then store a model in memory whose approximate RAM usage is 60 MB per 100,000 messages analyzed. This data will be stored locally and won't be shared anywhere outside of the target server.
 
 ## 😶 EmojiSteal
 
@@ -54,9 +54,7 @@ Lets you view information about other people's images with a context menu. It's 
 
 Logs and stores deleted images in a designated moderation channel. Useful for moderating servers with image boards or similar.
 
-### ⚠️ Usage Warning
-
-You may or may not be liable for keeping content that breaks Discord TOS.
+**⚠️ Usage Warning:** You may or may not be liable for keeping content that breaks Discord TOS.
 
 ## 🎤 VoiceLog
 
