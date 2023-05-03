@@ -24,7 +24,8 @@ INVALID_EMOJI = "Invalid emoji or emoji ID."
 STICKER_ATTACHMENT = "You must upload a PNG image when using this command."
 STICKER_OVER_MAX_FILESIZE = "Stickers may only be up to 500 KB."
 
-@dataclass(init=True, order=True, eq=True, frozen=True)
+
+@dataclass(init=True, order=True, frozen=True)
 class StolenEmoji:
     animated: bool
     name: str
@@ -33,6 +34,12 @@ class StolenEmoji:
     @property
     def url(self):
         return f"https://cdn.discordapp.com/emojis/{self.id}.{'gif' if self.animated else 'png'}"
+
+    def __hash__(self):
+        return hash(self.id)
+
+    def __eq__(self, other):
+        return isinstance(other, StolenEmoji) and self.id == other.id
 
 
 class EmojiSteal(commands.Cog):
@@ -119,13 +126,10 @@ class EmojiSteal(commands.Cog):
         
         names = [''.join(re.findall(r"\w+", name)) for name in names]
         names = [name if len(name) >= 2 else None for name in names]
-        clean_emojis = []
-        for emoji in emojis:
-            if emoji not in clean_emojis:
-                clean_emojis.append(emoji)
+        emojis = list(dict.fromkeys(emojis))
 
         async with aiohttp.ClientSession() as session:
-            for emoji, name in zip_longest(clean_emojis, names):
+            for emoji, name in zip_longest(emojis, names):
                 if not self.available_emoji_slots(ctx.guild, emoji.animated):
                     return await ctx.send(EMOJI_SLOTS)
                 if not emoji:
@@ -167,8 +171,9 @@ class EmojiSteal(commands.Cog):
             return await ctx.edit_original_response(content=f"{STICKER_SUCCESS}: {sticker.name}")
 
         added_emojis = []
+        emojis = list(dict.fromkeys(emojis))
         async with aiohttp.ClientSession() as session:
-            for emoji in list(set(emojis)):
+            for emoji in emojis:
                 if not self.available_emoji_slots(ctx.guild, emoji.animated):
                     response = EMOJI_SLOTS
                     if added_emojis:
