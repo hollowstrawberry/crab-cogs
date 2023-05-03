@@ -8,7 +8,7 @@ from collections import OrderedDict
 from PIL import Image
 from .stealth import read_info_from_image_stealth
 
-IMAGE_TYPES = (".png", ".jpg", ".jpeg", ".gif", ".webp")
+IMAGE_TYPES = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
 
 
 class ImageScanner(commands.Cog):
@@ -27,7 +27,7 @@ class ImageScanner(commands.Cog):
     async def load_config(self):
         self.scan_channels = set(await self.config.channels())
 
-    async def cog_unload(self) -> None:
+    async def cog_unload(self):
         self.bot.tree.remove_command(self.context_menu.name, type=self.context_menu.type)
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
@@ -85,15 +85,19 @@ class ImageScanner(commands.Cog):
 
     # Events
 
+    async def is_valid_red_message(self, message: discord.Message) -> bool:
+        return await self.bot.allowed_by_whitelist_blacklist(message.author) \
+               and await self.bot.ignored_channel_or_guild(message) \
+               and not await self.bot.cog_disabled_in_guild(self, message.guild)
+
+
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        # Scan images for AI metadatain allowed channels
-        if not message.guild or message.author.bot:
+        # Scan images for AI metadata in allowed channels
+        if not message.guild or message.author.bot or message.channel.id not in self.scan_channels:
             return
         channel_perms = message.channel.permissions_for(message.guild.me)
         if not channel_perms.add_reactions:
-            return
-        if message.channel.id not in self.scan_channels:
             return
         attachments = [a for a in message.attachments if a.filename.lower().endswith(".png") and a.size < self.scan_limit]
         if not attachments:
@@ -106,16 +110,11 @@ class ImageScanner(commands.Cog):
             if metadata:
                 await message.add_reaction('🔎')
                 return
-                
-    async def is_valid_red_message(self, message: discord.Message) -> bool:
-        return await self.bot.allowed_by_whitelist_blacklist(message.author) \
-               and await self.bot.ignored_channel_or_guild(message) \
-               and not await self.bot.cog_disabled_in_guild(self, message.guild)
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, ctx: discord.RawReactionActionEvent):
         """Send image metadata in reacted post to user DMs"""
-        if ctx.emoji.name != '🔎' or ctx.channel_id not in self.scan_channels or ctx.member.bot:
+        if ctx.emoji.name != '🔎' or ctx.member.bot or ctx.channel_id not in self.scan_channels:
             return
         channel = self.bot.get_channel(ctx.channel_id)
         message = await channel.fetch_message(ctx.message_id)
@@ -123,6 +122,8 @@ class ImageScanner(commands.Cog):
             return
         attachments = [a for a in message.attachments if a.filename.lower().endswith(IMAGE_TYPES)]
         if not attachments:
+            return
+        if not await self.is_valid_red_message(message):
             return
         metadata = OrderedDict()
         tasks = [self.read_attachment_metadata(i, attachment, metadata) for i, attachment in enumerate(attachments)]
