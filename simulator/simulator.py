@@ -442,6 +442,7 @@ class Simulator(commands.Cog):
         self.stage = Stage.SETTING_UP
         try:
             await self.bot.wait_until_red_ready()
+
             # config
             config_dict = await self.config.get_raw()
             if not self.is_configured(config_dict):
@@ -453,18 +454,23 @@ class Simulator(commands.Cog):
             role_id = config_dict['participant_role_id']
             self.comment_chance = 1 / config_dict['comment_delay']
             self.conversation_chance = 1 / config_dict['conversation_delay']
+
             # discord entities
             self.guild = self.bot.get_guild(guild_id)
             if self.guild is None: raise KeyError(self.guild.__name__)
             self.role = self.guild.get_role(role_id)
             self.input_channels = [self.guild.get_channel(i) for i in input_channel_ids]
             self.output_channel = self.guild.get_channel(output_channel_id)
-            if self.role is None: raise KeyError(self.role.__name__)
-            if any(c is None for c in self.input_channels): raise KeyError(self.input_channels.__name__)
-            if self.output_channel is None: raise KeyError(self.output_channel.__name__)
+            if self.role is None:
+                raise KeyError(self.role.__name__)
+            if any(c is None for c in self.input_channels):
+                raise KeyError(self.input_channels.__name__)
+            if self.output_channel is None:
+                raise KeyError(self.output_channel.__name__)
             webhooks = await self.output_channel.webhooks()
             webhooks = [w for w in webhooks if w.user == self.bot.user and w.name == WEBHOOK_NAME]
             self.webhook = webhooks[0] if webhooks else await self.output_channel.create_webhook(name=WEBHOOK_NAME)
+
             # database
             async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
                 await db.execute(f"CREATE TABLE IF NOT EXISTS {DB_TABLE_MESSAGES} "
@@ -476,6 +482,7 @@ class Simulator(commands.Cog):
             log.info(f"Simulator model built from {self.message_count} messages")
             self.stage = Stage.READY
             return True
+
         except Exception as error:
             error_msg = f'Failed to set up the simulator - {type(error).__name__}: {error}'
             log.error(error_msg, exc_info=True)
