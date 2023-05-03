@@ -36,7 +36,6 @@ class ImageLog(commands.Cog):
             return
         if not await self.is_valid_red_message(message):
             return
-        if await self.bot.
         for i, attachment in enumerate(attachments):
             embed = discord.Embed(
                 title="Image deleted" + (f" ({i+1}/{len(attachments)})" if len(attachments) > 1 else ""),
