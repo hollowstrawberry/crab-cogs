@@ -147,8 +147,8 @@ class Simulator(commands.Cog):
         """Main simulator command. Use me!"""
         await ctx.send_help()
 
-    @simulator.command(aliases=["help"])
-    async def info(self, ctx: commands.Context):
+    @simulator.command(name="info", aliases=["help"])
+    async def simulator_info(self, ctx: commands.Context):
         """How this works"""
         info_json = Path(__file__).parent.absolute() / "info.json"
         with info_json.open(encoding="utf-8") as file:
@@ -161,8 +161,8 @@ class Simulator(commands.Cog):
             embed.add_field(name="⚠ Usage Warning", value=usage_warning.group(1))
         await ctx.send(embed=embed)
 
-    @simulator.command()
-    async def stats(self, ctx: commands.Context, user: Optional[discord.Member] = None):
+    @simulator.command(name="stats")
+    async def simulator_stats(self, ctx: commands.Context, user: Optional[discord.Member] = None):
         """Statistics about the simulator, globally or for a user"""
         if not await self.check_participant(ctx):
             return
@@ -211,8 +211,8 @@ class Simulator(commands.Cog):
             embed.add_field(name="Database", value=f"{round(filesize, 2)} MB", inline=True)
         await ctx.send(embed=embed)
 
-    @simulator.command()
-    async def count(self, ctx: commands.Context, word: str, user: Optional[discord.Member] = None):
+    @simulator.command(name="count")
+    async def simulator_count(self, ctx: commands.Context, word: str, user: Optional[discord.Member] = None):
         """Count instances of a word, globally or for a user"""
         if not await self.check_participant(ctx):
             return
@@ -229,10 +229,10 @@ class Simulator(commands.Cog):
             children = sum(len(m.model.get(word, {}) | m.model.get(sword, {})) for m in self.models.values())
         await ctx.send(f"```yaml\nOccurrences: {occurences:,}\nWords that follow: {children:,}```")
 
-    @simulator.command()
+    @simulator.command(name="start")
     @commands.is_owner()
     @commands.bot_has_permissions(manage_webhooks=True)
-    async def start(self, ctx: commands.Context):
+    async def simulator_start(self, ctx: commands.Context):
         """Start the simulator in the configured channel."""
         if self.feeding_task and not self.feeding_task.done():
             await ctx.send(ERROR_FEEDING)
@@ -248,16 +248,16 @@ class Simulator(commands.Cog):
         self.start_conversation()
         await ctx.message.add_reaction(EMOJI_SUCCESS)
 
-    @simulator.command()
+    @simulator.command(name="stop")
     @commands.is_owner()
-    async def stop(self, ctx: commands.Context):
+    async def simulator_stop(self, ctx: commands.Context):
         """Stop the simulator."""
         self.simulator_loop.stop()
         await ctx.message.add_reaction(EMOJI_SUCCESS)
 
-    @simulator.command()
+    @simulator.command(name="feed")
     @commands.is_owner()
-    async def feed(self, ctx: commands.Context, days: Optional[int] = None):
+    async def simulator_feed(self, ctx: commands.Context, days: Optional[int] = None):
         """Feed past messages into the simulator from the configured channels from scratch."""
         if self.feeding_task and not self.feeding_task.done():
             self.feeding_task.cancel()
@@ -287,7 +287,8 @@ class Simulator(commands.Cog):
         async with self.config.blacklisted_users() as blacklisted_users:
             if ctx.author.id in blacklisted_users:
                 blacklisted_users.remove(ctx.author.id)
-                if ctx.author.id in self.blacklisted_users: self.blacklisted_users.remove(ctx.author.id)
+                if ctx.author.id in self.blacklisted_users:
+                    self.blacklisted_users.remove(ctx.author.id)
                 await ctx.send("You will now be able to participate in the simulator again.")
             else:
                 blacklisted_users.append(ctx.author.id)
@@ -297,13 +298,13 @@ class Simulator(commands.Cog):
 
     # Settings
 
-    @simulator.group(invoke_without_command=True)
-    async def set(self, ctx: commands.Context):
+    @simulator.group(name="set", invoke_without_command=True)
+    async def simulator_set(self, ctx: commands.Context):
         """Set up your simulator."""
         await ctx.send_help()
 
-    @set.command()
-    async def showsettings(self, ctx: commands.Context):
+    @simulator_set.command(name="showsettings")
+    async def simulator_set_showsettings(self, ctx: commands.Context):
         """Show the current simulator settings"""
         embed = discord.Embed(title="Simulator Settings", color=await ctx.embed_color())
         embed.add_field(name="Input Role", value=self.role.mention if self.role else "None", inline=True)
@@ -313,9 +314,9 @@ class Simulator(commands.Cog):
         embed.add_field(name="Time between comments", value=f"~{round(1 / self.comment_chance)} seconds", inline=True)
         await ctx.send(embed=embed)
 
-    @set.command()
+    @simulator_set.command(name="inputchannels")
     @commands.is_owner()
-    async def inputchannels(self, ctx: commands.Context, *channels: discord.TextChannel):
+    async def simulator_set_inputchannels(self, ctx: commands.Context, *channels: discord.TextChannel):
         """Set a series of channels that will feed the simulator."""
         if self.output_channel and self.output_channel in channels:
             await ctx.send(ERROR_CHANNELS)
@@ -326,9 +327,9 @@ class Simulator(commands.Cog):
         self.input_channels = channels
         await ctx.react_quietly(EMOJI_SUCCESS)
 
-    @set.command()
+    @simulator_set.command(name="outputchannel")
     @commands.is_owner()
-    async def outputchannel(self, ctx: commands.Context, channel: discord.TextChannel):
+    async def simulator_set_outputchannel(self, ctx: commands.Context, channel: discord.TextChannel):
         """Set the channel the simulator will run in."""
         if channel in self.input_channels:
             await ctx.send(ERROR_CHANNELS)
@@ -337,25 +338,25 @@ class Simulator(commands.Cog):
         self.output_channel = channel
         await ctx.react_quietly(EMOJI_SUCCESS)
 
-    @set.command()
+    @simulator_set.command(name="inputrole")
     @commands.is_owner()
-    async def inputrole(self, ctx: commands.Context, role: discord.Role):
+    async def simulator_set_inputrole(self, ctx: commands.Context, role: discord.Role):
         """Members must have this role to participate in the simulator."""
         await self.config.participant_role_id.set(role.id)
         self.role = role
         await ctx.react_quietly(EMOJI_SUCCESS)
 
-    @set.command()
+    @simulator_set.command(name="conversationdelay")
     @commands.is_owner()
-    async def conversationdelay(self, ctx: commands.Context, minutes: int):
+    async def simulator_set_conversationdelay(self, ctx: commands.Context, minutes: int):
         """Simulated conversations will occur randomly according to this value in minutes."""
         await self.config.conversation_delay.set(max(1, minutes))
         self.conversation_chance = 1 / max(1, minutes)
         await ctx.react_quietly(EMOJI_SUCCESS)
 
-    @set.command()
+    @simulator_set.command(name="commentdelay")
     @commands.is_owner()
-    async def commentdelay(self, ctx: commands.Context, chance: int):
+    async def simulator_set_commentdelay(self, ctx: commands.Context, chance: int):
         """Messages will be sent randomly during simulated conversations according to this value in seconds."""
         await self.config.comment_delay.set(max(1, chance))
         self.comment_chance = 1 / max(1, chance)
