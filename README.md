@@ -36,15 +36,13 @@ Designates a channel that will send automated messages mimicking your friends th
 
 ## 😶 EmojiSteal
 
-Lets anyone steal emojis and stickers sent by other people, and lets moderators upload them to the current server instantly. Supports context menus. Specially useful if you're on mobile as the Discord app doesn't let you copy emoji links or upload stickers, but this cog has commands for those.
+Lets anyone steal emojis and stickers sent by other people, and lets moderators upload them to the current server instantly. Supports context menus. Specially useful if you're on mobile as the Discord app doesn't let you copy emoji links or upload stickers, but this cog has commands for those. Converting self-uploaded gifs to stickers is very difficult and not yet supported.
 
 ![emojisteal](https://media.discordapp.net/attachments/541768631445618689/1031335118926782484/unknown.png)
 
 ## 🎌 EasyTranslate
 
 A simple translation cog with support for context menus and autocomplete. Heavily modified version of the translate cog from ob13-cogs.
-
-![easy translate](https://cdn.discordapp.com/attachments/930472312317296760/1100933551148503091/Video.Guru_20230426_195111370.mp4)
 
 ## 📎 ImageScanner
 
