@@ -46,9 +46,11 @@ A simple translation cog with support for context menus and autocomplete. Heavil
 
 ![demonstration](https://cdn.discordapp.com/attachments/541768631445618689/1103626125520928828/ezgif-1-204db4b118.gif)
 
-## 📎 ImageScanner
+## 🎤 VoiceLog
 
-Lets you view information about other people's images with a context menu. It's only really useful for AI image generation metadata (Stable Diffusion). Additionally it can scan all images sent in specified channels and put a reaction button on AI images, and the bot will DM the results.
+Logs users joining and leaving voicechat, inside the text chat embedded in the voicechat channel itself. Finally gives a use to those things.
+
+![demonstration](https://media.discordapp.net/attachments/541768631445618689/1103627951934820412/Screenshot_20230504-062308_Discord.png)
 
 ## 🎐 ImageLog
 
@@ -56,21 +58,19 @@ Logs and stores deleted images in a designated moderation channel. Useful for mo
 
 **⚠️ Usage Warning:** You may or may not be liable for keeping content that breaks Discord TOS.
 
-## 🎤 VoiceLog
+## 📎 ImageScanner
 
-Logs users joining and leaving voicechat, inside the text chat embedded in the voicechat channel itself. Finally gives a use to those things.
-
-![demonstration](https://media.discordapp.net/attachments/541768631445618689/1103627951934820412/Screenshot_20230504-062308_Discord.png)
+Lets you view basic information about other people's images with a context menu. Its real purpose is to view AI image generation metadata (Stable Diffusion). Additionally it can scan all images sent in specified channels and put a reaction button on AI images; the bot will DM the results to the users who react.
 
 ## ⏺ Autoreact
 
-Lets you configure emojis that will be added to any message containing text matching a regex. Yes this is silly.  
+Lets you configure emoji reactions that will be added to any message containing text matching a regex. Can be useful or just for fun.  
 
 ![Autoreact with the word NOW](https://media.discordapp.net/attachments/541768631445618689/1031957798382207086/unknown.png)
 
 ## 📢 GameAlert
 
-Sends a configured message when a user has been playing a specific game for some time. Yes this is silly.
+Sends a configured message when a guild member starts playing a specific game or has been playing for some time. The purpose is to alert friends or just to be silly.
 
 ## 🎲 Randomness
 
