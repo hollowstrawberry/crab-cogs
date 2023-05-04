@@ -28,7 +28,8 @@ class VoiceLog(commands.Cog):
             return
         if await self.bot.cog_disabled_in_guild(self, guild):
             return
-        embed = discord.Embed(color=member.color, timestamp=datetime.utcnow())
+
+        embed = discord.Embed(color=member.color, timestamp=datetime.now())
         if not before.channel:
             embed.set_author(name="Connected", icon_url=member.display_avatar.url)
             embed.description = f"{member.mention} has joined {after.channel.mention}"
@@ -38,23 +39,32 @@ class VoiceLog(commands.Cog):
         else:
             embed.set_author(name="Moved", icon_url=member.display_avatar.url)
             embed.description = f"{member.mention} has moved from {before.channel.mention} to {after.channel.mention}"
-        await (after.channel or before.channel).send(embed=embed)
+        
+        for channel in [before.channel, after.channel]:
+            if not channel:
+                continue
+            perms = channel.permissions_for(channel.guild.me)
+            if not perms.send_messages or not perms.embed_links:
+                continue
+            await channel.send(embed=embed)
 
     @commands.group(invoke_without_command=True)
     @commands.has_permissions(manage_guild=True)
+    @commands.bot_has_permissions(embed_links=True, add_reactions=True)
+    @commands.guild_only()
     async def voicelog(self, ctx: commands.Context):
         """Voice Log configuration"""
         await ctx.send_help()
 
-    @voicelog.command()
-    async def enable(self, ctx: commands.Context):
+    @voicelog.command(name="enable")
+    async def voicelog_enable(self, ctx: commands.Context):
         """Enable voice log for the whole guild."""
         self.allowedguilds.add(ctx.guild.id)
         await self.config.guild(ctx.guild).enabled.set(True)
         await ctx.react_quietly('✅')
 
-    @voicelog.command()
-    async def disable(self, ctx: commands.Context):
+    @voicelog.command(name="disable")
+    async def voicelog_disable(self, ctx: commands.Context):
         """Disable voice log for the whole guild."""
         self.allowedguilds.remove(ctx.guild.id)
         await self.config.guild(ctx.guild).enabled.set(False)

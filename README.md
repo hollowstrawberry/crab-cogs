@@ -1,6 +1,8 @@
 # crab-cogs
 
-This is an addon for [Red bot](https://github.com/Cog-Creators/Red-DiscordBot) for Discord, with features that I developed for my own friend group (called crab).
+This is an addon for [Red Discord Bot](https://github.com/Cog-Creators/Red-DiscordBot), with features that I developed for my own servers.
+
+These require Red 3.5, which uses the newer Discord interaction features.
 
 ### Installation
 
@@ -30,13 +32,11 @@ Designates a channel that will send automated messages mimicking your friends th
 
 ![simulator](https://media.discordapp.net/attachments/541768631445618689/1031334469904384100/unknown.png)
 
-### ⚠ Usage Warning
-
-This cog will store and analyze messages sent by participating users. The bot owner may also make the bot download large amounts of past messages, following Discord ratelimits. It will then store a model in memory whose approximate RAM usage is 60 MB per 100,000 messages analyzed. This data will be stored locally and won't be shared anywhere outside of the target server.
+**⚠️ Usage Warning:** This cog will store and analyze messages sent by participating users. The bot owner may also make the bot download large amounts of past messages, following Discord ratelimits. It will then store a model in memory whose approximate RAM usage is 60 MB per 100,000 messages analyzed. This data will be stored locally and won't be shared anywhere outside of the target server.
 
 ## 😶 EmojiSteal
 
-Lets anyone steal emojis and stickers sent by other people, and lets moderators upload them to the current server instantly. Supports context menus. Specially useful if you're on mobile as the Discord app doesn't let you copy emoji links or upload stickers, but this cog has commands for those.
+Lets anyone steal emojis and stickers sent by other people, and lets moderators upload them to the current server instantly. Supports context menus. Specially useful if you're on mobile as the Discord app doesn't let you copy emoji links or upload stickers, but this cog has commands for those. Converting self-uploaded gifs to stickers is very difficult and not yet supported.
 
 ![emojisteal](https://media.discordapp.net/attachments/541768631445618689/1031335118926782484/unknown.png)
 
@@ -44,11 +44,15 @@ Lets anyone steal emojis and stickers sent by other people, and lets moderators 
 
 A simple translation cog with support for context menus and autocomplete. Heavily modified version of the translate cog from ob13-cogs.
 
-![easy translate](https://cdn.discordapp.com/attachments/930472312317296760/1100933551148503091/Video.Guru_20230426_195111370.mp4)
-
 ## 📎 ImageScanner
 
 Lets you view information about other people's images with a context menu. It's only really useful for AI image generation metadata (Stable Diffusion). Additionally it can scan all images sent in specified channels and put a reaction button on AI images, and the bot will DM the results.
+
+## 🎐 ImageLog
+
+Logs and stores deleted images in a designated moderation channel. Useful for moderating servers with image boards or similar.
+
+**⚠️ Usage Warning:** You may or may not be liable for keeping content that breaks Discord TOS.
 
 ## 🎤 VoiceLog
 

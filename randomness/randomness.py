@@ -60,9 +60,9 @@ class Randomness(commands.Cog):
         await ctx.send(f'I give {thing} a {rating}/10')
 
     @commands.hybrid_command()
-    async def pp(self, ctx: commands.Context, *, etc=""):
+    async def pp(self, ctx: commands.Context, *, whose=""):
         """Evaluates your pp size."""
-        if etc:
+        if whose:
             await ctx.reply(f"You can't view someone else's pp")
         else:
             pp = ctx.author.id % 13

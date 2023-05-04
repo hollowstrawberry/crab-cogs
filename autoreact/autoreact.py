@@ -106,7 +106,6 @@ class Autoreact(commands.Cog):
                 await ctx.send("No autoreacts found for that emoji.")
 
     @autoreact.command()
-    @commands.guild_only()
     async def list(self, ctx: commands.Context, page: int = 1):
         """Shows all autoreacts."""
         embed = discord.Embed(title="Server Autoreacts", color=await ctx.embed_color(), description="None")
