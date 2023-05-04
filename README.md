@@ -38,11 +38,13 @@ Designates a channel that will send automated messages mimicking your friends th
 
 Lets anyone steal emojis and stickers sent by other people, and lets moderators upload them to the current server instantly. Supports context menus. Specially useful if you're on mobile as the Discord app doesn't let you copy emoji links or upload stickers, but this cog has commands for those. Converting self-uploaded gifs to stickers is very difficult and not yet supported.
 
-![emojisteal](https://media.discordapp.net/attachments/541768631445618689/1031335118926782484/unknown.png)
+![demonstration](https://media.discordapp.net/attachments/541768631445618689/1103627039656923266/Screenshot_20230504-061921_Discord.png)
 
 ## 🎌 EasyTranslate
 
 A simple translation cog with support for context menus and autocomplete. Heavily modified version of the translate cog from ob13-cogs.
+
+![demonstration](https://cdn.discordapp.com/attachments/541768631445618689/1103626125520928828/ezgif-1-204db4b118.gif)
 
 ## 📎 ImageScanner
 
@@ -56,7 +58,9 @@ Logs and stores deleted images in a designated moderation channel. Useful for mo
 
 ## 🎤 VoiceLog
 
-Logs users joining and leaving voicechat, inside the text chat embedded in the voicechat channel itself.
+Logs users joining and leaving voicechat, inside the text chat embedded in the voicechat channel itself. Finally gives a use to those things.
+
+![demonstration](https://media.discordapp.net/attachments/541768631445618689/1103627951934820412/Screenshot_20230504-062308_Discord.png)
 
 ## ⏺ Autoreact
 
@@ -70,7 +74,7 @@ Sends a configured message when a user has been playing a specific game for some
 
 ## 🎲 Randomness
 
-A few fun commands involving random seeds, including:
+A couple fun hybrid commands involving random seeds, including:
 
 * `donut` will give you a random dessert and keep track of your score. `donut set` will set a list of emojis to choose from, so you could technically alias this command as anything. [Some donut emojis here](https://imgur.com/a/9hW2RRf)  
 * `rate` will give a unique rating from 1 to 10 to anything you ask. The bot won't change its mind!  
@@ -78,4 +82,4 @@ A few fun commands involving random seeds, including:
 
 ## 🖌️ Draw
 
-A couple fun image filters for your friends' avatars. May take a minute to install due to the image processing libraries (opencv and Pillow).
+A couple fun hybrid commands with image filters for you and your friends' avatars. May take a minute to install due to the image processing libraries (opencv and Pillow).
