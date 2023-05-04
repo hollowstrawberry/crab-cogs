@@ -38,7 +38,7 @@ Designates a channel that will send automated messages mimicking your friends th
 
 Lets anyone steal emojis and stickers sent by other people, and lets moderators upload them to the current server instantly. Supports context menus. Specially useful if you're on mobile as the Discord app doesn't let you copy emoji links or upload stickers, but this cog has commands for those. Converting self-uploaded gifs to stickers is very difficult and not yet supported.
 
-![demonstration](https://media.discordapp.net/attachments/541768631445618689/1103627039656923266/Screenshot_20230504-061921_Discord.png)
+![demonstration](https://media.discordapp.net/attachments/541768631445618689/1103728807430590524/Screenshot_20230504-130350_Discord.png)
 
 ### 🎌 EasyTranslate
 
