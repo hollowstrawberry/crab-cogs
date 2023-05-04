@@ -58,7 +58,7 @@ Logs and stores deleted images in a designated moderation channel. Useful for mo
 
 **⚠️ Usage Warning:** You may or may not be liable for keeping content that breaks Discord TOS.
 
-![demonstration](https://media.discordapp.net/attachments/541768631445618689/1103721368404631642/Screenshot_20230504-123424_Discord.png)
+![demonstration](https://media.discordapp.net/attachments/541768631445618689/1103725009794510919/Screenshot_20230504-123424_Discord.png)
 
 ### ⏺ Autoreact
 
