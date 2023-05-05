@@ -2,7 +2,7 @@ import os
 import discord
 import cv2
 from PIL import Image
-from redbot.core import commands
+from redbot.core import commands, app_commands
 from redbot.core.data_manager import cog_data_path
 from typing import Optional
 
