@@ -12,6 +12,12 @@ class Draw(commands.Cog):
     def __init__(self, bot):
         super().__init__()
         self.bot = bot
+        self.avatar_context_menu = app_commands.ContextMenu(name='View Avatar', callback=self.avatar_app_command)
+        self.bot.tree.add_command(self.steal_context_menu)
+
+    async def cog_unload(self) -> None:
+        self.bot.tree.remove_command(self.avatar_context_menu.name, type=self.avatar_context_menu.type)
+
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         pass
@@ -22,7 +28,7 @@ class Draw(commands.Cog):
     def output_image(self, ctx: commands.Context) -> str:
         return str(cog_data_path(self).joinpath(f"output_{ctx.command.name}_{ctx.author.id}.jpg"))
 
-    @commands.hybrid_command()
+    #@commands.hybrid_command()
     async def avatar(self, ctx: commands.Context, user: Optional[discord.User]):
         """Simply shows your avatar or somebody else's."""
         if not user:
@@ -30,7 +36,13 @@ class Draw(commands.Cog):
         embed = discord.Embed(color=await ctx.embed_color())
         embed.title = f"Here's " + ("your" if user == ctx.author else f"{user.display_name}'s") + " avatar!"
         embed.set_image(url=user.display_avatar.url)
-        await ctx.send(embed=embed)
+        await ctx.send(embed=embed, ephemeral=True)
+
+    # context menu added in __init__
+    async def avatar_app_command(self, inter: discord.Interaction, member: discord.Member):
+        """Gets the avatar for a user quieyly."""
+        ctx = await commands.Context.from_interaction(inter)
+        await self.avatar(ctx, member)
 
     @commands.hybrid_command()
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
