@@ -13,7 +13,7 @@ class Draw(commands.Cog):
         super().__init__()
         self.bot = bot
         self.avatar_context_menu = app_commands.ContextMenu(name='View Avatar', callback=self.avatar_app_command)
-        self.bot.tree.add_command(self.steal_context_menu)
+        self.bot.tree.add_command(self.avatar_context_menu)
 
     async def cog_unload(self) -> None:
         self.bot.tree.remove_command(self.avatar_context_menu.name, type=self.avatar_context_menu.type)
