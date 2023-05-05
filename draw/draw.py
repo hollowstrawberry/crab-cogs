@@ -7,7 +7,7 @@ from redbot.core.data_manager import cog_data_path
 from typing import Optional
 
 class Draw(commands.Cog):
-    """A couple fun image filters for your friends' avatars."""
+    """A couple fun image filters for your friends' avatars. Also includes an avatar context menu."""
 
     def __init__(self, bot):
         super().__init__()
