@@ -1,6 +1,6 @@
 {
     "author": ["OrchidAlloy"],
-    "min_bot_version": "3.5.0.dev363",
+    "min_bot_version": "3.5.0",
     "description": "Steals emojis and stickers sent by other people and optionally uploads them to your own server. Supports context menu commands. Can also upload stickers from mobile.",
     "hidden": false,
     "install_msg": "\uD83D\uDE36 __**EmojiSteal**__ ```EmojiSteal installed. Instructions:\n1. Load the cog with [p]load emojisteal\n2. Try replying to a message containing emojis or stickers from another server with [p]steal or [p]steal upload\n3. Optionally, enable the context menus with [p]slash enablecog emojisteal, then [p]slash sync```",
