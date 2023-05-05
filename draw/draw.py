@@ -18,7 +18,6 @@ class Draw(commands.Cog):
     async def cog_unload(self) -> None:
         self.bot.tree.remove_command(self.avatar_context_menu.name, type=self.avatar_context_menu.type)
 
-
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         pass
 
