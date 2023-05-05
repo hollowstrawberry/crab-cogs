@@ -1,6 +1,6 @@
 {
     "author": ["OrchidAlloy"],
-    "min_bot_version": "3.5.0.dev363",
+    "min_bot_version": "3.5.0",
     "description": "Simulates Genshin Impact gacha pulls.",
     "hidden": true,
     "install_msg": "🌠 __**Genshin**__\n```Genshin cog installed. Instructions:\n1. Load it with [p]load genshin\n2. Check out [p]help genshin```",

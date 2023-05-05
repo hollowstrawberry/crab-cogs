@@ -76,7 +76,7 @@ A couple fun hybrid commands involving random seeds, including:
 
 ### 🖌️ Draw
 
-A couple fun hybrid commands with image filters for you and your friends' avatars. May take a minute to install due to the image processing libraries (opencv and Pillow).
+A couple fun hybrid commands with image filters for you and your friends' avatars. Also includes an avatar context menu. May take a minute to install due to the image processing libraries (opencv and Pillow).
 
 ### 📎 ImageScanner
 
