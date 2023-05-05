@@ -4,7 +4,7 @@ import cv2
 from PIL import Image
 from redbot.core import commands
 from redbot.core.data_manager import cog_data_path
-from typing import *
+from typing import Optional
 
 class Draw(commands.Cog):
     """A couple fun image filters for your friends' avatars."""
@@ -23,9 +23,19 @@ class Draw(commands.Cog):
         return str(cog_data_path(self).joinpath(f"output_{ctx.command.name}_{ctx.author.id}.jpg"))
 
     @commands.hybrid_command()
+    async def avatar(self, ctx: commands.Context, user: Optional[discord.User]):
+        """Simply shows your avatar or somebody else's."""
+        if not user:
+            user = ctx.author
+        embed = discord.Embed(color=await ctx.embed_color())
+        embed.title = f"Here's " + ("your" if user == ctx.author else f"{user.display_name}'s") + " avatar!"
+        embed.set_image(url=user.display_avatar.url)
+        await ctx.send(embed=embed)
+
+    @commands.hybrid_command()
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
-    async def draw(self, ctx: commands.Context, user: Union[discord.User, discord.Member] = None):
-        """Produces a pencil drawing of you or someone else"""
+    async def draw(self, ctx: commands.Context, user: Optional[discord.User]):
+        """Produces a pencil drawing of you or someone else."""
         if not user:
             user = ctx.author
         await ctx.typing()
@@ -39,14 +49,19 @@ class Draw(commands.Cog):
         img_normalized = cv2.normalize(img_divided, None, 20, 255, cv2.NORM_MINMAX)
         # save and send
         cv2.imwrite(self.output_image(ctx), img_normalized)
-        await ctx.send(file=discord.File(self.output_image(ctx)))
-        os.remove(self.input_image(ctx))
-        os.remove(self.output_image(ctx))
+        embed = discord.Embed(color=await ctx.embed_color())
+        embed.title = f"Here's a drawing of {'you' if user == ctx.author else user.display_name}!"
+        embed.set_image(url=f"attachment://output_{ctx.command.name}_{ctx.author.id}.jpg")
+        try:
+            await ctx.send(embed=embed, file=discord.File(self.output_image(ctx)))
+        finally:
+            os.remove(self.input_image(ctx))
+            os.remove(self.output_image(ctx))
 
     @commands.hybrid_command()
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
-    async def paint(self, ctx: commands.Context, user: Union[discord.User, discord.Member] = None):
-        """Produces an oil painting of you or someone else"""
+    async def paint(self, ctx: commands.Context, user: Optional[discord.User]):
+        """Produces an oil painting of you or someone else."""
         if not user:
             user = ctx.author
         await ctx.typing()
@@ -60,6 +75,11 @@ class Draw(commands.Cog):
         img_normalized = cv2.normalize(img_morphed, None, 20, 255, cv2.NORM_MINMAX)
         # save and send
         cv2.imwrite(self.output_image(ctx), img_normalized)
-        await ctx.send(file=discord.File(self.output_image(ctx)))
-        os.remove(self.input_image(ctx))
-        os.remove(self.output_image(ctx))
+        embed = discord.Embed(color=await ctx.embed_color())
+        embed.title = f"Here's a painting of {'you' if user == ctx.author else user.display_name}!"
+        embed.set_image(url=f"attachment://output_{ctx.command.name}_{ctx.author.id}.jpg")
+        try:
+            await ctx.send(embed=embed, file=discord.File(self.output_image(ctx)))
+        finally:
+            os.remove(self.input_image(ctx))
+            os.remove(self.output_image(ctx))
