@@ -1,12 +1,12 @@
 {
     "author": ["OrchidAlloy"],
     "min_bot_version": "3.5.0",
-    "description": "A couple fun image filters for your friends' avatars.",
+    "description": "A couple fun image filters for your friends' avatars. Also includes an avatar context menu.",
     "hidden": false,
-    "install_msg": "🖌️ __**Draw**__ ```Draw cog installed. Instructions:\n1. Load it with [p]load draw\n2. View commands with [p]help Draw```",
+    "install_msg": "🖌️ __**Draw**__ ```Draw cog installed. Instructions:\n1. Load it with [p]load draw\n2. View commands with [p]help Draw\n3.Optionally, enable slash commands with [p]slash enablecog draw, then [p]slash sync```",
     "required_cogs": {},
     "requirements": ["Pillow", "opencv_python_headless"],
-    "short": "Fun image filters",
+    "short": "Fun image filters and an avatar context menu.",
     "end_user_data_statement": "This cog does not store any user data.",
-    "tags": ["crab", "fun", "image", "draw", "filters"]
+    "tags": ["crab", "fun", "image", "draw", "filter", "avatar"]
 }
