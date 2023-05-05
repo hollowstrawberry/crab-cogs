@@ -33,7 +33,8 @@ class Draw(commands.Cog):
         if not user:
             user = ctx.author
         embed = discord.Embed(color=await ctx.embed_color())
-        embed.title = f"Here's " + ("your" if user == ctx.author else f"{user.display_name}'s") + " avatar!"
+        whose = "your" if user == ctx.author else "my" if user == self.bot.user else f"{user.display_name}'s"
+        embed.title = f"Here's {whose} avatar!"
         embed.set_image(url=user.display_avatar.url)
         await ctx.send(embed=embed, ephemeral=True)
 
@@ -61,7 +62,8 @@ class Draw(commands.Cog):
         # save and send
         cv2.imwrite(self.output_image(ctx), img_normalized)
         embed = discord.Embed(color=await ctx.embed_color())
-        embed.title = f"Here's a drawing of {'you' if user == ctx.author else user.display_name}!"
+        whom = "you" if user == ctx.author else "me" if user == self.bot.user else user.display_name
+        embed.title = f"Here's a drawing of {whom}!"
         embed.set_image(url=f"attachment://output_{ctx.command.name}_{ctx.author.id}.jpg")
         try:
             await ctx.send(embed=embed, file=discord.File(self.output_image(ctx)))
@@ -87,7 +89,8 @@ class Draw(commands.Cog):
         # save and send
         cv2.imwrite(self.output_image(ctx), img_normalized)
         embed = discord.Embed(color=await ctx.embed_color())
-        embed.title = f"Here's a painting of {'you' if user == ctx.author else user.display_name}!"
+        whom = "you" if user == ctx.author else "me" if user == self.bot.user else user.display_name
+        embed.title = f"Here's a drawing of {whom}!"
         embed.set_image(url=f"attachment://output_{ctx.command.name}_{ctx.author.id}.jpg")
         try:
             await ctx.send(embed=embed, file=discord.File(self.output_image(ctx)))
