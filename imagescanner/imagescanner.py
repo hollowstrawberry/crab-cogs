@@ -134,8 +134,10 @@ class ImageScanner(commands.Cog):
             embed.set_thumbnail(url=attachments[0].url)
             await ctx.member.send(embed=embed)
             return
-        for attachment, data in [(attachments[i], data) for i, data in metadata.items()]:
+        for i, attachment, data in [(i, attachments[i], data) for i, data in metadata.items()]:
             embed = self.get_embed(self.get_params_from_string(data), message.author)
+            if len(metadata) > 1:
+                embed.title += f" ({i+1}/{len(metadata)})"
             embed.set_thumbnail(url=attachment.url)
             await ctx.member.send(embed=embed)
 
