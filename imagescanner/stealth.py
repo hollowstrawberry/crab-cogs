@@ -1,6 +1,7 @@
 import gzip
 
 def read_info_from_image_stealth(image):
+    return None # turn off for now, inconsistent synchronous block
     # trying to read stealth pnginfo
     width, height = image.size
     pixels = image.load()
