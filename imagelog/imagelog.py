@@ -16,7 +16,7 @@ class ImageLog(commands.Cog):
         self.config = Config.get_conf(self, identifier=6961676567)
         self.config.register_guild(channel=0, log_moderator_self_deletes=True)
 
-    async def load_config(self):
+    async def cog_load(self):
         all_config = await self.config.all_guilds()
         self.logchannels = {guild_id: conf['channel'] for guild_id, conf in all_config.items()}
 

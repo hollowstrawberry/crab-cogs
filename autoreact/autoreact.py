@@ -18,7 +18,7 @@ class Autoreact(commands.Cog):
         self.autoreacts: Dict[int, Dict[str, re.Pattern]] = {}
         self.config.register_guild(autoreact_regexes={})
 
-    async def load_config(self):
+    async def cog_load(self):
         all_config = await self.config.all_guilds()
         self.autoreacts = {guild_id: {emoji: re.compile(text) for emoji, text in conf['autoreact_regexes'].items()}
                            for guild_id, conf in all_config.items()}

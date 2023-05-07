@@ -24,7 +24,7 @@ class ImageScanner(commands.Cog):
         self.context_menu = app_commands.ContextMenu(name='Image Info', callback=self.scanimage)
         self.bot.tree.add_command(self.context_menu)
 
-    async def load_config(self):
+    async def cog_load(self):
         self.scan_channels = set(await self.config.channels())
 
     async def cog_unload(self):
@@ -134,8 +134,10 @@ class ImageScanner(commands.Cog):
             embed.set_thumbnail(url=attachments[0].url)
             await ctx.member.send(embed=embed)
             return
-        for attachment, data in [(attachments[i], data) for i, data in metadata.items()]:
+        for i, attachment, data in [(i, attachments[i], data) for i, data in metadata.items()]:
             embed = self.get_embed(self.get_params_from_string(data), message.author)
+            if len(metadata) > 1:
+                embed.title += f" ({i+1}/{len(metadata)})"
             embed.set_thumbnail(url=attachment.url)
             await ctx.member.send(embed=embed)
 
