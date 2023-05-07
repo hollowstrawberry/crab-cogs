@@ -24,7 +24,7 @@ class ImageScanner(commands.Cog):
         self.context_menu = app_commands.ContextMenu(name='Image Info', callback=self.scanimage)
         self.bot.tree.add_command(self.context_menu)
 
-    async def load_config(self):
+    async def cog_load(self):
         self.scan_channels = set(await self.config.channels())
 
     async def cog_unload(self):

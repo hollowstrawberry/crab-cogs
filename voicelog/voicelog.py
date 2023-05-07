@@ -12,7 +12,7 @@ class VoiceLog(commands.Cog):
         self.config = Config.get_conf(self, identifier=7669636567)
         self.config.register_guild(enabled=False)
 
-    async def load_config(self):
+    async def cog_load(self):
         all_config = await self.config.all_guilds()
         self.allowedguilds = set(guild_id for guild_id, conf in all_config.items() if conf['enabled'])
 

@@ -129,7 +129,7 @@ class Simulator(commands.Cog):
         # Start simulator if possible
         self.simulator_loop.start()
 
-    def cog_unload(self):
+    async def cog_unload(self):
         self.simulator_loop.stop()
         if self.feeding_task and not self.feeding_task.done():
             self.feeding_task.cancel()

@@ -15,7 +15,7 @@ class Draw(commands.Cog):
         self.avatar_context_menu = app_commands.ContextMenu(name='View Avatar', callback=self.avatar_app_command)
         self.bot.tree.add_command(self.avatar_context_menu)
 
-    async def cog_unload(self) -> None:
+    async def cog_unload(self):
         self.bot.tree.remove_command(self.avatar_context_menu.name, type=self.avatar_context_menu.type)
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
