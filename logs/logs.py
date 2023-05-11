@@ -32,12 +32,11 @@ class Logs(commands.Cog):
             result = [line.strip() for line in f.readlines()[-lines:]]
         while result:
             page = ""
-            while result and len(page) < MAX_PAGE_LENGTH:
-                page += "\n" + result.pop(0)
-            if len(page) >= MAX_PAGE_LENGTH:
-                splitted = page.rsplit("\n")
-                page = result[0]
-                result.insert(0, splitted[1])
+            while result:
+                if len(page) + 1 + len(result[0]) < MAX_PAGE_LENGTH:
+                    page += "\n" + result.pop(0)
+                else:
+                    break
             embed = discord.Embed(
                 title=f"{self.bot.user.display_name} Logs",
                 description=f"```py\n{page}```",
