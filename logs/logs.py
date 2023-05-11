@@ -20,7 +20,7 @@ class Logs(commands.Cog):
         pass
 
     @commands.is_owner()
-    @commands.group()
+    @commands.group(invoke_without_command=True)
     async def logs(self, ctx: commands.Context, lines: Optional[int]):
         """Sends the last n lines of the latest log file (default 1000)."""
         private = await self.config.private()
@@ -33,13 +33,13 @@ class Logs(commands.Cog):
         while result:
             page = ""
             while result:
-                if len(page) + 1 + len(result[0]) < MAX_PAGE_LENGTH:
-                    page += "\n" + result.pop(0)
+                if len(page) + 1 + len(result[-1]) <= MAX_PAGE_LENGTH:
+                    page = result.pop() + "\n" + page
                 else:
                     break
             embed = discord.Embed(
                 title=f"{self.bot.user.display_name} Logs",
-                description=f"```py\n{page}```",
+                description=f"```py\n{page.strip()}```",
                 color=await ctx.embed_color(),
             )
             pages.append(embed)
@@ -48,6 +48,7 @@ class Logs(commands.Cog):
         elif len(pages) == 1:
             await channel.send(embed=pages[0])
         else:
+            pages.reverse()
             for i, page in enumerate(pages):
                 page.set_footer(text=f"Page {i+1}/{len(pages)}")
             ctx.message.channel = channel
