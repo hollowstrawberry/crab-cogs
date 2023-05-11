@@ -46,8 +46,10 @@ class Logs(commands.Cog):
             pages.reverse()
             for i in range(len(pages)):
                 pages[i] += f"`Page {i+1}/{len(pages)}`"
-            channel.author = ctx.author
-            await SimpleMenu(pages, timeout=7200, page_start=len(pages)-1).start(channel)
+            ctx.message.channel = channel
+            ctx.message.guild = None
+            ctx = await self.bot.get_context(ctx.message)
+            await SimpleMenu(pages, timeout=7200, page_start=len(pages)-1).start(ctx)
 
     @logs.command(name="file")
     async def logs_file(self, ctx: commands.Context):
