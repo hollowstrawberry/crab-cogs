@@ -46,6 +46,7 @@ class Logs(commands.Cog):
             pages.reverse()
             for i in range(len(pages)):
                 pages[i] += f"`Page {i+1}/{len(pages)}`"
+            channel.author = ctx.author
             await SimpleMenu(pages, timeout=7200, page_start=len(pages)-1).start(channel)
 
     @logs.command(name="file")
