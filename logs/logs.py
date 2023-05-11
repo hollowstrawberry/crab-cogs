@@ -1,7 +1,7 @@
-import os
 import discord
 from typing import Optional
 from redbot.core import commands, Config
+from redbot.core.bot import Red
 from redbot.core.utils.menus import SimpleMenu
 
 LATEST_LOGS = "/data/core/logs/latest.log"
@@ -10,7 +10,7 @@ MAX_PAGE_LENGTH = 4000
 class Logs(commands.Cog):
     """Owner cog to show the latest logs."""
 
-    def __init__(self, bot):
+    def __init__(self, bot: Red):
         super().__init__()
         self.bot = bot
         self.config = Config.get_conf(self, identifier=66677363)
@@ -39,7 +39,7 @@ class Logs(commands.Cog):
                 page = result[0]
                 result.insert(0, splitted[1])
             embed = discord.Embed(
-                title=f"{self.bot.name} Logs",
+                title=f"{self.bot.user.display_name} Logs",
                 description=f"```py\n{page}```",
                 color=await ctx.embed_color(),
             )
@@ -52,7 +52,7 @@ class Logs(commands.Cog):
             for i, page in enumerate(pages):
                 page.set_footer(text=f"Page {i+1}/{len(pages)}")
             ctx.message.channel = channel
-            await SimpleMenu(pages, timeout=7200, page_start=len(pages)).start(ctx)
+            await SimpleMenu(pages, timeout=7200, page_start=len(pages)-1).start(ctx)
 
     @logs.command(name="file")
     async def logs_file(self, ctx: commands.Context):
