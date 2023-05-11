@@ -5,7 +5,7 @@ from redbot.core.bot import Red
 from redbot.core.utils.menus import SimpleMenu
 
 LATEST_LOGS = "/data/core/logs/latest.log"
-MAX_PAGE_LENGTH = 4000
+MAX_PAGE_LENGTH = 1970
 
 class Logs(commands.Cog):
     """Owner cog to show the latest logs."""
@@ -22,11 +22,11 @@ class Logs(commands.Cog):
     @commands.is_owner()
     @commands.group(invoke_without_command=True)
     async def logs(self, ctx: commands.Context, lines: Optional[int]):
-        """Sends the last n lines of the latest log file (default 1000)."""
+        """Sends the last n lines of the latest log file (default 100)."""
         private = await self.config.private()
         channel = (ctx.author.dm_channel or await ctx.author.create_dm()) if private else ctx.channel
         if not lines or lines < 0:
-            lines = 1000
+            lines = 100
         pages = []
         with open(LATEST_LOGS, 'r') as f:
             result = [line.strip() for line in f.readlines()[-lines:]]
@@ -37,20 +37,15 @@ class Logs(commands.Cog):
                     page = result.pop() + "\n" + page
                 else:
                     break
-            embed = discord.Embed(
-                title=f"{self.bot.user.display_name} Logs",
-                description=f"```py\n{page.strip()}```",
-                color=await ctx.embed_color(),
-            )
-            pages.append(embed)
+            pages.append(f"```py\n{page.strip()}```")
         if not pages:
             await channel.send("Empty")
         elif len(pages) == 1:
-            await channel.send(embed=pages[0])
+            await channel.send(content=pages[0])
         else:
             pages.reverse()
             for i, page in enumerate(pages):
-                page.set_footer(text=f"Page {i+1}/{len(pages)}")
+                page += f"`Page {i+1}/{len(pages)}`"
             ctx.message.channel = channel
             await SimpleMenu(pages, timeout=7200, page_start=len(pages)-1).start(ctx)
 
