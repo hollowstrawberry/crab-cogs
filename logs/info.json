@@ -1,0 +1,12 @@
+{
+    "author": ["OrchidAlloy"],
+    "min_bot_version": "3.5.0",
+    "description": "Owner cog to show the latest logs.",
+    "hidden": false,
+    "install_msg": "📜 __**Logs**__ ```Logs cog installed. Instructions:\n1. Load it with [p]load logs\n2. Optionally, disable private logs with [p]logs private\n3. Use [p]logs [number], or [p]logs file, to view your bot's logs.```",
+    "required_cogs": {},
+    "requirements": [],
+    "short": "Owner cog to show the latest logs.",
+    "end_user_data_statement": "This cog does not store any user data.",
+    "tags": ["crab", "logs", "dev", "owner", "debug"]
+}
