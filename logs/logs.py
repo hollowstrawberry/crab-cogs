@@ -44,8 +44,8 @@ class Logs(commands.Cog):
             await channel.send(content=pages[0])
         else:
             pages.reverse()
-            for i, page in enumerate(pages):
-                page += f"`Page {i+1}/{len(pages)}`"
+            for i in range(len(pages)):
+                pages[i] += f"`Page {i+1}/{len(pages)}`"
             ctx.message.channel = channel
             await SimpleMenu(pages, timeout=7200, page_start=len(pages)-1).start(ctx)
 
