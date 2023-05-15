@@ -1,10 +1,12 @@
+import os
 import discord
 from typing import Optional
 from redbot.core import commands, Config
 from redbot.core.bot import Red
 from redbot.core.utils.menus import SimpleMenu
+from redbot.core.data_manager import core_data_path
 
-LATEST_LOGS = "/data/core/logs/latest.log"
+LATEST_LOGS = os.path.join(core_data_path(), "logs/latest.log")
 MAX_PAGE_LENGTH = 1970
 
 class Logs(commands.Cog):
