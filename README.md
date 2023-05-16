@@ -48,7 +48,7 @@ Developer cog that opens an interactive view of your bot's console output within
 
 ### ⏺ Autoreact
 
-Lets you configure emoji reactions that will be added to any message containing text matching a regex. Can be useful or just for fun.  
+Lets you configure emoji reactions that will be added to any message containing text matching a regex. Can be useful or just for fun. Now also lets you make the bot copy other people's reactions randomly.  
 
 ![demonstration](https://media.discordapp.net/attachments/541768631445618689/1103721844072251423/Screenshot_20230504-123621_Discord.png)
 
