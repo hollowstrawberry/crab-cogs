@@ -2,14 +2,18 @@ import re
 import discord
 import logging
 from random import random
-from itertools import batched
 from emoji import is_emoji
 from redbot.core import commands, Config
 from redbot.core.bot import Red
 from redbot.core.utils.views import SimpleMenu
-from typing import *
+from typing import Optional, Union
 
 log = logging.getLogger("red.crab-cogs.autoreact")
+
+def batched(lst: list, n: int):
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
 
 class Autoreact(commands.Cog):
     """Lets you configure emojis that will be added to any message containing text matching a regex."""
@@ -18,8 +22,8 @@ class Autoreact(commands.Cog):
         super().__init__()
         self.bot = bot
         self.config = Config.get_conf(self, identifier=61757472)
-        self.autoreacts: Dict[int, Dict[str, re.Pattern]] = {}
-        self.coreact_chance: Dict[int, float] = {}
+        self.autoreacts: dict[int, dict[str, re.Pattern]] = {}
+        self.coreact_chance: dict[int, float] = {}
         self.config.register_guild(autoreact_regexes={}, coreact_chance=0.0)
 
     async def cog_load(self):
