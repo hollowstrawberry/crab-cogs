@@ -4,9 +4,13 @@ from datetime import datetime
 from discord.ext import tasks
 from redbot.core import commands, Config
 from redbot.core.bot import Red
-from typing import *
+from redbot.core.utils.views import SimpleMenu
 
 log = logging.getLogger("red.crab-cogs.gamealert")
+
+def batched(lst: list, n: int):
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
 
 
 class GameAlert(commands.Cog):
@@ -16,8 +20,8 @@ class GameAlert(commands.Cog):
         super().__init__()
         self.bot = bot
         self.config = Config.get_conf(self, identifier=6761656165)
-        self.alerts: Dict[int, List[dict]] = {}
-        self.alerted: List[int] = []
+        self.alerts: dict[int, list[dict]] = {}
+        self.alerted: list[int] = []
         self.config.register_guild(alerts=[])
         self.alert_loop.start()
 
@@ -104,17 +108,23 @@ class GameAlert(commands.Cog):
                 await ctx.send("No alerts found for that game.")
 
     @gamealert.command()
-    async def list(self, ctx: commands.Context, page: int = 1):
+    async def list(self, ctx: commands.Context):
         """Shows all game alerts."""
-        embed = discord.Embed(title="Server Game Alerts", color=await ctx.embed_color(), description="None")
-        if ctx.guild.id in self.alerts and self.alerts[ctx.guild.id]:
-            alerts = [f"- {alert['game_name']} in <#{alert['channel_id']}> after {alert['delay_minutes']} minutes"
-                      for alert in self.alerts[ctx.guild.id]]
-            embed.set_footer(text=f"Page {page}/{(9+len(alerts))//10}")
-            alerts = alerts[10*(page-1):10*page]
-            if alerts:
-                embed.description = '\n'.join(alerts)
-        await ctx.send(embed=embed)
+        if ctx.guild.id not in self.alerts or not self.alerts[ctx.guild.id]:
+            return await ctx.send("None.")
+        alerts = [f"- {alert['game_name']} in <#{alert['channel_id']}> after {alert['delay_minutes']} minutes"
+                  for alert in self.alerts[ctx.guild.id]]
+        pages = []
+        for i, batch in enumerate(batched(alerts, 10)):
+            embed = discord.Embed(title="Server Autoreacts", color=await ctx.embed_color())
+            if len(alerts) > 10:
+                embed.set_footer(text=f"Page {i+1}/{(9+len(alerts))//10}")
+            embed.description = '\n'.join(batch)
+            pages.append(embed)
+        if len(pages) == 1:
+            await ctx.send(embed=pages[0])
+        else:
+            await SimpleMenu(pages, timeout=600).start(ctx)
 
     @gamealert.command()
     async def show(self, ctx: commands.Context, *, game: str):
