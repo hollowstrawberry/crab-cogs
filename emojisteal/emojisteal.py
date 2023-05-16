@@ -35,7 +35,6 @@ For a moving sticker, Discord limitations make it very annoying. Follow these st
 \n**Important:** """ + STICKER_TOO_BIG
 
 
-
 @dataclass(init=True, order=True, frozen=True)
 class StolenEmoji:
     animated: bool
@@ -157,9 +156,9 @@ class EmojiSteal(commands.Cog):
                     pass
 
     # context menu added in __init__
-    @commands.guild_only()
-    @commands.has_permissions(manage_emojis=True)
-    @commands.bot_has_permissions(manage_emojis=True)
+    @app_commands.guild_only()
+    @app_commands.checks.has_permissions(manage_emojis=True)
+    @app_commands.checks.bot_has_permissions(manage_emojis=True)
     async def steal_upload_app_command(self, ctx: discord.Interaction, message: discord.Message):
         if message.stickers:
             emojis = message.stickers
