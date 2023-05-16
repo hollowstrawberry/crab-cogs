@@ -59,7 +59,7 @@ class Autoreact(commands.Cog):
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction: discord.Reaction, user: discord.Member):
         message = reaction.message
-        if not message or not messsage.guild or message.author.bot:
+        if not message or not message.guild or message.author.bot:
             return
         chance = self.coreact_chance.get(message.guild.id, 0.0)
         if not chance:
