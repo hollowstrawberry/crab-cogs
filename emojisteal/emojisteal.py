@@ -1,5 +1,6 @@
 import io
 import re
+import zipfile
 import aiohttp
 import discord
 from dataclasses import dataclass
@@ -8,6 +9,8 @@ from redbot.core import commands, app_commands
 from typing import Optional, Union, List
 
 IMAGE_TYPES = (".png", ".jpg", ".jpeg", ".gif", ".webp")
+STICKER_KB = 512
+STICKER_DIM = 320
 
 MISSING_EMOJIS = "Can't find emojis or stickers in that message."
 MISSING_REFERENCE = "Reply to a message with this command to steal an emoji."
@@ -21,8 +24,16 @@ STICKER_SLOTS = "⚠ This server doesn't have any more space for stickers!"
 EMOJI_FAIL = "❌ Failed to upload"
 EMOJI_SLOTS = "⚠ This server doesn't have any more space for emojis!"
 INVALID_EMOJI = "Invalid emoji or emoji ID."
-STICKER_ATTACHMENT = "You must upload a PNG image when using this command."
-STICKER_OVER_MAX_FILESIZE = "Stickers may only be up to 500 KB."
+STICKER_TOO_BIG = f"Stickers may only be up to {STICKER_KB} KB and {STICKER_DIM}x{STICKER_DIM} pixels."
+STICKER_ATTACHMENT = """
+>>> For a non-moving sticker, simply use this command and attach a PNG image.
+For a moving sticker, Discord limitations make it very annoying. Follow these steps:
+1. Scale down and optimize your video/gif in <https://ezgif.com>
+2. Convert it to APNG in that same website.
+3. Download it and put it inside a zip file.
+4. Use this command and attach that zip file.
+\n**Important:** """ + STICKER_TOO_BIG
+
 
 
 @dataclass(init=True, order=True, frozen=True)
@@ -211,18 +222,27 @@ class EmojiSteal(commands.Cog):
         """Uploads a sticker to the server, useful for mobile."""
         if len(ctx.guild.stickers) >= ctx.guild.sticker_limit:
             return await ctx.send(content=STICKER_SLOTS)
-        if not ctx.message.attachments or not ctx.message.attachments[0].filename.endswith(".png"):
+        if not ctx.message.attachments or not ctx.message.attachments[0].filename.endswith((".png", ".zip")):
             return await ctx.send(STICKER_ATTACHMENT)
         attachment = ctx.message.attachments[0]
-        if attachment.size > 500 * 1024:
-            return await ctx.send(STICKER_OVER_MAX_FILESIZE)
+        if attachment.size > STICKER_KB * 1024 or attachment.width and attachment.width > STICKER_DIM or attachment.height and attachment.height > STICKER_DIM:
+            return await ctx.send(STICKER_TOO_BIG)
         await ctx.typing()
         name = name or attachment.filename.split('.')[0]
         fp = io.BytesIO()
         try:
             await attachment.save(fp)
+            if attachment.filename.endswith(".zip"):
+                zip = zipfile.ZipFile(fp)
+                files = zipfile.ZipFile.namelist(zip)
+                file = next(f for f in files if f.endswith(".png"))
+                if not file:
+                    return await ctx.send(STICKER_ATTACHMENT)
+                fp = io.BytesIO(zip.read(file))
             sticker = await ctx.guild.create_sticker(
                 name=name, description=f"{UPLOADED_BY} {ctx.author}", emoji=STICKER_EMOJI, file=discord.File(fp))
         except Exception as error:
+            if "exceed" in str(error):
+                return await ctx.send(STICKER_TOO_BIG)
             return await ctx.send(f"{STICKER_FAIL}, {type(error).__name__}: {error}")
         return await ctx.send(f"{STICKER_SUCCESS}: {sticker.name}")

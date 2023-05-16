@@ -18,7 +18,7 @@ You may be prompted to respond with "I agree" after the second command.
 
 ### 😶 EmojiSteal
 
-Lets anyone steal emojis and stickers sent by other people, and lets moderators upload them to the current server instantly. Supports context menus. Specially useful if you're on mobile as the Discord app doesn't let you copy emoji links or upload stickers, but this cog has commands for those. Converting self-uploaded gifs to stickers is very difficult and not yet supported.
+Lets anyone steal emojis and stickers sent by other people, and lets moderators upload them to the current server instantly. Supports context menus. Specially useful if you're on mobile as the Discord app doesn't let you copy emoji links or upload stickers, but this cog has commands for those. Animated stickers are annoying but there's a workaround.
 
 ![demonstration](https://media.discordapp.net/attachments/541768631445618689/1103728807430590524/Screenshot_20230504-130350_Discord.png)
 
