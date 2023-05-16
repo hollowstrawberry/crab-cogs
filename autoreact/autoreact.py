@@ -14,6 +14,9 @@ def batched(lst: list, n: int):
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
 
+def is_regional_indicator(string: str):
+    return string.strip() in "🇦🇧🇨🇩🇪🇫🇬🇭🇮🇯🇰🇱🇲🇳🇴🇵🇶🇷🇸🇹🇺🇻🇼🇽🇾🇿"
+
 
 class Autoreact(commands.Cog):
     """Lets you configure emojis that will be added to any message containing text matching a regex."""
@@ -50,11 +53,19 @@ class Autoreact(commands.Cog):
         if not await self.is_valid_red_message(message):
             return
         for emoji, regex in autoreact.items():
-            if regex.search(message.content):
-                try:
-                    await message.add_reaction(emoji)
-                except Exception as error:
-                    log.warning(f"Failed to react with {emoji} - {type(error).__name__}: {error}", exc_info=True)
+            if not regex.search(message.content):
+                continue
+            try:
+                await message.add_reaction(emoji)
+            except Exception as error:
+                if "Unknown Emoji" in str(error):
+                    async with self.config.guild(message.guild).autoreact_regexes() as autoreacts:
+                        removed1 = autoreacts.pop(emoji, None)
+                        removed2 = self.autoreacts[message.guild.id].pop(emoji, None)
+                        if removed1 or removed2:
+                            log.info(f"Removed invalid or deleted emoji {emoji}")
+                            return
+                log.warning(f"Failed to react with {emoji} - {type(error).__name__}: {error}", exc_info=True)
                     
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction: discord.Reaction, user: discord.Member):
@@ -64,15 +75,14 @@ class Autoreact(commands.Cog):
         if any(existing.me for existing in message.reactions if existing.emoji == reaction.emoji):
             return
         chance = self.coreact_chance.get(message.guild.id, 0.0)
-        if not chance:
+        if not chance or random() >= chance:
             return
         if not await self.is_valid_red_message(message):
             return
-        if random() < chance:
-            try:
-                await message.add_reaction(reaction.emoji)
-            except Exception as error:
-                log.warning(f"Failed to react with {emoji} - {type(error).__name__}: {error}", exc_info=True)
+        try:
+            await message.add_reaction(reaction.emoji)
+        except Exception as error:
+            log.warning(f"Failed to react with {reaction.emoji} - {type(error).__name__}: {error}", exc_info=True)
 
     async def is_valid_red_message(self, message: discord.Message) -> bool:
         return await self.bot.allowed_by_whitelist_blacklist(message.author) \
@@ -92,7 +102,7 @@ class Autoreact(commands.Cog):
     @commands.bot_has_permissions(add_reactions=True)
     async def add(self, ctx: commands.Context, emoji: Union[discord.Emoji, str], *, pattern: str):
         """Add a new autoreact using regex. Tip: (?i) in a regex makes it case-insensitive."""
-        if isinstance(emoji, str) and not is_emoji(emoji):
+        if isinstance(emoji, str) and not is_emoji(emoji) and not is_regional_indicator(emoji):
             await ctx.send("Sorry, that doesn't seem to be a valid emoji to react with.")
             return
         if isinstance(emoji, discord.Emoji) and emoji not in self.bot.emojis:
@@ -119,8 +129,9 @@ class Autoreact(commands.Cog):
     @commands.has_permissions(manage_guild=True)
     async def remove(self, ctx: commands.Context, emoji: Union[discord.Emoji, str]):
         """Remove an existing autoreact for an emoji."""
-        if isinstance(emoji, str) and not is_emoji(emoji):
-            await ctx.send("Sorry, that doesn't seem to be a valid emoji.")
+        if isinstance(emoji, str) and not is_emoji(emoji) and not is_regional_indicator(emoji):
+            await ctx.send("Sorry, that doesn't seem to be a valid emoji. "
+                           "If the emoji was deleted, trigger the autoreact to remove it automatically.")
             return
         emoji = str(emoji)
         self.autoreacts.setdefault(ctx.guild.id, {})
