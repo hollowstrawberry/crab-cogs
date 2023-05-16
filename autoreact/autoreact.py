@@ -146,12 +146,12 @@ class Autoreact(commands.Cog):
         
     @commands.group(invoke_without_command=True)
     @commands.has_permission(manage_guild=True)
-    async def coreact(self, ctx: commands.Context)
+    async def coreact(self, ctx: commands.Context):
         """Copies other people's reactions to recent messages."""
         await ctx.send_help()
         
     @coreact.command()
-    async def chance(self, ctx: commands.Context, chance: Optional[float])
+    async def chance(self, ctx: commands.Context, chance: Optional[float]):
         """The percent chance that the bot will add its own reaction when anyone else reacts."""
         if chance is None:
             return await ctx.send(f"The current chance is {self.coreact_chance.get(ctx.guild.id, 0.0) * 100:.2f}%")
