@@ -25,8 +25,8 @@ EMOJI_FAIL = "❌ Failed to upload"
 EMOJI_SLOTS = "⚠ This server doesn't have any more space for emojis!"
 INVALID_EMOJI = "Invalid emoji or emoji ID."
 STICKER_TOO_BIG = f"Stickers may only be up to {STICKER_KB} KB and {STICKER_DIM}x{STICKER_DIM} pixels."
-STICKER_ATTACHMENT = ">>> For a non-moving sticker, simply use this command and attach a PNG image.\n"
-                     "For a moving sticker, Discord limitations make it very annoying. Follow these steps:\n"
+STICKER_ATTACHMENT = ">>> For a non-moving sticker, simply use this command and attach a PNG image.\n" 
+                     "For a moving sticker, Discord limitations make it very annoying. Follow these steps:\n" +
                      "1. Scale down and optimize your video/gif in <https://ezgif.com>\n" +
                      "2. Convert it to APNG in that same website.\n" +
                      "3. Download it and put it inside a zip file.\n" +
