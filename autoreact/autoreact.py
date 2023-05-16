@@ -61,8 +61,6 @@ class Autoreact(commands.Cog):
         message = reaction.message
         if not message or not message.guild or message.author.bot:
             return
-        if any(react.me for react in message.reactions if react.emoji == reaction.emoji):
-            return
         chance = self.coreact_chance.get(message.guild.id, 0.0)
         if not chance:
             return
