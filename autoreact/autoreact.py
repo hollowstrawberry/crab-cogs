@@ -14,6 +14,9 @@ def batched(lst: list, n: int):
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
 
+def is_regional_indicator(string: str):
+    return string.strip() in "🇦🇧🇨🇩🇪🇫🇬🇭🇮🇯🇰🇱🇲🇳🇴🇵🇶🇷🇸🇹🇺🇻🇼🇽🇾🇿"
+
 
 class Autoreact(commands.Cog):
     """Lets you configure emojis that will be added to any message containing text matching a regex."""
@@ -99,7 +102,7 @@ class Autoreact(commands.Cog):
     @commands.bot_has_permissions(add_reactions=True)
     async def add(self, ctx: commands.Context, emoji: Union[discord.Emoji, str], *, pattern: str):
         """Add a new autoreact using regex. Tip: (?i) in a regex makes it case-insensitive."""
-        if isinstance(emoji, str) and not is_emoji(emoji):
+        if isinstance(emoji, str) and not is_emoji(emoji) and not is_regional_indicator(emoji):
             await ctx.send("Sorry, that doesn't seem to be a valid emoji to react with.")
             return
         if isinstance(emoji, discord.Emoji) and emoji not in self.bot.emojis:
@@ -126,7 +129,7 @@ class Autoreact(commands.Cog):
     @commands.has_permissions(manage_guild=True)
     async def remove(self, ctx: commands.Context, emoji: Union[discord.Emoji, str]):
         """Remove an existing autoreact for an emoji."""
-        if isinstance(emoji, str) and not is_emoji(emoji):
+        if isinstance(emoji, str) and not is_emoji(emoji) and not is_regional_indicator(emoji):
             await ctx.send("Sorry, that doesn't seem to be a valid emoji. "
                            "If the emoji was deleted, trigger the autoreact to remove it automatically.")
             return
