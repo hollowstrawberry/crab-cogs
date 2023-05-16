@@ -1,9 +1,12 @@
 import re
 import discord
 import logging
+from random import random
+from itertools import batched
 from emoji import is_emoji
 from redbot.core import commands, Config
 from redbot.core.bot import Red
+from redbot.core.utils.views import SimpleMenu
 from typing import *
 
 log = logging.getLogger("red.crab-cogs.autoreact")
@@ -16,12 +19,14 @@ class Autoreact(commands.Cog):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=61757472)
         self.autoreacts: Dict[int, Dict[str, re.Pattern]] = {}
-        self.config.register_guild(autoreact_regexes={})
+        self.coreact_chance: Dict[int, float] = {}
+        self.config.register_guild(autoreact_regexes={}, coreact_chance=0.0)
 
     async def cog_load(self):
         all_config = await self.config.all_guilds()
         self.autoreacts = {guild_id: {emoji: re.compile(text) for emoji, text in conf['autoreact_regexes'].items()}
                            for guild_id, conf in all_config.items()}
+        self.coreact_chance = {guild_id: conf['coreact_chance'] for guild_id, conf in all_config.items()}
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         pass
@@ -46,6 +51,22 @@ class Autoreact(commands.Cog):
                     await message.add_reaction(emoji)
                 except Exception as error:
                     log.warning(f"Failed to react with {emoji} - {type(error).__name__}: {error}", exc_info=True)
+                    
+    @commands.Cog.listener()
+    async def on_reaction_add(self, reaction: discord.Reaction, user: discord.Member):
+        message = reaction.message
+        if not message or not messsage.guild or message.author.bot:
+            return
+        chance = self.coreact_chance.get(message.guild.id, 0.0)
+        if not chance:
+            return
+        if not await self.is_valid_red_message(message):
+            return
+        if random() < chance:
+            try:
+                await message.add_reaction(reaction.emoji)
+            except Exception as error:
+                log.warning(f"Failed to react with {emoji} - {type(error).__name__}: {error}", exc_info=True)
 
     async def is_valid_red_message(self, message: discord.Message) -> bool:
         return await self.bot.allowed_by_whitelist_blacklist(message.author) \
@@ -106,14 +127,36 @@ class Autoreact(commands.Cog):
                 await ctx.send("No autoreacts found for that emoji.")
 
     @autoreact.command()
-    async def list(self, ctx: commands.Context, page: int = 1):
+    async def list(self, ctx: commands.Context):
         """Shows all autoreacts."""
-        embed = discord.Embed(title="Server Autoreacts", color=await ctx.embed_color(), description="None")
-        if ctx.guild.id in self.autoreacts and self.autoreacts[ctx.guild.id]:
-            autoreacts = [f"{emoji} {regex.pattern if '`' in regex.pattern else f'`{regex.pattern}`'}"
-                          for emoji, regex in self.autoreacts[ctx.guild.id].items()]
-            embed.set_footer(text=f"Page {page}/{(9+len(autoreacts))//10}")
-            autoreacts = autoreacts[10*(page-1):10*page]
-            if autoreacts:
-                embed.description = '\n'.join(autoreacts)
-        await ctx.send(embed=embed)
+        if ctx.guild.id not in self.autoreacts or not self.autoreacts[ctx.guild.id]:
+            return await ctx.send("None.")
+        autoreacts = [f"{emoji} {regex.pattern if '`' in regex.pattern else f'`{regex.pattern}`'}"
+                      for emoji, regex in self.autoreacts[ctx.guild.id].items()]
+        pages = []
+        for i, batch in enumerate(batched(pages, 10)):
+            embed = discord.Embed(title="Server Autoreacts", color=await ctx.embed_color())
+            embed.set_footer(text=f"Page {i+1}/{(9+len(autoreacts))//10}")
+            embed.description = '\n'.join(autoreacts)
+            pages.append(embed)
+        if len(pages) == 1:
+            await ctx.send(embed=embed)
+        else:
+            await SimpleMenu(pages, timeout=600).start(ctx)
+        
+    @commands.group(invoke_without_command=True)
+    @commands.has_permission(manage_guild=True)
+    async def coreact(self, ctx: commands.Context)
+        """Copies other people's reactions to recent messages."""
+        await ctx.send_help()
+        
+    @coreact.command()
+    async def chance(self, ctx: commands.Context, chance: Optional[float])
+        """The percent chance that the bot will add its own reaction when anyone else reacts."""
+        if chance is None:
+            return await ctx.send(f"The current chance is {self.coreact_chance.get(ctx.guild.id, 0.0) * 100:.2f}%")
+        chance = max(0.0, min(100.0, chance)) / 100
+        await self.config.guild(ctx.guild).coreact_chance.set(chance)
+        self.coreact_chance[ctx.guild.id] = chance
+        await ctx.send(f"✅ The new chance is {chance * 100:.2f}%")
+
