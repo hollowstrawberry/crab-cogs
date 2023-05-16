@@ -146,7 +146,7 @@ class Autoreact(commands.Cog):
             embed.description = '\n'.join(autoreacts)
             pages.append(embed)
         if len(pages) == 1:
-            await ctx.send(embed=embed)
+            await ctx.send(embed=pages[0])
         else:
             await SimpleMenu(pages, timeout=600).start(ctx)
         
