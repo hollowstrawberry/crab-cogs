@@ -91,7 +91,7 @@ class Autoreact(commands.Cog):
     @commands.has_permissions(manage_guild=True)
     @commands.bot_has_permissions(add_reactions=True)
     async def add(self, ctx: commands.Context, emoji: Union[discord.Emoji, str], *, pattern: str):
-        """Add a new autoreact using regex."""
+        """Add a new autoreact using regex. Tip: (?i) in a regex makes it case-insensitive."""
         if isinstance(emoji, str) and not is_emoji(emoji):
             await ctx.send("Sorry, that doesn't seem to be a valid emoji to react with.")
             return
@@ -142,7 +142,8 @@ class Autoreact(commands.Cog):
         pages = []
         for i, batch in enumerate(batched(autoreacts, 10)):
             embed = discord.Embed(title="Server Autoreacts", color=await ctx.embed_color())
-            embed.set_footer(text=f"Page {i+1}/{(9+len(autoreacts))//10}")
+            if len(autoreacts) > 10:
+                embed.set_footer(text=f"Page {i+1}/{(9+len(autoreacts))//10}")
             embed.description = '\n'.join(batch)
             pages.append(embed)
         if len(pages) == 1:
