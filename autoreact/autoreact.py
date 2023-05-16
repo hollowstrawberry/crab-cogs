@@ -140,12 +140,11 @@ class Autoreact(commands.Cog):
         autoreacts = [f"{emoji} {regex.pattern if '`' in regex.pattern else f'`{regex.pattern}`'}"
                       for emoji, regex in self.autoreacts[ctx.guild.id].items()]
         pages = []
-        for i, batch in enumerate(batched(pages, 10)):
+        for i, batch in enumerate(batched(autoreacts, 10)):
             embed = discord.Embed(title="Server Autoreacts", color=await ctx.embed_color())
             embed.set_footer(text=f"Page {i+1}/{(9+len(autoreacts))//10}")
-            embed.description = '\n'.join(autoreacts)
+            embed.description = '\n'.join(batch)
             pages.append(embed)
-        log.info(f"{len(autoreacts):}, {len(pages):}, {pages}")
         if len(pages) == 1:
             await ctx.send(embed=pages[0])
         else:
