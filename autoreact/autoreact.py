@@ -145,7 +145,7 @@ class Autoreact(commands.Cog):
             embed.set_footer(text=f"Page {i+1}/{(9+len(autoreacts))//10}")
             embed.description = '\n'.join(autoreacts)
             pages.append(embed)
-        print(f"{len(autoreacts):}, {len(pages):}, {pages}")
+        log.info(f"{len(autoreacts):}, {len(pages):}, {pages}")
         if len(pages) == 1:
             await ctx.send(embed=pages[0])
         else:
