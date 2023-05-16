@@ -149,7 +149,7 @@ class Autoreact(commands.Cog):
             await SimpleMenu(pages, timeout=600).start(ctx)
         
     @commands.group(invoke_without_command=True)
-    @commands.has_permission(manage_guild=True)
+    @commands.has_permissions(manage_guild=True)
     async def coreact(self, ctx: commands.Context):
         """Copies other people's reactions to recent messages."""
         await ctx.send_help()
