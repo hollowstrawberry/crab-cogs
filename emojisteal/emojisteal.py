@@ -224,7 +224,7 @@ class EmojiSteal(commands.Cog):
             await attachment.save(fp)
             if attachment.filename.endswith(".zip"):
                 zip = zipfile.ZipFile(fp)
-                files = zipfile.ZipFile.namelist(zp)
+                files = zipfile.ZipFile.namelist(zip)
                 file = next(f for f in files if f.endswith(".png"))
                 if not file:
                     return await ctx.send(STICKER_ATTACHMENT)
