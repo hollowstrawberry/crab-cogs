@@ -59,7 +59,9 @@ class Autoreact(commands.Cog):
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction: discord.Reaction, user: discord.Member):
         message = reaction.message
-        if not message or not message.guild or message.author.bot:
+        if not message or not message.guild or user.bot:
+            return
+        if any(existing.me for existing in message.reactions if existing.emoji == reaction.emoji):
             return
         chance = self.coreact_chance.get(message.guild.id, 0.0)
         if not chance:
