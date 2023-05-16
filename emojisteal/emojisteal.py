@@ -1,5 +1,6 @@
 import io
 import re
+import zipfile
 import aiohttp
 import discord
 from dataclasses import dataclass
@@ -211,7 +212,7 @@ class EmojiSteal(commands.Cog):
         """Uploads a sticker to the server, useful for mobile."""
         if len(ctx.guild.stickers) >= ctx.guild.sticker_limit:
             return await ctx.send(content=STICKER_SLOTS)
-        if not ctx.message.attachments or not ctx.message.attachments[0].filename.endswith(".png"):
+        if not ctx.message.attachments or not ctx.message.attachments[0].filename.endswith((".png", ".zip")):
             return await ctx.send(STICKER_ATTACHMENT)
         attachment = ctx.message.attachments[0]
         if attachment.size > 500 * 1024:
@@ -221,6 +222,13 @@ class EmojiSteal(commands.Cog):
         fp = io.BytesIO()
         try:
             await attachment.save(fp)
+            if attachment.filename.endswith(".zip"):
+                zip = zipfile.ZipFile(fp)
+                files = zipfile.ZipFile.namelist(zp)
+                file = next(f for f in files if f.endswith(".png"))
+                if not file:
+                    return await ctx.send(STICKER_ATTACHMENT)
+                fp = io.BytesIO(zip.read(file))
             sticker = await ctx.guild.create_sticker(
                 name=name, description=f"{UPLOADED_BY} {ctx.author}", emoji=STICKER_EMOJI, file=discord.File(fp))
         except Exception as error:
