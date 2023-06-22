@@ -77,7 +77,7 @@ class ImageLog(commands.Cog):
     @commands.guild_only()
     async def imagelog(self, ctx: commands.Context):
         """View the current image log channel."""
-        channel_id = await self.logchannels.get(ctx.guild.id, 0)
+        channel_id = self.logchannels.get(ctx.guild.id, 0)
         if channel_id:
             await ctx.reply(f"Deleted images are currently logged to <#{channel_id}>\nYou can change it or remove it with {ctx.prefix}imagelog setchannel")
         else:
