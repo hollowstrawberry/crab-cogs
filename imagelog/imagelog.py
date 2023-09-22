@@ -28,8 +28,8 @@ class ImageLog(commands.Cog):
         message = ctx.cached_message
         if not message or not self.logchannels.get(ctx.guild_id, 0):
             return
-        guild = self.bot.get_guild(ctx.guild_id)
-        channel = guild.get_channel(ctx.channel_id)
+        guild = message.guild
+        channel = message.channel
         log_channel = guild.get_channel(self.logchannels[guild.id])
         attachments = [a for a in message.attachments if a.filename.lower().endswith(IMAGE_TYPES)]
         if not log_channel or not attachments:
