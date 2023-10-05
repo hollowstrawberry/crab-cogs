@@ -73,7 +73,10 @@ class ImageScanner(commands.Cog):
             image_data = await attachment.read()
             with Image.open(io.BytesIO(image_data)) as img:
                 try:
-                    info = img.info['parameters']
+                    if attachment.filename.endswith(".png"):
+                        info = img.info['parameters']
+                    else:
+                        info = img._getexif().get(37510).decode('utf8')[7:]
                 except:
                     info = read_info_from_image_stealth(img)
                 if info and "Steps" in info:
@@ -99,7 +102,7 @@ class ImageScanner(commands.Cog):
         channel_perms = message.channel.permissions_for(message.guild.me)
         if not channel_perms.add_reactions:
             return
-        attachments = [a for a in message.attachments if a.filename.lower().endswith(".png") and a.size < self.scan_limit]
+        attachments = [a for a in message.attachments if a.filename.lower().endswith((".png", ".jpeg", ".jpg")) and a.size < self.scan_limit]
         if not attachments:
             return
         if not await self.is_valid_red_message(message):
