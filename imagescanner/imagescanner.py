@@ -77,10 +77,12 @@ class ImageScanner(commands.Cog):
                         info = img.info['parameters']
                     else:
                         info = img._getexif().get(37510).decode('utf8')[7:]
+                    if info and "Steps" in info:
+                        metadata[i] = info
                 except:
-                    info = read_info_from_image_stealth(img)
-                if info and "Steps" in info:
-                    metadata[i] = info
+                    if "Title" in img.info and img.info["Title"] == "AI generated image":
+                        metadata[i] = "NovelAI3 Prompt: " + img.info['Description'].strip()
+
         except Exception as error:
             print(f"{type(error).__name__}: {error}")
         else:
