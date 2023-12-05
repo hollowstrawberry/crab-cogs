@@ -40,6 +40,7 @@ class ImageScanner(commands.Cog):
         output_dict = {}
         parts = param_str.split('Steps: ')
         prompts = parts[0]
+        promptkey = 'Prompt'
         if 'Negative prompt: ' in prompts:
             output_dict['Prompt'] = prompts.split('Negative prompt: ')[0]
             output_dict['Negative Prompt'] = prompts.split('Negative prompt: ')[1]
@@ -48,11 +49,12 @@ class ImageScanner(commands.Cog):
         else:
             nai = prompts.split('NovelAI3 Prompt: ')
             if len(nai) > 1:
-                output_dict['NovelAI3 Prompt'] = nai[1]
+                promptkey = 'NovelAI3 Prompt'
+                output_dict[promptkey] = nai[1]
             else:
-                output_dict['Prompt'] = prompts
-        if len(output_dict['Prompt']) > 1000:
-            output_dict['Prompt'] = output_dict['Prompt'][:1000] + '...'
+                output_dict[promptkey] = prompts
+        if len(output_dict[promptkey]) > 1000:
+            output_dict[promptkey] = output_dict[promptkey][:1000] + '...'
         if len(parts) > 1:
             params = 'Steps: ' + parts[1]
             params = params.split(', ')
