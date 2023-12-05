@@ -40,7 +40,6 @@ class ImageScanner(commands.Cog):
         output_dict = {}
         parts = param_str.split('Steps: ')
         prompts = parts[0]
-        params = 'Steps: ' + parts[1]
         if 'Negative prompt: ' in prompts:
             output_dict['Prompt'] = prompts.split('Negative prompt: ')[0]
             output_dict['Negative Prompt'] = prompts.split('Negative prompt: ')[1]
@@ -50,13 +49,15 @@ class ImageScanner(commands.Cog):
             output_dict['Prompt'] = prompts
         if len(output_dict['Prompt']) > 1000:
             output_dict['Prompt'] = output_dict['Prompt'][:1000] + '...'
-        params = params.split(', ')
-        for param in params:
-            try:
-                key, value = param.split(': ')
-                output_dict[key] = value
-            except ValueError:
-                pass
+        if len(parts) > 1:
+            params = 'Steps: ' + parts[1]
+            params = params.split(', ')
+            for param in params:
+                try:
+                    key, value = param.split(': ')
+                    output_dict[key] = value
+                except ValueError:
+                    pass
         return output_dict
 
     @staticmethod
