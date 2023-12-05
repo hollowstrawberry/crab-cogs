@@ -46,7 +46,11 @@ class ImageScanner(commands.Cog):
             if len(output_dict['Negative Prompt']) > 1000:
                 output_dict['Negative Prompt'] = output_dict['Negative Prompt'][:1000] + '...'
         else:
-            output_dict['Prompt'] = prompts
+            nai = prompts.split('NovelAI3 Prompt: ')
+            if len(nai) > 1:
+                output_dict['NovelAI3 Prompt'] = nai[1]
+            else:
+                output_dict['Prompt'] = prompts
         if len(output_dict['Prompt']) > 1000:
             output_dict['Prompt'] = output_dict['Prompt'][:1000] + '...'
         if len(parts) > 1:
