@@ -57,6 +57,7 @@ class Booru(commands.Cog):
                 result = json.loads(response)
             except KeyError:
                 await ctx.send(embed=discord.Embed(description="💨 No results...", color=EMBED_COLOR))
+                return
             except Exception as e:
                 log.error("Failed to grab image from Gelbooru", exc_info=e)
                 await ctx.send("Sorry, there was an error trying to grab an image from Gelbooru. Please try again or contact the bot owner.")
