@@ -57,6 +57,7 @@ class Booru(commands.Cog):
         embed.set_image(url=result.get("file_url", result.get("sample_url", result["preview_url"])))
         if result.get("source", ""):
             embed.description = f"[🔗 Original Source]({result['source']})"
+        embed.set_footer(text=f"⭐ {result.get('score', 0)}")
         await ctx.send(embed=embed)
 
     @booru.autocomplete("tags")
@@ -68,5 +69,6 @@ class Booru(commands.Cog):
             previous, last = current.rsplit(' ', maxsplit=1)
             response = await self.gel.find_tags(query=f"*{last}*")
             results = json.loads(response)
-            results = [f"{previous} {res}" for res in results][:20]
+            results = [f"{previous} {res}" for res in results][:10]
+            log.info(results)
         return [discord.app_commands.Choice(name=i, value=i) for i in results]
