@@ -1,0 +1,12 @@
+{
+    "author": ["OrchidAlloy"],
+    "min_bot_version": "3.5.0",
+    "description": "Searches images on Gelbooru with slash command and tag completion support.",
+    "hidden": false,
+    "install_msg": "🎤 __**Booru**__ ```Cog installed. Instructions:\n1. Load it with [p]load booru\n2. Enable the slash command with [p]slash enable booru\n3. Sync slash commands with [p]slash sync```",
+    "required_cogs": {},
+    "requirements": [],
+    "short": "Searches images on Gelbooru with slash command and tag completion support.",
+    "end_user_data_statement": "This cog does not store user data.",
+    "tags": ["crab", "booru", "anime", "fun", "images", "imageboard"]
+}
