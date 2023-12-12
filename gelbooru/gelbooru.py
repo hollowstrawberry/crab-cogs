@@ -7,6 +7,8 @@ from redbot.core import commands
 
 log = logging.getLogger("red.crab-cogs.boorucog")
 
+EMBED_COLOR = 0xD7598B
+EMBED_ICON = "https://i.imgur.com/FeRu6Pw.png"
 IMAGE_TYPES = (".png", ".jpeg", ".jpg", ".webp")
 TAG_BLACKLIST = "loli guro video"
 
@@ -47,13 +49,15 @@ class Booru(commands.Cog):
             try:
                 response = await self.gel.search(query=tags, block=TAG_BLACKLIST, gacha=True)
                 result = json.loads(response)
+            except KeyError:
+                await ctx.send(embed=discord.Embed(description="💨 No results...", color=EMBED_COLOR))
             except Exception as e:
                 log.error("Failed to grab image from Gelbooru", exc_info=e)
                 await ctx.send("Sorry, there was an error trying to grab an image from Gelbooru. Please try again or contact the bot owner.")
                 return
 
-        embed = discord.Embed(color=0xD7598B)
-        embed.set_author(name="Gelbooru Post", url=result.get("post_url", None), icon_url="https://i.imgur.com/FeRu6Pw.png")
+        embed = discord.Embed(color=EMBED_COLOR)
+        embed.set_author(name="Gelbooru Post", url=result.get("post_url", None), icon_url=EMBED_ICON)
         embed.set_image(url=result.get("file_url", result.get("sample_url", result["preview_url"])))
         if result.get("source", ""):
             embed.description = f"[🔗 Original Source]({result['source']})"
@@ -62,6 +66,7 @@ class Booru(commands.Cog):
 
     @booru.autocomplete("tags")
     async def tags_autocomplete(self, interaction: discord.Interaction, current: str):
+        interaction.
         current = current.strip()
         if not current:
             results = ["None"]
@@ -79,5 +84,4 @@ class Booru(commands.Cog):
             else:
                 if previous:
                     results = [f"{previous} {res}" for res in results]
-                log.info(results)
         return [discord.app_commands.Choice(name=i, value=i) for i in results]
