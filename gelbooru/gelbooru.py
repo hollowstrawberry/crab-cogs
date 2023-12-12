@@ -24,7 +24,7 @@ class Booru(commands.Cog):
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         pass
 
-    @commands.hybrid_command()
+    @commands.hybrid_command(aliases=["gelbooru"])
     async def booru(self, ctx: commands.Context, tags: str):
         """Finds an image on Gelbooru. Type tags separated by spaces.
 
@@ -57,7 +57,7 @@ class Booru(commands.Cog):
         embed.set_image(url=result.get("file_url", result.get("sample_url", result["preview_url"])))
         if result.get("source", ""):
             embed.description = f"[🔗 Original Source]({result['source']})"
-        pass
+        await ctx.send(embed=embed)
 
     @booru.autocomplete("tags")
     async def tags_autocomplete(self, interaction: discord.Interaction, current: str):
