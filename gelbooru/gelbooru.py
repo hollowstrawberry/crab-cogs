@@ -72,7 +72,6 @@ class Booru(commands.Cog):
 
     @booru.autocomplete("tags")
     async def tags_autocomplete(self, interaction: discord.Interaction, current: str):
-        interaction.
         current = current.strip()
         if not current:
             results = ["None"]
