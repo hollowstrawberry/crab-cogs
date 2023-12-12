@@ -35,7 +35,7 @@ class Booru(commands.Cog):
         You can add rating:general / rating:sensitive / rating:questionable / rating:explicit"""
 
         tags = tags.strip()
-        if tags.lower() == "none":
+        if tags.lower() in ["none", "error"]:
             tags = ""
 
         if not ctx.channel.nsfw:
@@ -66,9 +66,18 @@ class Booru(commands.Cog):
         if not current:
             results = ["None"]
         else:
-            previous, last = current.rsplit(' ', maxsplit=1)
-            response = await self.gel.find_tags(query=f"*{last}*")
-            results = json.loads(response)
-            results = [f"{previous} {res}" for res in results][:10]
-            log.info(results)
+            if ' ' in current:
+                previous, last = current.rsplit(' ', maxsplit=1)
+            else:
+                previous, last = "", current
+            try:
+                response = await self.gel.find_tags(query=f"*{last}*")
+                results = json.loads(response)[:20]
+            except Exception as e:
+                log.error("Failed to grab image from Gelbooru", exc_info=e)
+                results = ["Error"]
+            else:
+                if previous:
+                    results = [f"{previous} {res}" for res in results]
+                log.info(results)
         return [discord.app_commands.Choice(name=i, value=i) for i in results]
