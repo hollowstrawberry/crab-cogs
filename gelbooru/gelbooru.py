@@ -18,9 +18,15 @@ class Booru(commands.Cog):
     def __init__(self, bot):
         super().__init__()
         self.bot = bot
-        self.gel = booru.Gelbooru()
+        self.gel = None
 
     async def cog_load(self):
+        keys = await self.bot.get_shared_api_tokens("gelbooru")
+        api_key, user_id = keys.get("api_key"), keys.get("user_id")
+        if api_key and user_id:
+            self.gel = booru.Gelbooru(api_key, user_id)
+        else:
+            self.gel = booru.Gelbooru()
         pass
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
@@ -58,7 +64,7 @@ class Booru(commands.Cog):
 
         embed = discord.Embed(color=EMBED_COLOR)
         embed.set_author(name="Gelbooru Post", url=result.get("post_url", None), icon_url=EMBED_ICON)
-        embed.set_image(url=result.get("file_url", result.get("sample_url", result["preview_url"])))
+        embed.set_image(url=result["file_url"] if result["width"]*result["height"] < 4200000 else result["sample_url"])
         if result.get("source", ""):
             embed.description = f"[🔗 Original Source]({result['source']})"
         embed.set_footer(text=f"⭐ {result.get('score', 0)}")
@@ -79,7 +85,7 @@ class Booru(commands.Cog):
                 response = await self.gel.find_tags(query=f"*{last}*")
                 results = json.loads(response)[:20]
             except Exception as e:
-                log.error("Failed to grab image from Gelbooru", exc_info=e)
+                log.error("Failed to load Gelbooru tags", exc_info=e)
                 results = ["Error"]
             else:
                 if previous:
