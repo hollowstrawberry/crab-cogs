@@ -40,23 +40,30 @@ class ImageScanner(commands.Cog):
         output_dict = {}
         parts = param_str.split('Steps: ')
         prompts = parts[0]
-        params = 'Steps: ' + parts[1]
+        promptkey = 'Prompt'
         if 'Negative prompt: ' in prompts:
             output_dict['Prompt'] = prompts.split('Negative prompt: ')[0]
             output_dict['Negative Prompt'] = prompts.split('Negative prompt: ')[1]
             if len(output_dict['Negative Prompt']) > 1000:
                 output_dict['Negative Prompt'] = output_dict['Negative Prompt'][:1000] + '...'
         else:
-            output_dict['Prompt'] = prompts
-        if len(output_dict['Prompt']) > 1000:
-            output_dict['Prompt'] = output_dict['Prompt'][:1000] + '...'
-        params = params.split(', ')
-        for param in params:
-            try:
-                key, value = param.split(': ')
-                output_dict[key] = value
-            except ValueError:
-                pass
+            nai = prompts.split('NovelAI3 Prompt: ')
+            if len(nai) > 1:
+                promptkey = 'NovelAI3 Prompt'
+                output_dict[promptkey] = nai[1]
+            else:
+                output_dict[promptkey] = prompts
+        if len(output_dict[promptkey]) > 1000:
+            output_dict[promptkey] = output_dict[promptkey][:1000] + '...'
+        if len(parts) > 1:
+            params = 'Steps: ' + parts[1]
+            params = params.split(', ')
+            for param in params:
+                try:
+                    key, value = param.split(': ')
+                    output_dict[key] = value
+                except ValueError:
+                    pass
         return output_dict
 
     @staticmethod
@@ -73,11 +80,16 @@ class ImageScanner(commands.Cog):
             image_data = await attachment.read()
             with Image.open(io.BytesIO(image_data)) as img:
                 try:
-                    info = img.info['parameters']
+                    if attachment.filename.endswith(".png"):
+                        info = img.info['parameters']
+                    else:
+                        info = img._getexif().get(37510).decode('utf8')[7:]
+                    if info and "Steps" in info:
+                        metadata[i] = info
                 except:
-                    info = read_info_from_image_stealth(img)
-                if info and "Steps" in info:
-                    metadata[i] = info
+                    if "Title" in img.info and img.info["Title"] == "AI generated image":
+                        metadata[i] = "NovelAI3 Prompt: " + img.info['Description'].strip()
+
         except Exception as error:
             print(f"{type(error).__name__}: {error}")
         else:
@@ -99,7 +111,7 @@ class ImageScanner(commands.Cog):
         channel_perms = message.channel.permissions_for(message.guild.me)
         if not channel_perms.add_reactions:
             return
-        attachments = [a for a in message.attachments if a.filename.lower().endswith(".png") and a.size < self.scan_limit]
+        attachments = [a for a in message.attachments if a.filename.lower().endswith((".png", ".jpeg", ".jpg")) and a.size < self.scan_limit]
         if not attachments:
             return
         if not await self.is_valid_red_message(message):
