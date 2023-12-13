@@ -34,7 +34,7 @@ class Booru(commands.Cog):
         pass
 
     @commands.hybrid_command(aliases=["gelbooru"])
-    @app_commands.describe(tags="Has autocomplete. Spaces will separate tags. -tag to exclude it.")
+    @app_commands.describe(tags="Has autocomplete. Spaces will separate tags.")
     async def booru(self, ctx: commands.Context, tags: str):
         """Finds an image on Gelbooru. Type tags separated by spaces.
 
@@ -78,9 +78,9 @@ class Booru(commands.Cog):
     @booru.autocomplete("tags")
     async def tags_autocomplete(self, interaction: discord.Interaction, current: str):
         current = current.strip()
-        if not current or "rating" in current.lower():
-            results = ["None"]
-            if interaction.channel.nsfw or "rating" in current.lower():
+        if not current:
+            results = ["None", "full_body", "-excluded_tag"]
+            if interaction.channel.nsfw:
                 results += ["rating:general", "rating:sensitive", "rating:questionable", "rating:explicit"]
         else:
             if ' ' in current:
@@ -88,8 +88,15 @@ class Booru(commands.Cog):
             else:
                 previous, last = "", current
             try:
-                response = await self.gel.find_tags(query=f"*{last}*")
-                results = json.loads(response)[:20]
+                if "rating" in last.lower():
+                    results = ["rating:general", "rating:sensitive", "rating:questionable", "rating:explicit"]
+                else:
+                    excluded = last.startswith("-")
+                    last = last.lstrip("-")
+                    response = await self.gel.find_tags(query=f"*{last}*")
+                    results = json.loads(response)[:20]
+                    if excluded:
+                        results = [f"-{res}" for res in results]
             except Exception as e:
                 log.error("Failed to load Gelbooru tags", exc_info=e)
                 results = ["Error"]
