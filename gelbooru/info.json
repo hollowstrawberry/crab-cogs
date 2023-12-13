@@ -7,6 +7,6 @@
     "required_cogs": {},
     "requirements": ["booru"],
     "short": "Searches images on Gelbooru with slash command and tag completion support.",
-    "end_user_data_statement": "This cog does not store user data.",
+    "end_user_data_statement": "This cog may internally store individual image tags searched by users, with no identifying information, with the purpose of caching.",
     "tags": ["crab", "booru", "anime", "fun", "images", "imageboard"]
 }

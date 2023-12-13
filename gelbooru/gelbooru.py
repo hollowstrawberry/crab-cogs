@@ -70,7 +70,7 @@ class Booru(commands.Cog):
                 return
 
         embed = discord.Embed(color=EMBED_COLOR)
-        embed.set_author(name="Gelbooru Post", url=result.get("post_url", None), icon_url=EMBED_ICON)
+        embed.set_author(name="Booru Post", url=result.get("post_url", None), icon_url=EMBED_ICON)
         embed.set_image(url=result["file_url"] if result["width"]*result["height"] < 4200000 else result["sample_url"])
         if result.get("source", ""):
             embed.description = f"[🔗 Original Source]({result['source']})"
@@ -89,30 +89,32 @@ class Booru(commands.Cog):
                 previous, last = current.rsplit(' ', maxsplit=1)
             else:
                 previous, last = "", current
-            try:
-                if "rating" in last.lower():
-                    results = ["rating:general"]
-                    if interaction.channel.nsfw:
-                        results += ["rating:sensitive", "rating:questionable", "rating:explicit"]
-                else:
-                    excluded = last.startswith('-')
-                    last = last.lstrip('-')
-                    results = await self.get_tags(last)
-                    if excluded:
-                        results = [f"-{res}" for res in results]
-            except Exception as e:
-                log.error("Failed to load Gelbooru tags", exc_info=e)
-                results = ["Error"]
+            excluded = last.startswith('-')
+            last = last.lstrip('-')
+            if "rating" in last.lower():
+                results = ["rating:general"]
+                if interaction.channel.nsfw:
+                    results += ["rating:sensitive", "rating:questionable", "rating:explicit"]
             else:
-                if previous:
-                    results = [f"{previous} {res}" for res in results]
+                try:
+                    results = await self.get_tags(last)
+                except Exception as e:
+                    log.error("Failed to load Gelbooru tags", exc_info=e)
+                    results = ["Error"]
+                    previous = None
+            if excluded:
+                results = [f"-{res}" for res in results]
+            if previous:
+                results = [f"{previous} {res}" for res in results]
         return [discord.app_commands.Choice(name=i, value=i) for i in results]
 
     async def get_tags(self, query):
         if query in self.tag_cache:
             return self.tag_cache[query].split(' ')
         response = await self.gel.find_tags(query=f"*{query}*")
-        results = json.loads(response)[:20]
+        results = json.loads(response)
+        results = [res for res in results if '%' not in res]
+        results = results[:20]
         self.tag_cache[query] = ' '.join(results)
         async with self.config.tag_cache() as tag_cache:
             tag_cache[query] = self.tag_cache[query]
