@@ -39,7 +39,6 @@ class Booru(commands.Cog):
         As a slash command, will provide autocomplete for the latest tag typed.
         Will be limited to safe searches in non-NSFW channels.
         Type - before a tag to exclude it.
-        You can add score:>10 to set a minimum image score (10 in this case)
         You can add rating:general / rating:sensitive / rating:questionable / rating:explicit"""
 
         tags = tags.strip()
@@ -56,7 +55,10 @@ class Booru(commands.Cog):
                 response = await self.gel.search(query=tags, block=TAG_BLACKLIST, gacha=True)
                 result = json.loads(response)
             except KeyError:
-                await ctx.send(embed=discord.Embed(description="💨 No results...", color=EMBED_COLOR))
+                description = "💨 No results..."
+                if not ctx.channel.nsfw:
+                    description += " (safe mode)"
+                await ctx.send(embed=discord.Embed(description=description, color=EMBED_COLOR))
                 return
             except Exception as e:
                 log.error("Failed to grab image from Gelbooru", exc_info=e)
