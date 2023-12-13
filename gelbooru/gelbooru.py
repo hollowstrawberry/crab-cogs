@@ -4,6 +4,7 @@ import json
 import re
 import logging
 from redbot.core import commands
+from discord import app_commands
 
 log = logging.getLogger("red.crab-cogs.boorucog")
 
@@ -33,10 +34,11 @@ class Booru(commands.Cog):
         pass
 
     @commands.hybrid_command(aliases=["gelbooru"])
+    @app_commands.describe(tags="Has autocomplete. Spaces will separate tags. -tag to exclude it.")
     async def booru(self, ctx: commands.Context, tags: str):
         """Finds an image on Gelbooru. Type tags separated by spaces.
 
-        As a slash command, will provide autocomplete for the latest tag typed.
+        As a slash command, will provide suggestions for the latest tag typed.
         Will be limited to safe searches in non-NSFW channels.
         Type - before a tag to exclude it.
         You can add rating:general / rating:sensitive / rating:questionable / rating:explicit"""
@@ -76,8 +78,10 @@ class Booru(commands.Cog):
     @booru.autocomplete("tags")
     async def tags_autocomplete(self, interaction: discord.Interaction, current: str):
         current = current.strip()
-        if not current:
+        if not current or "rating" in current.lower():
             results = ["None"]
+            if interaction.channel.nsfw or "rating" in current.lower():
+                results += ["rating:general", "rating:sensitive", "rating:questionable", "rating:explicit"]
         else:
             if ' ' in current:
                 previous, last = current.rsplit(' ', maxsplit=1)
