@@ -3,8 +3,7 @@ import booru
 import json
 import re
 import logging
-from redbot.core import commands
-from discord import app_commands
+from redbot.core import commands, app_commands
 
 log = logging.getLogger("red.crab-cogs.boorucog")
 
