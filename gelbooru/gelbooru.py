@@ -18,6 +18,7 @@ class Booru(commands.Cog):
     def __init__(self, bot):
         super().__init__()
         self.bot = bot
+        self.tag_cache = {}
         self.gel = None
 
     async def cog_load(self):
@@ -92,10 +93,9 @@ class Booru(commands.Cog):
                     if interaction.channel.nsfw:
                         results += ["rating:sensitive", "rating:questionable", "rating:explicit"]
                 else:
-                    excluded = last.startswith("-")
-                    last = last.lstrip("-")
-                    response = await self.gel.find_tags(query=f"*{last}*")
-                    results = json.loads(response)[:20]
+                    excluded = last.startswith('-')
+                    last = last.lstrip('-')
+                    results = await self.get_tags(last)
                     if excluded:
                         results = [f"-{res}" for res in results]
             except Exception as e:
@@ -105,3 +105,11 @@ class Booru(commands.Cog):
                 if previous:
                     results = [f"{previous} {res}" for res in results]
         return [discord.app_commands.Choice(name=i, value=i) for i in results]
+
+    async def get_tags(self, query):
+        if query in self.tag_cache:
+            return self.tag_cache[query].split(' ')
+        response = await self.gel.find_tags(query=f"*{query}*")
+        results = json.loads(response)[:20]
+        self.tag_cache[query] = ' '.join(results)
+        return results
