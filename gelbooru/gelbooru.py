@@ -3,7 +3,7 @@ import booru
 import json
 import re
 import logging
-from redbot.core import commands, app_commands
+from redbot.core import commands, app_commands, Config
 
 log = logging.getLogger("red.crab-cogs.boorucog")
 
@@ -18,17 +18,19 @@ class Booru(commands.Cog):
     def __init__(self, bot):
         super().__init__()
         self.bot = bot
-        self.tag_cache = {}
         self.gel = None
+        self.tag_cache = {}
+        self.config = Config.get_conf(self, identifier=62667275)
+        self.config.register_global(tag_cache={})
 
     async def cog_load(self):
+        self.tag_cache = await self.config.tag_cache()
         keys = await self.bot.get_shared_api_tokens("gelbooru")
         api_key, user_id = keys.get("api_key"), keys.get("user_id")
         if api_key and user_id:
             self.gel = booru.Gelbooru(api_key, user_id)
         else:
             self.gel = booru.Gelbooru()
-        pass
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         pass
@@ -112,4 +114,6 @@ class Booru(commands.Cog):
         response = await self.gel.find_tags(query=f"*{query}*")
         results = json.loads(response)[:20]
         self.tag_cache[query] = ' '.join(results)
+        async with self.config.tag_cache() as tag_cache:
+            tag_cache[query] = self.tag_cache[query]
         return results
