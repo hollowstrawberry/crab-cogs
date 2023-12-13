@@ -78,7 +78,7 @@ class Booru(commands.Cog):
     async def tags_autocomplete(self, interaction: discord.Interaction, current: str):
         current = current.strip()
         if not current:
-            results = ["None", "full_body", "-excluded_tag"]
+            results = ["None", "full_body", "upper_body", "-excluded_tag"]
             if interaction.channel.nsfw:
                 results += ["rating:general", "rating:sensitive", "rating:questionable", "rating:explicit"]
         else:
@@ -88,7 +88,9 @@ class Booru(commands.Cog):
                 previous, last = "", current
             try:
                 if "rating" in last.lower():
-                    results = ["rating:general", "rating:sensitive", "rating:questionable", "rating:explicit"]
+                    results = ["rating:general"]
+                    if interaction.channel.nsfw:
+                        results += ["rating:sensitive", "rating:questionable", "rating:explicit"]
                 else:
                     excluded = last.startswith("-")
                     last = last.lstrip("-")
