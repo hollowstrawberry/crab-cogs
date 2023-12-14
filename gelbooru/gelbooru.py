@@ -48,6 +48,7 @@ class Booru(commands.Cog):
         """Finds an image on Gelbooru. Type tags separated by spaces.
 
         As a slash command, will provide suggestions for the latest tag typed.
+        Won't repeat the same post until all posts with the same search have been exhausted.
         Will be limited to safe searches in non-NSFW channels.
         Type - before a tag to exclude it.
         You can add score:>NUMBER to have a minimum score above a number.
