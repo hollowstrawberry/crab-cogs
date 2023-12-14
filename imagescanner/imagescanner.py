@@ -299,6 +299,6 @@ class ImageScanner(commands.Cog):
         self.use_civitai = not self.use_civitai
         await self.config.use_civitai.set(self.use_civitai)
         if self.use_civitai:
-            await ctx.reply("Images sent in DMs will no longer search for the model on Civitai.")
-        else:
             await ctx.reply("Images sent in DMs will now try to find the used model on Civitai.")
+        else:
+            await ctx.reply("Images sent in DMs will no longer search for the model on Civitai.")
