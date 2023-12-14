@@ -2,10 +2,13 @@ import io
 import asyncio
 import discord
 import aiohttp
+import logging
 from redbot.core import commands, app_commands, Config
 from typing import Optional
 from collections import OrderedDict
 from PIL import Image
+
+log = logging.getLogger("red.crab-cogs.imagescanner")
 
 IMAGE_TYPES = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
 HEADERS = {
@@ -217,7 +220,8 @@ class ImageScanner(commands.Cog):
                 async with aiohttp.ClientSession(headers=HEADERS) as session:
                     async with session.get(url) as resp:
                         data = await resp.json()
-            except:
+            except Exception as e:
+                log.error("Trying to grab model from Civitai", exc_info=e)
                 return None
             if not data or not "modelId" not in data:
                 return None
