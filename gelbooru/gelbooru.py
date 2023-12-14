@@ -172,11 +172,13 @@ class Booru(commands.Cog):
                 if not data or "post" not in data:
                     return None
                 images = [img for img in data["post"] if img["file_url"].endswith(IMAGE_TYPES)]
+                more_than_one = len(images) > 1
                 # prevent duplicates
                 if all(img["id"] in self.image_cache[frozenset(tags)] for img in images):
                     self.image_cache[frozenset(tags)] = self.image_cache[frozenset(tags)][-1:]
                 else:
                     images = [img for img in images if img["id"] not in self.image_cache[frozenset(tags)]]
                 choice = random.choice(images)
-                self.image_cache[frozenset(tags)].append(choice["id"])
+                if more_than_one:
+                    self.image_cache[frozenset(tags)].append(choice["id"])
                 return choice
