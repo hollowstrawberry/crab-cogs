@@ -107,6 +107,8 @@ class Booru(commands.Cog):
         elif "score" in last.lower():
             excluded = False
             results = ["score:>10", "score:>100"]
+            if re.match(r"score:>([0-9]+)", last):
+                results.insert(0, last)
         else:
             try:
                 results = await self.get_tags(last)
