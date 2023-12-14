@@ -102,6 +102,8 @@ class Booru(commands.Cog):
             results = ["rating:general"]
             if interaction.channel.nsfw:
                 results += ["rating:sensitive", "rating:questionable", "rating:explicit"]
+            else:
+                excluded = False
         elif "score" in last.lower():
             excluded = False
             results = ["score:>10", "score:>100"]
