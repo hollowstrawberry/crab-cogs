@@ -1,7 +1,7 @@
 {
     "author": ["OrchidAlloy"],
     "min_bot_version": "3.5.0",
-    "description": "Searches images on Gelbooru with slash command and tag completion support.",
+    "description": "Searches images on Gelbooru with slash command and tag completion support. ",
     "hidden": false,
     "install_msg": "💗 __**Booru**__\n**This cog is allowed to display NSFW material in channels marked as NSFW.**```Cog installed. Instructions:\n1. Load it with [p]load gelbooru\n2. Enable the slash command with [p]slash enable booru\n3. Sync slash commands with [p]slash sync\n4. (Optional) You can set a gelbooru api_key and user_id with [p]set api gelbooru api_key,YOUR_API_KEY /// [p]set api gelbooru user_id,YOUR_USER_ID```",
     "required_cogs": {},
