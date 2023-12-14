@@ -52,6 +52,10 @@ Lets you configure emoji reactions that will be added to any message containing 
 
 ![demonstration](https://media.discordapp.net/attachments/541768631445618689/1103721844072251423/Screenshot_20230504-123621_Discord.png)
 
+### ⛩ Booru
+
+Grab images from Gelbooru based on tags. The slash command version features smart tag suggestions/autocompletion. It will also avoid sending the same image in the same channel twice until absolutely necessary (within 24 hours).
+
 ### 🎲 Randomness
 
 A couple fun hybrid commands involving random seeds, including:
