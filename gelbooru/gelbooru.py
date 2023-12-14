@@ -89,6 +89,7 @@ class Booru(commands.Cog):
         excluded = last.startswith('-')
         last = last.lstrip('-')
         if not last and not excluded:
+            # suggestions
             results = []
             if "full_body" not in previous:
                 results.append("full_body")
@@ -99,10 +100,18 @@ class Booru(commands.Cog):
             if interaction.channel.nsfw and "rating" not in previous:
                 results += ["rating:general", "rating:sensitive", "rating:questionable", "rating:explicit"]
         elif "rating" in last.lower():
-            results = ["rating:general"]
             if interaction.channel.nsfw:
-                results += ["rating:sensitive", "rating:questionable", "rating:explicit"]
+                ratings = ["rating:general", "rating:sensitive", "rating:questionable", "rating:explicit"]
+                results = []
+                for r in tuple(ratings):
+                    if r.startswith(last.lower()):
+                        results.append(r)
+                        ratings.remove(r)
+                        break
+                for r in ratings:
+                    results.append(r)
             else:
+                results = ["rating:general"]
                 excluded = False
         elif "score" in last.lower():
             excluded = False
