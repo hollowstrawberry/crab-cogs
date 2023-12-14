@@ -163,7 +163,7 @@ class Booru(commands.Cog):
         tags = [tag for tag in tags if tag not in TAG_BLACKLIST]
         tags += [f"-{tag}" for tag in TAG_BLACKLIST]
         query = ' '.join(tags)
-        url = "https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&tags=" + query.replace(' ', '+')
+        url = "https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&limit=1000&tags=" + query.replace(' ', '+')
         api = await self.bot.get_shared_api_tokens("gelbooru")
         api_key, user_id = api.get("api_key"), api.get("user_id")
         if api_key and user_id:
