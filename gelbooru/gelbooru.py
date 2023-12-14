@@ -43,6 +43,7 @@ class Booru(commands.Cog):
         As a slash command, will provide suggestions for the latest tag typed.
         Will be limited to safe searches in non-NSFW channels.
         Type - before a tag to exclude it.
+        You can add score:>NUMBER to have a minimum score above a number.
         You can add rating:general / rating:sensitive / rating:questionable / rating:explicit"""
 
         tags = tags.strip()
@@ -79,33 +80,39 @@ class Booru(commands.Cog):
 
     @booru.autocomplete("tags")
     async def tags_autocomplete(self, interaction: discord.Interaction, current: str):
-        current = current.strip()
-        if not current:
-            results = ["None", "full_body", "upper_body", "-excluded_tag"]
-            if interaction.channel.nsfw:
-                results += ["rating:general", "rating:sensitive", "rating:questionable", "rating:explicit"]
+        if current is None:
+            current = ""
+        if ' ' in current:
+            previous, last = [x.strip() for x in current.rsplit(' ', maxsplit=1)]
         else:
-            if ' ' in current:
-                previous, last = current.rsplit(' ', maxsplit=1)
-            else:
-                previous, last = "", current
-            excluded = last.startswith('-')
-            last = last.lstrip('-')
-            if "rating" in last.lower():
-                results = ["rating:general"]
-                if interaction.channel.nsfw:
-                    results += ["rating:sensitive", "rating:questionable", "rating:explicit"]
-            else:
-                try:
-                    results = await self.get_tags(last)
-                except Exception as e:
-                    log.error("Failed to load Gelbooru tags", exc_info=e)
-                    results = ["Error"]
-                    previous = None
-            if excluded:
-                results = [f"-{res}" for res in results]
-            if previous:
-                results = [f"{previous} {res}" for res in results]
+            previous, last = "", current.strip()
+        excluded = last.startswith('-')
+        last = last.lstrip('-')
+        if not last and not excluded:
+            results = []
+            if "full_body" not in previous:
+                results.append("full_body")
+            if "-" not in previous:
+                results.append("-excluded_tag")
+            if "score" not in previous:
+                results += ["score:>10", "score:>100"]
+            if interaction.channel.nsfw and "rating" not in previous:
+                results += ["rating:general", "rating:sensitive", "rating:questionable", "rating:explicit"]
+        elif "rating" in last.lower():
+            results = ["rating:general"]
+            if interaction.channel.nsfw:
+                results += ["rating:sensitive", "rating:questionable", "rating:explicit"]
+        else:
+            try:
+                results = await self.get_tags(last)
+            except Exception as e:
+                log.error("Failed to load Gelbooru tags", exc_info=e)
+                results = ["Error"]
+                previous = None
+        if excluded:
+            results = [f"-{res}" for res in results]
+        if previous:
+            results = [f"{previous} {res}" for res in results]
         return [discord.app_commands.Choice(name=i, value=i) for i in results]
 
     async def get_tags(self, query):
