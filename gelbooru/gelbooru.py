@@ -3,6 +3,7 @@ import aiohttp
 import re
 import random
 import logging
+import urllib.parse
 from redbot.core import commands, app_commands, Config
 from expiringdict import ExpiringDict
 
@@ -143,6 +144,7 @@ class Booru(commands.Cog):
         return results
 
     async def grab_tags(self, query):
+        query = urllib.parse.quote(query.lower(), safe=' ')
         url = f"https://gelbooru.com/index.php?page=dapi&s=tag&q=index&json=1&sort=desc&order_by=index_count&name_pattern=%25{query}%25"
         api = await self.bot.get_shared_api_tokens("gelbooru")
         api_key, user_id = api.get("api_key"), api.get("user_id")
@@ -156,7 +158,7 @@ class Booru(commands.Cog):
                 return [tag["name"] for tag in data["tag"]][:20]
 
     async def grab_image(self, query):
-        query = query.lower().replace('%', "")
+        query = urllib.parse.quote(query.lower(), safe=' ')
         tags = [tag for tag in query.split(' ') if tag]
         tags = [tag for tag in tags if tag not in TAG_BLACKLIST]
         tags += [f"-{tag}" for tag in TAG_BLACKLIST]
