@@ -7,6 +7,6 @@
     "required_cogs": {},
     "requirements": ["expiringdict"],
     "short": "Searches images on Gelbooru with slash command and tag completion support.",
-    "end_user_data_statement": "This cog may internally cache user searches, with no identifying information, for up to 24 hours.",
+    "end_user_data_statement": "This cog may internally cache user searches, with no identifying information.",
     "tags": ["crab", "booru", "anime", "fun", "images", "imageboard"]
 }

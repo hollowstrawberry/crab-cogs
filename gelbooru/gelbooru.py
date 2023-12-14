@@ -11,7 +11,7 @@ log = logging.getLogger("red.crab-cogs.boorucog")
 EMBED_COLOR = 0xD7598B
 EMBED_ICON = "https://i.imgur.com/FeRu6Pw.png"
 IMAGE_TYPES = (".png", ".jpeg", ".jpg", ".webp", ".gif")
-TAG_BLACKLIST = ["loli", "guro", "video"]
+TAG_BLACKLIST = ["loli", "shota", "guro", "video"]
 HEADERS = {
     "User-Agent": f"crab-cogs/v1 (https://github.com/hollowstrawberry/crab-cogs);"
 }
