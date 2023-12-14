@@ -168,8 +168,11 @@ class ImageScanner(commands.Cog):
             embed = self.get_embed(params, message.author)
             if len(metadata) > 1:
                 embed.title += f" ({i+1}/{len(metadata)})"
+                log.info(f"use_civitai: {self.use_civitai}")
             if self.use_civitai and "Model hash" in params:
+                log.info(f"model hash: {params['Model hash']}")
                 model_link = await self.grab_civitai_model_link(params["Model hash"])
+                log.info(f"model link: {model_link}")
                 if model_link:
                     embed.description = f"[🔗 Checkpoint on Civitai]({model_link})"
             if self.attach_images:
