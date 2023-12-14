@@ -181,8 +181,8 @@ class Booru(commands.Cog):
             self.image_cache[key] = []
         if all(img["id"] in self.image_cache[key] for img in images):
             self.image_cache[key] = self.image_cache[key][-1:]
-        images = [img for img in images if img["id"] not in self.image_cache[key]]
-        choice = random.choice(images)
         if more_than_one:
-            self.image_cache[key].append(choice["id"])
+            images = [img for img in images if img["id"] not in self.image_cache[key]]
+        choice = random.choice(images)
+        self.image_cache[key].append(choice["id"])
         return choice
