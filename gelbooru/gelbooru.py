@@ -119,8 +119,10 @@ class Booru(commands.Cog):
                 excluded = False
         elif "score" in last.lower():
             excluded = False
-            results = ["score:>10", "score:>100"]
+            results = ["score:>10", "score:>100", "score:>1000"]
             if re.match(r"score:>([0-9]+)", last):
+                if last in results:
+                    results.remove(last)
                 results.insert(0, last)
         else:
             try:
