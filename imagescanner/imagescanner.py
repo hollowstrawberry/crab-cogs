@@ -146,7 +146,7 @@ class ImageScanner(commands.Cog):
         if ctx.emoji.name != '🔎' or ctx.member.bot or ctx.channel_id not in self.scan_channels:
             return
         channel = self.bot.get_channel(ctx.channel_id)
-        message = await channel.fetch_message(ctx.message_id)
+        message: discord.Message = await channel.fetch_message(ctx.message_id)
         if not message:
             return
         attachments = [a for a in message.attachments if a.filename.lower().endswith(IMAGE_TYPES)]
@@ -166,13 +166,14 @@ class ImageScanner(commands.Cog):
         for i, attachment, data in [(i, attachments[i], data) for i, data in metadata.items()]:
             params = self.get_params_from_string(data)
             embed = self.get_embed(params, message.author)
+            embed.description = f":arrow_right: {message.jump_url}"
             if len(metadata) > 1:
                 embed.title += f" ({i+1}/{len(metadata)})"
             if self.use_civitai and "Model hash" in params:
                 model_link = await self.grab_civitai_model_link(params["Model hash"])
                 log.info(f"model link: {model_link}")
                 if model_link:
-                    embed.description = f"[🔗 Checkpoint on Civitai]({model_link})"
+                    embed.description += f"\n[🔗 Checkpoint on Civitai]({model_link})"
             if self.attach_images:
                 img = io.BytesIO()
                 try:
