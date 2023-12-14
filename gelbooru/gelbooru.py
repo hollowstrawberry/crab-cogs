@@ -36,7 +36,7 @@ class Booru(commands.Cog):
         pass
 
     @commands.hybrid_command(aliases=["gelbooru"])
-    @app_commands.describe(tags="Has autocomplete. Spaces will separate tags.")
+    @app_commands.describe(tags="Will suggest tags with autocomplete. Separate tags with spaces.")
     async def booru(self, ctx: commands.Context, *, tags: str):
         """Finds an image on Gelbooru. Type tags separated by spaces.
 
