@@ -3,14 +3,16 @@ import aiohttp
 import re
 import random
 import logging
+import urllib.parse
 from redbot.core import commands, app_commands, Config
+from expiringdict import ExpiringDict
 
 log = logging.getLogger("red.crab-cogs.boorucog")
 
 EMBED_COLOR = 0xD7598B
 EMBED_ICON = "https://i.imgur.com/FeRu6Pw.png"
 IMAGE_TYPES = (".png", ".jpeg", ".jpg", ".webp", ".gif")
-TAG_BLACKLIST = ["loli", "guro", "video"]
+TAG_BLACKLIST = ["loli", "shota", "guro", "video"]
 HEADERS = {
     "User-Agent": f"crab-cogs/v1 (https://github.com/hollowstrawberry/crab-cogs);"
 }
@@ -21,7 +23,8 @@ class Booru(commands.Cog):
     def __init__(self, bot):
         super().__init__()
         self.bot = bot
-        self.tag_cache = {}
+        self.tag_cache = {}  # tag query -> tag results
+        self.image_cache = ExpiringDict(max_len=100, max_age_seconds=24*60*60)  # tag set -> list of sent post ids
         self.config = Config.get_conf(self, identifier=62667275)
         self.config.register_global(tag_cache={})
 
@@ -45,6 +48,7 @@ class Booru(commands.Cog):
         """Finds an image on Gelbooru. Type tags separated by spaces.
 
         As a slash command, will provide suggestions for the latest tag typed.
+        Won't repeat the same post until all posts with the same search have been exhausted.
         Will be limited to safe searches in non-NSFW channels.
         Type - before a tag to exclude it.
         You can add score:>NUMBER to have a minimum score above a number.
@@ -115,8 +119,10 @@ class Booru(commands.Cog):
                 excluded = False
         elif "score" in last.lower():
             excluded = False
-            results = ["score:>10", "score:>100"]
+            results = ["score:>10", "score:>100", "score:>1000"]
             if re.match(r"score:>([0-9]+)", last):
+                if last in results:
+                    results.remove(last)
                 results.insert(0, last)
         else:
             try:
@@ -141,6 +147,7 @@ class Booru(commands.Cog):
         return results
 
     async def grab_tags(self, query):
+        query = urllib.parse.quote(query.lower(), safe=' ')
         url = f"https://gelbooru.com/index.php?page=dapi&s=tag&q=index&json=1&sort=desc&order_by=index_count&name_pattern=%25{query}%25"
         api = await self.bot.get_shared_api_tokens("gelbooru")
         api_key, user_id = api.get("api_key"), api.get("user_id")
@@ -154,7 +161,7 @@ class Booru(commands.Cog):
                 return [tag["name"] for tag in data["tag"]][:20]
 
     async def grab_image(self, query):
-        query = query.lower().replace('%', "")
+        query = urllib.parse.quote(query.lower(), safe=' ')
         tags = [tag for tag in query.split(' ') if tag]
         tags = [tag for tag in tags if tag not in TAG_BLACKLIST]
         tags += [f"-{tag}" for tag in TAG_BLACKLIST]
@@ -170,4 +177,15 @@ class Booru(commands.Cog):
                 if not data or "post" not in data:
                     return None
                 images = [img for img in data["post"] if img["file_url"].endswith(IMAGE_TYPES)]
-                return random.choice(images)
+                more_than_one = len(images) > 1
+                # prevent duplicates
+                key = frozenset(tags)
+                if key not in self.image_cache:
+                    self.image_cache[key] = []
+                if all(img["id"] in self.image_cache[key] for img in images):
+                    self.image_cache[key] = self.image_cache[key][-1:]
+                images = [img for img in images if img["id"] not in self.image_cache[key]]
+                choice = random.choice(images)
+                if more_than_one:
+                    self.image_cache[key].append(choice["id"])
+                return choice
