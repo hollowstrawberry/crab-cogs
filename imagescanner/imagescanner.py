@@ -168,9 +168,7 @@ class ImageScanner(commands.Cog):
             embed = self.get_embed(params, message.author)
             if len(metadata) > 1:
                 embed.title += f" ({i+1}/{len(metadata)})"
-                log.info(f"use_civitai: {self.use_civitai}")
             if self.use_civitai and "Model hash" in params:
-                log.info(f"model hash: {params['Model hash']}")
                 model_link = await self.grab_civitai_model_link(params["Model hash"])
                 log.info(f"model link: {model_link}")
                 if model_link:
@@ -226,7 +224,7 @@ class ImageScanner(commands.Cog):
             except Exception as e:
                 log.error("Trying to grab model from Civitai", exc_info=e)
                 return None
-            if not data or not "modelId" not in data:
+            if not data or "modelId" not in data:
                 return None
             model_id = data['modelId']
             self.model_cache[short_hash] = model_id
