@@ -104,7 +104,7 @@ class Booru(commands.Cog):
                 results += ["rating:sensitive", "rating:questionable", "rating:explicit"]
         elif "score" in last.lower():
             excluded = False
-            results = ["score:>10", "score:>100", "score:>1000"]
+            results = ["score:>10", "score:>100"]
         else:
             try:
                 results = await self.get_tags(last)
