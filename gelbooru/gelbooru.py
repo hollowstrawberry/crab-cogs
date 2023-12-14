@@ -3,13 +3,13 @@ import booru
 import json
 import re
 import logging
-from redbot.core import commands
+from redbot.core import commands, app_commands, Config
 
 log = logging.getLogger("red.crab-cogs.boorucog")
 
 EMBED_COLOR = 0xD7598B
 EMBED_ICON = "https://i.imgur.com/FeRu6Pw.png"
-IMAGE_TYPES = (".png", ".jpeg", ".jpg", ".webp")
+IMAGE_TYPES = (".png", ".jpeg", ".jpg", ".webp", ".gif")
 TAG_BLACKLIST = "loli guro video"
 
 class Booru(commands.Cog):
@@ -19,26 +19,31 @@ class Booru(commands.Cog):
         super().__init__()
         self.bot = bot
         self.gel = None
+        self.tag_cache = {}
+        self.config = Config.get_conf(self, identifier=62667275)
+        self.config.register_global(tag_cache={})
 
     async def cog_load(self):
+        self.tag_cache = await self.config.tag_cache()
         keys = await self.bot.get_shared_api_tokens("gelbooru")
         api_key, user_id = keys.get("api_key"), keys.get("user_id")
         if api_key and user_id:
             self.gel = booru.Gelbooru(api_key, user_id)
         else:
             self.gel = booru.Gelbooru()
-        pass
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         pass
 
     @commands.hybrid_command(aliases=["gelbooru"])
-    async def booru(self, ctx: commands.Context, tags: str):
+    @app_commands.describe(tags="Will suggest tags with autocomplete. Separate tags with spaces.")
+    async def booru(self, ctx: commands.Context, *, tags: str):
         """Finds an image on Gelbooru. Type tags separated by spaces.
 
-        As a slash command, will provide autocomplete for the latest tag typed.
+        As a slash command, will provide suggestions for the latest tag typed.
         Will be limited to safe searches in non-NSFW channels.
         Type - before a tag to exclude it.
+        You can add score:>NUMBER to have a minimum score above a number.
         You can add rating:general / rating:sensitive / rating:questionable / rating:explicit"""
 
         tags = tags.strip()
@@ -66,7 +71,7 @@ class Booru(commands.Cog):
                 return
 
         embed = discord.Embed(color=EMBED_COLOR)
-        embed.set_author(name="Gelbooru Post", url=result.get("post_url", None), icon_url=EMBED_ICON)
+        embed.set_author(name="Booru Post", url=result.get("post_url", None), icon_url=EMBED_ICON)
         embed.set_image(url=result["file_url"] if result["width"]*result["height"] < 4200000 else result["sample_url"])
         if result.get("source", ""):
             embed.description = f"[🔗 Original Source]({result['source']})"
@@ -75,21 +80,65 @@ class Booru(commands.Cog):
 
     @booru.autocomplete("tags")
     async def tags_autocomplete(self, interaction: discord.Interaction, current: str):
-        current = current.strip()
-        if not current:
-            results = ["None"]
+        if current is None:
+            current = ""
+        if ' ' in current:
+            previous, last = [x.strip() for x in current.rsplit(' ', maxsplit=1)]
         else:
-            if ' ' in current:
-                previous, last = current.rsplit(' ', maxsplit=1)
+            previous, last = "", current.strip()
+        excluded = last.startswith('-')
+        last = last.lstrip('-')
+        if not last and not excluded:
+            # suggestions
+            results = []
+            if "full_body" not in previous:
+                results.append("full_body")
+            if "-" not in previous:
+                results.append("-excluded_tag")
+            if "score" not in previous:
+                results += ["score:>10", "score:>100"]
+            if interaction.channel.nsfw and "rating" not in previous:
+                results += ["rating:general", "rating:sensitive", "rating:questionable", "rating:explicit"]
+        elif "rating" in last.lower():
+            if interaction.channel.nsfw:
+                ratings = ["rating:general", "rating:sensitive", "rating:questionable", "rating:explicit"]
+                results = []
+                for r in tuple(ratings):
+                    if r.startswith(last.lower()):
+                        results.append(r)
+                        ratings.remove(r)
+                        break
+                for r in ratings:
+                    results.append(r)
             else:
-                previous, last = "", current
+                results = ["rating:general"]
+                excluded = False
+        elif "score" in last.lower():
+            excluded = False
+            results = ["score:>10", "score:>100"]
+            if re.match(r"score:>([0-9]+)", last):
+                results.insert(0, last)
+        else:
             try:
-                response = await self.gel.find_tags(query=f"*{last}*")
-                results = json.loads(response)[:20]
+                results = await self.get_tags(last)
             except Exception as e:
                 log.error("Failed to load Gelbooru tags", exc_info=e)
                 results = ["Error"]
-            else:
-                if previous:
-                    results = [f"{previous} {res}" for res in results]
+                previous = None
+        if excluded:
+            results = [f"-{res}" for res in results]
+        if previous:
+            results = [f"{previous} {res}" for res in results]
         return [discord.app_commands.Choice(name=i, value=i) for i in results]
+
+    async def get_tags(self, query):
+        if query in self.tag_cache:
+            return self.tag_cache[query].split(' ')
+        response = await self.gel.find_tags(query=f"*{query}*")
+        results = json.loads(response)
+        results = [res for res in results if '%' not in res]
+        results = results[:20]
+        self.tag_cache[query] = ' '.join(results)
+        async with self.config.tag_cache() as tag_cache:
+            tag_cache[query] = self.tag_cache[query]
+        return results
