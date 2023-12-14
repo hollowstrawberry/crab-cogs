@@ -1,15 +1,19 @@
 import io
 import asyncio
-import os
 import discord
+import aiohttp
+import logging
 from redbot.core import commands, app_commands, Config
 from typing import Optional
 from collections import OrderedDict
 from PIL import Image
-from .stealth import read_info_from_image_stealth
+
+log = logging.getLogger("red.crab-cogs.imagescanner")
 
 IMAGE_TYPES = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
-
+HEADERS = {
+    "User-Agent": f"crab-cogs/v1 (https://github.com/hollowstrawberry/crab-cogs);"
+}
 
 class ImageScanner(commands.Cog):
     """Scans images for AI parameters and other metadata."""
@@ -18,14 +22,28 @@ class ImageScanner(commands.Cog):
         super().__init__()
         self.bot = bot
         self.scan_channels = set()
-        self.scan_limit = 10 * 1024**2
         self.config = Config.get_conf(self, identifier=7072707469)
-        self.config.register_global(channels=[], scanlimit=self.scan_limit)
+        self.scan_limit = 10 * 1024**2
+        self.attach_images = True
+        self.use_civitai = True
+        self.model_cache = {}
+        defaults = {
+            "channels": [],
+            "scanlimit": self.scan_limit,
+            "attach_images": self.attach_images,
+            "use_civitai": self.use_civitai,
+            "model_cache": {}
+        }
+        self.config.register_global(**defaults)
         self.context_menu = app_commands.ContextMenu(name='Image Info', callback=self.scanimage)
         self.bot.tree.add_command(self.context_menu)
 
     async def cog_load(self):
         self.scan_channels = set(await self.config.channels())
+        self.scan_limit = await self.config.scanlimit()
+        self.attach_images = await self.config.attach_images()
+        self.use_civitai = await self.config.use_civitai()
+        self.model_cache = await self.config.model_cache()
 
     async def cog_unload(self):
         self.bot.tree.remove_command(self.context_menu.name, type=self.context_menu.type)
@@ -36,7 +54,7 @@ class ImageScanner(commands.Cog):
     # Static methods
 
     @staticmethod
-    def get_params_from_string(param_str):
+    def get_params_from_string(param_str) -> dict:
         output_dict = {}
         parts = param_str.split('Steps: ')
         prompts = parts[0]
@@ -67,7 +85,7 @@ class ImageScanner(commands.Cog):
         return output_dict
 
     @staticmethod
-    def get_embed(embed_dict: dict, author: discord.Member):
+    def get_embed(embed_dict: dict, author: discord.Member) -> discord.Embed:
         embed = discord.Embed(title="Here's your image!", color=author.color)
         for key, value in embed_dict.items():
             embed.add_field(name=key, value=value, inline='Prompt' not in key)
@@ -101,7 +119,6 @@ class ImageScanner(commands.Cog):
         return await self.bot.allowed_by_whitelist_blacklist(message.author) \
                and await self.bot.ignored_channel_or_guild(message) \
                and not await self.bot.cog_disabled_in_guild(self, message.guild)
-
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -147,11 +164,28 @@ class ImageScanner(commands.Cog):
             await ctx.member.send(embed=embed)
             return
         for i, attachment, data in [(i, attachments[i], data) for i, data in metadata.items()]:
-            embed = self.get_embed(self.get_params_from_string(data), message.author)
+            params = self.get_params_from_string(data)
+            embed = self.get_embed(params, message.author)
             if len(metadata) > 1:
                 embed.title += f" ({i+1}/{len(metadata)})"
-            embed.set_thumbnail(url=attachment.url)
-            await ctx.member.send(embed=embed)
+            if self.use_civitai and "Model hash" in params:
+                model_link = await self.grab_civitai_model_link(params["Model hash"])
+                log.info(f"model link: {model_link}")
+                if model_link:
+                    embed.description = f"[🔗 Checkpoint on Civitai]({model_link})"
+            if self.attach_images:
+                img = io.BytesIO()
+                try:
+                    await attachment.save(img, use_cached=True)
+                except:
+                    file = None
+                else:
+                    file = discord.File(img, filename=attachment.filename)
+                embed.set_image(url=f"attachment://{attachment.filename}")
+                await ctx.member.send(embed=embed, file=file)
+            else:
+                embed.set_thumbnail(url=attachment.url)
+                await ctx.member.send(embed=embed)
 
     # context menu set in __init__
     async def scanimage(self, ctx: discord.Interaction, message: discord.Message):
@@ -177,6 +211,26 @@ class ImageScanner(commands.Cog):
                 f.write(response)
                 f.seek(0)
                 await ctx.response.send_message(file=discord.File(f, "parameters.yaml"), ephemeral=True)
+
+    async def grab_civitai_model_link(self, short_hash: str) -> Optional[str]:
+        if short_hash in self.model_cache:
+            model_id = self.model_cache[short_hash]
+        else:
+            url = f"https://civitai.com/api/v1/model-versions/by-hash/{short_hash}"
+            try:
+                async with aiohttp.ClientSession(headers=HEADERS) as session:
+                    async with session.get(url) as resp:
+                        data = await resp.json()
+            except Exception as e:
+                log.error("Trying to grab model from Civitai", exc_info=e)
+                return None
+            if not data or "modelId" not in data:
+                return None
+            model_id = data['modelId']
+            self.model_cache[short_hash] = model_id
+            async with self.config.model_cache() as model_cache:
+                model_cache[short_hash] = model_id
+        return f"https://civitai.com/models/{model_id}"
 
     # Config commands
 
@@ -229,3 +283,23 @@ class ImageScanner(commands.Cog):
     async def scanset_channel_list(self, ctx: commands.Context):
         """Show all channels in the scan list."""
         await ctx.reply('\n'.join([f'<#{id}>' for id in self.scan_channels]) or "*None*")
+
+    @scanset.command(name="attachimages")
+    async def scanset_attachimages(self, ctx: commands.Context):
+        """Toggles whether images sent in DMs will be attached or linked."""
+        self.attach_images = not self.attach_images
+        await self.config.attach_images.set(self.attach_images)
+        if self.attach_images:
+            await ctx.reply("Images sent in DMs will now be attached as a file and embedded in full size.")
+        else:
+            await ctx.reply("Images sent in DMs will now be added as a link and embedded as a thumbnail.")
+
+    @scanset.command(name="civitai")
+    async def scanset_civitai(self, ctx: commands.Context):
+        """Toggles whether images should look for a model on Civitai."""
+        self.use_civitai = not self.use_civitai
+        await self.config.use_civitai.set(self.use_civitai)
+        if self.use_civitai:
+            await ctx.reply("Images sent in DMs will now try to find the used model on Civitai.")
+        else:
+            await ctx.reply("Images sent in DMs will no longer search for the model on Civitai.")
