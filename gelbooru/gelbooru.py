@@ -4,6 +4,7 @@ import re
 import random
 import logging
 from redbot.core import commands, app_commands, Config
+from collections import defaultdict
 
 log = logging.getLogger("red.crab-cogs.boorucog")
 
@@ -21,7 +22,8 @@ class Booru(commands.Cog):
     def __init__(self, bot):
         super().__init__()
         self.bot = bot
-        self.tag_cache = {}
+        self.tag_cache = {}  # tag query -> tag results
+        self.image_cache = defaultdict(list)  # tag set -> list of post ids (reset when full)
         self.config = Config.get_conf(self, identifier=62667275)
         self.config.register_global(tag_cache={})
 
@@ -170,4 +172,11 @@ class Booru(commands.Cog):
                 if not data or "post" not in data:
                     return None
                 images = [img for img in data["post"] if img["file_url"].endswith(IMAGE_TYPES)]
-                return random.choice(images)
+                # prevent duplicates
+                if all(img["id"] in self.image_cache[frozenset(tags)] for img in images):
+                    self.image_cache[frozenset(tags)] = []
+                else:
+                    images = [img for img in images if img["id"] not in self.image_cache[frozenset(tags)]]
+                choice = random.choice(images)
+                self.image_cache[frozenset(tags)].append(choice["id"])
+                return choice
