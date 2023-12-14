@@ -24,7 +24,7 @@ class Booru(commands.Cog):
         super().__init__()
         self.bot = bot
         self.tag_cache = {}  # tag query -> tag results
-        self.image_cache = ExpiringDict(max_len=100, max_age_seconds=24*60*60)  # tag set -> list of sent post ids
+        self.image_cache = ExpiringDict(max_len=100, max_age_seconds=24*60*60)  # channel id -> list of sent post ids
         self.config = Config.get_conf(self, identifier=62667275)
         self.config.register_global(tag_cache={})
 
@@ -62,7 +62,7 @@ class Booru(commands.Cog):
             tags += " rating:general"
 
         try:
-            result = await self.grab_image(tags)
+            result = await self.grab_image(tags, ctx)
         except Exception as e:
             log.error("Failed to grab image from Gelbooru", exc_info=e)
             await ctx.send("Sorry, there was an error trying to grab an image from Gelbooru. Please try again or contact the bot owner.")
@@ -126,7 +126,7 @@ class Booru(commands.Cog):
                 results.insert(0, last)
         else:
             try:
-                results = await self.get_tags(last)
+                results = await self.grab_tags(last)
             except Exception as e:
                 log.error("Failed to load Gelbooru tags", exc_info=e)
                 results = ["Error"]
@@ -137,16 +137,9 @@ class Booru(commands.Cog):
             results = [f"{previous} {res}" for res in results]
         return [discord.app_commands.Choice(name=i, value=i) for i in results]
 
-    async def get_tags(self, query):
+    async def grab_tags(self, query) -> list[str]:
         if query in self.tag_cache:
             return self.tag_cache[query].split(' ')
-        results = await self.grab_tags(query)
-        self.tag_cache[query] = ' '.join(results)
-        async with self.config.tag_cache() as tag_cache:
-            tag_cache[query] = self.tag_cache[query]
-        return results
-
-    async def grab_tags(self, query):
         query = urllib.parse.quote(query.lower(), safe=' ')
         url = f"https://gelbooru.com/index.php?page=dapi&s=tag&q=index&json=1&sort=desc&order_by=index_count&name_pattern=%25{query}%25"
         api = await self.bot.get_shared_api_tokens("gelbooru")
@@ -156,11 +149,15 @@ class Booru(commands.Cog):
         async with aiohttp.ClientSession(headers=HEADERS) as session:
             async with session.get(url) as resp:
                 data = await resp.json()
-                if not data or "tag" not in data:
-                    return []
-                return [tag["name"] for tag in data["tag"]][:20]
+        if not data or "tag" not in data:
+            return []
+        results = [tag["name"] for tag in data["tag"]][:20]
+        self.tag_cache[query] = ' '.join(results)
+        async with self.config.tag_cache() as tag_cache:
+            tag_cache[query] = self.tag_cache[query]
+        return results
 
-    async def grab_image(self, query):
+    async def grab_image(self, query: str, ctx: commands.Context) -> dict:
         query = urllib.parse.quote(query.lower(), safe=' ')
         tags = [tag for tag in query.split(' ') if tag]
         tags = [tag for tag in tags if tag not in TAG_BLACKLIST]
@@ -174,18 +171,18 @@ class Booru(commands.Cog):
         async with aiohttp.ClientSession(headers=HEADERS) as session:
             async with session.get(url) as resp:
                 data = await resp.json()
-                if not data or "post" not in data:
-                    return None
-                images = [img for img in data["post"] if img["file_url"].endswith(IMAGE_TYPES)]
-                more_than_one = len(images) > 1
-                # prevent duplicates
-                key = frozenset(tags)
-                if key not in self.image_cache:
-                    self.image_cache[key] = []
-                if all(img["id"] in self.image_cache[key] for img in images):
-                    self.image_cache[key] = self.image_cache[key][-1:]
-                images = [img for img in images if img["id"] not in self.image_cache[key]]
-                choice = random.choice(images)
-                if more_than_one:
-                    self.image_cache[key].append(choice["id"])
-                return choice
+        if not data or "post" not in data:
+            return {}
+        images = [img for img in data["post"] if img["file_url"].endswith(IMAGE_TYPES)]
+        more_than_one = len(images) > 1
+        # prevent duplicates
+        key = ctx.channel.id
+        if key not in self.image_cache:
+            self.image_cache[key] = []
+        if all(img["id"] in self.image_cache[key] for img in images):
+            self.image_cache[key] = self.image_cache[key][-1:]
+        images = [img for img in images if img["id"] not in self.image_cache[key]]
+        choice = random.choice(images)
+        if more_than_one:
+            self.image_cache[key].append(choice["id"])
+        return choice
