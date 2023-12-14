@@ -4,7 +4,7 @@ import re
 import random
 import logging
 from redbot.core import commands, app_commands, Config
-from collections import defaultdict
+from expiringdict import ExpiringDict
 
 log = logging.getLogger("red.crab-cogs.boorucog")
 
@@ -23,7 +23,7 @@ class Booru(commands.Cog):
         super().__init__()
         self.bot = bot
         self.tag_cache = {}  # tag query -> tag results
-        self.image_cache = defaultdict(list)  # tag set -> list of post ids (reset when full)
+        self.image_cache = ExpiringDict(max_len=100, max_age_seconds=24*60*60)  # tag set -> list of sent post ids
         self.config = Config.get_conf(self, identifier=62667275)
         self.config.register_global(tag_cache={})
 
@@ -174,10 +174,13 @@ class Booru(commands.Cog):
                 images = [img for img in data["post"] if img["file_url"].endswith(IMAGE_TYPES)]
                 more_than_one = len(images) > 1
                 # prevent duplicates
-                if all(img["id"] in self.image_cache[frozenset(tags)] for img in images):
-                    self.image_cache[frozenset(tags)] = self.image_cache[frozenset(tags)][-1:]
-                images = [img for img in images if img["id"] not in self.image_cache[frozenset(tags)]]
+                key = frozenset(tags)
+                if key not in self.image_cache:
+                    self.image_cache[key] = []
+                if all(img["id"] in self.image_cache[key] for img in images):
+                    self.image_cache[key] = self.image_cache[key][-1:]
+                images = [img for img in images if img["id"] not in self.image_cache[key]]
                 choice = random.choice(images)
                 if more_than_one:
-                    self.image_cache[frozenset(tags)].append(choice["id"])
+                    self.image_cache[key].append(choice["id"])
                 return choice
