@@ -5,7 +5,7 @@
     "hidden": false,
     "install_msg": "📎 __**ImageScanner**__ ```Cog installed. Instructions:\n1. Load it with [p]load imagescanner\n2A. Add channels to scan with [p]scanset channel add\n2B. Enable the context menu with [p]slash enablecog imagescanner, then [p]slash sync```",
     "required_cogs": {},
-    "requirements": ["Pillow"],
+    "requirements": ["Pillow", "expiringdict"],
     "short": "Scans images for AI parameters and other metadata.",
     "end_user_data_statement": "This cog does not store user data.",
     "tags": ["crab", "message", "scan", "ai", "image"]

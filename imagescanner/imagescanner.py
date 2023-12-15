@@ -7,6 +7,7 @@ from redbot.core import commands, app_commands, Config
 from typing import Optional
 from collections import OrderedDict
 from PIL import Image
+from expiringdict import ExpiringDict
 
 log = logging.getLogger("red.crab-cogs.imagescanner")
 
@@ -21,18 +22,21 @@ class ImageScanner(commands.Cog):
     def __init__(self, bot):
         super().__init__()
         self.bot = bot
-        self.scan_channels = set()
         self.config = Config.get_conf(self, identifier=7072707469)
+        self.scan_channels = set()
         self.scan_limit = 10 * 1024**2
         self.attach_images = True
         self.use_civitai = True
         self.model_cache = {}
+        self.image_cache = None
+        self.image_cache_size = 100
         defaults = {
             "channels": [],
             "scanlimit": self.scan_limit,
             "attach_images": self.attach_images,
             "use_civitai": self.use_civitai,
-            "model_cache": {}
+            "model_cache": {},
+            "image_cache_size": self.image_cache_size,
         }
         self.config.register_global(**defaults)
         self.context_menu = app_commands.ContextMenu(name='Image Info', callback=self.scanimage)
@@ -44,6 +48,8 @@ class ImageScanner(commands.Cog):
         self.attach_images = await self.config.attach_images()
         self.use_civitai = await self.config.use_civitai()
         self.model_cache = await self.config.model_cache()
+        self.image_cache_size = await self.config.image_cache_size()
+        self.image_cache = ExpiringDict(max_len=self.image_cache_size, max_age_seconds=24*60*60)
 
     async def cog_unload(self):
         self.bot.tree.remove_command(self.context_menu.name, type=self.context_menu.type)
@@ -93,7 +99,7 @@ class ImageScanner(commands.Cog):
         return embed
 
     @staticmethod
-    async def read_attachment_metadata(i: int, attachment: discord.Attachment, metadata: OrderedDict):
+    async def read_attachment_metadata(i: int, attachment: discord.Attachment, metadata: OrderedDict, image_bytes: OrderedDict):
         try:
             image_data = await attachment.read()
             with Image.open(io.BytesIO(image_data)) as img:
@@ -104,9 +110,11 @@ class ImageScanner(commands.Cog):
                         info = img._getexif().get(37510).decode('utf8')[7:]
                     if info and "Steps" in info:
                         metadata[i] = info
+                        image_bytes[i] = image_data
                 except:
                     if "Title" in img.info and img.info["Title"] == "AI generated image":
                         metadata[i] = "NovelAI3 Prompt: " + img.info['Description'].strip()
+                        image_bytes[i] = image_data
 
         except Exception as error:
             print(f"{type(error).__name__}: {error}")
@@ -133,12 +141,17 @@ class ImageScanner(commands.Cog):
             return
         if not await self.is_valid_red_message(message):
             return
-        for i, attachment in list(enumerate(attachments))[:2]:  # Scan first 2 images just in case
-            metadata = OrderedDict()
-            await self.read_attachment_metadata(i, attachment, metadata)
-            if metadata:
-                await message.add_reaction('🔎')
-                return
+        metadata = OrderedDict()
+        image_bytes = OrderedDict()
+        tasks = [self.read_attachment_metadata(i, attachment, metadata, image_bytes)
+                 for i, attachment in enumerate(attachments)]
+        await asyncio.gather(*tasks)
+        if metadata:
+            if self.image_cache_size > 0:
+                self.image_cache[message.id] = (metadata, image_bytes)
+            await message.add_reaction('🔎')
+        else:
+            self.image_cache[message.id] = (OrderedDict(), OrderedDict())
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, ctx: discord.RawReactionActionEvent):
@@ -154,16 +167,21 @@ class ImageScanner(commands.Cog):
             return
         if not await self.is_valid_red_message(message):
             return
-        metadata = OrderedDict()
-        tasks = [self.read_attachment_metadata(i, attachment, metadata) for i, attachment in enumerate(attachments)]
-        await asyncio.gather(*tasks)
+        if message.id in self.image_cache:
+            metadata, image_bytes = self.image_cache[message.id]
+        else:
+            metadata = OrderedDict()
+            image_bytes = OrderedDict()
+            tasks = [self.read_attachment_metadata(i, attachment, metadata, image_bytes)
+                     for i, attachment in enumerate(attachments)]
+            await asyncio.gather(*tasks)
         if not metadata:
             embed = self.get_embed({}, message.author)
             embed.description = f"This post contains no image generation data."
             embed.set_thumbnail(url=attachments[0].url)
             await ctx.member.send(embed=embed)
             return
-        for i, attachment, data in [(i, attachments[i], data) for i, data in metadata.items()]:
+        for i, data in metadata.items():
             params = self.get_params_from_string(data)
             embed = self.get_embed(params, message.author)
             embed.description = f":arrow_right: {message.jump_url}"
@@ -171,21 +189,20 @@ class ImageScanner(commands.Cog):
                 embed.title += f" ({i+1}/{len(metadata)})"
             if self.use_civitai and "Model hash" in params:
                 model_link = await self.grab_civitai_model_link(params["Model hash"])
-                log.info(f"model link: {model_link}")
                 if model_link:
                     embed.description += f"\n[🔗 Checkpoint on Civitai]({model_link})"
-            if self.attach_images:
-                img = io.BytesIO()
-                try:
-                    await attachment.save(img, use_cached=True)
-                except:
-                    file = None
-                else:
-                    file = discord.File(img, filename=attachment.filename)
-                embed.set_image(url=f"attachment://{attachment.filename}")
+            if self.attach_images and i in image_bytes:
+                img = io.BytesIO(image_bytes[i])
+                if len(attachments) > i:
+                    filename = attachments[i].filename
+                else:  # edge case where an individual image has been deleted off of a message
+                    filename = f"{i}.png"
+                file = discord.File(img, filename=filename)
+                embed.set_image(url=f"attachment://{filename}")
                 await ctx.member.send(embed=embed, file=file)
             else:
-                embed.set_thumbnail(url=attachment.url)
+                if len(attachments) > i:
+                    embed.set_thumbnail(url=attachments[i].url)
                 await ctx.member.send(embed=embed)
 
     # context menu set in __init__
@@ -196,9 +213,14 @@ class ImageScanner(commands.Cog):
             await ctx.response.send_message("This post contains no images.", ephemeral=True)
             return
         # await ctx.defer(ephemeral=True)
-        metadata = OrderedDict()
-        tasks = [self.read_attachment_metadata(i, attachment, metadata) for i, attachment in enumerate(attachments)]
-        await asyncio.gather(*tasks)
+        if message.id in self.image_cache:
+            metadata, image_bytes = self.image_cache[message.id]
+        else:
+            metadata = OrderedDict()
+            image_bytes = OrderedDict()
+            tasks = [self.read_attachment_metadata(i, attachment, metadata, image_bytes)
+                     for i, attachment in enumerate(attachments)]
+            await asyncio.gather(*tasks)
         if not metadata:
             for i, att in enumerate(attachments):
                 size_kb, size_mb = round(att.size / 1024), round(att.size / 1024**2, 2)
@@ -304,3 +326,19 @@ class ImageScanner(commands.Cog):
             await ctx.reply("Images sent in DMs will now try to find the used model on Civitai.")
         else:
             await ctx.reply("Images sent in DMs will no longer search for the model on Civitai.")
+
+    @scanset.command(name="cache")
+    async def scanset_cache(self, ctx: commands.Context, size: Optional[int]):
+        """How many images to cache in memory."""
+        if size is None:
+            size = await self.config.image_cache_size()
+            await ctx.reply(f"Up to {size} recent images will be cached in memory to prevent duplicate downloads. "
+                            f"Images are removed from cache after 24 hours.")
+        elif size < 0 or size > 1000:
+            await ctx.reply("Please choose a value between 0 and 1000, or none to see the current value.")
+        else:
+            await self.config.image_cache_size.set(size)
+            await ctx.reply(f"Up to {size} recent images will be cached in memory to prevent duplicate downloads. "
+                            f"Images are removed from cache after 24 hours."
+                            f"\nRequires a cog reload to apply the new value, which will clear the cache.")
+
