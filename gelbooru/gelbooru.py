@@ -4,6 +4,7 @@ import re
 import random
 import logging
 import urllib.parse
+import html
 from redbot.core import commands, app_commands, Config
 from expiringdict import ExpiringDict
 
@@ -152,6 +153,7 @@ class Booru(commands.Cog):
         if not data or "tag" not in data:
             return []
         results = [tag["name"] for tag in data["tag"]][:20]
+        results = [html.unescape(tag) for tag in results]
         self.tag_cache[query] = ' '.join(results)
         async with self.config.tag_cache() as tag_cache:
             tag_cache[query] = self.tag_cache[query]
