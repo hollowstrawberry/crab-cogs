@@ -2,11 +2,13 @@ import io
 import asyncio
 import discord
 import aiohttp
+import re
+import json
 import logging
 from redbot.core import commands, app_commands, Config
+from PIL import Image
 from typing import Optional
 from collections import OrderedDict
-from PIL import Image
 from expiringdict import ExpiringDict
 
 log = logging.getLogger("red.crab-cogs.imagescanner")
@@ -27,7 +29,9 @@ class ImageScanner(commands.Cog):
         self.scan_limit = 10 * 1024**2
         self.attach_images = True
         self.use_civitai = True
+        self.civitai_emoji = ""
         self.model_cache = {}
+        self.model_not_found_cache = ExpiringDict(max_len=100, max_age_seconds=24*60*60)
         self.image_cache: Optional[ExpiringDict] = None
         self.image_cache_size = 100
         defaults = {
@@ -35,7 +39,8 @@ class ImageScanner(commands.Cog):
             "scanlimit": self.scan_limit,
             "attach_images": self.attach_images,
             "use_civitai": self.use_civitai,
-            "model_cache": {},
+            "civitai_emoji": self.civitai_emoji,
+            "model_cache_v2": {},
             "image_cache_size": self.image_cache_size,
         }
         self.config.register_global(**defaults)
@@ -47,7 +52,8 @@ class ImageScanner(commands.Cog):
         self.scan_limit = await self.config.scanlimit()
         self.attach_images = await self.config.attach_images()
         self.use_civitai = await self.config.use_civitai()
-        self.model_cache = await self.config.model_cache()
+        self.civitai_emoji = await self.config.civitai_emoji()
+        self.model_cache = await self.config.model_cache_v2()
         self.image_cache_size = await self.config.image_cache_size()
         self.image_cache = ExpiringDict(max_len=self.image_cache_size, max_age_seconds=24*60*60)
 
@@ -82,6 +88,8 @@ class ImageScanner(commands.Cog):
             output_dict[promptkey] = output_dict[promptkey][:1000] + '...'
         if len(parts) > 1:
             params = 'Steps: ' + parts[1]
+            params = re.sub(r',? ?Lora hashes: "[^"]+"', "", params)
+            params = re.sub(r",? ?Hashes: \{.+$", "", params)
             params = params.split(', ')
             for param in params:
                 try:
@@ -107,7 +115,7 @@ class ImageScanner(commands.Cog):
                 try:
                     if attachment.filename.endswith(".png"):
                         info = img.info['parameters']
-                    else:
+                    else:  # jpeg jank
                         info = img._getexif().get(37510).decode('utf8')[7:]
                     if info and "Steps" in info:
                         metadata[i] = info
@@ -185,13 +193,44 @@ class ImageScanner(commands.Cog):
         for i, data in metadata.items():
             params = self.get_params_from_string(data)
             embed = self.get_embed(params, message.author)
-            embed.description = f":arrow_right: {message.jump_url}"
+            embed.description = message.jump_url if self.civitai_emoji else f":arrow_right: {message.jump_url}"
             if len(metadata) > 1:
                 embed.title += f" ({i+1}/{len(metadata)})"
-            if self.use_civitai and "Model hash" in params:
-                model_link = await self.grab_civitai_model_link(params["Model hash"])
-                if model_link:
-                    embed.description += f"\n[🔗 Checkpoint on Civitai]({model_link})"
+            if self.use_civitai:
+                if m := re.search(r",? ?Hashes: (\{[^\}]+\})", data):
+                    try:
+                        hashes = json.loads(m.group(1))
+                    except Exception as e:
+                        log.error("Trying to parse AI image hashes", exc_info=e)
+                    else:
+                        links = {name: await self.grab_civitai_model_link(short_hash)
+                                 for name, short_hash in hashes.items()}
+                        links = {name: link for name, link in links.items() if link}
+                        if links:
+                            for f, field in list(enumerate(embed.fields)):
+                                if "hash" in field.name:
+                                    embed.remove_field(f)
+                            for f, field in list(enumerate(embed.fields)):  # ???
+                                if "hash" in field.name:
+                                    embed.remove_field(f)
+                            desc_ext = []
+                            if "model" in links:
+                                desc_ext.append(f"[Model]({links['model']})")
+                                links.pop("model")
+                            if "vae" in links:
+                                desc_ext.append(f"[VAE]({links['vae']})")
+                                links.pop("vae")
+                            for name, link in links.items():
+                                desc_ext.append(f"[{name}]({link})")
+                            if self.civitai_emoji:
+                                embed.description += f"\n{self.civitai_emoji} "
+                            else:
+                                embed.description += "\n🔗 **Civitai:** "
+                            embed.description += ", ".join(desc_ext)
+                elif "Model hash" in params:
+                    model_link = await self.grab_civitai_model_link(params["Model hash"])
+                    if model_link:
+                        embed.description += f"\n[🔗 Checkpoint on Civitai]({model_link})"
             if self.attach_images and i in image_bytes:
                 img = io.BytesIO(image_bytes[i])
                 if len(attachments) > i:
@@ -239,6 +278,8 @@ class ImageScanner(commands.Cog):
     async def grab_civitai_model_link(self, short_hash: str) -> Optional[str]:
         if short_hash in self.model_cache:
             model_id = self.model_cache[short_hash]
+        elif short_hash in self.model_not_found_cache:
+            return None
         else:
             url = f"https://civitai.com/api/v1/model-versions/by-hash/{short_hash}"
             try:
@@ -249,12 +290,13 @@ class ImageScanner(commands.Cog):
                 log.error("Trying to grab model from Civitai", exc_info=e)
                 return None
             if not data or "modelId" not in data:
+                self.model_not_found_cache[short_hash] = True
                 return None
-            model_id = data['modelId']
+            model_id = (data['modelId'], data['id'])
             self.model_cache[short_hash] = model_id
-            async with self.config.model_cache() as model_cache:
+            async with self.config.model_cache_v2() as model_cache:
                 model_cache[short_hash] = model_id
-        return f"https://civitai.com/models/{model_id}"
+        return f"https://civitai.com/models/{model_id[0]}?modelVersionId={model_id[1]}"
 
     # Config commands
 
@@ -327,6 +369,23 @@ class ImageScanner(commands.Cog):
             await ctx.reply("Images sent in DMs will now try to find the used model on Civitai.")
         else:
             await ctx.reply("Images sent in DMs will no longer search for the model on Civitai.")
+
+    @scanset.command(name="civitaiemoji")
+    async def scanset_civitaiemoji(self, ctx: commands.Context, emoji: Optional[discord.Emoji]):
+        """Add your own Civitai custom emoji with this command."""
+        if emoji is None:
+            self.civitai_emoji = ""
+            await self.config.civitai_emoji.set("")
+            await ctx.reply(f"No emoji will appear when Civitai links are shown to users, only the word \"Civitai\".")
+            return
+        try:
+            await ctx.react_quietly(emoji)
+        except:
+            await ctx.reply("I don't have access to that emoji. I must be in the same server to use it.")
+        else:
+            self.civitai_emoji = str(emoji)
+            await self.config.civitai_emoji.set(str(emoji))
+            await ctx.reply(f"{emoji} will now appear when Civitai links are shown to users.")
 
     @scanset.command(name="cache")
     async def scanset_cache(self, ctx: commands.Context, size: Optional[int]):
