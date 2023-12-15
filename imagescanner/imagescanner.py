@@ -28,7 +28,7 @@ class ImageScanner(commands.Cog):
         self.attach_images = True
         self.use_civitai = True
         self.model_cache = {}
-        self.image_cache = None
+        self.image_cache: Optional[ExpiringDict] = None
         self.image_cache_size = 100
         defaults = {
             "channels": [],
@@ -53,6 +53,7 @@ class ImageScanner(commands.Cog):
 
     async def cog_unload(self):
         self.bot.tree.remove_command(self.context_menu.name, type=self.context_menu.type)
+        self.image_cache.clear()
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         pass
