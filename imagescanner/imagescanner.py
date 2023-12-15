@@ -207,30 +207,40 @@ class ImageScanner(commands.Cog):
                                  for name, short_hash in hashes.items()}
                         links = {name: link for name, link in links.items() if link}
                         if links:
-                            for f, field in list(enumerate(embed.fields)):
-                                if "hash" in field.name:
-                                    embed.remove_field(f)
-                            for f, field in list(enumerate(embed.fields)):  # ???
-                                if "hash" in field.name:
-                                    embed.remove_field(f)
                             desc_ext = []
                             if "model" in links:
                                 desc_ext.append(f"[Model]({links['model']})")
                                 links.pop("model")
-                            if "vae" in links:
-                                desc_ext.append(f"[VAE]({links['vae']})")
-                                links.pop("vae")
+                                self.remove_field(embed, "Model hash")
+                            #  vae hashes seem to be bugged in automatic1111 webui
+                            self.remove_field(embed, "VAE hash")
+                            links.pop("vae")
+                            # if "vae" in links:
+                            #     desc_ext.append(f"[VAE]({links['vae']})")
+                            #     links.pop("vae")
+                            #     self.remove_field(embed, "VAE hash")
                             for name, link in links.items():
                                 desc_ext.append(f"[{name}]({link})")
-                            if self.civitai_emoji:
-                                embed.description += f"\n{self.civitai_emoji} "
-                            else:
-                                embed.description += "\n🔗 **Civitai:** "
+                            embed.description += f"\n{self.civitai_emoji} " if self.civitai_emoji else "\n🔗 **Civitai:** "
                             embed.description += ", ".join(desc_ext)
-                elif "Model hash" in params:
-                    model_link = await self.grab_civitai_model_link(params["Model hash"])
-                    if model_link:
-                        embed.description += f"\n[🔗 Checkpoint on Civitai]({model_link})"
+                else:
+                    desc_ext = []
+                    if "Model hash" in params:
+                        link = await self.grab_civitai_model_link(params["Model hash"])
+                        if link:
+                            desc_ext.append(f"[Model]({link})")
+                            self.remove_field(embed, "Model hash")
+                    #  vae hashes seem to be bugged in automatic1111 webui
+                    self.remove_field(embed, "VAE hash")
+                    # if "VAE hash" in params:
+                    #     link = await self.grab_civitai_model_link(params["VAE hash"])
+                    #     if link:
+                    #         desc_ext.append(f"[VAE]({link})")
+                    #         self.remove_field(embed, "VAE hash")
+                    if desc_ext:
+                        embed.description += f"\n{self.civitai_emoji} " if self.civitai_emoji else "\n🔗 **Civitai:** "
+                        embed.description += ", ".join(desc_ext)
+
             if self.attach_images and i in image_bytes:
                 img = io.BytesIO(image_bytes[i])
                 if len(attachments) > i:
@@ -244,6 +254,13 @@ class ImageScanner(commands.Cog):
                 if len(attachments) > i:
                     embed.set_thumbnail(url=attachments[i].url)
                 await ctx.member.send(embed=embed)
+
+    @staticmethod
+    def remove_field(embed: discord.Embed, field_name: str):
+        for i, field in enumerate(embed.fields):
+            if field.name == field_name:
+                embed.remove_field(i)
+                return
 
     # context menu set in __init__
     async def scanimage(self, ctx: discord.Interaction, message: discord.Message):
