@@ -88,7 +88,7 @@ class ImageScanner(commands.Cog):
             output_dict[promptkey] = output_dict[promptkey][:1000] + '...'
         if len(parts) > 1:
             params = 'Steps: ' + parts[1]
-            params = re.sub(r',? ?Lora hashes: "[^"]+"', "", params)
+            params = re.sub(r',? ?(Lora|TI) hashes: "[^"]+"', "", params)
             params = re.sub(r",? ?Hashes: \{.+$", "", params)
             params = params.split(', ')
             for param in params:
