@@ -5,6 +5,7 @@ import aiohttp
 import re
 import json
 import logging
+from discord.ui import View
 from redbot.core import commands, app_commands, Config
 from PIL import Image
 from typing import Optional
@@ -17,6 +18,35 @@ IMAGE_TYPES = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
 HEADERS = {
     "User-Agent": f"crab-cogs/v1 (https://github.com/hollowstrawberry/crab-cogs);"
 }
+PARAM_REGEX = re.compile(r' ?([^:]+): (.+?),(?=(?:[^"]*"[^"]*")*[^"]*$)')
+PARAMS_BLACKLIST = [
+    "Template", "hashes",
+    "ADetailer confidence", "ADetailer mask", "ADetailer dilate", "ADetailer denoising", "ADetailer inpaint", "ADetailer version", "ADetailer prompt", "ADetailer use", "ADetailer checkpoint",
+    "FreeU Stages", "FreeU Schedule",
+    "Mimic scale", "Separate Feature Channels", "Scaling Startpoint", "Variability Measure", "Interpolate Phi", "Threshold percentile"  # Dynamic thresholding
+]
+VIEW_TIMEOUT = 5*60
+
+class ImageView(View):
+    def __init__(self, params: str, embed: discord.Embed):
+        super().__init__(timeout=VIEW_TIMEOUT)
+        self.params = params
+        self.embed = embed
+        self.pressed = False
+
+    @discord.ui.button(emoji="🔧", label='View Full Parameters', style=discord.ButtonStyle.grey)
+    async def view_full_parameters(self, ctx: discord.Interaction, btn: discord.Button):
+        if len(self.params) < 1980:
+            await ctx.response.send_message(f"```yaml\n{self.params}```")
+        else:
+            with io.StringIO() as f:
+                f.write(self.params)
+                f.seek(0)
+                await ctx.response.send_message(file=discord.File(f, "parameters.yaml"))
+        await ctx.message.edit(embed=self.embed, view=None)
+        self.pressed = True
+        self.stop()
+
 
 class ImageScanner(commands.Cog):
     """Scans images for AI parameters and other metadata."""
@@ -67,36 +97,25 @@ class ImageScanner(commands.Cog):
     # Static methods
 
     @staticmethod
-    def get_params_from_string(param_str) -> dict:
+    def get_params_from_string(param_str: str) -> dict:
         output_dict = {}
-        parts = param_str.split('Steps: ')
-        prompts = parts[0]
-        promptkey = 'Prompt'
-        if 'Negative prompt: ' in prompts:
-            output_dict['Prompt'] = prompts.split('Negative prompt: ')[0]
-            output_dict['Negative Prompt'] = prompts.split('Negative prompt: ')[1]
-            if len(output_dict['Negative Prompt']) > 1000:
-                output_dict['Negative Prompt'] = output_dict['Negative Prompt'][:1000] + '...'
+        if param_str.startswith("NovelAI3 Prompt: "):
+            output_dict["NovelAI3 Prompt"] = param_str[17:]
         else:
-            nai = prompts.split('NovelAI3 Prompt: ')
-            if len(nai) > 1:
-                promptkey = 'NovelAI3 Prompt'
-                output_dict[promptkey] = nai[1]
-            else:
-                output_dict[promptkey] = prompts
-        if len(output_dict[promptkey]) > 1000:
-            output_dict[promptkey] = output_dict[promptkey][:1000] + '...'
-        if len(parts) > 1:
-            params = 'Steps: ' + parts[1]
-            params = re.sub(r',? ?(Lora|TI) hashes: "[^"]+"', "", params)
-            params = re.sub(r",? ?Hashes: \{.+$", "", params)
-            params = params.split(', ')
-            for param in params:
-                try:
-                    key, value = param.split(': ')
-                    output_dict[key] = value
-                except ValueError:
-                    pass
+            prompts, params = param_str.split("Steps: ")
+            prompt, negative_prompt = prompts.split("Negative prompt: ")
+            output_dict["Prompt"] = prompt
+            output_dict["Negative Prompt"] = negative_prompt
+            params = f"Steps: {params},"
+            params = re.sub(r"Hashes: \{.+$", "", params)  # Civitai hashes go at the end and break form
+            param_list = PARAM_REGEX.findall(params)
+            for key, value in param_list:
+                if any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
+                    continue
+                output_dict[key] = value
+            for key in output_dict:
+                if len(output_dict[key]) > 1000:
+                    output_dict[key] = output_dict[key][:1000] + "..."
         return output_dict
 
     @staticmethod
@@ -197,50 +216,36 @@ class ImageScanner(commands.Cog):
             if len(metadata) > 1:
                 embed.title += f" ({i+1}/{len(metadata)})"
             if self.use_civitai:
-                if m := re.search(r",? ?Hashes: (\{[^\}]+\})", data):
+                desc_ext = []
+                if "Model hash" in params:
+                    link = await self.grab_civitai_model_link(params["Model hash"])
+                    if link:
+                        desc_ext.append(f"[Model]({link})")
+                        self.remove_field(embed, "Model hash")
+                #  vae hashes seem to be bugged in automatic1111 webui
+                self.remove_field(embed, "VAE hash")
+                # if "VAE hash" in params:
+                #     link = await self.grab_civitai_model_link(params["VAE hash"])
+                #     if link:
+                #         desc_ext.append(f"[VAE]({link})")
+                #         self.remove_field(embed, "VAE hash")
+                if m := re.search(r",? ?Hashes: (\{[^\}]+\})", data):  # civitai hashes
                     try:
                         hashes = json.loads(m.group(1))
                     except Exception as e:
                         log.error("Trying to parse AI image hashes", exc_info=e)
                     else:
+                        hashes["model"] = None
+                        hashes["vae"] = None
                         links = {name: await self.grab_civitai_model_link(short_hash)
                                  for name, short_hash in hashes.items()}
                         links = {name: link for name, link in links.items() if link}
-                        if links:
-                            desc_ext = []
-                            if "model" in links:
-                                desc_ext.append(f"[Model]({links['model']})")
-                                links.pop("model")
-                                self.remove_field(embed, "Model hash")
-                            #  vae hashes seem to be bugged in automatic1111 webui
-                            self.remove_field(embed, "VAE hash")
-                            links.pop("vae")
-                            # if "vae" in links:
-                            #     desc_ext.append(f"[VAE]({links['vae']})")
-                            #     links.pop("vae")
-                            #     self.remove_field(embed, "VAE hash")
-                            for name, link in links.items():
-                                desc_ext.append(f"[{name}]({link})")
-                            embed.description += f"\n{self.civitai_emoji} " if self.civitai_emoji else "\n🔗 **Civitai:** "
-                            embed.description += ", ".join(desc_ext)
-                else:
-                    desc_ext = []
-                    if "Model hash" in params:
-                        link = await self.grab_civitai_model_link(params["Model hash"])
-                        if link:
-                            desc_ext.append(f"[Model]({link})")
-                            self.remove_field(embed, "Model hash")
-                    #  vae hashes seem to be bugged in automatic1111 webui
-                    self.remove_field(embed, "VAE hash")
-                    # if "VAE hash" in params:
-                    #     link = await self.grab_civitai_model_link(params["VAE hash"])
-                    #     if link:
-                    #         desc_ext.append(f"[VAE]({link})")
-                    #         self.remove_field(embed, "VAE hash")
-                    if desc_ext:
-                        embed.description += f"\n{self.civitai_emoji} " if self.civitai_emoji else "\n🔗 **Civitai:** "
-                        embed.description += ", ".join(desc_ext)
-
+                        for name, link in links.items():
+                            desc_ext.append(f"[{name}]({link})")
+                if desc_ext:
+                    embed.description += f"\n{self.civitai_emoji} " if self.civitai_emoji else "\n🔗 **Civitai:** "
+                    embed.description += ", ".join(desc_ext)
+            view = ImageView(data, embed)
             if self.attach_images and i in image_bytes:
                 img = io.BytesIO(image_bytes[i])
                 if len(attachments) > i:
@@ -249,11 +254,21 @@ class ImageScanner(commands.Cog):
                     filename = f"{i}.png"
                 file = discord.File(img, filename=filename)
                 embed.set_image(url=f"attachment://{filename}")
-                await ctx.member.send(embed=embed, file=file)
+                msg = await ctx.member.send(embed=embed, file=file, view=view)
             else:
                 if len(attachments) > i:
                     embed.set_thumbnail(url=attachments[i].url)
-                await ctx.member.send(embed=embed)
+                msg = await ctx.member.send(embed=embed, view=view)
+            await asyncio.sleep(VIEW_TIMEOUT)
+            if not view.pressed:
+                await msg.edit(view=None, embed=embed)
+
+    @staticmethod
+    def remove_field(embed: discord.Embed, field_name: str):
+        for i, field in enumerate(embed.fields):
+            if field.name == field_name:
+                embed.remove_field(i)
+                return
 
     @staticmethod
     def remove_field(embed: discord.Embed, field_name: str):
@@ -293,7 +308,9 @@ class ImageScanner(commands.Cog):
                 await ctx.response.send_message(file=discord.File(f, "parameters.yaml"), ephemeral=True)
 
     async def grab_civitai_model_link(self, short_hash: str) -> Optional[str]:
-        if short_hash in self.model_cache:
+        if not short_hash:
+            return None
+        elif short_hash in self.model_cache:
             model_id = self.model_cache[short_hash]
         elif short_hash in self.model_not_found_cache:
             return None
@@ -379,13 +396,13 @@ class ImageScanner(commands.Cog):
 
     @scanset.command(name="civitai")
     async def scanset_civitai(self, ctx: commands.Context):
-        """Toggles whether images should look for a model on Civitai."""
+        """Toggles whether images should look for models on Civitai."""
         self.use_civitai = not self.use_civitai
         await self.config.use_civitai.set(self.use_civitai)
         if self.use_civitai:
-            await ctx.reply("Images sent in DMs will now try to find the used model on Civitai.")
+            await ctx.reply("Images sent in DMs will now try to find models on Civitai.")
         else:
-            await ctx.reply("Images sent in DMs will no longer search for the model on Civitai.")
+            await ctx.reply("Images sent in DMs will no longer search for models on Civitai.")
 
     @scanset.command(name="civitaiemoji")
     async def scanset_civitaiemoji(self, ctx: commands.Context, emoji: Optional[discord.Emoji]):
