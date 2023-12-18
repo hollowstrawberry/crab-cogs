@@ -109,9 +109,9 @@ class EmojiSteal(commands.Cog):
         if message.stickers:
             emojis = message.stickers
         elif not (emojis := self.get_emojis(message.content)):
-            return await ctx.response.send_message(MISSING_EMOJIS, ephemeral=True)
+            return await ctx.response.send_message(MISSING_EMOJIS, ephemeral=True)  # noqa
         response = '\n'.join([emoji.url for emoji in emojis])
-        await ctx.response.send_message(content=response, ephemeral=True)
+        await ctx.response.send_message(content=response, ephemeral=True)  # noqa
 
     @steal_command.command(name="upload")
     @commands.guild_only()
@@ -161,11 +161,11 @@ class EmojiSteal(commands.Cog):
     @app_commands.checks.bot_has_permissions(manage_emojis=True)
     async def steal_upload_app_command(self, ctx: discord.Interaction, message: discord.Message):
         if message.stickers:
-            emojis = message.stickers
+            emojis: list[Union[StolenEmoji, discord.StickerItem]] = message.stickers
         elif not (emojis := self.get_emojis(message.content)):
-            return await ctx.response.send_message(MISSING_EMOJIS, ephemeral=True)
+            return await ctx.response.send_message(MISSING_EMOJIS, ephemeral=True)  # noqa
         
-        await ctx.response.defer(thinking=True)
+        await ctx.response.defer(thinking=True)  # noqa
         
         if isinstance(emojis[0], discord.StickerItem):
             if len(ctx.guild.stickers) >= ctx.guild.sticker_limit:
@@ -232,7 +232,7 @@ class EmojiSteal(commands.Cog):
         try:
             await attachment.save(fp)
             if attachment.filename.endswith(".zip"):
-                zip = zipfile.ZipFile(fp)
+                zip = zipfile.ZipFile(fp)  # noqa
                 files = zipfile.ZipFile.namelist(zip)
                 file = next(f for f in files if f.endswith(".png"))
                 if not file:

@@ -15,18 +15,18 @@ from expiringdict import ExpiringDict
 log = logging.getLogger("red.crab-cogs.imagescanner")
 
 IMAGE_TYPES = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
-HEADERS = {
-    "User-Agent": f"crab-cogs/v1 (https://github.com/hollowstrawberry/crab-cogs);"
-}
+VIEW_TIMEOUT = 5*60
 PARAM_REGEX = re.compile(r' ?([^:]+): (.+?),(?=(?:[^"]*"[^"]*")*[^"]*$)')
-PARAM_GROUP_REGEX = re.compile(r', [^:]+: \{.+?(?=(?:[^"]*"[^"]*")*[^"]*$)\}')
+PARAM_GROUP_REGEX = re.compile(r', [^:]+: \{.+?(?=(?:[^"]*"[^"]*")*[^"]*$)\}')  # noqa
 PARAMS_BLACKLIST = [
     "Template", "hashes",
     "ADetailer confidence", "ADetailer mask", "ADetailer dilate", "ADetailer denoising", "ADetailer inpaint", "ADetailer version", "ADetailer prompt", "ADetailer use", "ADetailer checkpoint",
     "FreeU Stages", "FreeU Schedule",
     "Mimic scale", "Separate Feature Channels", "Scaling Startpoint", "Variability Measure", "Interpolate Phi", "Threshold percentile"  # Dynamic thresholding
 ]
-VIEW_TIMEOUT = 5*60
+HEADERS = {
+    "User-Agent": f"crab-cogs/v1 (https://github.com/hollowstrawberry/crab-cogs);"
+}
 
 class ImageView(View):
     def __init__(self, params: str, embed: discord.Embed):
@@ -36,15 +36,15 @@ class ImageView(View):
         self.pressed = False
 
     @discord.ui.button(emoji="🔧", label='View Full Parameters', style=discord.ButtonStyle.grey)
-    async def view_full_parameters(self, ctx: discord.Interaction, btn: discord.Button):
+    async def view_full_parameters(self, ctx: discord.Interaction, _: discord.Button):
         if len(self.params) < 1980:
-            await ctx.response.send_message(f"```yaml\n{self.params}```")
+            await ctx.response.send_message(f"```yaml\n{self.params}```")  # noqa
         else:
             with io.StringIO() as f:
                 f.write(self.params)
                 f.seek(0)
-                await ctx.response.send_message(file=discord.File(f, "parameters.yaml"))
-        await ctx.message.edit(embed=self.embed, view=None)
+                await ctx.response.send_message(file=discord.File(f, "parameters.yaml"))  # noqa
+        await ctx.message.edit(view=None, embed=self.embed)
         self.pressed = True
         self.stop()
 
@@ -95,8 +95,6 @@ class ImageScanner(commands.Cog):
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         pass
 
-    # Static methods
-
     @staticmethod
     def get_params_from_string(param_str: str) -> dict:
         output_dict = {}
@@ -136,7 +134,7 @@ class ImageScanner(commands.Cog):
                     if attachment.filename.endswith(".png"):
                         info = img.info['parameters']
                     else:  # jpeg jank
-                        info = img._getexif().get(37510).decode('utf8')[7:]
+                        info = img._getexif().get(37510).decode('utf8')[7:]  # noqa
                     if info and "Steps" in info:
                         metadata[i] = info
                         image_bytes[i] = image_data
@@ -150,7 +148,12 @@ class ImageScanner(commands.Cog):
         else:
             print("Downloaded", i)
 
-    # Events
+    @staticmethod
+    def remove_field(embed: discord.Embed, field_name: str):
+        for i, field in enumerate(embed.fields):
+            if field.name == field_name:
+                embed.remove_field(i)
+                return
 
     async def is_valid_red_message(self, message: discord.Message) -> bool:
         return await self.bot.allowed_by_whitelist_blacklist(message.author) \
@@ -230,11 +233,11 @@ class ImageScanner(commands.Cog):
                 #     if link:
                 #         desc_ext.append(f"[VAE]({link})")
                 #         self.remove_field(embed, "VAE hash")
-                if m := re.search(r",? ?Hashes: (\{[^\}]+\})", data):  # civitai hashes
+                if m := re.search(r",? ?Hashes: (\{[^\}]+\})", data):  # noqa
                     try:
                         hashes = json.loads(m.group(1))
                     except Exception as e:
-                        log.error("Trying to parse AI image hashes", exc_info=e)
+                        log.error("Trying to parse Civitai hashes", exc_info=e)
                     else:
                         hashes["model"] = None
                         hashes["vae"] = None
@@ -264,26 +267,12 @@ class ImageScanner(commands.Cog):
             if not view.pressed:
                 await msg.edit(view=None, embed=embed)
 
-    @staticmethod
-    def remove_field(embed: discord.Embed, field_name: str):
-        for i, field in enumerate(embed.fields):
-            if field.name == field_name:
-                embed.remove_field(i)
-                return
-
-    @staticmethod
-    def remove_field(embed: discord.Embed, field_name: str):
-        for i, field in enumerate(embed.fields):
-            if field.name == field_name:
-                embed.remove_field(i)
-                return
-
     # context menu set in __init__
     async def scanimage(self, ctx: discord.Interaction, message: discord.Message):
         """Get image metadata"""
         attachments = [a for a in message.attachments if a.filename.lower().endswith(IMAGE_TYPES)]
         if not attachments:
-            await ctx.response.send_message("This post contains no images.", ephemeral=True)
+            await ctx.response.send_message("This post contains no images.", ephemeral=True)  # noqa
             return
         # await ctx.defer(ephemeral=True)
         if message.id in self.image_cache:
@@ -297,16 +286,16 @@ class ImageScanner(commands.Cog):
         if not metadata:
             for i, att in enumerate(attachments):
                 size_kb, size_mb = round(att.size / 1024), round(att.size / 1024**2, 2)
-                metadata[i] = f"Filename: {att.filename}, Dimensions: {att.width}x{att.height}, "\
-                            + f"Filesize: " + (f"{size_mb} MB" if size_mb >= 1.0 else f"{size_kb} KB")
+                metadata[i] = f"Filename: {att.filename}, Dimensions: {att.width}x{att.height}, " \
+                              f"Filesize: " + (f"{size_mb} MB" if size_mb >= 1.0 else f"{size_kb} KB")
         response = "\n\n".join(metadata.values())
         if len(response) < 1980:
-            await ctx.response.send_message(f"```yaml\n{response}```", ephemeral=True)
+            await ctx.response.send_message(f"```yaml\n{response}```", ephemeral=True)  # noqa
         else:
             with io.StringIO() as f:
                 f.write(response)
                 f.seek(0)
-                await ctx.response.send_message(file=discord.File(f, "parameters.yaml"), ephemeral=True)
+                await ctx.response.send_message(file=discord.File(f, "parameters.yaml"), ephemeral=True)  # noqa
 
     async def grab_civitai_model_link(self, short_hash: str) -> Optional[str]:
         if not short_hash:
@@ -383,7 +372,7 @@ class ImageScanner(commands.Cog):
     @scanset_channel.command(name="list")
     async def scanset_channel_list(self, ctx: commands.Context):
         """Show all channels in the scan list."""
-        await ctx.reply('\n'.join([f'<#{id}>' for id in self.scan_channels]) or "*None*")
+        await ctx.reply('\n'.join([f'<#{cid}>' for cid in self.scan_channels]) or "*None*")
 
     @scanset.command(name="attachimages")
     async def scanset_attachimages(self, ctx: commands.Context):
@@ -436,4 +425,3 @@ class ImageScanner(commands.Cog):
             await ctx.reply(f"Up to {size} recent images will be cached in memory to prevent duplicate downloads. "
                             f"Images are removed from cache after 24 hours."
                             f"\nRequires a cog reload to apply the new value, which will clear the cache.")
-

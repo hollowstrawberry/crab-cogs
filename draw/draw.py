@@ -27,8 +27,7 @@ class Draw(commands.Cog):
     def output_image(self, ctx: commands.Context) -> str:
         return str(cog_data_path(self).joinpath(f"output_{ctx.command.name}_{ctx.author.id}.jpg"))
 
-    #@commands.hybrid_command()
-    async def avatar(self, ctx: commands.Context, user: Optional[discord.User]):
+    async def avatar(self, ctx: commands.Context, user: Optional[discord.Member]):
         """Simply shows your avatar or somebody else's."""
         if not user:
             user = ctx.author

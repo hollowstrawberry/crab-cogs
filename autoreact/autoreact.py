@@ -177,4 +177,3 @@ class Autoreact(commands.Cog):
         await self.config.guild(ctx.guild).coreact_chance.set(chance)
         self.coreact_chance[ctx.guild.id] = chance
         await ctx.send(f"✅ The new chance is {chance * 100:.2f}%")
-

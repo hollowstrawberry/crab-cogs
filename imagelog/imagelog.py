@@ -101,4 +101,3 @@ class ImageLog(commands.Cog):
         if value is not None:
             await self.config.guild(ctx.guild).log_moderator_self_deletes.set(value)
         await ctx.send(f"`log_moderator_self_deletes: {await self.config.guild(ctx.guild).log_moderator_self_deletes()}`")
-      

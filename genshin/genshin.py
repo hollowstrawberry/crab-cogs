@@ -132,7 +132,6 @@ class Genshin(commands.Cog):
         embed.set_thumbnail(url=WISH_IMG5 if any(p in FIVESTARS for p in pulled) else
                             WISH_IMG4 if any(p in FOURSTARS for p in pulled) else WISH_IMG3)
         embed.set_image(url=next((PULL_IMG.get(p) for p in pulled if p in PULL_IMG), ""))
-
         await ctx.send(embed=embed)
 
     @genshin.command(aliases=["inventory"])
