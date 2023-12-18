@@ -19,6 +19,7 @@ HEADERS = {
     "User-Agent": f"crab-cogs/v1 (https://github.com/hollowstrawberry/crab-cogs);"
 }
 PARAM_REGEX = re.compile(r' ?([^:]+): (.+?),(?=(?:[^"]*"[^"]*")*[^"]*$)')
+PARAM_GROUP_REGEX = re.compile(r', [^:]+: \{.+?(?=(?:[^"]*"[^"]*")*[^"]*$)\}')
 PARAMS_BLACKLIST = [
     "Template", "hashes",
     "ADetailer confidence", "ADetailer mask", "ADetailer dilate", "ADetailer denoising", "ADetailer inpaint", "ADetailer version", "ADetailer prompt", "ADetailer use", "ADetailer checkpoint",
@@ -107,7 +108,7 @@ class ImageScanner(commands.Cog):
             output_dict["Prompt"] = prompt
             output_dict["Negative Prompt"] = negative_prompt
             params = f"Steps: {params},"
-            params = re.sub(r"Hashes: \{.+$", "", params)  # Civitai hashes go at the end and break form
+            params = PARAM_GROUP_REGEX.sub("", params)
             param_list = PARAM_REGEX.findall(params)
             for key, value in param_list:
                 if any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
