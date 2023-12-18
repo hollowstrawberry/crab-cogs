@@ -20,9 +20,11 @@ PARAM_REGEX = re.compile(r' ?([^:]+): (.+?),(?=(?:[^"]*"[^"]*")*[^"]*$)')
 PARAM_GROUP_REGEX = re.compile(r', [^:]+: \{.+?(?=(?:[^"]*"[^"]*")*[^"]*$)\}')  # noqa
 PARAMS_BLACKLIST = [
     "Template", "hashes",
-    "ADetailer confidence", "ADetailer mask", "ADetailer dilate", "ADetailer denoising", "ADetailer inpaint", "ADetailer version", "ADetailer prompt", "ADetailer use", "ADetailer checkpoint",
+    "ADetailer confidence", "ADetailer mask", "ADetailer dilate", "ADetailer denoising",
+    "ADetailer inpaint", "ADetailer version", "ADetailer prompt", "ADetailer use", "ADetailer checkpoint",
     "FreeU Stages", "FreeU Schedule",
-    "Mimic scale", "Separate Feature Channels", "Scaling Startpoint", "Variability Measure", "Interpolate Phi", "Threshold percentile"  # Dynamic thresholding
+    "Mimic", "Separate Feature Channels", "Scaling Startpoint", "Variability Measure",  # Dynamic thresholding
+    "Interpolate Phi", "Threshold percentile", "CFG mode", "CFG scale min",
 ]
 HEADERS = {
     "User-Agent": f"crab-cogs/v1 (https://github.com/hollowstrawberry/crab-cogs);"
@@ -96,8 +98,8 @@ class ImageScanner(commands.Cog):
         pass
 
     @staticmethod
-    def get_params_from_string(param_str: str) -> dict:
-        output_dict = {}
+    def get_params_from_string(param_str: str) -> OrderedDict:
+        output_dict = OrderedDict()
         if param_str.startswith("NovelAI3 Prompt: "):
             output_dict["NovelAI3 Prompt"] = param_str[17:]
         else:
@@ -126,7 +128,7 @@ class ImageScanner(commands.Cog):
         return embed
 
     @staticmethod
-    async def read_attachment_metadata(i: int, attachment: discord.Attachment, metadata: OrderedDict, image_bytes: OrderedDict):
+    async def read_attachment_metadata(i: int, attachment: discord.Attachment, metadata: dict, image_bytes: dict):
         try:
             image_data = await attachment.read()
             with Image.open(io.BytesIO(image_data)) as img:
@@ -173,8 +175,7 @@ class ImageScanner(commands.Cog):
             return
         if not await self.is_valid_red_message(message):
             return
-        metadata = OrderedDict()
-        image_bytes = OrderedDict()
+        metadata, image_bytes = {}, {}
         tasks = [self.read_attachment_metadata(i, attachment, metadata, image_bytes)
                  for i, attachment in enumerate(attachments)]
         await asyncio.gather(*tasks)
@@ -183,7 +184,7 @@ class ImageScanner(commands.Cog):
                 self.image_cache[message.id] = (metadata, image_bytes)
             await message.add_reaction('🔎')
         else:
-            self.image_cache[message.id] = (OrderedDict(), OrderedDict())
+            self.image_cache[message.id] = ({}, {})
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, ctx: discord.RawReactionActionEvent):
@@ -202,8 +203,7 @@ class ImageScanner(commands.Cog):
         if message.id in self.image_cache:
             metadata, image_bytes = self.image_cache[message.id]
         else:
-            metadata = OrderedDict()
-            image_bytes = OrderedDict()
+            metadata, image_bytes = {}, {}
             tasks = [self.read_attachment_metadata(i, attachment, metadata, image_bytes)
                      for i, attachment in enumerate(attachments)]
             await asyncio.gather(*tasks)
@@ -213,7 +213,8 @@ class ImageScanner(commands.Cog):
             embed.set_thumbnail(url=attachments[0].url)
             await ctx.member.send(embed=embed)
             return
-        for i, data in metadata.items():
+        edit_tasks = []
+        for i, data in sorted(metadata.items()):
             params = self.get_params_from_string(data)
             embed = self.get_embed(params, message.author)
             embed.description = message.jump_url if self.civitai_emoji else f":arrow_right: {message.jump_url}"
@@ -263,9 +264,14 @@ class ImageScanner(commands.Cog):
                 if len(attachments) > i:
                     embed.set_thumbnail(url=attachments[i].url)
                 msg = await ctx.member.send(embed=embed, view=view)
-            await asyncio.sleep(VIEW_TIMEOUT)
-            if not view.pressed:
-                await msg.edit(view=None, embed=embed)
+            edit_tasks.append(self.edit_dm(view, embed, msg))
+        await asyncio.sleep(VIEW_TIMEOUT)
+        await asyncio.gather(*edit_tasks)
+
+    @staticmethod
+    async def edit_dm(view: ImageView, embed: discord.Embed, msg: discord.Message):
+        if not view.pressed:
+            await msg.edit(view=None, embed=embed)
 
     # context menu set in __init__
     async def scanimage(self, ctx: discord.Interaction, message: discord.Message):
@@ -278,8 +284,7 @@ class ImageScanner(commands.Cog):
         if message.id in self.image_cache:
             metadata, image_bytes = self.image_cache[message.id]
         else:
-            metadata = OrderedDict()
-            image_bytes = OrderedDict()
+            metadata, image_bytes = {}, {}
             tasks = [self.read_attachment_metadata(i, attachment, metadata, image_bytes)
                      for i, attachment in enumerate(attachments)]
             await asyncio.gather(*tasks)
@@ -288,7 +293,7 @@ class ImageScanner(commands.Cog):
                 size_kb, size_mb = round(att.size / 1024), round(att.size / 1024**2, 2)
                 metadata[i] = f"Filename: {att.filename}, Dimensions: {att.width}x{att.height}, " \
                               f"Filesize: " + (f"{size_mb} MB" if size_mb >= 1.0 else f"{size_kb} KB")
-        response = "\n\n".join(metadata.values())
+        response = "\n\n".join([data for i, data in sorted(metadata.items())])
         if len(response) < 1980:
             await ctx.response.send_message(f"```yaml\n{response}```", ephemeral=True)  # noqa
         else:
