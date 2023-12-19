@@ -16,8 +16,13 @@ log = logging.getLogger("red.crab-cogs.imagescanner")
 
 IMAGE_TYPES = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
 VIEW_TIMEOUT = 5*60
-PARAM_REGEX = re.compile(r' ?([^:]+): (.+?),(?=(?:[^"]*"[^"]*")*[^"]*$)')
-PARAM_GROUP_REGEX = re.compile(r', [^:]+: \{.+?(?=(?:[^"]*"[^"]*")*[^"]*$)\}')  # noqa
+
+# language=RegExp
+LOOKAHEAD_PATTERN = rf'(?=(?:[^"]*"[^"]*")*[^"]*$)'  # ensures the characters surrounding the lookahead are not inside quotes
+PARAM_REGEX = re.compile(rf" ?([^:]+): (.+?),{LOOKAHEAD_PATTERN}")
+PARAM_GROUP_REGEX = re.compile(rf", [^:]+: {{.+?{LOOKAHEAD_PATTERN}}}")
+HASHES_GROUP_REGEX = re.compile(rf", Hashes: ({{.+?{LOOKAHEAD_PATTERN}}})")
+
 PARAMS_BLACKLIST = [
     "Template", "hashes",
     "ADetailer confidence", "ADetailer mask", "ADetailer dilate", "ADetailer denoising",
@@ -26,17 +31,17 @@ PARAMS_BLACKLIST = [
     "Mimic", "Separate Feature Channels", "Scaling Startpoint", "Variability Measure",  # Dynamic thresholding
     "Interpolate Phi", "Threshold percentile", "CFG mode", "CFG scale min",
 ]
-NAIV3_PARAMS_BLACKLIST = [
-    "n_samples", "debug", "controlnet", "dynamic_thresholding", "skip_cfg", "lora",
-    "signed_hash", "uncond", "legacy", "extra_noise"
-]
-NAIV3_PARAMS_RENAMES = [
-    ("scale", "guidance"), ("cfg_rescale", "guidance_rescale"),
-    ("sm", "smea"), ("sm_dyn", "dyn"),
-]
+NAIV3_PARAMS = {
+    "steps": "Steps",                       "width": "Width",                   "height": "Height",
+    "seed": "Seed",                         "scale": "Guidance",                "cfg_rescale": "Guidance Rescale",
+    "sampler": "Sampler",                   "sm": "SMEA",                       "sm_dyn": "DYN",
+    "uncond_scale": "Undesired Strength",   "noise_schedule": "Noise Schedule", "request_type": "Operation",
+}
+
 HEADERS = {
     "User-Agent": f"crab-cogs/v1 (https://github.com/hollowstrawberry/crab-cogs);"
 }
+
 
 class ImageView(View):
     def __init__(self, params: str, embed: discord.Embed):
@@ -108,26 +113,23 @@ class ImageScanner(commands.Cog):
     @staticmethod
     def get_params_from_string(param_str: str) -> OrderedDict:
         output_dict = OrderedDict()
-        if param_str.startswith("NovelAI3 Prompt: "):
+        if "NovelAI3 Parameters: " in param_str:
             prompts, params = param_str.split("NovelAI3 Parameters: ")
-            prompt, negative_prompt = prompts.split("Negative prompt: ")
-            output_dict["NovelAI3 Prompt"] = prompt[17:]
-            output_dict["Negative Prompt"] = negative_prompt
-            param_list = json.loads(params).items()
-            blacklist = NAIV3_PARAMS_BLACKLIST
+            output_dict["NovelAI3 Prompt"], output_dict["Negative Prompt"] = prompts.split("Negative prompt: ")
+            param_dict = json.loads(params)
+            for key, new_key in NAIV3_PARAMS.items():
+                if key in param_dict:
+                    output_dict[new_key] = str(param_dict[key])
         else:
-            prompts, params = param_str.split("Steps: ")
-            prompt, negative_prompt = prompts.split("Negative prompt: ")
-            output_dict["Prompt"] = prompt
-            output_dict["Negative Prompt"] = negative_prompt
+            prompts, params = param_str.split("Steps: ", 1)
+            output_dict["Prompt"], output_dict["Negative Prompt"] = prompts.split("Negative prompt: ")
             params = f"Steps: {params},"
             params = PARAM_GROUP_REGEX.sub("", params)
             param_list = PARAM_REGEX.findall(params)
-            blacklist = PARAMS_BLACKLIST
-        for key, value in param_list:
-            if any(blacklisted in key for blacklisted in blacklist):
-                continue
-            output_dict[key] = str(value)
+            for key, value in param_list:
+                if any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
+                    continue
+                output_dict[key] = value
         for key in output_dict:
             if len(output_dict[key]) > 1000:
                 output_dict[key] = output_dict[key][:1000] + "..."
@@ -157,10 +159,8 @@ class ImageScanner(commands.Cog):
                 except:  # novelai
                     if "Title" in img.info and img.info["Title"] == "AI generated image":
                         info = json.loads(img.info["Comment"])
-                        prompt = "NovelAI3 Prompt: " + info.pop('prompt')
+                        prompt = info.pop('prompt')
                         negative_prompt = "Negative prompt: " + info.pop('uc')
-                        for before, after in NAIV3_PARAMS_RENAMES:
-                            info[after] = info.pop(before)
                         metadata[i] = f"{prompt}\n{negative_prompt}\nNovelAI3 Parameters: {json.dumps(info)}"
                         image_bytes[i] = image_data
         except Exception as e:
@@ -225,7 +225,7 @@ class ImageScanner(commands.Cog):
             await asyncio.gather(*tasks)
         if not metadata:
             embed = self.get_embed({}, message.author)
-            embed.description = f"This post contains no image generation data."
+            embed.description = f"{message.jump_url}\nThis post contains no image generation data."
             embed.set_thumbnail(url=attachments[0].url)
             await ctx.member.send(embed=embed)
             return
@@ -241,16 +241,16 @@ class ImageScanner(commands.Cog):
                 if "Model hash" in params:
                     link = await self.grab_civitai_model_link(params["Model hash"])
                     if link:
-                        desc_ext.append(f"[Model]({link})")
+                        desc_ext.append(f"[Model:{params['Model']}]({link})" if "Model" in params else f"[Model]({link})")
                         self.remove_field(embed, "Model hash")
                 #  vae hashes seem to be bugged in automatic1111 webui
                 self.remove_field(embed, "VAE hash")
                 # if "VAE hash" in params:
                 #     link = await self.grab_civitai_model_link(params["VAE hash"])
                 #     if link:
-                #         desc_ext.append(f"[VAE]({link})")
+                #         desc_ext.append(f"[VAE:{params['VAE']}]({link})" if "VAE" in params else f"[VAE]({link})")
                 #         self.remove_field(embed, "VAE hash")
-                if m := re.search(r",? ?Hashes: (\{[^\}]+\})", data):  # noqa
+                if m := HASHES_GROUP_REGEX.search(data):
                     try:
                         hashes = json.loads(m.group(1))
                     except Exception as e:
@@ -260,9 +260,9 @@ class ImageScanner(commands.Cog):
                         hashes["vae"] = None
                         links = {name: await self.grab_civitai_model_link(short_hash)
                                  for name, short_hash in hashes.items()}
-                        links = {name: link for name, link in links.items() if link}
                         for name, link in links.items():
-                            desc_ext.append(f"[{name}]({link})")
+                            if link:
+                                desc_ext.append(f"[{name}]({link})")
                 if desc_ext:
                     embed.description += f"\n{self.civitai_emoji} " if self.civitai_emoji else "\n🔗 **Civitai:** "
                     embed.description += ", ".join(desc_ext)
