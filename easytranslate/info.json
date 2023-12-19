@@ -5,7 +5,7 @@
     "hidden": false,
     "install_msg": "🎌 __**EasyTranslate**__ ```EasyTranslate installed. Instructions:\n1. Load the cog with [p]load easytranslate\n2. Enable application commands with [p]slash enablecog easytranslate, then [p]slash sync\n3. Right click a message -> Apps -> Translate\n4. Your users may set their default language for translation with /setmylanguage```",
     "required_cogs": {},
-    "requirements": ["googletrans==3.1.0-alpha"],
+    "requirements": ["googletrans-py"],
     "short": "Translate messages using Google Translate for free.",
     "end_user_data_statement": "This cog does not store any user data.",
     "tags": ["crab", "useful", "translate", "translation", "slash", "message", "context", "menu"]
