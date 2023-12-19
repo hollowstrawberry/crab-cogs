@@ -38,7 +38,7 @@ class Logs(commands.Cog):
                 if len(page) + 1 + len(result[-1]) <= MAX_PAGE_LENGTH:
                     page = result.pop() + "\n" + page
                 elif not page:  # cuts up a huge line
-                    page, result[-1] = result[-1][:MAX_PAGE_LENGTH-3] + "...", "..." + result[-1][MAX_PAGE_LENGTH-3:]
+                    page, result[-1] = "..." + result[-1][-MAX_PAGE_LENGTH:], result[-1][:-MAX_PAGE_LENGTH] + "...",
                 else:
                     break
             pages.append(f"```py\n{page.strip()}```")
