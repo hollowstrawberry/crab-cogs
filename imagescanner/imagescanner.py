@@ -26,6 +26,14 @@ PARAMS_BLACKLIST = [
     "Mimic", "Separate Feature Channels", "Scaling Startpoint", "Variability Measure",  # Dynamic thresholding
     "Interpolate Phi", "Threshold percentile", "CFG mode", "CFG scale min",
 ]
+NAIV3_PARAMS_BLACKLIST = [
+    "n_samples", "debug", "controlnet", "dynamic_thresholding", "skip_cfg", "lora",
+    "signed_hash", "uncond", "legacy", "extra_noise"
+]
+NAIV3_PARAMS_RENAMES = [
+    ("scale", "guidance"), ("cfg_rescale", "guidance_rescale"),
+    ("sm", "smea"), ("sm_dyn", "dyn"),
+]
 HEADERS = {
     "User-Agent": f"crab-cogs/v1 (https://github.com/hollowstrawberry/crab-cogs);"
 }
@@ -101,7 +109,12 @@ class ImageScanner(commands.Cog):
     def get_params_from_string(param_str: str) -> OrderedDict:
         output_dict = OrderedDict()
         if param_str.startswith("NovelAI3 Prompt: "):
-            output_dict["NovelAI3 Prompt"] = param_str[17:]
+            prompts, params = param_str.split("NovelAI3 Parameters: ")
+            prompt, negative_prompt = prompts.split("Negative prompt: ")
+            output_dict["NovelAI3 Prompt"] = prompt[17:]
+            output_dict["Negative Prompt"] = negative_prompt
+            param_list = json.loads(params).items()
+            blacklist = NAIV3_PARAMS_BLACKLIST
         else:
             prompts, params = param_str.split("Steps: ")
             prompt, negative_prompt = prompts.split("Negative prompt: ")
@@ -110,13 +123,14 @@ class ImageScanner(commands.Cog):
             params = f"Steps: {params},"
             params = PARAM_GROUP_REGEX.sub("", params)
             param_list = PARAM_REGEX.findall(params)
-            for key, value in param_list:
-                if any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
-                    continue
-                output_dict[key] = value
-            for key in output_dict:
-                if len(output_dict[key]) > 1000:
-                    output_dict[key] = output_dict[key][:1000] + "..."
+            blacklist = PARAMS_BLACKLIST
+        for key, value in param_list:
+            if any(blacklisted in key for blacklisted in blacklist):
+                continue
+            output_dict[key] = str(value)
+        for key in output_dict:
+            if len(output_dict[key]) > 1000:
+                output_dict[key] = output_dict[key][:1000] + "..."
         return output_dict
 
     @staticmethod
@@ -140,15 +154,17 @@ class ImageScanner(commands.Cog):
                     if info and "Steps" in info:
                         metadata[i] = info
                         image_bytes[i] = image_data
-                except:
+                except:  # novelai
                     if "Title" in img.info and img.info["Title"] == "AI generated image":
-                        metadata[i] = "NovelAI3 Prompt: " + img.info['Description'].strip()
+                        info = json.loads(img.info["Comment"])
+                        prompt = "NovelAI3 Prompt: " + info.pop('prompt')
+                        negative_prompt = "Negative prompt: " + info.pop('uc')
+                        for before, after in NAIV3_PARAMS_RENAMES:
+                            info[after] = info.pop(before)
+                        metadata[i] = f"{prompt}\n{negative_prompt}\nNovelAI3 Parameters: {json.dumps(info)}"
                         image_bytes[i] = image_data
-
-        except Exception as error:
-            print(f"{type(error).__name__}: {error}")
-        else:
-            print("Downloaded", i)
+        except Exception as e:
+            log.error("Downloading attachment", exc_info=e)
 
     @staticmethod
     def remove_field(embed: discord.Embed, field_name: str):
