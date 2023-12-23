@@ -1,0 +1,12 @@
+{
+    "author": ["OrchidAlloy"],
+    "min_bot_version": "3.5.0",
+    "description": "Plays text to speech in voice chat. Overrides music.",
+    "hidden": false,
+    "install_msg": "🗣 __**TTS**__ ```Cog installed. Instructions:\n1. Load it with [p]load tts\n2. Optionally, enable slash command with [p]slash enablecog tts, then [p]slash sync```",
+    "required_cogs": {},
+    "requirements": ["gtts", "googletrans-py"],
+    "short": "Plays text to speech in voice chat. Overrides music.",
+    "end_user_data_statement": "This cog does not store user data.",
+    "tags": ["crab", "voice", "tts", "speech"]
+}

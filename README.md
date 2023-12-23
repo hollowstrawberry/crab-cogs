@@ -56,6 +56,10 @@ Lets you configure emoji reactions that will be added to any message containing 
 
 Grab images from Gelbooru based on tags. The slash command version features smart tag suggestions/autocompletion. It will also avoid sending the same image in the same channel twice until absolutely necessary (within 24 hours).
 
+### 🗣 TTS
+
+PLays text to speech in voice chat. Detects the language automatically. The voice cannot be changed for now. Unfortunately will override music if it is playing.
+
 ### 🎲 Randomness
 
 A couple fun hybrid commands involving random seeds, including:
