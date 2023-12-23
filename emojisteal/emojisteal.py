@@ -11,6 +11,7 @@ from typing import Optional, Union, List
 IMAGE_TYPES = (".png", ".jpg", ".jpeg", ".gif", ".webp")
 STICKER_KB = 512
 STICKER_DIM = 320
+STICKER_TIME = 5
 
 MISSING_EMOJIS = "Can't find emojis or stickers in that message."
 MISSING_REFERENCE = "Reply to a message with this command to steal an emoji."
@@ -24,7 +25,7 @@ STICKER_SLOTS = "⚠ This server doesn't have any more space for stickers!"
 EMOJI_FAIL = "❌ Failed to upload"
 EMOJI_SLOTS = "⚠ This server doesn't have any more space for emojis!"
 INVALID_EMOJI = "Invalid emoji or emoji ID."
-STICKER_TOO_BIG = f"Stickers may only be up to {STICKER_KB} KB and {STICKER_DIM}x{STICKER_DIM} pixels."
+STICKER_TOO_BIG = f"Stickers may only be up to {STICKER_KB} KB and {STICKER_DIM}x{STICKER_DIM} pixels and last up to {STICKER_TIME} seconds."
 STICKER_ATTACHMENT = """
 >>> For a non-moving sticker, simply use this command and attach a PNG image.
 For a moving sticker, Discord limitations make it very annoying. Follow these steps:
