@@ -127,7 +127,7 @@ class ImageScanner(commands.Cog):
             params = PARAM_GROUP_REGEX.sub("", params)
             param_list = PARAM_REGEX.findall(params)
             for key, value in param_list:
-                if any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
+                if len(output_dict) > 24 or any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
                     continue
                 output_dict[key] = value
         for key in output_dict:
