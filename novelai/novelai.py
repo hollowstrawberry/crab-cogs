@@ -58,11 +58,13 @@ class NovelAI(commands.Cog):
             return False
 
     async def consume_queue(self):
-        while self.queue:
+        while self.queue.not_empty:
             try:
                 await self.queue.get()
             except:
                 log.exception("NovelAI task queue")
+            finally:
+                self.queue.task_done()
 
     @app_commands.command(name="novelai",
                           description="Generate anime images with NovelAI v3.")
@@ -94,7 +96,7 @@ class NovelAI(commands.Cog):
         base_neg = await self.config.user(ctx.user).base_negative_prompt()
         if base_neg:
             negative_prompt = f"{base_neg}, {negative_prompt}" if negative_prompt else base_neg
-        if not ctx.channel.nsfw and await self.config.nsfw_filter():
+        if ctx.guild and not ctx.channel.nsfw and await self.config.nsfw_filter():
             blacklisted = [term.strip() for term in NSFW_TERMS.split(",")]
             if any(term in prompt for term in blacklisted) or "safe" in negative_prompt:
                 return await ctx.followup.send(":warning: You may not generate NSFW images in non-NSFW channels.")
