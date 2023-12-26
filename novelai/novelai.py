@@ -155,8 +155,12 @@ class NovelAI(commands.Cog):
                     return await ctx.followup.send(":warning: Failed to authenticate NovelAI account.")
                 elif error.status == 402:
                     return await ctx.followup.send(":warning: The subscription and/or credits have run out for this NovelAI account.")
+                elif error.status == 400:
+                    return await ctx.followup.send(f":warning: Failed to generate image: " + error.message or "A validation error occured.")
+                elif error.status == 409:
+                    return await ctx.followup.send(f":warning: Failed to generate image: " + error.message or "A conflict error occured.")
                 else:
-                    return await ctx.followup.send(":warning: Failed to generate image: " + error.message)
+                    return await ctx.followup.send(f":warning: Failed to generate image: {error.status} {error.message}")
         except:
             log.exception("Generating image")
             return await ctx.followup.send(":warning: Failed to generate image! Contact the bot owner for more information.")
