@@ -4,58 +4,14 @@ import discord
 import logging
 from redbot.core import commands, app_commands, Config
 from redbot.core.bot import Red
-from redbot.core.app_commands import Choice
-from collections import OrderedDict
 from typing import Optional
 from novelai_api import NovelAIError
-from novelai_api.ImagePreset import ImageModel, ImagePreset, ImageResolution, ImageSampler, UCPreset
+from novelai_api.ImagePreset import ImageModel, ImagePreset, ImageSampler, UCPreset
 
 from novelai.naiapi import NaiAPI
+from novelai.constants import *
 
 log = logging.getLogger("red.crab-cogs.novelai")
-
-DEFAULT_NEGATIVE_PROMPT = "{bad}, fewer, extra, missing, worst quality, bad quality, " \
-                          "watermark, jpeg artifacts, unfinished, displeasing, chromatic aberration, " \
-                          "signature, extra digits, artistic error, username, scan, [abstract]"
-
-KEY_NOT_SET_MESSAGE = "NovelAI username and password not set. The bot owner needs to set them like this:\n" \
-                      "[p]set api novelai username,USERNAME\n" \
-                      "[p]set api novelai password,PASSWORD"
-
-SAMPLER_TITLES = OrderedDict({
-    "k_euler": "Euler",
-    "k_euler_ancestral": "Euler Ancestral",
-    "k_dpmpp_2s_ancestral": "DPM++ 2S Ancestral",
-    "k_dpmpp_2m": "DPM++ 2M",
-    "k_dpmpp_sde": "DPM++ SDE",
-    "ddim": "DDIM",
-})
-RESOLUTION_TITLES = OrderedDict({
-    "portrait": "Portrait (832x1216)",
-    "landscape": "Landscape (1216x832)",
-    "square": "Square (1024x1024)",
-})
-RESOLUTION_OBJECTS = OrderedDict({
-    "portrait": ImageResolution.Normal_Portrait_v3,
-    "landscape": ImageResolution.Normal_Landscape_v3,
-    "square": ImageResolution.Normal_Square_v3,
-})
-NOISE_SCHEDULES = [
-    "native", "karras", "exponential", "polyexponential",
-]
-
-PARAMETER_DESCRIPTIONS = {
-    "resolution": "The aspect ratio of your image.",
-    "guidance": "The intensity of the prompt.",
-    "guidance_rescale": "Adjusts the guidance somehow.",
-    "sampler": "The algotithm that guides image generation.",
-    "decrisper": "Reduces artifacts caused by high guidance.",
-}
-PARAMETER_CHOICES = {
-    "resolution": [Choice(name=title, value=value) for value, title in RESOLUTION_TITLES.items()],
-    "sampler": [Choice(name=title, value=value) for value, title in SAMPLER_TITLES.items()],
-    "noise_schedule": [Choice(name=sch, value=sch) for sch in NOISE_SCHEDULES],
-}
 
 
 class NovelAI(commands.Cog):
@@ -77,7 +33,11 @@ class NovelAI(commands.Cog):
             "noise_schedule": "native",
             "decrisper": False,
         }
+        defaults_global = {
+            "nsfw_filter": True,
+        }
         self.config.register_user(**defaults_user)
+        self.config.register_global(**defaults_global)
 
     async def cog_load(self):
         await self.try_create_api()
@@ -126,6 +86,12 @@ class NovelAI(commands.Cog):
             base_neg = await self.config.user(ctx.user).base_negative_prompt()
             if base_neg:
                 negative_prompt = f"{base_neg}, {negative_prompt}" if negative_prompt else base_neg
+            if not ctx.channel.nsfw and await self.config.nsfw_filter():
+                blacklisted = [term.strip() for term in NSFW_TERMS.split(",")]
+                if any(term in prompt for term in blacklisted) or "safe" in negative_prompt:
+                    return await ctx.followup.send(":warning: You may not generate NSFW images in non-NSFW channels.")
+                prompt = "{{{safe}}}, " + prompt
+                negative_prompt = "{{{nsfw}}}, " + negative_prompt
             preset = ImagePreset()
             preset.n_samples = 1
             preset.resolution = RESOLUTION_OBJECTS[resolution or await self.config.user(ctx.user).resolution()]
@@ -227,3 +193,19 @@ class NovelAI(commands.Cog):
         embed.add_field(name="Noise Schedule", value=await self.config.user(ctx.user).noise_schedule())
         embed.add_field(name="Decrisper", value=f"{await self.config.user(ctx.user).decrisper()}")
         await ctx.response.send_message(embed=embed, ephemeral=True)  # noqa
+
+    @commands.group()
+    @commands.is_owner()
+    async def novelaiset(self, _):
+        """Configure /novelai bot-wide."""
+        pass
+
+    @novelaiset.command()
+    async def nsfw_filter(self, ctx: commands.Context):
+        """Toggles the NSFW filter for /novelai"""
+        new = not await self.config.nsfw_filter()
+        await self.config.nsfw_filter.set(new)
+        if new:
+            await ctx.reply("NSFW filter enabled in non-nsfw channels. Note that this is not perfect.")
+        else:
+            await ctx.reply("NSFW filter disabled. Users may easily generate NSFW content with /novelai")
