@@ -4,9 +4,10 @@ import discord
 import logging
 from redbot.core import commands, app_commands, Config
 from redbot.core.bot import Red
-from typing import Optional
 from novelai_api import NovelAIError
 from novelai_api.ImagePreset import ImageModel, ImagePreset, ImageSampler, UCPreset
+from queue import Queue
+from typing import Optional, Coroutine
 
 from novelai.naiapi import NaiAPI
 from novelai.constants import *
@@ -21,7 +22,8 @@ class NovelAI(commands.Cog):
         super().__init__()
         self.bot = bot
         self.api: Optional[NaiAPI] = None
-        self.working = False
+        self.queue: Queue[Coroutine] = Queue()
+        self.queue_task: Optional[asyncio.Task] = None
         self.config = Config.get_conf(self, identifier=66766566169)
         defaults_user = {
             "base_prompt": None,
@@ -55,6 +57,13 @@ class NovelAI(commands.Cog):
         else:
             return False
 
+    async def consume_queue(self):
+        while self.queue:
+            try:
+                await self.queue.get()
+            except:
+                log.exception("NovelAI task queue")
+
     @app_commands.command(name="novelai",
                           description="Generate anime images with NovelAI v3.")
     @app_commands.describe(prompt="What you want to generate.",
@@ -78,46 +87,49 @@ class NovelAI(commands.Cog):
         if not self.api and not await self.try_create_api():
             return await ctx.response.send_message(KEY_NOT_SET_MESSAGE)  # noqa
         await ctx.response.defer()  # noqa
-        while self.working:
-            await asyncio.sleep(0.5)
-        self.working = True
-        try:
-            base_prompt = await self.config.user(ctx.user).base_prompt()
-            if base_prompt:
-                prompt = f"{base_prompt}, {prompt}" if prompt else base_prompt
-            base_neg = await self.config.user(ctx.user).base_negative_prompt()
-            if base_neg:
-                negative_prompt = f"{base_neg}, {negative_prompt}" if negative_prompt else base_neg
-            if not ctx.channel.nsfw and await self.config.nsfw_filter():
-                blacklisted = [term.strip() for term in NSFW_TERMS.split(",")]
-                if any(term in prompt for term in blacklisted) or "safe" in negative_prompt:
-                    return await ctx.followup.send(":warning: You may not generate NSFW images in non-NSFW channels.")
-                prompt = "{{{safe}}}, " + prompt
-                negative_prompt = "{{{nsfw}}}, " + negative_prompt
-            preset = ImagePreset()
-            preset.n_samples = 1
-            preset.resolution = RESOLUTION_OBJECTS[resolution or await self.config.user(ctx.user).resolution()]
-            preset.uc = negative_prompt or DEFAULT_NEGATIVE_PROMPT
-            preset.uc_preset = UCPreset.Preset_None
-            preset.sampler = sampler or ImageSampler(await self.config.user(ctx.user).sampler())
-            preset.scale = guidance if guidance is not None else await self.config.user(ctx.user).guidance()
-            preset.cfg_rescale = guidance_rescale if guidance_rescale is not None else await self.config.user(ctx.user).guidance_rescale()
-            preset.decrisper = decrisper if decrisper is not None else await self.config.user(ctx.user).decrisper()
-            preset.noise_schedule = noise_schedule or await self.config.user(ctx.user).noise_schedule()
-            if "ddim" in str(preset.sampler) or "ancestral" in str(preset.sampler) and preset.noise_schedule == "karras":
-                preset.noise_schedule = "native"
-            if seed is not None and seed >= 0:
-                preset.seed = seed
-            preset.uncond_scale = 1.0
-            sampler_version = sampler_version or await self.config.user(ctx.user).sampler_version()
-            preset.smea = "SMEA" in sampler_version
-            preset.smea_dyn = "DYN" in sampler_version
 
-            try:
-                async with self.api as wrapper:
-                    async for name, img in wrapper.api.high_level.generate_image(prompt, ImageModel.Anime_v3, preset):
-                        file = discord.File(io.BytesIO(img), name)
-            except NovelAIError as error:
+        base_prompt = await self.config.user(ctx.user).base_prompt()
+        if base_prompt:
+            prompt = f"{base_prompt}, {prompt}" if prompt else base_prompt
+        base_neg = await self.config.user(ctx.user).base_negative_prompt()
+        if base_neg:
+            negative_prompt = f"{base_neg}, {negative_prompt}" if negative_prompt else base_neg
+        if not ctx.channel.nsfw and await self.config.nsfw_filter():
+            blacklisted = [term.strip() for term in NSFW_TERMS.split(",")]
+            if any(term in prompt for term in blacklisted) or "safe" in negative_prompt:
+                return await ctx.followup.send(":warning: You may not generate NSFW images in non-NSFW channels.")
+            prompt = "{{{safe}}}, " + prompt
+            negative_prompt = "{{{nsfw}}}, " + negative_prompt
+        preset = ImagePreset()
+        preset.n_samples = 1
+        preset.resolution = RESOLUTION_OBJECTS[resolution or await self.config.user(ctx.user).resolution()]
+        preset.uc = negative_prompt or DEFAULT_NEGATIVE_PROMPT
+        preset.uc_preset = UCPreset.Preset_None
+        preset.sampler = sampler or ImageSampler(await self.config.user(ctx.user).sampler())
+        preset.scale = guidance if guidance is not None else await self.config.user(ctx.user).guidance()
+        preset.cfg_rescale = guidance_rescale if guidance_rescale is not None else await self.config.user(ctx.user).guidance_rescale()
+        preset.decrisper = decrisper if decrisper is not None else await self.config.user(ctx.user).decrisper()
+        preset.noise_schedule = noise_schedule or await self.config.user(ctx.user).noise_schedule()
+        if "ddim" in str(preset.sampler) or "ancestral" in str(preset.sampler) and preset.noise_schedule == "karras":
+            preset.noise_schedule = "native"
+        if seed is not None and seed >= 0:
+            preset.seed = seed
+        preset.uncond_scale = 1.0
+        sampler_version = sampler_version or await self.config.user(ctx.user).sampler_version()
+        preset.smea = "SMEA" in sampler_version
+        preset.smea_dyn = "DYN" in sampler_version
+
+        self.queue.put(self.fulfill_novelai_request(ctx, prompt, preset))
+        if not self.queue_task or self.queue_task.done():
+            self.queue_task = asyncio.create_task(self.consume_queue())
+
+    async def fulfill_novelai_request(self, ctx: discord.Interaction, prompt: str, preset: ImagePreset):
+        try:
+            async with self.api as wrapper:
+                async for name, img in wrapper.api.high_level.generate_image(prompt, ImageModel.Anime_v3, preset):
+                    file = discord.File(io.BytesIO(img), name)
+        except Exception as error:
+            if isinstance(error, NovelAIError):
                 if error.status == 500:
                     return await ctx.followup.send(":warning: NovelAI encountered an error. Please try again.")
                 elif error.status == 401:
@@ -130,11 +142,9 @@ class NovelAI(commands.Cog):
                     return await ctx.followup.send(":warning: Failed to generate image: " + (error.message or "A conflict error occured."))
                 else:
                     return await ctx.followup.send(f":warning: Failed to generate image: {error.status} {error.message}")
-        except:
-            log.exception("Generating image")
-            return await ctx.followup.send(":warning: Failed to generate image! Contact the bot owner for more information.")
-        finally:
-            self.working = False
+            else:
+                log.exception("Generating image")
+                return await ctx.followup.send(":warning: Failed to generate image! Contact the bot owner for more information.")
 
         msg = await ctx.followup.send(file=file)
         imagescanner = self.bot.get_cog("ImageScanner")
