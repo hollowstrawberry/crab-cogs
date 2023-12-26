@@ -18,6 +18,10 @@ DEFAULT_NEGATIVE_PROMPT = "{bad}, fewer, extra, missing, worst quality, bad qual
                           "watermark, jpeg artifacts, unfinished, displeasing, chromatic aberration, " \
                           "signature, extra digits, artistic error, username, scan, [abstract]"
 
+KEY_NOT_SET_MESSAGE = "NovelAI username and password not set. The bot owner needs to set them like this:\n" \
+                      "[p]set api novelai username,USERNAME\n" \
+                      "[p]set api novelai password,PASSWORD"
+
 SAMPLER_TITLES = OrderedDict({
     "k_euler": "Euler",
     "k_euler_ancestral": "Euler Ancestral",
@@ -110,11 +114,7 @@ class NovelAI(commands.Cog):
                       decrisper: Optional[bool],
                       ):
         if not self.api and not await self.try_create_api():
-            return await ctx.response.send_message(  # noqa
-                "NovelAI username and password not set. The bot owner needs to set them like this:\n"
-                "[p]set api novelai username,USERNAME\n"
-                "[p]set api novelai password,PASSWORD"
-            )
+            return await ctx.response.send_message(KEY_NOT_SET_MESSAGE)  # noqa
         await ctx.response.defer()  # noqa
         while self.working:
             await asyncio.sleep(0.5)
@@ -156,9 +156,9 @@ class NovelAI(commands.Cog):
                 elif error.status == 402:
                     return await ctx.followup.send(":warning: The subscription and/or credits have run out for this NovelAI account.")
                 elif error.status == 400:
-                    return await ctx.followup.send(f":warning: Failed to generate image: " + error.message or "A validation error occured.")
+                    return await ctx.followup.send(":warning: Failed to generate image: " + (error.message or "A validation error occured."))
                 elif error.status == 409:
-                    return await ctx.followup.send(f":warning: Failed to generate image: " + error.message or "A conflict error occured.")
+                    return await ctx.followup.send(":warning: Failed to generate image: " + (error.message or "A conflict error occured."))
                 else:
                     return await ctx.followup.send(f":warning: Failed to generate image: {error.status} {error.message}")
         except:
