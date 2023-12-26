@@ -10,8 +10,8 @@ KEY_NOT_SET_MESSAGE = "NovelAI username and password not set. The bot owner need
                       "[p]set api novelai username,USERNAME\n" \
                       "[p]set api novelai password,PASSWORD"
 
-NSFW_TERMS = "nsfw, explicit, nude, sex, cum, pussy, cleft of venus, clitoris, penis, nipple, topless, anus, " \
-             "paizuri, missionary, cowgirl, hetero, vaginal, anal"
+NSFW_TERMS = "nsfw, explicit, nude, sex, cum, pussy, cleft, clit, penis, nipple, topless, anus, " \
+             "paizuri, missionary, cowgirl, hetero, vaginal, anal, oral, fellatio, cunnilingus, futa"
 
 SAMPLER_TITLES = OrderedDict({
     "k_euler": "Euler",

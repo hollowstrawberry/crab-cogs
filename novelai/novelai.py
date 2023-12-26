@@ -188,8 +188,8 @@ class NovelAI(commands.Cog):
             await self.config.user(ctx.user).decrisper.set(decrisper)
 
         embed = discord.Embed(title="NovelAI default settings", color=0xffffff)
-        prompt = await self.config.user(ctx.user).base_prompt()
-        neg = await self.config.user(ctx.user).base_negative_prompt()
+        prompt = str(await self.config.user(ctx.user).base_prompt())
+        neg = str(await self.config.user(ctx.user).base_negative_prompt())
         embed.add_field(name="Base prompt", value=prompt[:1000] + "..." if len(prompt) > 1000 else prompt, inline=False)
         embed.add_field(name="Base negative prompt", value=neg[:1000] + "..." if len(neg) > 1000 else neg, inline=False)
         embed.add_field(name="Resolution", value=RESOLUTION_TITLES[await self.config.user(ctx.user).resolution()])
