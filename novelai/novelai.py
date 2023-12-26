@@ -30,6 +30,7 @@ class NovelAI(commands.Cog):
             "guidance": 5.0,
             "guidance_rescale": 0.0,
             "sampler": "k_euler",
+            "sampler_version": "Regular",
             "noise_schedule": "native",
             "decrisper": False,
         }
@@ -70,6 +71,7 @@ class NovelAI(commands.Cog):
                       guidance: Optional[app_commands.Range[float, 0.0, 10.0]],
                       guidance_rescale: Optional[app_commands.Range[float, 0.0, 1.0]],
                       sampler: Optional[ImageSampler],
+                      sampler_version: Optional[str],
                       noise_schedule: Optional[str],
                       decrisper: Optional[bool],
                       ):
@@ -107,8 +109,9 @@ class NovelAI(commands.Cog):
             if seed is not None and seed >= 0:
                 preset.seed = seed
             preset.uncond_scale = 1.0
-            preset.smea = False
-            preset.smea_dyn = False
+            sampler_version = sampler_version or await self.config.user(ctx.user).sampler_version()
+            preset.smea = "SMEA" in sampler_version
+            preset.smea_dyn = "DYN" in sampler_version
 
             try:
                 async with self.api as wrapper:
@@ -153,6 +156,7 @@ class NovelAI(commands.Cog):
                               guidance: Optional[app_commands.Range[float, 0.0, 10.0]],
                               guidance_rescale: Optional[app_commands.Range[float, 0.0, 1.0]],
                               sampler: Optional[str],
+                              sampler_version: Optional[str],
                               noise_schedule: Optional[str],
                               decrisper: Optional[bool],
                               ):
@@ -176,6 +180,8 @@ class NovelAI(commands.Cog):
             await self.config.user(ctx.user).guidance_rescale.set(guidance_rescale)
         if sampler is not None:
             await self.config.user(ctx.user).sampler.set(sampler)
+        if sampler_version is not None:
+            await self.config.user(ctx.user).sampler_version.set(sampler_version)
         if noise_schedule is not None:
             await self.config.user(ctx.user).noise_schedule.set(noise_schedule)
         if decrisper is not None:
@@ -190,6 +196,7 @@ class NovelAI(commands.Cog):
         embed.add_field(name="Guidance", value=f"{await self.config.user(ctx.user).guidance():.1f}")
         embed.add_field(name="Guidance Rescale", value=f"{await self.config.user(ctx.user).guidance_rescale():.2f}")
         embed.add_field(name="Sampler", value=SAMPLER_TITLES[await self.config.user(ctx.user).sampler()])
+        embed.add_field(name="Sampler Version", value=await self.config.user(ctx.user).sampler_version())
         embed.add_field(name="Noise Schedule", value=await self.config.user(ctx.user).noise_schedule())
         embed.add_field(name="Decrisper", value=f"{await self.config.user(ctx.user).decrisper()}")
         await ctx.response.send_message(embed=embed, ephemeral=True)  # noqa

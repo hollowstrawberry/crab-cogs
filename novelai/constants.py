@@ -38,16 +38,22 @@ NOISE_SCHEDULES = [
     "native", "karras", "exponential", "polyexponential",
 ]
 
+SAMPLER_VERSIONS = [
+    "Regular", "SMEA", "SMEA+DYN",
+]
+
 PARAMETER_DESCRIPTIONS = {
     "resolution": "The aspect ratio of your image.",
     "guidance": "The intensity of the prompt.",
     "guidance_rescale": "Adjusts the guidance somehow.",
     "sampler": "The algotithm that guides image generation.",
+    "sampler_version": "SMEA samplers are modified to perform better at higher resolutions.",
     "decrisper": "Reduces artifacts caused by high guidance.",
 }
 
 PARAMETER_CHOICES = {
     "resolution": [Choice(name=title, value=value) for value, title in RESOLUTION_TITLES.items()],
     "sampler": [Choice(name=title, value=value) for value, title in SAMPLER_TITLES.items()],
+    "sampler_version": [Choice(name=ver, value=ver) for ver in SAMPLER_VERSIONS],
     "noise_schedule": [Choice(name=sch, value=sch) for sch in NOISE_SCHEDULES],
 }
