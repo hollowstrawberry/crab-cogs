@@ -119,41 +119,47 @@ class NovelAI(commands.Cog):
         while self.working:
             await asyncio.sleep(0.5)
         self.working = True
-
-        base_prompt = await self.config.user(ctx.user).base_prompt()
-        if base_prompt:
-            prompt =  f"{base_prompt}, {prompt}" if prompt else base_prompt
-        base_neg = await self.config.user(ctx.user).base_negative_prompt()
-        if base_neg:
-            negative_prompt = f"{base_neg}, {negative_prompt}" if negative_prompt else base_neg
-        preset = ImagePreset()
-        preset.n_samples = 1
-        preset.resolution = RESOLUTION_OBJECTS[resolution or await self.config.user(ctx.user).resolution()]
-        preset.uc = negative_prompt or DEFAULT_NEGATIVE_PROMPT
-        preset.uc_preset = UCPreset.Preset_None
-        preset.sampler = sampler or ImageSampler(await self.config.user(ctx.user).sampler())
-        preset.scale = guidance if guidance is not None else await self.config.user(ctx.user).guidance()
-        preset.cfg_rescale = guidance_rescale if guidance_rescale is not None else await self.config.user(ctx.user).guidance_rescale()
-        preset.decrisper = decrisper if decrisper is not None else await self.config.user(ctx.user).decrisper()
-        preset.noise_schedule = noise_schedule or await self.config.user(ctx.user).noise_schedule()
-        if "ancestral" in str(preset.sampler) and preset.noise_schedule == "karras":
-            preset.noise_schedule = "native"
-        if seed is not None and seed >= 0:
-            preset.seed = seed
-        preset.uncond_scale = 1.0
-        preset.smea = False
-        preset.smea_dyn = False
-
         try:
-            async with self.api as wrapper:
-                async for name, img in wrapper.api.high_level.generate_image(prompt, ImageModel.Anime_v3, preset):
-                    file = discord.File(io.BytesIO(img), f"{name}.png")
-        except Exception as error:
-            if isinstance(error, NovelAIError) and error.status == 500:
-                return await ctx.followup.send(":warning: NovelAI encountered an error. Please try again.")
-            else:
-                log.exception("Generating image")
-                return await ctx.followup.send(":warning: Failed to generate image! Contact the bot owner for more information.")
+            base_prompt = await self.config.user(ctx.user).base_prompt()
+            if base_prompt:
+                prompt = f"{base_prompt}, {prompt}" if prompt else base_prompt
+            base_neg = await self.config.user(ctx.user).base_negative_prompt()
+            if base_neg:
+                negative_prompt = f"{base_neg}, {negative_prompt}" if negative_prompt else base_neg
+            preset = ImagePreset()
+            preset.n_samples = 1
+            preset.resolution = RESOLUTION_OBJECTS[resolution or await self.config.user(ctx.user).resolution()]
+            preset.uc = negative_prompt or DEFAULT_NEGATIVE_PROMPT
+            preset.uc_preset = UCPreset.Preset_None
+            preset.sampler = sampler or ImageSampler(await self.config.user(ctx.user).sampler())
+            preset.scale = guidance if guidance is not None else await self.config.user(ctx.user).guidance()
+            preset.cfg_rescale = guidance_rescale if guidance_rescale is not None else await self.config.user(ctx.user).guidance_rescale()
+            preset.decrisper = decrisper if decrisper is not None else await self.config.user(ctx.user).decrisper()
+            preset.noise_schedule = noise_schedule or await self.config.user(ctx.user).noise_schedule()
+            if "ancestral" in str(preset.sampler) and preset.noise_schedule == "karras":
+                preset.noise_schedule = "native"
+            if seed is not None and seed >= 0:
+                preset.seed = seed
+            preset.uncond_scale = 1.0
+            preset.smea = False
+            preset.smea_dyn = False
+
+            try:
+                async with self.api as wrapper:
+                    async for name, img in wrapper.api.high_level.generate_image(prompt, ImageModel.Anime_v3, preset):
+                        file = discord.File(io.BytesIO(img), name)
+            except NovelAIError as error:
+                if error.status == 500:
+                    return await ctx.followup.send(":warning: NovelAI encountered an error. Please try again.")
+                elif error.status == 401:
+                    return await ctx.followup.send(":warning: Failed to authenticate NovelAI account.")
+                elif error.status == 402:
+                    return await ctx.followup.send(":warning: The subscription and/or credits have run out for this NovelAI account.")
+                else:
+                    return await ctx.followup.send(":warning: Failed to generate image: " + error.message)
+        except:
+            log.exception("Generating image")
+            return await ctx.followup.send(":warning: Failed to generate image! Contact the bot owner for more information.")
         finally:
             self.working = False
 
