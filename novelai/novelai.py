@@ -136,7 +136,7 @@ class NovelAI(commands.Cog):
             preset.cfg_rescale = guidance_rescale if guidance_rescale is not None else await self.config.user(ctx.user).guidance_rescale()
             preset.decrisper = decrisper if decrisper is not None else await self.config.user(ctx.user).decrisper()
             preset.noise_schedule = noise_schedule or await self.config.user(ctx.user).noise_schedule()
-            if "ancestral" in str(preset.sampler) and preset.noise_schedule == "karras":
+            if "ddim" in str(preset.sampler) or "ancestral" in str(preset.sampler) and preset.noise_schedule == "karras":
                 preset.noise_schedule = "native"
             if seed is not None and seed >= 0:
                 preset.seed = seed
@@ -171,8 +171,8 @@ class NovelAI(commands.Cog):
 
     @app_commands.command(name="novelaidefaults",
                           description="Views or updates your personal default values for /novelai")
-    @app_commands.describe(base_prompt="Gets added before each prompt. \"none\" to reset.",
-                           base_negative_prompt="Gets added before each negative prompt. \"none\" to reset.",
+    @app_commands.describe(base_prompt="Gets added before each prompt. \"none\" to delete.",
+                           base_negative_prompt="Gets added before each negative prompt. \"none\" to delete, \"default\" to reset.",
                            **PARAMETER_DESCRIPTIONS)
     @app_commands.choices(**PARAMETER_CHOICES)
     async def novelaidefaults(self,
@@ -195,6 +195,8 @@ class NovelAI(commands.Cog):
             base_negative_prompt = base_negative_prompt.strip(" ,")
             if base_negative_prompt.lower() == "none":
                 base_negative_prompt = None
+            elif base_negative_prompt.lower() == "default":
+                base_negative_prompt = DEFAULT_NEGATIVE_PROMPT
             await self.config.user(ctx.user).base_negative_prompt.set(base_negative_prompt)
         if resolution is not None:
             await self.config.user(ctx.user).resolution.set(resolution)
