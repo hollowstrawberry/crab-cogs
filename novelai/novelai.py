@@ -7,6 +7,7 @@ from redbot.core.bot import Red
 from redbot.core.app_commands import Choice
 from collections import OrderedDict
 from typing import Optional
+from novelai_api import NovelAIError
 from novelai_api.ImagePreset import ImageModel, ImagePreset, ImageResolution, ImageSampler, UCPreset
 
 from novelai.naiapi import NaiAPI
@@ -147,9 +148,12 @@ class NovelAI(commands.Cog):
             async with self.api as wrapper:
                 async for name, img in wrapper.api.high_level.generate_image(prompt, ImageModel.Anime_v3, preset):
                     file = discord.File(io.BytesIO(img), f"{name}.png")
-        except:
-            log.exception("Generating image")
-            return await ctx.followup.send(":warning: Failed to generate image!")
+        except Exception as error:
+            if isinstance(error, NovelAIError) and error.status == 500:
+                return await ctx.followup.send(":warning: NovelAI encountered an error. Please try again.")
+            else:
+                log.exception("Generating image")
+                return await ctx.followup.send(":warning: Failed to generate image! Contact the bot owner for more information.")
         finally:
             self.working = False
 
@@ -210,4 +214,4 @@ class NovelAI(commands.Cog):
         embed.add_field(name="Sampler", value=SAMPLER_TITLES[await self.config.user(ctx.user).sampler()])
         embed.add_field(name="Noise Schedule", value=await self.config.user(ctx.user).noise_schedule())
         embed.add_field(name="Decrisper", value=f"{await self.config.user(ctx.user).decrisper()}")
-        await ctx.response.send_message(embed=embed)  # noqa
+        await ctx.response.send_message(embed=embed, ephemeral=True)  # noqa
