@@ -6,7 +6,6 @@ from redbot.core import commands, app_commands, Config
 from redbot.core.bot import Red
 from novelai_api import NovelAIError
 from novelai_api.ImagePreset import ImageModel, ImagePreset, ImageSampler, UCPreset
-from queue import Queue
 from typing import Optional, Coroutine
 
 from novelai.naiapi import NaiAPI
@@ -22,7 +21,7 @@ class NovelAI(commands.Cog):
         super().__init__()
         self.bot = bot
         self.api: Optional[NaiAPI] = None
-        self.queue: Queue[Coroutine] = Queue()
+        self.queue: list[Coroutine] = []
         self.queue_task: Optional[asyncio.Task] = None
         self.config = Config.get_conf(self, identifier=66766566169)
         defaults_user = {
@@ -58,13 +57,11 @@ class NovelAI(commands.Cog):
             return False
 
     async def consume_queue(self):
-        while self.queue.not_empty:
+        while self.queue:
             try:
-                await self.queue.get()
+                await self.queue.pop(0)
             except:
                 log.exception("NovelAI task queue")
-            finally:
-                self.queue.task_done()
 
     @app_commands.command(name="novelai",
                           description="Generate anime images with NovelAI v3.")
@@ -121,7 +118,7 @@ class NovelAI(commands.Cog):
         preset.smea = "SMEA" in sampler_version
         preset.smea_dyn = "DYN" in sampler_version
 
-        self.queue.put(self.fulfill_novelai_request(ctx, prompt, preset))
+        self.queue.append(self.fulfill_novelai_request(ctx, prompt, preset))
         if not self.queue_task or self.queue_task.done():
             self.queue_task = asyncio.create_task(self.consume_queue())
 
