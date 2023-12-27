@@ -31,13 +31,15 @@ class ImageView(View):
             return await ctx.response.send_message(  # noqa
                 f"You may use this command again in DMs <t:{calendar.timegm(eta.utctimetuple())}:R>", ephemeral=True)
         self.preset.seed = 0
-        self.cog.queue.append(self.cog.fulfill_novelai_request(ctx, self.prompt, self.preset, ctx.user.id))
+        task = self.cog.fulfill_novelai_request(ctx, self.prompt, self.preset, ctx.user.id, ctx.message.edit(view=self))
+        self.cog.queue.append(task)
         if not self.cog.queue_task or self.cog.queue_task.done():
             self.cog.queue_task = asyncio.create_task(self.cog.consume_queue())
 
         btn.disabled = True
         await ctx.message.edit(view=self)
         await ctx.response.defer(thinking=True)  # noqa
+        btn.disabled = False
 
     @discord.ui.button(emoji="🗑️", style=discord.ButtonStyle.grey)
     async def delete(self, ctx: discord.Interaction, _: discord.Button):

@@ -134,7 +134,11 @@ class NovelAI(commands.Cog):
         if not self.queue_task or self.queue_task.done():
             self.queue_task = asyncio.create_task(self.consume_queue())
 
-    async def fulfill_novelai_request(self, ctx: discord.Interaction, prompt: str, preset: ImagePreset, requester: Optional[int] = None):
+    async def fulfill_novelai_request(self,
+                                      ctx: discord.Interaction,
+                                      prompt: str, preset: ImagePreset,
+                                      requester: Optional[int] = None,
+                                      callback: Optional[Coroutine] = None):
         if not ctx.guild:
             self.last_dm[ctx.user.id] = ctx.created_at
         try:
@@ -177,6 +181,8 @@ class NovelAI(commands.Cog):
             if ctx.channel.id in imagescanner.scan_channels:  # noqa
                 await msg.add_reaction("🔎")
         asyncio.create_task(self.delete_button_after(msg, view))
+        if callback:
+            await callback
 
     @staticmethod
     async def delete_button_after(msg: discord.Message, view: ImageView):
