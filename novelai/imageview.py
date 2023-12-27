@@ -20,7 +20,8 @@ class ImageView(View):
 
     @discord.ui.button(emoji="🌱", style=discord.ButtonStyle.grey)
     async def seed(self, ctx: discord.Interaction, _: discord.Button):
-        await ctx.response.send_message(f"{self.seed}", ephemeral=True)  # noqa
+        embed = discord.Embed(title="Generation seed", description=f"{self.seed}", color=0x77B255)
+        await ctx.response.send_message(embed=embed, ephemeral=True)  # noqa
 
     @discord.ui.button(emoji="♻", style=discord.ButtonStyle.grey)
     async def recycle(self, ctx: discord.Interaction, btn: discord.Button):
