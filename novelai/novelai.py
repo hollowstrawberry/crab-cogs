@@ -90,16 +90,16 @@ class NovelAI(commands.Cog):
 
         base_prompt = await self.config.user(ctx.user).base_prompt()
         if base_prompt:
-            prompt = f"{base_prompt}, {prompt}" if prompt else base_prompt
+            prompt = f"{prompt.strip(' ,')}, {base_prompt}" if prompt else base_prompt
         base_neg = await self.config.user(ctx.user).base_negative_prompt()
         if base_neg:
-            negative_prompt = f"{base_neg}, {negative_prompt}" if negative_prompt else base_neg
+            negative_prompt = f"{negative_prompt.strip(' ,')}, {base_neg}" if negative_prompt else base_neg
         if ctx.guild and not ctx.channel.nsfw and await self.config.nsfw_filter():
             blacklisted = [term.strip() for term in NSFW_TERMS.split(",")]
             if any(term in prompt for term in blacklisted) or "safe" in negative_prompt:
                 return await ctx.followup.send(":warning: You may not generate NSFW images in non-NSFW channels.")
-            prompt = "{{{safe}}}, " + prompt
-            negative_prompt = "{{{nsfw}}}, " + negative_prompt
+            prompt = "{safe}, " + prompt
+            negative_prompt = "{nsfw}, " + negative_prompt
         preset = ImagePreset()
         preset.n_samples = 1
         preset.resolution = RESOLUTION_OBJECTS[resolution or await self.config.user(ctx.user).resolution()]
@@ -150,7 +150,7 @@ class NovelAI(commands.Cog):
 
         view = ImageView(self, prompt, preset)
         content = f"Reroll requested by <@{requester}>" if requester and ctx.guild else None
-        msg = await ctx.followup.send(content, file=file, view=view, allowed_mentions=None)
+        msg = await ctx.followup.send(content, file=file, view=view, allowed_mentions=discord.AllowedMentions.none())
         imagescanner = self.bot.get_cog("ImageScanner")
         if imagescanner:
             if ctx.channel.id in imagescanner.scan_channels:  # noqa
@@ -165,8 +165,8 @@ class NovelAI(commands.Cog):
 
     @app_commands.command(name="novelaidefaults",
                           description="Views or updates your personal default values for /novelai")
-    @app_commands.describe(base_prompt="Gets added before each prompt. \"none\" to delete, \"default\" to reset.",
-                           base_negative_prompt="Gets added before each negative prompt. \"none\" to delete, \"default\" to reset.",
+    @app_commands.describe(base_prompt="Gets added after each prompt. \"none\" to delete, \"default\" to reset.",
+                           base_negative_prompt="Gets added after each negative prompt. \"none\" to delete, \"default\" to reset.",
                            **PARAMETER_DESCRIPTIONS)
     @app_commands.choices(**PARAMETER_CHOICES)
     async def novelaidefaults(self,

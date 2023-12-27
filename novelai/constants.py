@@ -7,8 +7,8 @@ VIEW_TIMEOUT = 5 * 60
 DEFAULT_PROMPT = "best quality, amazing quality, very aesthetic, absurdres"
 
 DEFAULT_NEGATIVE_PROMPT = "{bad}, fewer, extra, missing, worst quality, bad quality, " \
-                          "watermark, jpeg artifacts, unfinished, displeasing, chromatic aberration, " \
-                          "signature, extra digits, artistic error, username, scan, [abstract]"
+                          "watermark, signature, username, logo, jpeg artifacts, unfinished, displeasing, " \
+                          "chromatic aberration, artistic error, scan, [abstract], {simple background}"
 
 KEY_NOT_SET_MESSAGE = "NovelAI username and password not set. The bot owner needs to set them like this:\n" \
                       "[p]set api novelai username,USERNAME\n" \
