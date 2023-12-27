@@ -37,7 +37,7 @@ class ImageView(View):
 
         btn.disabled = True
         await ctx.message.edit(view=self)
-        await ctx.response.defer()  # noqa
+        await ctx.response.defer(thinking=True)  # noqa
 
     @discord.ui.button(emoji="🗑️", style=discord.ButtonStyle.grey)
     async def delete(self, ctx: discord.Interaction, _: discord.Button):
