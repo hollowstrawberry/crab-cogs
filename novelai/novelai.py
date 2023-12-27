@@ -176,13 +176,17 @@ class NovelAI(commands.Cog):
         view = ImageView(self, prompt, preset, seed)
         content = f"Reroll requested by <@{requester}>" if requester and ctx.guild else None
         msg = await ctx.followup.send(content, file=file, view=view, allowed_mentions=discord.AllowedMentions.none())
+
+        asyncio.create_task(self.delete_button_after(msg, view))
         imagescanner = self.bot.get_cog("ImageScanner")
         if imagescanner:
             if ctx.channel.id in imagescanner.scan_channels:  # noqa
                 await msg.add_reaction("🔎")
-        asyncio.create_task(self.delete_button_after(msg, view))
         if callback:
-            await callback
+            try:
+                await callback
+            except:
+                pass
 
     @staticmethod
     async def delete_button_after(msg: discord.Message, view: ImageView):
