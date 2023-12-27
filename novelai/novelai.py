@@ -1,9 +1,11 @@
 import io
+import json
 import asyncio
 import discord
 import logging
-import json
+import calendar
 from PIL import Image
+from datetime import datetime, timedelta, timezone
 from redbot.core import commands, app_commands, Config
 from redbot.core.bot import Red
 from novelai_api import NovelAIError
@@ -26,6 +28,7 @@ class NovelAI(commands.Cog):
         self.api: Optional[NaiAPI] = None
         self.queue: list[Coroutine] = []
         self.queue_task: Optional[asyncio.Task] = None
+        self.last_dm: dict[int, datetime] = {}
         self.config = Config.get_conf(self, identifier=66766566169)
         defaults_user = {
             "base_prompt": DEFAULT_PROMPT,
@@ -88,6 +91,11 @@ class NovelAI(commands.Cog):
                       ):
         if not self.api and not await self.try_create_api():
             return await ctx.response.send_message(KEY_NOT_SET_MESSAGE)  # noqa
+        if not ctx.guild and ctx.user.id in self.last_dm \
+                and (datetime.now(timezone.utc) - self.last_dm[ctx.user.id]).seconds < DM_COOLDOWN:
+            eta = self.last_dm[ctx.user.id] + timedelta(seconds=DM_COOLDOWN)
+            return await ctx.response.send_message(  # noqa
+                f"You may use this command again in DMs <t:{calendar.timegm(eta.utctimetuple())}:R>", ephemeral=True)
         await ctx.response.defer()  # noqa
 
         base_prompt = await self.config.user(ctx.user).base_prompt()
@@ -127,6 +135,8 @@ class NovelAI(commands.Cog):
             self.queue_task = asyncio.create_task(self.consume_queue())
 
     async def fulfill_novelai_request(self, ctx: discord.Interaction, prompt: str, preset: ImagePreset, requester: Optional[int] = None):
+        if not ctx.guild:
+            self.last_dm[ctx.user.id] = ctx.created_at
         try:
             async with self.api as wrapper:
                 async for name, img in wrapper.api.high_level.generate_image(prompt, ImageModel.Anime_v3, preset):

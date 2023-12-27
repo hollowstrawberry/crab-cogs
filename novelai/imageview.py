@@ -1,10 +1,12 @@
 import re
 import asyncio
 import discord
+import calendar
+from datetime import datetime, timedelta, timezone
 from discord.ui import View
 from novelai_api.ImagePreset import ImagePreset
 
-from novelai.constants import VIEW_TIMEOUT
+from novelai.constants import VIEW_TIMEOUT, DM_COOLDOWN
 
 
 class ImageView(View):
@@ -22,6 +24,11 @@ class ImageView(View):
 
     @discord.ui.button(emoji="♻", style=discord.ButtonStyle.grey)
     async def recycle(self, ctx: discord.Interaction, btn: discord.Button):
+        if not ctx.guild and ctx.user.id in self.cog.last_dm \
+                and (datetime.now(timezone.utc) - self.cog.last_dm[ctx.user.id]).seconds < DM_COOLDOWN:
+            eta = self.cog.last_dm[ctx.user.id] + timedelta(seconds=DM_COOLDOWN)
+            return await ctx.response.send_message(  # noqa
+                f"You may use this command again in DMs <t:{calendar.timegm(eta.utctimetuple())}:R>", ephemeral=True)
         self.preset.seed = 0
         self.cog.queue.append(self.cog.fulfill_novelai_request(ctx, self.prompt, self.preset, ctx.user.id))
         if not self.cog.queue_task or self.cog.queue_task.done():

@@ -4,6 +4,8 @@ from novelai_api.ImagePreset import ImageResolution
 
 VIEW_TIMEOUT = 5 * 60
 
+DM_COOLDOWN = 60
+
 DEFAULT_PROMPT = "best quality, amazing quality, very aesthetic, absurdres"
 
 DEFAULT_NEGATIVE_PROMPT = "{bad}, fewer, extra, missing, worst quality, bad quality, " \
