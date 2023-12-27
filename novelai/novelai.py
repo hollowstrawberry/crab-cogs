@@ -5,7 +5,8 @@ import discord
 import logging
 import calendar
 from PIL import Image
-from datetime import datetime, timedelta, timezone
+from hashlib import md5
+from datetime import datetime, timedelta
 from redbot.core import commands, app_commands, Config
 from redbot.core.bot import Red
 from novelai_api import NovelAIError
@@ -28,7 +29,8 @@ class NovelAI(commands.Cog):
         self.api: Optional[NaiAPI] = None
         self.queue: list[Coroutine] = []
         self.queue_task: Optional[asyncio.Task] = None
-        self.last_dm: dict[int, datetime] = {}
+        self.generating: dict[int, bool] = {}
+        self.last_img: dict[int, datetime] = {}
         self.config = Config.get_conf(self, identifier=66766566169)
         defaults_user = {
             "base_prompt": DEFAULT_PROMPT,
@@ -42,6 +44,8 @@ class NovelAI(commands.Cog):
             "decrisper": False,
         }
         defaults_global = {
+            "server_cooldown": 0,
+            "dm_cooldown": 60,
             "nsfw_filter": True,
         }
         self.config.register_user(**defaults_user)
@@ -90,12 +94,19 @@ class NovelAI(commands.Cog):
                       decrisper: Optional[bool],
                       ):
         if not self.api and not await self.try_create_api():
-            return await ctx.response.send_message(KEY_NOT_SET_MESSAGE)  # noqa
-        if not ctx.guild and ctx.user.id in self.last_dm \
-                and (datetime.now(timezone.utc) - self.last_dm[ctx.user.id]).seconds < DM_COOLDOWN:
-            eta = self.last_dm[ctx.user.id] + timedelta(seconds=DM_COOLDOWN)
             return await ctx.response.send_message(  # noqa
-                f"You may use this command again in DMs <t:{calendar.timegm(eta.utctimetuple())}:R>", ephemeral=True)
+                "NovelAI username and password not set. The bot owner needs to set them like this:\n"
+                "[p]set api novelai username,USERNAME\n[p]set api novelai password,PASSWORD")
+        if self.generating.get(ctx.user.id, False):
+            message = "Your current image must finish generating before you can request another one."
+            return await ctx.response.send_message(message, ephemeral=True)  # noqa
+        cooldown = await self.config.server_cooldown() if ctx.guild else await self.config.dm_cooldown()
+        if ctx.user.id in self.last_img and (datetime.utcnow() - self.last_img[ctx.user.id]).seconds < cooldown:
+            eta = self.last_img[ctx.user.id] + timedelta(seconds=cooldown)
+            message = f"You may use this command again <t:{calendar.timegm(eta.utctimetuple())}:R>."
+            if not ctx.guild:
+                message += " (You can use it more frequently inside a server)"
+            return await ctx.response.send_message(message, ephemeral=True)  # noqa
         await ctx.response.defer()  # noqa
 
         base_prompt = await self.config.user(ctx.user).base_prompt()
@@ -130,6 +141,7 @@ class NovelAI(commands.Cog):
         preset.smea = "SMEA" in sampler_version
         preset.smea_dyn = "DYN" in sampler_version
 
+        self.generating[ctx.user.id] = True
         self.queue.append(self.fulfill_novelai_request(ctx, prompt, preset))
         if not self.queue_task or self.queue_task.done():
             self.queue_task = asyncio.create_task(self.consume_queue())
@@ -139,13 +151,12 @@ class NovelAI(commands.Cog):
                                       prompt: str, preset: ImagePreset,
                                       requester: Optional[int] = None,
                                       callback: Optional[Coroutine] = None):
-        if not ctx.guild:
-            self.last_dm[ctx.user.id] = ctx.created_at
         try:
             async with self.api as wrapper:
-                async for name, img in wrapper.api.high_level.generate_image(prompt, ImageModel.Anime_v3, preset):
-                    fp = io.BytesIO(img)
-                    file = discord.File(fp, name)
+                async for _, img in wrapper.api.high_level.generate_image(prompt, ImageModel.Anime_v3, preset):
+                    image_bytes = img
+                    name = md5(image_bytes).hexdigest() + ".png"
+                    file = discord.File(io.BytesIO(image_bytes), name)
         except Exception as error:
             if isinstance(error, NovelAIError):
                 if error.status == 500:
@@ -159,28 +170,25 @@ class NovelAI(commands.Cog):
                 elif error.status == 409:
                     return await ctx.followup.send(":warning: Failed to generate image: " + (error.message or "A conflict error occured."))
                 else:
-                    return await ctx.followup.send(f":warning: Failed to generate image: {error.status} {error.message}")
+                    return await ctx.followup.send(f":warning: Failed to generate image: [{error.status}] {error.message}")
             else:
                 log.exception("Generating image")
                 return await ctx.followup.send(":warning: Failed to generate image! Contact the bot owner for more information.")
 
-        if preset.seed > 0:
-            seed = preset.seed
-        else:
-            try:
-                image = Image.open(fp)
-                seed = json.loads(image.info["Comment"])["seed"]
-            except:
-                seed = 0
-            fp.seek(0)
+        image = Image.open(io.BytesIO(image_bytes))
+        seed = json.loads(image.info["Comment"])["seed"]
         view = ImageView(self, prompt, preset, seed)
         content = f"Reroll requested by <@{requester}>" if requester and ctx.guild else None
         msg = await ctx.followup.send(content, file=file, view=view, allowed_mentions=discord.AllowedMentions.none())
 
+        self.generating[ctx.user.id] = False
+        self.last_img[ctx.user.id] = datetime.utcnow()
         asyncio.create_task(self.delete_button_after(msg, view))
         imagescanner = self.bot.get_cog("ImageScanner")
         if imagescanner:
             if ctx.channel.id in imagescanner.scan_channels:  # noqa
+                img_info = imagescanner.convert_novelai_info(image.info)  # noqa
+                imagescanner.image_cache[msg.id] = ({1: img_info}, {1: image_bytes})  # noqa
                 await msg.add_reaction("🔎")
         if callback:
             try:
@@ -260,6 +268,24 @@ class NovelAI(commands.Cog):
     async def novelaiset(self, _):
         """Configure /novelai bot-wide."""
         pass
+
+    @novelaiset.command()
+    async def servercooldown(self, ctx: commands.Context, seconds: Optional[int]):
+        """Time in seconds between a user's generation ends and they can start a new one, inside a server."""
+        if seconds is None:
+            seconds = await self.config.server_cooldown()
+        else:
+            await self.config.server_cooldown.set(max(0, seconds))
+        await ctx.reply(f"Users will need to wait {max(0, seconds)} seconds between generations inside a server.")
+
+    @novelaiset.command()
+    async def dmcooldown(self, ctx: commands.Context, seconds: Optional[int]):
+        """Time in seconds between a user's generation ends and they can start a new one, in DMs with the bot."""
+        if seconds is None:
+            seconds = await self.config.dm_cooldown()
+        else:
+            await self.config.dm_cooldown.set(max(0, seconds))
+        await ctx.reply(f"Users will need to wait {max(0, seconds)} seconds between generations in DMs with the bot.")
 
     @novelaiset.command()
     async def nsfw_filter(self, ctx: commands.Context):

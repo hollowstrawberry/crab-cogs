@@ -4,17 +4,11 @@ from novelai_api.ImagePreset import ImageResolution
 
 VIEW_TIMEOUT = 5 * 60
 
-DM_COOLDOWN = 60
-
 DEFAULT_PROMPT = "best quality, amazing quality, very aesthetic, absurdres"
 
 DEFAULT_NEGATIVE_PROMPT = "{bad}, fewer, extra, missing, worst quality, bad quality, " \
                           "watermark, signature, username, logo, jpeg artifacts, unfinished, displeasing, " \
                           "chromatic aberration, artistic error, scan, [abstract], {simple background}"
-
-KEY_NOT_SET_MESSAGE = "NovelAI username and password not set. The bot owner needs to set them like this:\n" \
-                      "[p]set api novelai username,USERNAME\n" \
-                      "[p]set api novelai password,PASSWORD"
 
 NSFW_TERMS = "nsfw, explicit, nude, sex, cum, pussy, cleft, clit, penis, nipple, topless, anus, " \
              "paizuri, missionary, cowgirl, hetero, vaginal, anal, oral, fellatio, cunnilingus, futa"

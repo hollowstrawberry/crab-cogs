@@ -2,11 +2,11 @@ import re
 import asyncio
 import discord
 import calendar
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from discord.ui import View
 from novelai_api.ImagePreset import ImagePreset
 
-from novelai.constants import VIEW_TIMEOUT, DM_COOLDOWN
+from novelai.constants import VIEW_TIMEOUT
 
 
 class ImageView(View):
@@ -25,21 +25,28 @@ class ImageView(View):
 
     @discord.ui.button(emoji="♻", style=discord.ButtonStyle.grey)
     async def recycle(self, ctx: discord.Interaction, btn: discord.Button):
-        if not ctx.guild and ctx.user.id in self.cog.last_dm \
-                and (datetime.now(timezone.utc) - self.cog.last_dm[ctx.user.id]).seconds < DM_COOLDOWN:
-            eta = self.cog.last_dm[ctx.user.id] + timedelta(seconds=DM_COOLDOWN)
-            return await ctx.response.send_message(  # noqa
-                f"You may use this command again in DMs <t:{calendar.timegm(eta.utctimetuple())}:R>", ephemeral=True)
-        self.preset.seed = 0
-        task = self.cog.fulfill_novelai_request(ctx, self.prompt, self.preset, ctx.user.id, ctx.message.edit(view=self))
-        self.cog.queue.append(task)
-        if not self.cog.queue_task or self.cog.queue_task.done():
-            self.cog.queue_task = asyncio.create_task(self.cog.consume_queue())
+        if self.cog.generating.get(ctx.user.id, False):
+            message = "Your current image must finish generating before you can request another one."
+            return await ctx.response.send_message(message, ephemeral=True)  # noqa
+        cooldown = await self.cog.config.server_cooldown() if ctx.guild else await self.cog.config.dm_cooldown()
+        if ctx.user.id in self.cog.last_img and (datetime.utcnow() - self.cog.last_img[ctx.user.id]).seconds < cooldown:
+            eta = self.cog.last_img[ctx.user.id] + timedelta(seconds=cooldown)
+            message = f"You may use this command again <t:{calendar.timegm(eta.utctimetuple())}:R>."
+            if not ctx.guild:
+                message += " (You can use it more frequently inside a server)"
+            return await ctx.response.send_message(message, ephemeral=True)  # noqa
 
         btn.disabled = True
         await ctx.message.edit(view=self)
         await ctx.response.defer(thinking=True)  # noqa
-        btn.disabled = False
+        btn.disabled = False  # re-enables it after the task calls back
+
+        self.preset.seed = 0
+        self.cog.generating[ctx.user.id] = True
+        task = self.cog.fulfill_novelai_request(ctx, self.prompt, self.preset, ctx.user.id, ctx.message.edit(view=self))
+        self.cog.queue.append(task)
+        if not self.cog.queue_task or self.cog.queue_task.done():
+            self.cog.queue_task = asyncio.create_task(self.cog.consume_queue())
 
     @discord.ui.button(emoji="🗑️", style=discord.ButtonStyle.grey)
     async def delete(self, ctx: discord.Interaction, _: discord.Button):
