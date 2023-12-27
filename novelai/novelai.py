@@ -2,6 +2,8 @@ import io
 import asyncio
 import discord
 import logging
+import json
+from PIL import Image
 from redbot.core import commands, app_commands, Config
 from redbot.core.bot import Red
 from novelai_api import NovelAIError
@@ -148,7 +150,16 @@ class NovelAI(commands.Cog):
                 log.exception("Generating image")
                 return await ctx.followup.send(":warning: Failed to generate image! Contact the bot owner for more information.")
 
-        view = ImageView(self, prompt, preset)
+        if preset.seed > 0:
+            seed = preset.seed
+        else:
+            try:
+                image = Image.open(fp)
+                seed = json.loads(image.info["Comment"])["seed"]
+            except:
+                seed = 0
+            fp.seek(0)
+        view = ImageView(self, prompt, preset, seed)
         content = f"Reroll requested by <@{requester}>" if requester and ctx.guild else None
         msg = await ctx.followup.send(content, file=file, view=view, allowed_mentions=discord.AllowedMentions.none())
         imagescanner = self.bot.get_cog("ImageScanner")

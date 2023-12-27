@@ -5,7 +5,7 @@
     "hidden": false,
     "install_msg": "🖼 __**NovelAI**__\n**This cog is capable of generating NSFW content. Be mindful.** ```Cog installed. Instructions:\n1. Load it with [p]load novelai\n2. Enable slash commands with [p]slash enablecog novelai, then [p]slash sync\n3. Use /novelai to start generating images (the owner will be initially asked for a NovelAI username and password).\n4. You should also install the imagescanner cog which lets you see image generation data.```",
     "required_cogs": {},
-    "requirements": ["novelai-api"],
+    "requirements": ["novelai-api", "Pillow"],
     "short": "Generate anime images with NovelAI v3.",
     "end_user_data_statement": "This cog does not store user data.",
     "tags": ["crab", "image", "ai", "generation", "imagine", "anime"]

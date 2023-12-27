@@ -8,12 +8,17 @@ from novelai.constants import VIEW_TIMEOUT
 
 
 class ImageView(View):
-    def __init__(self, cog, prompt: str, preset: ImagePreset):
+    def __init__(self, cog, prompt: str, preset: ImagePreset, seed: int):
         super().__init__(timeout=VIEW_TIMEOUT)
         self.cog = cog
         self.prompt = prompt
         self.preset = preset
+        self.seed = seed
         self.deleted = False
+
+    @discord.ui.button(emoji="🌱", style=discord.ButtonStyle.grey)
+    async def seed(self, ctx: discord.Interaction, _: discord.Button):
+        await ctx.response.send_message(f"{self.seed}", ephemeral=True)  # noqa
 
     @discord.ui.button(emoji="♻", style=discord.ButtonStyle.grey)
     async def recycle(self, ctx: discord.Interaction, btn: discord.Button):
