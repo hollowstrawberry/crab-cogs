@@ -2,6 +2,10 @@ from redbot.core.app_commands import Choice
 from collections import OrderedDict
 from novelai_api.ImagePreset import ImageResolution
 
+VIEW_TIMEOUT = 5 * 60
+
+DEFAULT_PROMPT = "best quality, amazing quality, very aesthetic, absurdres"
+
 DEFAULT_NEGATIVE_PROMPT = "{bad}, fewer, extra, missing, worst quality, bad quality, " \
                           "watermark, jpeg artifacts, unfinished, displeasing, chromatic aberration, " \
                           "signature, extra digits, artistic error, username, scan, [abstract]"

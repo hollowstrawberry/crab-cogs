@@ -9,6 +9,7 @@ from novelai_api.ImagePreset import ImageModel, ImagePreset, ImageSampler, UCPre
 from typing import Optional, Coroutine
 
 from novelai.naiapi import NaiAPI
+from novelai.imageview import ImageView
 from novelai.constants import *
 
 log = logging.getLogger("red.crab-cogs.novelai")
@@ -25,7 +26,7 @@ class NovelAI(commands.Cog):
         self.queue_task: Optional[asyncio.Task] = None
         self.config = Config.get_conf(self, identifier=66766566169)
         defaults_user = {
-            "base_prompt": None,
+            "base_prompt": DEFAULT_PROMPT,
             "base_negative_prompt": DEFAULT_NEGATIVE_PROMPT,
             "resolution": "portrait",
             "guidance": 5.0,
@@ -104,6 +105,7 @@ class NovelAI(commands.Cog):
         preset.resolution = RESOLUTION_OBJECTS[resolution or await self.config.user(ctx.user).resolution()]
         preset.uc = negative_prompt or DEFAULT_NEGATIVE_PROMPT
         preset.uc_preset = UCPreset.Preset_None
+        preset.quality_toggle = False
         preset.sampler = sampler or ImageSampler(await self.config.user(ctx.user).sampler())
         preset.scale = guidance if guidance is not None else await self.config.user(ctx.user).guidance()
         preset.cfg_rescale = guidance_rescale if guidance_rescale is not None else await self.config.user(ctx.user).guidance_rescale()
@@ -111,7 +113,7 @@ class NovelAI(commands.Cog):
         preset.noise_schedule = noise_schedule or await self.config.user(ctx.user).noise_schedule()
         if "ddim" in str(preset.sampler) or "ancestral" in str(preset.sampler) and preset.noise_schedule == "karras":
             preset.noise_schedule = "native"
-        if seed is not None and seed >= 0:
+        if seed is not None and seed > 0:
             preset.seed = seed
         preset.uncond_scale = 1.0
         sampler_version = sampler_version or await self.config.user(ctx.user).sampler_version()
@@ -122,11 +124,12 @@ class NovelAI(commands.Cog):
         if not self.queue_task or self.queue_task.done():
             self.queue_task = asyncio.create_task(self.consume_queue())
 
-    async def fulfill_novelai_request(self, ctx: discord.Interaction, prompt: str, preset: ImagePreset):
+    async def fulfill_novelai_request(self, ctx: discord.Interaction, prompt: str, preset: ImagePreset, requester: Optional[int] = None):
         try:
             async with self.api as wrapper:
                 async for name, img in wrapper.api.high_level.generate_image(prompt, ImageModel.Anime_v3, preset):
-                    file = discord.File(io.BytesIO(img), name)
+                    fp = io.BytesIO(img)
+                    file = discord.File(fp, name)
         except Exception as error:
             if isinstance(error, NovelAIError):
                 if error.status == 500:
@@ -145,15 +148,24 @@ class NovelAI(commands.Cog):
                 log.exception("Generating image")
                 return await ctx.followup.send(":warning: Failed to generate image! Contact the bot owner for more information.")
 
-        msg = await ctx.followup.send(file=file)
+        view = ImageView(self, prompt, preset)
+        content = f"Reroll requested by <@{requester}>" if requester and ctx.guild else None
+        msg = await ctx.followup.send(content, file=file, view=view, allowed_mentions=None)
         imagescanner = self.bot.get_cog("ImageScanner")
         if imagescanner:
             if ctx.channel.id in imagescanner.scan_channels:  # noqa
                 await msg.add_reaction("🔎")
+        asyncio.create_task(self.delete_button_after(msg, view))
+
+    @staticmethod
+    async def delete_button_after(msg: discord.Message, view: ImageView):
+        await asyncio.sleep(VIEW_TIMEOUT)
+        if not view.deleted:
+            await msg.edit(view=None)
 
     @app_commands.command(name="novelaidefaults",
                           description="Views or updates your personal default values for /novelai")
-    @app_commands.describe(base_prompt="Gets added before each prompt. \"none\" to delete.",
+    @app_commands.describe(base_prompt="Gets added before each prompt. \"none\" to delete, \"default\" to reset.",
                            base_negative_prompt="Gets added before each negative prompt. \"none\" to delete, \"default\" to reset.",
                            **PARAMETER_DESCRIPTIONS)
     @app_commands.choices(**PARAMETER_CHOICES)
@@ -173,6 +185,8 @@ class NovelAI(commands.Cog):
             base_prompt = base_prompt.strip(" ,")
             if base_prompt.lower() == "none":
                 base_prompt = None
+            elif base_prompt.lower() == "default":
+                base_prompt = DEFAULT_PROMPT
             await self.config.user(ctx.user).base_prompt.set(base_prompt)
         if base_negative_prompt is not None:
             base_negative_prompt = base_negative_prompt.strip(" ,")
