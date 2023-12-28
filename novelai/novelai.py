@@ -35,7 +35,7 @@ class NovelAI(commands.Cog):
         defaults_user = {
             "base_prompt": DEFAULT_PROMPT,
             "base_negative_prompt": DEFAULT_NEGATIVE_PROMPT,
-            "resolution": "portrait",
+            "resolution": "832,1216",
             "guidance": 5.0,
             "guidance_rescale": 0.0,
             "sampler": "k_euler",
@@ -46,10 +46,13 @@ class NovelAI(commands.Cog):
         defaults_global = {
             "server_cooldown": 0,
             "dm_cooldown": 60,
-            "nsfw_filter": True,
+        }
+        defaults_guild = {
+            "nsfw_filter": False,
         }
         self.config.register_user(**defaults_user)
         self.config.register_global(**defaults_global)
+        self.config.register_global(**defaults_guild)
 
     async def cog_load(self):
         await self.try_create_api()
@@ -72,8 +75,8 @@ class NovelAI(commands.Cog):
 
     @app_commands.command(name="novelai",
                           description="Generate anime images with NovelAI v3.")
-    @app_commands.describe(prompt="What you want to generate.",
-                           negative_prompt="Undesired terms for your generation.",
+    @app_commands.describe(prompt="Gets added to your base prompt (/novelaidefaults)",
+                           negative_prompt="Gets added to your base negative prompt (/novelaidefaults)",
                            seed="Random number that determines image generation.",
                            **PARAMETER_DESCRIPTIONS)
     @app_commands.choices(**PARAMETER_CHOICES)
@@ -113,13 +116,13 @@ class NovelAI(commands.Cog):
         base_neg = await self.config.user(ctx.user).base_negative_prompt()
         if base_neg:
             negative_prompt = f"{negative_prompt.strip(' ,')}, {base_neg}" if negative_prompt else base_neg
+        resolution = resolution or await self.config.user(ctx.user).resolution()
 
-        if ctx.guild and not ctx.channel.nsfw and (any(term in prompt for term in NSFW_TERMS) or "safe" in negative_prompt):
+        if ctx.guild and not ctx.channel.nsfw and any(term in prompt for term in NSFW_TERMS):
             return await ctx.response.send_message(":warning: You may not generate NSFW images in non-NSFW channels.")  # noqa
 
-        if ctx.guild and not ctx.channel.nsfw and await self.config.nsfw_filter():
-            prompt = "{safe}, " + prompt
-            negative_prompt = "{nsfw, " + negative_prompt
+        if ctx.guild and not ctx.channel.nsfw and await self.config.guild(ctx.guild).nsfw_filter():
+            prompt = "rating:general, " + prompt
 
         if TOS_TERMS.search(prompt) and not ctx.guild:
             return await ctx.response.send_message(  # noqa
@@ -131,7 +134,10 @@ class NovelAI(commands.Cog):
 
         preset = ImagePreset()
         preset.n_samples = 1
-        preset.resolution = RESOLUTION_OBJECTS[resolution or await self.config.user(ctx.user).resolution()]
+        try:
+            preset.resolution = tuple(int(num) for num in resolution.split(","))
+        except:
+            preset.resolution = (1024, 1024)
         preset.uc = negative_prompt or DEFAULT_NEGATIVE_PROMPT
         preset.uc_preset = UCPreset.Preset_None
         preset.quality_toggle = False
@@ -282,12 +288,12 @@ class NovelAI(commands.Cog):
         await ctx.response.send_message(embed=embed, ephemeral=True)  # noqa
 
     @commands.group()
-    @commands.is_owner()
     async def novelaiset(self, _):
         """Configure /novelai bot-wide."""
         pass
 
     @novelaiset.command()
+    @commands.is_owner()
     async def servercooldown(self, ctx: commands.Context, seconds: Optional[int]):
         """Time in seconds between a user's generation ends and they can start a new one, inside a server."""
         if seconds is None:
@@ -297,6 +303,7 @@ class NovelAI(commands.Cog):
         await ctx.reply(f"Users will need to wait {max(0, seconds)} seconds between generations inside a server.")
 
     @novelaiset.command()
+    @commands.is_owner()
     async def dmcooldown(self, ctx: commands.Context, seconds: Optional[int]):
         """Time in seconds between a user's generation ends and they can start a new one, in DMs with the bot."""
         if seconds is None:
@@ -306,10 +313,12 @@ class NovelAI(commands.Cog):
         await ctx.reply(f"Users will need to wait {max(0, seconds)} seconds between generations in DMs with the bot.")
 
     @novelaiset.command()
+    @commands.guild_only()
+    @commands.admin()
     async def nsfw_filter(self, ctx: commands.Context):
         """Toggles the NSFW filter for /novelai"""
-        new = not await self.config.nsfw_filter()
-        await self.config.nsfw_filter.set(new)
+        new = not await self.config.guild(ctx.guild).nsfw_filter()
+        await self.config.guild(ctx.guild).nsfw_filter.set(new)
         if new:
             await ctx.reply("NSFW filter enabled in non-nsfw channels. Note that this is not perfect.")
         else:

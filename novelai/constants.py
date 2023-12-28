@@ -1,7 +1,6 @@
 import re
 from redbot.core.app_commands import Choice
 from collections import OrderedDict
-from novelai_api.ImagePreset import ImageResolution
 
 VIEW_TIMEOUT = 5 * 60
 
@@ -11,8 +10,8 @@ DEFAULT_NEGATIVE_PROMPT = "{bad}, fewer, extra, missing, worst quality, bad qual
                           "watermark, signature, username, logo, jpeg artifacts, unfinished, displeasing, " \
                           "chromatic aberration, artistic error, scan, [abstract], {simple background}"
 
-NSFW_TERMS = "nsfw, explicit, nude, sex, cum, pussy, cleft, clit, penis, nipple, topless, anus, " \
-             "paizuri, missionary, cowgirl, hetero, vaginal, anal, oral, fellatio, cunnilingus, futa"
+NSFW_TERMS = "nsfw, explicit, questionable, sensitive, nude, sex, cum, pussy, cleft, clit, penis, nipple, topless, " \
+             "anus, paizuri, missionary, cowgirl, hetero, vaginal, anal, oral, fellatio, cunnilingus, futa"
 NSFW_TERMS = [term.strip() for term in NSFW_TERMS.split(",")]
 
 TOS_TERMS = re.compile(r"\b(lolis?|shotas?|child(ren|s)?)\b")
@@ -27,15 +26,23 @@ SAMPLER_TITLES = OrderedDict({
 })
 
 RESOLUTION_TITLES = OrderedDict({
-    "portrait": "Portrait (832x1216)",
-    "landscape": "Landscape (1216x832)",
-    "square": "Square (1024x1024)",
-})
-
-RESOLUTION_OBJECTS = OrderedDict({
-    "portrait": ImageResolution.Normal_Portrait_v3,
-    "landscape": ImageResolution.Normal_Landscape_v3,
-    "square": ImageResolution.Normal_Square_v3,
+    "832,1216": "Portrait (832x1216)",
+    "1216,832": "Landscape (1216x832)",
+    "1024,1024": "Square (1024x1024)",
+    "960,1088": "Portrait (960x1088)",
+    "896,1152": "Portrait (896x1152)",
+    "768,1280": "Portrait (768x1280)",
+    "704,1344": "Portrait (704x1344)",
+    "640,1408": "Portrait (640x1408)",
+    "576,1472": "Portrait (576x1472)",
+    "512,1536": "Portrait (512x1536)",
+    "1088,960": "Landscape (1088x960)",
+    "1152,896": "Landscape (1152x896)",
+    "1280,768": "Landscape (1280x768)",
+    "1344,704": "Landscape (1344x704)",
+    "1408,640": "Landscape (1408x640)",
+    "1472,576": "Landscape (1472x576)",
+    "1536,512": "Landscape (1536x512)",
 })
 
 NOISE_SCHEDULES = [

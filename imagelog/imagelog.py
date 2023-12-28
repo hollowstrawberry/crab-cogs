@@ -13,6 +13,7 @@ class ImageLog(commands.Cog):
         super().__init__()
         self.bot = bot
         self.logchannels: dict[int, int] = {}
+        self.manual_deleted_by: dict[int, int] = {}  # may be used by other cogs
         self.config = Config.get_conf(self, identifier=6961676567)
         self.config.register_guild(channel=0, log_moderator_self_deletes=True)
 
@@ -44,7 +45,9 @@ class ImageLog(commands.Cog):
                 timestamp=datetime.now())
             embed.set_author(name=str(message.author), icon_url=str(message.author.display_avatar.url))
             embed.add_field(name=f"Channel", value=channel.mention)
-            if channel.permissions_for(guild.me).view_audit_log:
+            if message.id in self.manual_deleted_by:
+                embed.add_field(name="Deleted by", value=f"<@{self.manual_deleted_by.pop(message.id)}>")
+            elif channel.permissions_for(guild.me).view_audit_log:
                 deleter = None
                 async for log in guild.audit_logs(limit=2, action=discord.AuditLogAction.message_delete):
                     if log.target.id == message.author.id and log.extra.channel.id == message.channel.id:

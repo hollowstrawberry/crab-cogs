@@ -60,6 +60,9 @@ class ImageView(View):
         if not ctx.guild or ctx.user.id == original_user_id or ctx.channel.permissions_for(ctx.user).manage_messages:
             self.deleted = True
             self.stop()
+            imagelog = self.cog.bot.get_cog("ImageLog")
+            if imagelog:
+                imagelog.manual_deleted_by[ctx.message.id] = ctx.user.id
             await ctx.message.delete()
             # await ctx.response.send_message("✅ Generation deleted.", ephemeral=True)  # noqa
         else:
