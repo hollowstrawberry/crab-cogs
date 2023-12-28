@@ -68,10 +68,7 @@ class NovelAI(commands.Cog):
 
     async def consume_queue(self):
         while self.queue:
-            try:
-                await self.queue.pop(0)
-            except:
-                log.exception("NovelAI task queue")
+            await self.queue.pop(0)
 
     @app_commands.command(name="novelai",
                           description="Generate anime images with NovelAI v3.")
@@ -97,17 +94,18 @@ class NovelAI(commands.Cog):
             return await ctx.response.send_message(  # noqa
                 "NovelAI username and password not set. The bot owner needs to set them like this:\n"
                 "[p]set api novelai username,USERNAME\n[p]set api novelai password,PASSWORD")
-        if self.generating.get(ctx.user.id, False):
-            message = "Your current image must finish generating before you can request another one."
-            return await ctx.response.send_message(message, ephemeral=True)  # noqa
-        cooldown = await self.config.server_cooldown() if ctx.guild else await self.config.dm_cooldown()
-        if ctx.user.id in self.last_img and (datetime.utcnow() - self.last_img[ctx.user.id]).seconds < cooldown:
-            eta = self.last_img[ctx.user.id] + timedelta(seconds=cooldown)
-            message = f"You may use this command again <t:{calendar.timegm(eta.utctimetuple())}:R>."
-            if not ctx.guild:
-                message += " (You can use it more frequently inside a server)"
-            return await ctx.response.send_message(message, ephemeral=True)  # noqa
-        await ctx.response.defer()  # noqa
+
+        if not await self.bot.is_owner(ctx.user):
+            cooldown = await self.config.server_cooldown() if ctx.guild else await self.config.dm_cooldown()
+            if self.generating.get(ctx.user.id, False):
+                message = "Your current image must finish generating before you can request another one."
+                return await ctx.response.send_message(message, ephemeral=True)  # noqa
+            if ctx.user.id in self.last_img and (datetime.utcnow() - self.last_img[ctx.user.id]).seconds < cooldown:
+                eta = self.last_img[ctx.user.id] + timedelta(seconds=cooldown)
+                message = f"You may use this command again <t:{calendar.timegm(eta.utctimetuple())}:R>."
+                if not ctx.guild:
+                    message += " (You can use it more frequently inside a server)"
+                return await ctx.response.send_message(message, ephemeral=True)  # noqa
 
         base_prompt = await self.config.user(ctx.user).base_prompt()
         if base_prompt:
@@ -115,12 +113,22 @@ class NovelAI(commands.Cog):
         base_neg = await self.config.user(ctx.user).base_negative_prompt()
         if base_neg:
             negative_prompt = f"{negative_prompt.strip(' ,')}, {base_neg}" if negative_prompt else base_neg
+
+        if ctx.guild and not ctx.channel.nsfw and (any(term in prompt for term in NSFW_TERMS) or "safe" in negative_prompt):
+            return await ctx.response.send_message(":warning: You may not generate NSFW images in non-NSFW channels.")  # noqa
+
         if ctx.guild and not ctx.channel.nsfw and await self.config.nsfw_filter():
-            blacklisted = [term.strip() for term in NSFW_TERMS.split(",")]
-            if any(term in prompt for term in blacklisted) or "safe" in negative_prompt:
-                return await ctx.followup.send(":warning: You may not generate NSFW images in non-NSFW channels.")
             prompt = "{safe}, " + prompt
-            negative_prompt = "{nsfw}, " + negative_prompt
+            negative_prompt = "{nsfw, " + negative_prompt
+
+        if TOS_TERMS.search(prompt) and not ctx.guild:
+            return await ctx.response.send_message(  # noqa
+                ":warning: To abide by Discord terms of service, the prompt you chose may not be used in private.\n"
+                "You may use this command in a server, where your generations may be reviewed by a moderator."
+            )
+
+        await ctx.response.defer()  # noqa
+
         preset = ImagePreset()
         preset.n_samples = 1
         preset.resolution = RESOLUTION_OBJECTS[resolution or await self.config.user(ctx.user).resolution()]
@@ -152,49 +160,59 @@ class NovelAI(commands.Cog):
                                       requester: Optional[int] = None,
                                       callback: Optional[Coroutine] = None):
         try:
-            async with self.api as wrapper:
-                async for _, img in wrapper.api.high_level.generate_image(prompt, ImageModel.Anime_v3, preset):
-                    image_bytes = img
-                    name = md5(image_bytes).hexdigest() + ".png"
-                    file = discord.File(io.BytesIO(image_bytes), name)
-        except Exception as error:
-            if isinstance(error, NovelAIError):
-                if error.status == 500:
-                    return await ctx.followup.send(":warning: NovelAI encountered an error. Please try again.")
-                elif error.status == 401:
-                    return await ctx.followup.send(":warning: Failed to authenticate NovelAI account.")
-                elif error.status == 402:
-                    return await ctx.followup.send(":warning: The subscription and/or credits have run out for this NovelAI account.")
-                elif error.status == 400:
-                    return await ctx.followup.send(":warning: Failed to generate image: " + (error.message or "A validation error occured."))
-                elif error.status == 409:
-                    return await ctx.followup.send(":warning: Failed to generate image: " + (error.message or "A conflict error occured."))
-                else:
-                    return await ctx.followup.send(f":warning: Failed to generate image: [{error.status}] {error.message}")
-            else:
-                log.exception("Generating image")
-                return await ctx.followup.send(":warning: Failed to generate image! Contact the bot owner for more information.")
-
-        image = Image.open(io.BytesIO(image_bytes))
-        seed = json.loads(image.info["Comment"])["seed"]
-        view = ImageView(self, prompt, preset, seed)
-        content = f"Reroll requested by <@{requester}>" if requester and ctx.guild else None
-        msg = await ctx.followup.send(content, file=file, view=view, allowed_mentions=discord.AllowedMentions.none())
-
-        self.generating[ctx.user.id] = False
-        self.last_img[ctx.user.id] = datetime.utcnow()
-        asyncio.create_task(self.delete_button_after(msg, view))
-        imagescanner = self.bot.get_cog("ImageScanner")
-        if imagescanner:
-            if ctx.channel.id in imagescanner.scan_channels:  # noqa
-                img_info = imagescanner.convert_novelai_info(image.info)  # noqa
-                imagescanner.image_cache[msg.id] = ({1: img_info}, {1: image_bytes})  # noqa
-                await msg.add_reaction("🔎")
-        if callback:
             try:
-                await callback
-            except:
+                async with self.api as wrapper:
+                    async for _, img in wrapper.api.high_level.generate_image(prompt, ImageModel.Anime_v3, preset):
+                        image_bytes = img
+                        name = md5(image_bytes).hexdigest() + ".png"
+                        file = discord.File(io.BytesIO(image_bytes), name)
+            except Exception as error:
+                if isinstance(error, NovelAIError):
+                    if error.status == 500:
+                        return await ctx.followup.send(":warning: NovelAI encountered an error. Please try again.")
+                    elif error.status == 401:
+                        return await ctx.followup.send(":warning: Failed to authenticate NovelAI account.")
+                    elif error.status == 402:
+                        return await ctx.followup.send(":warning: The subscription and/or credits have run out for this NovelAI account.")
+                    elif error.status == 429:
+                        return await ctx.followup.send(":warning: Bot is not allowed to generate multiple images at the same time. Please wait a few seconds.")
+                    elif error.status == 400:
+                        return await ctx.followup.send(":warning: Failed to generate image: " + (error.message or "A validation error occured."))
+                    elif error.status == 409:
+                        return await ctx.followup.send(":warning: Failed to generate image: " + (error.message or "A conflict error occured."))
+                    else:
+                        return await ctx.followup.send(f":warning: Failed to generate image: [{error.status}] {error.message}")
+                else:
+                    log.error(f"Generating image: {type(error).__name__} - {error}")
+                    return await ctx.followup.send(":warning: Failed to generate image! Contact the bot owner for more information.")
+            finally:
+                self.generating[ctx.user.id] = False
+                self.last_img[ctx.user.id] = datetime.utcnow()
+
+            image = Image.open(io.BytesIO(image_bytes))
+            seed = json.loads(image.info["Comment"])["seed"]
+            view = ImageView(self, prompt, preset, seed)
+            content = f"Reroll requested by <@{requester}>" if requester and ctx.guild else None
+            msg = await ctx.followup.send(content, file=file, view=view, allowed_mentions=discord.AllowedMentions.none())
+
+            asyncio.create_task(self.delete_button_after(msg, view))
+            imagescanner = self.bot.get_cog("ImageScanner")
+            if imagescanner:
+                if ctx.channel.id in imagescanner.scan_channels:  # noqa
+                    img_info = imagescanner.convert_novelai_info(image.info)  # noqa
+                    imagescanner.image_cache[msg.id] = ({1: img_info}, {1: image_bytes})  # noqa
+                    await msg.add_reaction("🔎")
+        except Exception as error:
+            if isinstance(error, discord.errors.NotFound):
                 pass
+            else:
+                log.exception("Fulfilling request")
+        finally:
+            if callback:
+                try:
+                    await callback
+                except:
+                    pass
 
     @staticmethod
     async def delete_button_after(msg: discord.Message, view: ImageView):
@@ -295,4 +313,4 @@ class NovelAI(commands.Cog):
         if new:
             await ctx.reply("NSFW filter enabled in non-nsfw channels. Note that this is not perfect.")
         else:
-            await ctx.reply("NSFW filter disabled. Users may easily generate NSFW content with /novelai")
+            await ctx.reply("NSFW filter disabled. Images may more easily be NSFW by accident.")

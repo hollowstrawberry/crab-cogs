@@ -1,3 +1,4 @@
+import re
 from redbot.core.app_commands import Choice
 from collections import OrderedDict
 from novelai_api.ImagePreset import ImageResolution
@@ -12,6 +13,9 @@ DEFAULT_NEGATIVE_PROMPT = "{bad}, fewer, extra, missing, worst quality, bad qual
 
 NSFW_TERMS = "nsfw, explicit, nude, sex, cum, pussy, cleft, clit, penis, nipple, topless, anus, " \
              "paizuri, missionary, cowgirl, hetero, vaginal, anal, oral, fellatio, cunnilingus, futa"
+NSFW_TERMS = [term.strip() for term in NSFW_TERMS.split(",")]
+
+TOS_TERMS = re.compile(r"\b(lolis?|shotas?|child(ren|s)?)\b")
 
 SAMPLER_TITLES = OrderedDict({
     "k_euler": "Euler",

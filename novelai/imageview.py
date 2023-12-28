@@ -25,16 +25,17 @@ class ImageView(View):
 
     @discord.ui.button(emoji="♻", style=discord.ButtonStyle.grey)
     async def recycle(self, ctx: discord.Interaction, btn: discord.Button):
-        if self.cog.generating.get(ctx.user.id, False):
-            message = "Your current image must finish generating before you can request another one."
-            return await ctx.response.send_message(message, ephemeral=True)  # noqa
-        cooldown = await self.cog.config.server_cooldown() if ctx.guild else await self.cog.config.dm_cooldown()
-        if ctx.user.id in self.cog.last_img and (datetime.utcnow() - self.cog.last_img[ctx.user.id]).seconds < cooldown:
-            eta = self.cog.last_img[ctx.user.id] + timedelta(seconds=cooldown)
-            message = f"You may use this command again <t:{calendar.timegm(eta.utctimetuple())}:R>."
-            if not ctx.guild:
-                message += " (You can use it more frequently inside a server)"
-            return await ctx.response.send_message(message, ephemeral=True)  # noqa
+        if not await self.cog.bot.is_owner(ctx.user):
+            cooldown = await self.cog.config.server_cooldown() if ctx.guild else await self.cog.config.dm_cooldown()
+            if self.cog.generating.get(ctx.user.id, False):
+                message = "Your current image must finish generating before you can request another one."
+                return await ctx.response.send_message(message, ephemeral=True)  # noqa
+            if ctx.user.id in self.cog.last_img and (datetime.utcnow() - self.cog.last_img[ctx.user.id]).seconds < cooldown:
+                eta = self.cog.last_img[ctx.user.id] + timedelta(seconds=cooldown)
+                message = f"You may use this command again <t:{calendar.timegm(eta.utctimetuple())}:R>."
+                if not ctx.guild:
+                    message += " (You can use it more frequently inside a server)"
+                return await ctx.response.send_message(message, ephemeral=True)  # noqa
 
         btn.disabled = True
         await ctx.message.edit(view=self)
