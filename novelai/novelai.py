@@ -182,6 +182,8 @@ class NovelAI(commands.Cog):
                         return await ctx.followup.send(":warning: The subscription and/or credits have run out for this NovelAI account.")
                     elif error.status == 429:
                         return await ctx.followup.send(":warning: Bot is not allowed to generate multiple images at the same time. Please wait a few seconds.")
+                    elif error.status in (408, 522, 524):
+                        return await ctx.followup.send(":warning: Timed out. Please try again.")
                     elif error.status == 400:
                         return await ctx.followup.send(":warning: Failed to generate image: " + (error.message or "A validation error occured."))
                     elif error.status == 409:
