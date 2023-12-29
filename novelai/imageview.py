@@ -44,8 +44,8 @@ class ImageView(View):
 
         self.preset.seed = 0
         self.cog.generating[ctx.user.id] = True
-        task = self.cog.fulfill_novelai_request(
-            ctx, self.prompt, self.preset, ImageGenerationType.NORMAL, ctx.user.id, ctx.message.edit(view=self))
+        type = ImageGenerationType.IMG2IMG if self.preset.image else ImageGenerationType.NORMAL
+        task = self.cog.fulfill_novelai_request(ctx, self.prompt, self.preset, type, ctx.user.id, ctx.message.edit(view=self))
         self.cog.queue.append(task)
         if not self.cog.queue_task or self.cog.queue_task.done():
             self.cog.queue_task = asyncio.create_task(self.cog.consume_queue())

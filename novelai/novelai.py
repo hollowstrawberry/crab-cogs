@@ -133,7 +133,7 @@ class NovelAI(commands.Cog):
                           noise_schedule: Optional[str],
                           decrisper: Optional[bool],
                           ):
-        if image.content_type != "image":
+        if "image" not in image.content_type:
             return await ctx.response.send_message("Attachment must be a valid image.", ephemeral=True)  # noqa
         result = await self.prepare_novelai_request(
             ctx, prompt, negative_prompt, seed, resolution, guidance, guidance_rescale,
