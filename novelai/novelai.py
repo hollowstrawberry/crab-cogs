@@ -151,9 +151,10 @@ class NovelAI(commands.Cog):
         if seed is not None and seed > 0:
             preset.seed = seed
         preset.uncond_scale = 1.0
-        sampler_version = sampler_version or await self.config.user(ctx.user).sampler_version()
-        preset.smea = "SMEA" in sampler_version
-        preset.smea_dyn = "DYN" in sampler_version
+        if "ddim" not in str(preset.sampler):
+            sampler_version = sampler_version or await self.config.user(ctx.user).sampler_version()
+            preset.smea = "SMEA" in sampler_version
+            preset.smea_dyn = "DYN" in sampler_version
 
         self.generating[ctx.user.id] = True
         self.queue.append(self.fulfill_novelai_request(ctx, prompt, preset))
