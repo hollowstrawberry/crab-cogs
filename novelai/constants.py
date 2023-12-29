@@ -61,6 +61,8 @@ PARAMETER_DESCRIPTIONS = {
     "sampler_version": "SMEA samplers are modified to perform better at higher resolutions.",
     "decrisper": "Reduces artifacts caused by high guidance.",
 }
+PARAMETER_DESCRIPTIONS_IMG2IMG = PARAMETER_DESCRIPTIONS.copy()
+PARAMETER_DESCRIPTIONS_IMG2IMG.pop("resolution")
 
 PARAMETER_CHOICES = {
     "resolution": [Choice(name=title, value=value) for value, title in RESOLUTION_TITLES.items()],
