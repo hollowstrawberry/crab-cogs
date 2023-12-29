@@ -11,7 +11,7 @@ DEFAULT_NEGATIVE_PROMPT = "{bad}, fewer, extra, missing, worst quality, bad qual
                           "chromatic aberration, artistic error, scan, [abstract], {simple background}"
 
 NSFW_TERMS = "nsfw, explicit, questionable, sensitive, nude, sex, cum, pussy, cleft, clit, penis, nipple, topless, " \
-             "anus, paizuri, missionary, cowgirl, hetero, vaginal, anal, oral, fellatio, cunnilingus, futa"
+             "anus, paizuri, missionary, cowgirl, vagina, anal, oral, fellatio, cunnilingus, futa"
 NSFW_TERMS = [term.strip() for term in NSFW_TERMS.split(",")]
 
 TOS_TERMS = re.compile(r"\b(lolis?|shotas?|child(ren|s)?)\b")
