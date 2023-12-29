@@ -138,7 +138,7 @@ class NovelAI(commands.Cog):
         if "image" not in image.content_type or not image.width or not image.height:
             return await ctx.response.send_message("Attachment must be a valid image.", ephemeral=True)  # noqa
         scale = (1000*1000 / (image.width*image.height))**0.5
-        width, height = int(image.width / scale), int(image.height / scale)
+        width, height = int(image.width * scale), int(image.height * scale)
         resolution = f"{round_to_nearest(width, 64)},{round_to_nearest(height, 64)}"
 
         result = await self.prepare_novelai_request(
