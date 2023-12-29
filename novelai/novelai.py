@@ -118,17 +118,17 @@ class NovelAI(commands.Cog):
             negative_prompt = f"{negative_prompt.strip(' ,')}, {base_neg}" if negative_prompt else base_neg
         resolution = resolution or await self.config.user(ctx.user).resolution()
 
-        if ctx.guild and not ctx.channel.nsfw and any(term in prompt for term in NSFW_TERMS):
+        if ctx.guild and not ctx.channel.nsfw and NSFW_TERMS.search(prompt):
             return await ctx.response.send_message(":warning: You may not generate NSFW images in non-NSFW channels.")  # noqa
 
-        if ctx.guild and not ctx.channel.nsfw and await self.config.guild(ctx.guild).nsfw_filter():
-            prompt = "rating:general, " + prompt
-
-        if TOS_TERMS.search(prompt) and not ctx.guild:
+        if not ctx.guild and TOS_TERMS.search(prompt):
             return await ctx.response.send_message(  # noqa
                 ":warning: To abide by Discord terms of service, the prompt you chose may not be used in private.\n"
                 "You may use this command in a server, where your generations may be reviewed by a moderator."
             )
+
+        if ctx.guild and not ctx.channel.nsfw and await self.config.guild(ctx.guild).nsfw_filter():
+            prompt = "rating:general, " + prompt
 
         await ctx.response.defer()  # noqa
 
