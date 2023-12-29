@@ -4,7 +4,7 @@ import discord
 import calendar
 from datetime import datetime, timedelta
 from discord.ui import View
-from novelai_api.ImagePreset import ImagePreset
+from novelai_api.ImagePreset import ImagePreset, ImageGenerationType
 
 from novelai.constants import VIEW_TIMEOUT
 
@@ -44,7 +44,8 @@ class ImageView(View):
 
         self.preset.seed = 0
         self.cog.generating[ctx.user.id] = True
-        task = self.cog.fulfill_novelai_request(ctx, self.prompt, self.preset, ctx.user.id, ctx.message.edit(view=self))
+        task = self.cog.fulfill_novelai_request(
+            ctx, self.prompt, self.preset, ImageGenerationType.NORMAL, ctx.user.id, ctx.message.edit(view=self))
         self.cog.queue.append(task)
         if not self.cog.queue_task or self.cog.queue_task.done():
             self.cog.queue_task = asyncio.create_task(self.cog.consume_queue())

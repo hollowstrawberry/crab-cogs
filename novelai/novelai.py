@@ -1,5 +1,6 @@
 import io
 import json
+import base64
 import asyncio
 import discord
 import logging
@@ -10,8 +11,8 @@ from datetime import datetime, timedelta
 from redbot.core import commands, app_commands, Config
 from redbot.core.bot import Red
 from novelai_api import NovelAIError
-from novelai_api.ImagePreset import ImageModel, ImagePreset, ImageSampler, UCPreset
-from typing import Optional, Coroutine
+from novelai_api.ImagePreset import ImageModel, ImagePreset, ImageSampler, ImageGenerationType, UCPreset
+from typing import Optional, Tuple, Coroutine
 
 from novelai.naiapi import NaiAPI
 from novelai.imageview import ImageView
@@ -93,6 +94,78 @@ class NovelAI(commands.Cog):
                       noise_schedule: Optional[str],
                       decrisper: Optional[bool],
                       ):
+        result = await self.prepare_novelai_request(
+            ctx, prompt, negative_prompt, seed, resolution, guidance, guidance_rescale,
+            sampler, sampler_version, noise_schedule, decrisper
+        )
+        if not result:
+            return
+        prompt, preset = result
+        await ctx.response.defer()  # noqa
+        self.generating[ctx.user.id] = True
+        self.queue.append(self.fulfill_novelai_request(ctx, prompt, preset, ImageGenerationType.NORMAL))
+        if not self.queue_task or self.queue_task.done():
+            self.queue_task = asyncio.create_task(self.consume_queue())
+
+    @app_commands.command(name="novelai-img2img",
+                          description="Convert img2img with NovelAI v3.")
+    @app_commands.describe(image="The image you want to use as a base.",
+                           strength="How much you want the image to change. 0.7 is default.",
+                           noise="Adds new detail to your image. 0 is default.",
+                           prompt="Gets added to your base prompt (/novelaidefaults)",
+                           negative_prompt="Gets added to your base negative prompt (/novelaidefaults)",
+                           seed="Random number that determines image generation.",
+                           **PARAMETER_DESCRIPTIONS)
+    @app_commands.choices(**PARAMETER_CHOICES)
+    async def novelai_img(self,
+                          ctx: discord.Interaction,
+                          image: discord.Attachment,
+                          strength: app_commands.Range[float, 0.0, 1.0],
+                          noise: app_commands.Range[float, 0.0, 1.0],
+                          prompt: str,
+                          negative_prompt: Optional[str],
+                          seed: Optional[int],
+                          resolution: Optional[str],
+                          guidance: Optional[app_commands.Range[float, 0.0, 10.0]],
+                          guidance_rescale: Optional[app_commands.Range[float, 0.0, 1.0]],
+                          sampler: Optional[ImageSampler],
+                          sampler_version: Optional[str],
+                          noise_schedule: Optional[str],
+                          decrisper: Optional[bool],
+                          ):
+        if image.content_type != "image":
+            return await ctx.response.send_message("Attachment must be a valid image.", ephemeral=True)  # noqa
+        result = await self.prepare_novelai_request(
+            ctx, prompt, negative_prompt, seed, resolution, guidance, guidance_rescale,
+            sampler, sampler_version, noise_schedule, decrisper
+        )
+        if not result:
+            return
+        prompt, preset = result
+        preset.strength = strength
+        preset.noise = noise
+        fp = io.BytesIO()
+        await image.save(fp)
+        preset.image = base64.b64encode(fp.read()).decode()
+        await ctx.response.defer()  # noqa
+        self.generating[ctx.user.id] = True
+        self.queue.append(self.fulfill_novelai_request(ctx, prompt, preset, ImageGenerationType.IMG2IMG))
+        if not self.queue_task or self.queue_task.done():
+            self.queue_task = asyncio.create_task(self.consume_queue())
+
+    async def prepare_novelai_request(self,
+                                      ctx: discord.Interaction,
+                                      prompt: str,
+                                      negative_prompt: Optional[str],
+                                      seed: Optional[int],
+                                      resolution: Optional[str],
+                                      guidance: Optional[app_commands.Range[float, 0.0, 10.0]],
+                                      guidance_rescale: Optional[app_commands.Range[float, 0.0, 1.0]],
+                                      sampler: Optional[ImageSampler],
+                                      sampler_version: Optional[str],
+                                      noise_schedule: Optional[str],
+                                      decrisper: Optional[bool],
+                                      ) -> Optional[Tuple[str, ImagePreset]]:
         if not self.api and not await self.try_create_api():
             return await ctx.response.send_message(  # noqa
                 "NovelAI username and password not set. The bot owner needs to set them like this:\n"
@@ -130,8 +203,6 @@ class NovelAI(commands.Cog):
         if ctx.guild and not ctx.channel.nsfw and await self.config.guild(ctx.guild).nsfw_filter():
             prompt = "rating:general, " + prompt
 
-        await ctx.response.defer()  # noqa
-
         preset = ImagePreset()
         preset.n_samples = 1
         try:
@@ -155,21 +226,18 @@ class NovelAI(commands.Cog):
             sampler_version = sampler_version or await self.config.user(ctx.user).sampler_version()
             preset.smea = "SMEA" in sampler_version
             preset.smea_dyn = "DYN" in sampler_version
-
-        self.generating[ctx.user.id] = True
-        self.queue.append(self.fulfill_novelai_request(ctx, prompt, preset))
-        if not self.queue_task or self.queue_task.done():
-            self.queue_task = asyncio.create_task(self.consume_queue())
+        return prompt, preset
 
     async def fulfill_novelai_request(self,
                                       ctx: discord.Interaction,
                                       prompt: str, preset: ImagePreset,
+                                      action: ImageGenerationType,
                                       requester: Optional[int] = None,
                                       callback: Optional[Coroutine] = None):
         try:
             try:
                 async with self.api as wrapper:
-                    async for _, img in wrapper.api.high_level.generate_image(prompt, ImageModel.Anime_v3, preset):
+                    async for _, img in wrapper.api.high_level.generate_image(prompt, ImageModel.Anime_v3, preset, action):
                         image_bytes = img
                         name = md5(image_bytes).hexdigest() + ".png"
                         file = discord.File(io.BytesIO(image_bytes), name)
@@ -193,7 +261,7 @@ class NovelAI(commands.Cog):
                         return await ctx.followup.send(f":warning: Failed to generate image: [{error.status}] {error.message}")
                 else:
                     log.error(f"Generating image: {type(error).__name__} - {error}")
-                    return await ctx.followup.send(":warning: Failed to generate image! Contact the bot owner for more information.")
+                    return await ctx.followup.send(":warning: Failed to generate image! Please try again, or contact the bot owner if the problem persists.")
             finally:
                 self.generating[ctx.user.id] = False
                 self.last_img[ctx.user.id] = datetime.utcnow()
