@@ -68,3 +68,6 @@ PARAMETER_CHOICES = {
     "sampler_version": [Choice(name=ver, value=ver) for ver in SAMPLER_VERSIONS],
     "noise_schedule": [Choice(name=sch, value=sch) for sch in NOISE_SCHEDULES],
 }
+
+PARAMETER_CHOICES_IMG2IMG = PARAMETER_CHOICES.copy()
+PARAMETER_CHOICES_IMG2IMG.pop("resolution")

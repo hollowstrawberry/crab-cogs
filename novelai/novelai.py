@@ -20,6 +20,9 @@ from novelai.constants import *
 
 log = logging.getLogger("red.crab-cogs.novelai")
 
+def round_to_nearest(x, base):
+    return int(base * round(x/base))
+
 
 class NovelAI(commands.Cog):
     """Generate anime images with NovelAI v3."""
@@ -116,7 +119,7 @@ class NovelAI(commands.Cog):
                            negative_prompt="Gets added to your base negative prompt (/novelaidefaults)",
                            seed="Random number that determines image generation.",
                            **PARAMETER_DESCRIPTIONS)
-    @app_commands.choices(**PARAMETER_CHOICES)
+    @app_commands.choices(**PARAMETER_CHOICES_IMG2IMG)
     async def novelai_img(self,
                           ctx: discord.Interaction,
                           image: discord.Attachment,
@@ -125,7 +128,6 @@ class NovelAI(commands.Cog):
                           prompt: str,
                           negative_prompt: Optional[str],
                           seed: Optional[int],
-                          resolution: Optional[str],
                           guidance: Optional[app_commands.Range[float, 0.0, 10.0]],
                           guidance_rescale: Optional[app_commands.Range[float, 0.0, 1.0]],
                           sampler: Optional[ImageSampler],
@@ -133,8 +135,12 @@ class NovelAI(commands.Cog):
                           noise_schedule: Optional[str],
                           decrisper: Optional[bool],
                           ):
-        if "image" not in image.content_type:
+        if "image" not in image.content_type or not image.width or not image.height:
             return await ctx.response.send_message("Attachment must be a valid image.", ephemeral=True)  # noqa
+        scale = (1000*1000 / (image.width*image.height))**0.5
+        width, height = int(image.width / scale), int(image.height / scale)
+        resolution = f"{round_to_nearest(width, 64)},{round_to_nearest(height, 64)}"
+
         result = await self.prepare_novelai_request(
             ctx, prompt, negative_prompt, seed, resolution, guidance, guidance_rescale,
             sampler, sampler_version, noise_schedule, decrisper
