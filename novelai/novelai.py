@@ -118,7 +118,7 @@ class NovelAI(commands.Cog):
                            prompt="Gets added to your base prompt (/novelaidefaults)",
                            negative_prompt="Gets added to your base negative prompt (/novelaidefaults)",
                            seed="Random number that determines image generation.",
-                           **PARAMETER_DESCRIPTIONS)
+                           **PARAMETER_DESCRIPTIONS_IMG2IMG)
     @app_commands.choices(**PARAMETER_CHOICES_IMG2IMG)
     async def novelai_img(self,
                           ctx: discord.Interaction,
