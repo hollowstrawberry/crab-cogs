@@ -46,7 +46,7 @@ RESOLUTION_TITLES = OrderedDict({
 })
 
 NOISE_SCHEDULES = [
-    "native", "karras", "exponential", "polyexponential",
+    "Always pick recommended", "native", "karras", "exponential", "polyexponential",
 ]
 
 SAMPLER_VERSIONS = [
@@ -59,6 +59,7 @@ PARAMETER_DESCRIPTIONS = {
     "guidance_rescale": "Adjusts the guidance somehow.",
     "sampler": "The algotithm that guides image generation.",
     "sampler_version": "SMEA samplers are modified to perform better at higher resolutions.",
+    "noise_schedule": "The recommended option is based on the sampler.",
     "decrisper": "Reduces artifacts caused by high guidance.",
 }
 PARAMETER_DESCRIPTIONS_IMG2IMG = PARAMETER_DESCRIPTIONS.copy()
