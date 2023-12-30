@@ -322,35 +322,30 @@ class NovelAI(commands.Cog):
             await msg.edit(view=None)
 
     @novelai.autocomplete("prompt")
-    async def tag_autocomplete(self, interaction: discord.Interaction, current: str):
-        booru = self.bot.get_cog("Booru")
-        if not booru:
-            return []
-        if current is None:
-            current = ""
-        if "," in current:
-            previous, current = current.rsplit(",", 1)[1]
-            previous += ","
-        else:
-            previous = ""
-        current = current.strip().lower().replace(" ", "_")
-        suggestions = await booru.grab_tags(current)  # noqa
-        suggestions = [app_commands.Choice(name=sug.name.replace("_", " "), value=previous + sug.name.replace("_", " "))
-                       for sug in suggestions]
-        suggestions.insert(0, app_commands.Choice(name="Tag suggestions:", value=previous))
-        return suggestions
-
     @novelai.autocomplete("negative_prompt")
-    async def tag_autocomplete_2(self, interaction: discord.Interaction, current: str):
-        return await self.tag_autocomplete(interaction, current)
-
     @novelai_img.autocomplete("prompt")
-    async def tag_autocomplete_3(self, interaction: discord.Interaction, current: str):
-        return await self.tag_autocomplete(interaction, current)
-
     @novelai_img.autocomplete("negative_prompt")
-    async def tag_autocomplete_4(self, interaction: discord.Interaction, current: str):
-        return await self.tag_autocomplete(interaction, current)
+    async def tag_autocomplete(self, interaction: discord.Interaction, current: str):
+        try:
+            booru = self.bot.get_cog("Booru")
+            if not booru:
+                return []
+            if current is None:
+                current = ""
+            if "," in current:
+                previous, current = current.rsplit(",", 1)[1]
+                previous += ", "
+            else:
+                previous = ""
+            current = current.strip().lower().replace(" ", "_")
+            suggestions = await booru.grab_tags(current)  # noqa
+            suggestions = [app_commands.Choice(name=sug.replace("_", " "), value=previous + sug.replace("_", " "))
+                           for sug in suggestions]
+            suggestions.insert(0, app_commands.Choice(name="Tag suggestions:", value=previous))
+            return suggestions
+        except:
+            log.exception("Tag autocomplete")
+            return [app_commands.Choice(name="Error", value="Error")]
 
     @app_commands.command(name="novelaidefaults",
                           description="Views or updates your personal default values for /novelai")
