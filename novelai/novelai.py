@@ -160,9 +160,6 @@ class NovelAI(commands.Cog):
                 fp = io.BytesIO()
                 resized_image.save(fp, "PNG")
                 fp.seek(0)
-                file = discord.File(fp, image.filename)
-                await ctx.response.defer()
-                return await ctx.followup.send(file=file)
             except:
                 log.exception("Resizing image")
                 return await ctx.response.send_message(":warning: Failed to resize image. Please try sending a smaller image.")  # noqa
