@@ -410,7 +410,8 @@ class NovelAI(commands.Cog):
                 if emphasis or deemphasis:
                     tags = [("{" * emphasis) + ("[" * deemphasis) + tag + ("]" * deemphasis) + ("}" * emphasis)
                             for tag in tags]
-                suggestions = [app_commands.Choice(name=tag.replace("_", " "), value=previous + tag.replace("_", " "))
+                suggestions = [app_commands.Choice(name=("... " if previous else "") + tag.replace("_", " "),
+                                                   value=previous + tag.replace("_", " "))
                                for tag in tags]
                 suggestions.insert(0, app_commands.Choice(name="Tag suggestions (choosing will save and end your prompt):", value=current))
                 return suggestions
