@@ -157,7 +157,7 @@ class NovelAI(commands.Cog):
                 scale = (MAX_UPLOADED_IMAGE_SIZE / (image.width * image.height)) ** 0.5
                 width, height = int(image.width * scale), int(image.height * scale)
                 resized_image = Image.open(fp).resize((width, height), Image.Resampling.LANCZOS)
-                log.info(f"{width}x{height}")
+                log.info(f"{resized_image.width}x{resized_image.height}")
                 fp = io.BytesIO()
                 resized_image.save(fp, "PNG")
             except:
