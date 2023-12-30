@@ -137,7 +137,7 @@ class NovelAI(commands.Cog):
                           ):
         if "image" not in image.content_type or not image.width or not image.height:
             return await ctx.response.send_message("Attachment must be a valid image.", ephemeral=True)  # noqa
-        scale = (1000*1000 / (image.width*image.height))**0.5
+        scale = (MAX_FREE_IMAGE_SIZE / (image.width * image.height)) ** 0.5
         width, height = int(image.width * scale), int(image.height * scale)
         resolution = f"{round_to_nearest(width, 64)},{round_to_nearest(height, 64)}"
 
@@ -152,6 +152,17 @@ class NovelAI(commands.Cog):
         preset.noise = noise
         fp = io.BytesIO()
         await image.save(fp)
+        if image.width*image.height > MAX_UPLOADED_IMAGE_SIZE:
+            try:
+                scale = (MAX_UPLOADED_IMAGE_SIZE / (image.width * image.height)) ** 0.5
+                width, height = int(image.width * scale), int(image.height * scale)
+                resized_image = Image.open(fp).resize((width, height), Image.Resampling.LANCZOS)
+                fp = io.BytesIO()
+                resized_image.save(fp)
+            except:
+                log.exception("Resizing image")
+                return await ctx.response.send_message(":warning: Failed to resize image. Please try sending a smaller image.")  # noqa
+
         preset.image = base64.b64encode(fp.read()).decode()
         await ctx.response.defer()  # noqa
         self.generating[ctx.user.id] = True
