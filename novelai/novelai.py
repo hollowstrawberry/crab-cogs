@@ -402,7 +402,7 @@ class NovelAI(commands.Cog):
                 previous, last = "", current
             last = last.strip().lower().replace(" ", "_")
             if not last:
-                return []
+                return [app_commands.Choice(name="(Start typing to see tag suggestions)", value=current)]
             suggestions = await booru.grab_tags(last)  # noqa
             if suggestions:
                 suggestions = [app_commands.Choice(name=sug.replace("_", " "), value=previous + sug.replace("_", " "))
