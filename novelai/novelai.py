@@ -322,9 +322,6 @@ class NovelAI(commands.Cog):
             await msg.edit(view=None)
 
     @novelai.autocomplete("prompt")
-    @novelai.autocomplete("negative_prompt")
-    @novelai_img.autocomplete("prompt")
-    @novelai_img.autocomplete("negative_prompt")
     async def tag_autocomplete(self, interaction: discord.Interaction, current: str):
         booru = self.bot.get_cog("Booru")
         if not booru:
@@ -342,6 +339,18 @@ class NovelAI(commands.Cog):
                        for sug in suggestions]
         suggestions.insert(0, app_commands.Choice(name="Tag suggestions:", value=previous))
         return suggestions
+
+    @novelai.autocomplete("negative_prompt")
+    async def tag_autocomplete_2(self, interaction: discord.Interaction, current: str):
+        return await self.tag_autocomplete(interaction, current)
+
+    @novelai_img.autocomplete("prompt")
+    async def tag_autocomplete_3(self, interaction: discord.Interaction, current: str):
+        return await self.tag_autocomplete(interaction, current)
+
+    @novelai_img.autocomplete("negative_prompt")
+    async def tag_autocomplete_4(self, interaction: discord.Interaction, current: str):
+        return await self.tag_autocomplete(interaction, current)
 
     @app_commands.command(name="novelaidefaults",
                           description="Views or updates your personal default values for /novelai")
