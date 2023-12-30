@@ -293,6 +293,7 @@ class NovelAI(commands.Cog):
                         message = ":warning: NovelAI seems to be experiencing an outage. Please be patient and try again soon."
                     msg = await ctx.followup.send(message, view=view)
                     asyncio.create_task(self.delete_button_after(msg, view))
+                    return
                 else:
                     log.error(f"Generating image: {type(error).__name__} - {error}")
                     return await ctx.followup.send(":warning: Failed to generate image! Please try again, or contact the bot owner if the problem persists.")
