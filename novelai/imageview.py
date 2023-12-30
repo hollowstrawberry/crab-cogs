@@ -44,8 +44,7 @@ class ImageView(View):
 
         self.preset.seed = 0
         self.cog.generating[ctx.user.id] = True
-        action = ImageGenerationType.INPAINTING if self.preset._settings.get("mask", None) else\
-            ImageGenerationType.IMG2IMG if self.preset._settings.get("image", None) else ImageGenerationType.NORMAL
+        action = ImageGenerationType.IMG2IMG if self.preset._settings.get("image", None) else ImageGenerationType.NORMAL  # noqa
         task = self.cog.fulfill_novelai_request(ctx, self.prompt, self.preset, action, ctx.user.id, ctx.message.edit(view=self))
         self.cog.queue.append(task)
         if not self.cog.queue_task or self.cog.queue_task.done():
