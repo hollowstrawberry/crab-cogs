@@ -386,8 +386,8 @@ class NovelAI(commands.Cog):
     @novelai.autocomplete("negative_prompt")
     @novelai_img.autocomplete("prompt")
     @novelai_img.autocomplete("negative_prompt")
-    @novelaidefaults.autocomplete("prompt")
-    @novelaidefaults.autocomplete("negative_prompt")
+    @novelaidefaults.autocomplete("base_prompt")
+    @novelaidefaults.autocomplete("base_negative_prompt")
     async def tag_autocomplete(self, interaction: discord.Interaction, current: str):
         try:
             booru = self.bot.get_cog("Booru")
