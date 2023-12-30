@@ -396,20 +396,24 @@ class NovelAI(commands.Cog):
             if current is None:
                 current = ""
             if "," in current:
-                previous, current = current.rsplit(",", 1)
+                previous, last = current.rsplit(",", 1)
                 previous += ", "
             else:
-                previous = ""
-            current = current.strip().lower().replace(" ", "_")
-            if not current:
+                previous, last = "", current
+            last = last.strip().lower().replace(" ", "_")
+            if not last:
                 return []
-            suggestions = await booru.grab_tags(current)  # noqa
-            suggestions = [app_commands.Choice(name=sug.replace("_", " "), value=previous + sug.replace("_", " "))
-                           for sug in suggestions]
-            suggestions.insert(0, app_commands.Choice(name="Tag suggestions (choosing will end the prompt):", value=previous))
-            return suggestions
+            suggestions = await booru.grab_tags(last)  # noqa
+            if suggestions:
+                suggestions = [app_commands.Choice(name=sug.replace("_", " "), value=previous + sug.replace("_", " "))
+                               for sug in suggestions]
+                suggestions.insert(0, app_commands.Choice(name="Tag suggestions (choosing will save and end your prompt):", value=current))
+                return suggestions
+            else:
+                return [app_commands.Choice(name="(No suggestions)", value=current)]
         except:
             log.exception("Tag autocomplete")
+            return [app_commands.Choice(name="(Error)", value=current)]
 
     @commands.group()
     async def novelaiset(self, _):
