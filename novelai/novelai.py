@@ -23,6 +23,10 @@ log = logging.getLogger("red.crab-cogs.novelai")
 def round_to_nearest(x, base):
     return int(base * round(x/base))
 
+def scale_to_size(width: int, height: int, size: int) -> Tuple[int, int]:
+    scale = (size / (width * height)) ** 0.5
+    return int(width * scale), int(height * scale)
+
 
 class NovelAI(commands.Cog):
     """Generate anime images with NovelAI v3."""
@@ -137,8 +141,7 @@ class NovelAI(commands.Cog):
                           ):
         if "image" not in image.content_type or not image.width or not image.height:
             return await ctx.response.send_message("Attachment must be a valid image.", ephemeral=True)  # noqa
-        scale = (MAX_FREE_IMAGE_SIZE / (image.width * image.height)) ** 0.5
-        width, height = int(image.width * scale), int(image.height * scale)
+        width, height = scale_to_size(image.width, image.height, MAX_FREE_IMAGE_SIZE)
         resolution = f"{round_to_nearest(width, 64)},{round_to_nearest(height, 64)}"
 
         result = await self.prepare_novelai_request(
@@ -147,6 +150,8 @@ class NovelAI(commands.Cog):
         )
         if not result:
             return
+        await ctx.response.defer()  # noqa
+
         prompt, preset = result
         preset.strength = strength
         preset.noise = noise
@@ -154,20 +159,89 @@ class NovelAI(commands.Cog):
         await image.save(fp)
         if image.width*image.height > MAX_UPLOADED_IMAGE_SIZE:
             try:
-                scale = (MAX_UPLOADED_IMAGE_SIZE / (image.width * image.height)) ** 0.5
-                width, height = int(image.width * scale), int(image.height * scale)
+                width, height = scale_to_size(image.width, image.height, MAX_UPLOADED_IMAGE_SIZE)
                 resized_image = Image.open(fp).resize((width, height), Image.Resampling.LANCZOS)
                 fp = io.BytesIO()
                 resized_image.save(fp, "PNG")
                 fp.seek(0)
             except:
                 log.exception("Resizing image")
-                return await ctx.response.send_message(":warning: Failed to resize image. Please try sending a smaller image.")  # noqa
-
+                return await ctx.followup.send(":warning: Failed to resize image. Please try sending a smaller image.")
         preset.image = base64.b64encode(fp.read()).decode()
-        await ctx.response.defer()  # noqa
+
         self.generating[ctx.user.id] = True
         self.queue.append(self.fulfill_novelai_request(ctx, prompt, preset, ImageGenerationType.IMG2IMG))
+        if not self.queue_task or self.queue_task.done():
+            self.queue_task = asyncio.create_task(self.consume_queue())
+
+    @app_commands.command(name="novelai-inpaint",
+                          description="Inpaint an image with NovelAI v3.")
+    @app_commands.describe(image="The image you want to use as a base.",
+                           mask="A transparent image of the same size with white over the part you want to inpaint.",
+                           overlay_original="Keeps the image from changing but might add seams.",
+                           prompt="Gets added to your base prompt (/novelaidefaults)",
+                           negative_prompt="Gets added to your base negative prompt (/novelaidefaults)",
+                           seed="Random number that determines image generation.",
+                           **PARAMETER_DESCRIPTIONS_IMG2IMG)
+    @app_commands.choices(**PARAMETER_CHOICES_IMG2IMG)
+    async def novelai_inpaint(self,
+                              ctx: discord.Interaction,
+                              image: discord.Attachment,
+                              mask: discord.Attachment,
+                              overlay_original: bool,
+                              prompt: str,
+                              negative_prompt: Optional[str],
+                              seed: Optional[int],
+                              guidance: Optional[app_commands.Range[float, 0.0, 10.0]],
+                              guidance_rescale: Optional[app_commands.Range[float, 0.0, 1.0]],
+                              sampler: Optional[ImageSampler],
+                              sampler_version: Optional[str],
+                              noise_schedule: Optional[str],
+                              decrisper: Optional[bool],
+                              ):
+        if "image" not in image.content_type or not image.width or not image.height\
+                or "image" not in mask.content_type or not mask.width or not mask.height:
+            return await ctx.response.send_message("Attachment must be a valid image.", ephemeral=True)  # noqa
+        if image.width != mask.width or image.height != mask.height:
+            return await ctx.response.send_message(  # noqa
+                "To inpaint, the mask must be a transparent image of the same size as the original, "
+                "with white over the part you want to inpaint."
+            )
+        width, height = scale_to_size(image.width, image.height, MAX_FREE_IMAGE_SIZE)
+        resolution = f"{round_to_nearest(width, 64)},{round_to_nearest(height, 64)}"
+
+        result = await self.prepare_novelai_request(
+            ctx, prompt, negative_prompt, seed, resolution, guidance, guidance_rescale,
+            sampler, sampler_version, noise_schedule, decrisper
+        )
+        if not result:
+            return
+        await ctx.response.defer()  # noqa
+
+        prompt, preset = result
+        preset.add_original_image = overlay_original
+        fp1, fp2 = io.BytesIO(), io.BytesIO()
+        await image.save(fp1)
+        await image.save(fp2)
+        if image.width*image.height > MAX_UPLOADED_IMAGE_SIZE:
+            try:
+                width, height = scale_to_size(image.width, image.height, MAX_UPLOADED_IMAGE_SIZE)
+                resized_image_1 = Image.open(fp1).resize((width, height), Image.Resampling.LANCZOS)
+                fp1 = io.BytesIO()
+                resized_image_1.save(fp1, "PNG")
+                fp1.seek(0)
+                resized_image_2 = Image.open(fp2).resize((width, height), Image.Resampling.LANCZOS)
+                fp2 = io.BytesIO()
+                resized_image_2.save(fp2, "PNG")
+                fp2.seek(0)
+            except:
+                log.exception("Resizing image")
+                return await ctx.followup.send(":warning: Failed to resize image. Please try sending a smaller image.")
+        preset.image = base64.b64encode(fp1.read()).decode()
+        preset.mask = base64.b64encode(fp2.read()).decode()
+
+        self.generating[ctx.user.id] = True
+        self.queue.append(self.fulfill_novelai_request(ctx, prompt, preset, ImageGenerationType.INPAINTING))
         if not self.queue_task or self.queue_task.done():
             self.queue_task = asyncio.create_task(self.consume_queue())
 
@@ -257,10 +331,9 @@ class NovelAI(commands.Cog):
         try:
             try:
                 async with self.api as wrapper:
-                    async for _, img in wrapper.api.high_level.generate_image(prompt, ImageModel.Anime_v3, preset, action):
+                    model = ImageModel.Inpainting_Anime_v3 if action == ImageGenerationType.INPAINTING else ImageModel.Anime_v3
+                    async for _, img in wrapper.api.high_level.generate_image(prompt, model, preset, action):
                         image_bytes = img
-                        name = md5(image_bytes).hexdigest() + ".png"
-                        file = discord.File(io.BytesIO(image_bytes), name)
             except Exception as error:
                 if isinstance(error, NovelAIError):
                     if error.status == 500:
@@ -286,6 +359,8 @@ class NovelAI(commands.Cog):
                 self.generating[ctx.user.id] = False
                 self.last_img[ctx.user.id] = datetime.utcnow()
 
+            name = md5(image_bytes).hexdigest() + ".png"
+            file = discord.File(io.BytesIO(image_bytes), name)
             image = Image.open(io.BytesIO(image_bytes))
             seed = json.loads(image.info["Comment"])["seed"]
             view = ImageView(self, prompt, preset, seed)
