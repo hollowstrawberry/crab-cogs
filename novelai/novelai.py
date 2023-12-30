@@ -401,12 +401,17 @@ class NovelAI(commands.Cog):
             else:
                 previous, last = "", current
             last = last.strip().lower().replace(" ", "_")
+            emphasis, deemphasis = last.count("{"), last.count("[")
+            last = last.strip("{}[]")
             if not last:
                 return [app_commands.Choice(name="(Start typing to see tag suggestions)", value=current)]
-            suggestions = await booru.grab_tags(last)  # noqa
-            if suggestions:
-                suggestions = [app_commands.Choice(name=sug.replace("_", " "), value=previous + sug.replace("_", " "))
-                               for sug in suggestions]
+            tags = await booru.grab_tags(last)  # noqa
+            if tags:
+                if emphasis or deemphasis:
+                    tags = [("{" * emphasis) + ("[" * deemphasis) + tag + ("]" * deemphasis) + ("}" * emphasis)
+                            for tag in tags]
+                suggestions = [app_commands.Choice(name=tag.replace("_", " "), value=previous + tag.replace("_", " "))
+                               for tag in tags]
                 suggestions.insert(0, app_commands.Choice(name="Tag suggestions (choosing will save and end your prompt):", value=current))
                 return suggestions
             else:
