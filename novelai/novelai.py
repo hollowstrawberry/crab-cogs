@@ -382,45 +382,6 @@ class NovelAI(commands.Cog):
         embed.add_field(name="Decrisper", value=f"{await self.config.user(ctx.user).decrisper()}")
         await ctx.response.send_message(embed=embed, ephemeral=True)  # noqa
 
-    @novelai.autocomplete("prompt")
-    @novelai.autocomplete("negative_prompt")
-    @novelai_img.autocomplete("prompt")
-    @novelai_img.autocomplete("negative_prompt")
-    @novelaidefaults.autocomplete("base_prompt")
-    @novelaidefaults.autocomplete("base_negative_prompt")
-    async def tag_autocomplete(self, interaction: discord.Interaction, current: str):
-        try:
-            booru = self.bot.get_cog("Booru")
-            if not booru:
-                return []
-            if current is None:
-                current = ""
-            if "," in current:
-                previous, last = current.rsplit(",", 1)
-                previous += ", "
-            else:
-                previous, last = "", current
-            last = last.strip().lower().replace(" ", "_")
-            emphasis, deemphasis = last.count("{"), last.count("[")
-            last = last.strip("{}[]")
-            if not last:
-                return [app_commands.Choice(name="(Start typing to see tag suggestions)", value=current)]
-            tags = await booru.grab_tags(last)  # noqa
-            if tags:
-                if emphasis or deemphasis:
-                    tags = [("{" * emphasis) + ("[" * deemphasis) + tag + ("]" * deemphasis) + ("}" * emphasis)
-                            for tag in tags]
-                suggestions = [app_commands.Choice(name=("... " if previous else "") + tag.replace("_", " "),
-                                                   value=previous + tag.replace("_", " "))
-                               for tag in tags]
-                suggestions.insert(0, app_commands.Choice(name="Tag suggestions (choosing will save and end your prompt):", value=current))
-                return suggestions
-            else:
-                return [app_commands.Choice(name="(No suggestions)", value=current)]
-        except:
-            log.exception("Tag autocomplete")
-            return [app_commands.Choice(name="(Error)", value=current)]
-
     @commands.group()
     async def novelaiset(self, _):
         """Configure /novelai bot-wide."""
