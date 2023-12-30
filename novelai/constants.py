@@ -5,7 +5,7 @@ from collections import OrderedDict
 VIEW_TIMEOUT = 5 * 60
 
 MAX_FREE_IMAGE_SIZE = 1000*1000
-MAX_UPLOADED_IMAGE_SIZE = 1920*1536
+MAX_UPLOADED_IMAGE_SIZE = 1920*1080
 
 DEFAULT_PROMPT = "best quality, amazing quality, very aesthetic, absurdres"
 
