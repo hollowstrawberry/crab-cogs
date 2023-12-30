@@ -321,34 +321,6 @@ class NovelAI(commands.Cog):
         if not view.deleted:
             await msg.edit(view=None)
 
-    @novelai.autocomplete("prompt")
-    @novelai.autocomplete("negative_prompt")
-    @novelai_img.autocomplete("prompt")
-    @novelai_img.autocomplete("negative_prompt")
-    async def tag_autocomplete(self, interaction: discord.Interaction, current: str):
-        try:
-            booru = self.bot.get_cog("Booru")
-            if not booru:
-                return []
-            if current is None:
-                current = ""
-            if "," in current:
-                previous, current = current.rsplit(",", 1)
-                previous += ", "
-            else:
-                previous = ""
-            current = current.strip().lower().replace(" ", "_")
-            if not current:
-                return []
-            suggestions = await booru.grab_tags(current)  # noqa
-            suggestions = [app_commands.Choice(name=sug.replace("_", " "), value=previous + sug.replace("_", " "))
-                           for sug in suggestions]
-            suggestions.insert(0, app_commands.Choice(name="Tag suggestions:", value=previous))
-            return suggestions
-        except:
-            log.exception("Tag autocomplete")
-            return [app_commands.Choice(name="Error", value="Error")]
-
     @app_commands.command(name="novelaidefaults",
                           description="Views or updates your personal default values for /novelai")
     @app_commands.describe(base_prompt="Gets added after each prompt. \"none\" to delete, \"default\" to reset.",
@@ -409,6 +381,35 @@ class NovelAI(commands.Cog):
         embed.add_field(name="Noise Schedule", value=await self.config.user(ctx.user).noise_schedule())
         embed.add_field(name="Decrisper", value=f"{await self.config.user(ctx.user).decrisper()}")
         await ctx.response.send_message(embed=embed, ephemeral=True)  # noqa
+
+    @novelai.autocomplete("prompt")
+    @novelai.autocomplete("negative_prompt")
+    @novelai_img.autocomplete("prompt")
+    @novelai_img.autocomplete("negative_prompt")
+    @novelaidefaults.autocomplete("prompt")
+    @novelaidefaults.autocomplete("negative_prompt")
+    async def tag_autocomplete(self, interaction: discord.Interaction, current: str):
+        try:
+            booru = self.bot.get_cog("Booru")
+            if not booru:
+                return []
+            if current is None:
+                current = ""
+            if "," in current:
+                previous, current = current.rsplit(",", 1)
+                previous += ", "
+            else:
+                previous = ""
+            current = current.strip().lower().replace(" ", "_")
+            if not current:
+                return []
+            suggestions = await booru.grab_tags(current)  # noqa
+            suggestions = [app_commands.Choice(name=sug.replace("_", " "), value=previous + sug.replace("_", " "))
+                           for sug in suggestions]
+            suggestions.insert(0, app_commands.Choice(name="Tag suggestions (choosing will end the prompt):", value=previous))
+            return suggestions
+        except:
+            log.exception("Tag autocomplete")
 
     @commands.group()
     async def novelaiset(self, _):
