@@ -159,6 +159,7 @@ class NovelAI(commands.Cog):
                 resized_image = Image.open(fp).resize((width, height), Image.Resampling.LANCZOS)
                 fp = io.BytesIO()
                 resized_image.save(fp, "PNG")
+                fp.seek(0)
                 file = discord.File(fp, image.filename)
                 return await ctx.response.send_message(file=file)
             except:
