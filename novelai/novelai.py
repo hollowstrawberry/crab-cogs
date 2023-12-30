@@ -157,8 +157,9 @@ class NovelAI(commands.Cog):
                 scale = (MAX_UPLOADED_IMAGE_SIZE / (image.width * image.height)) ** 0.5
                 width, height = int(image.width * scale), int(image.height * scale)
                 resized_image = Image.open(fp).resize((width, height), Image.Resampling.LANCZOS)
+                log.info(f"{width}x{height}")
                 fp = io.BytesIO()
-                resized_image.save(fp, image.content_type.split("/")[1].upper())
+                resized_image.save(fp, "PNG")
             except:
                 log.exception("Resizing image")
                 return await ctx.response.send_message(":warning: Failed to resize image. Please try sending a smaller image.")  # noqa
