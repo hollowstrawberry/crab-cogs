@@ -12,10 +12,10 @@ from redbot.core import commands, app_commands, Config
 from redbot.core.bot import Red
 from novelai_api import NovelAIError
 from novelai_api.ImagePreset import ImageModel, ImagePreset, ImageSampler, ImageGenerationType, UCPreset
-from typing import Optional, Tuple, Coroutine
+from typing import Optional, Union, Tuple, Coroutine
 
 from novelai.naiapi import NaiAPI
-from novelai.imageview import ImageView
+from novelai.imageview import ImageView, RetryView
 from novelai.constants import *
 
 log = logging.getLogger("red.crab-cogs.novelai")
@@ -39,6 +39,8 @@ class NovelAI(commands.Cog):
         self.queue_task: Optional[asyncio.Task] = None
         self.generating: dict[int, bool] = {}
         self.last_img: dict[int, datetime] = {}
+        self.outage_log: list[datetime] = []
+        self.last_outage_mode: Optional[datetime] = None
         self.config = Config.get_conf(self, identifier=66766566169)
         defaults_user = {
             "base_prompt": DEFAULT_PROMPT,
@@ -110,7 +112,7 @@ class NovelAI(commands.Cog):
         prompt, preset = result
         await ctx.response.defer()  # noqa
         self.generating[ctx.user.id] = True
-        self.queue.append(self.fulfill_novelai_request(ctx, prompt, preset, ImageGenerationType.NORMAL))
+        self.queue.append(self.fulfill_novelai_request(ctx, prompt, preset))
         if not self.queue_task or self.queue_task.done():
             self.queue_task = asyncio.create_task(self.consume_queue())
 
@@ -170,7 +172,7 @@ class NovelAI(commands.Cog):
         preset.image = base64.b64encode(fp.read()).decode()
 
         self.generating[ctx.user.id] = True
-        self.queue.append(self.fulfill_novelai_request(ctx, prompt, preset, ImageGenerationType.IMG2IMG))
+        self.queue.append(self.fulfill_novelai_request(ctx, prompt, preset))
         if not self.queue_task or self.queue_task.done():
             self.queue_task = asyncio.create_task(self.consume_queue())
 
@@ -254,33 +256,43 @@ class NovelAI(commands.Cog):
     async def fulfill_novelai_request(self,
                                       ctx: discord.Interaction,
                                       prompt: str, preset: ImagePreset,
-                                      action: ImageGenerationType,
                                       requester: Optional[int] = None,
                                       callback: Optional[Coroutine] = None):
         try:
             try:
                 async with self.api as wrapper:
+                    action = ImageGenerationType.IMG2IMG if preset._settings.get("image", None) else ImageGenerationType.NORMAL  # noqa
                     model = ImageModel.Inpainting_Anime_v3 if action == ImageGenerationType.INPAINTING else ImageModel.Anime_v3
                     async for _, img in wrapper.api.high_level.generate_image(prompt, model, preset, action):
                         image_bytes = img
             except Exception as error:
                 if isinstance(error, NovelAIError):
-                    if error.status == 500:
-                        return await ctx.followup.send(":warning: NovelAI encountered an error. Please try again.")
-                    elif error.status == 401:
+                    view = RetryView(self, prompt, preset)
+                    if error.status == 401:
                         return await ctx.followup.send(":warning: Failed to authenticate NovelAI account.")
                     elif error.status == 402:
                         return await ctx.followup.send(":warning: The subscription and/or credits have run out for this NovelAI account.")
+                    elif error.status == 500:
+                        message = ":warning: NovelAI encountered an error. Please try again."
                     elif error.status == 429:
-                        return await ctx.followup.send(":warning: Bot is not allowed to generate multiple images at the same time. Please wait a few seconds.")
+                        message = ":warning: Bot is not allowed to generate multiple images at the same time. Please wait a few seconds."
                     elif error.status in (408, 522, 524):
-                        return await ctx.followup.send(":warning: Timed out. Please try again.")
+                        message = ":warning: Timed out. Please try again."
                     elif error.status == 400:
-                        return await ctx.followup.send(":warning: Failed to generate image: " + (error.message or "A validation error occured."))
+                        message = ":warning: Failed to generate image: " + (error.message or "A validation error occured.")
                     elif error.status == 409:
-                        return await ctx.followup.send(":warning: Failed to generate image: " + (error.message or "A conflict error occured."))
+                        message = ":warning: Failed to generate image: " + (error.message or "A conflict error occured.")
                     else:
-                        return await ctx.followup.send(f":warning: Failed to generate image: [{error.status}] {error.message}")
+                        message = f":warning: Failed to generate image: [{error.status}] {error.message}"
+                    now = datetime.utcnow()
+                    self.outage_log.append(now)
+                    if len(self.outage_log) >= 3 and (self.outage_log[-1] - self.outage_log[-3]).seconds < 300:  # 3 outages within 5 minutes
+                        self.last_outage_mode = now
+                    if self.last_outage_mode and (now - self.last_outage_mode).seconds < 60 * 30:  # outage mode lasts half an hour
+                        log.warning(message)
+                        message = ":warning: NovelAI seems to be experiencing an outage. Please be patient and try again soon."
+                    msg = await ctx.followup.send(message, view=view)
+                    asyncio.create_task(self.delete_button_after(msg, view))
                 else:
                     log.error(f"Generating image: {type(error).__name__} - {error}")
                     return await ctx.followup.send(":warning: Failed to generate image! Please try again, or contact the bot owner if the problem persists.")
@@ -293,7 +305,7 @@ class NovelAI(commands.Cog):
             image = Image.open(io.BytesIO(image_bytes))
             seed = json.loads(image.info["Comment"])["seed"]
             view = ImageView(self, prompt, preset, seed)
-            content = f"Reroll requested by <@{requester}>" if requester and ctx.guild else None
+            content = f"{'Reroll' if callback else 'Retry'} requested by <@{requester}>" if requester and ctx.guild else None
             msg = await ctx.followup.send(content, file=file, view=view, allowed_mentions=discord.AllowedMentions.none())
 
             asyncio.create_task(self.delete_button_after(msg, view))
@@ -316,7 +328,7 @@ class NovelAI(commands.Cog):
                     pass
 
     @staticmethod
-    async def delete_button_after(msg: discord.Message, view: ImageView):
+    async def delete_button_after(msg: discord.Message, view: Union[ImageView, RetryView]):
         await asyncio.sleep(VIEW_TIMEOUT)
         if not view.deleted:
             await msg.edit(view=None)
