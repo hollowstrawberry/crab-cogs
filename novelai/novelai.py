@@ -333,11 +333,13 @@ class NovelAI(commands.Cog):
             if current is None:
                 current = ""
             if "," in current:
-                previous, current = current.rsplit(",", 1)[1]
+                previous, current = current.rsplit(",", 1)
                 previous += ", "
             else:
                 previous = ""
             current = current.strip().lower().replace(" ", "_")
+            if not current:
+                return []
             suggestions = await booru.grab_tags(current)  # noqa
             suggestions = [app_commands.Choice(name=sug.replace("_", " "), value=previous + sug.replace("_", " "))
                            for sug in suggestions]
