@@ -4,7 +4,7 @@ import discord
 import calendar
 from datetime import datetime, timedelta
 from discord.ui import View
-from novelai_api.ImagePreset import ImagePreset, ImageGenerationType
+from novelai_api.ImagePreset import ImagePreset
 
 from novelai.constants import VIEW_TIMEOUT
 
@@ -78,7 +78,7 @@ class RetryView(View):
         self.deleted = False
 
     @discord.ui.button(emoji="🔁", style=discord.ButtonStyle.grey)
-    async def retry(self, ctx: discord.Interaction, btn: discord.Button):
+    async def retry(self, ctx: discord.Interaction, _: discord.Button):
         if not await self.cog.bot.is_owner(ctx.user):
             if self.cog.generating.get(ctx.user.id, False):
                 message = "Your current image must finish generating before you can request another one."
@@ -95,4 +95,3 @@ class RetryView(View):
         self.cog.queue.append(task)
         if not self.cog.queue_task or self.cog.queue_task.done():
             self.cog.queue_task = asyncio.create_task(self.cog.consume_queue())
-
