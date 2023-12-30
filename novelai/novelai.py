@@ -321,6 +321,28 @@ class NovelAI(commands.Cog):
         if not view.deleted:
             await msg.edit(view=None)
 
+    @novelai.autocomplete("prompt")
+    @novelai.autocomplete("negative_prompt")
+    @novelai_img.autocomplete("prompt")
+    @novelai_img.autocomplete("negative_prompt")
+    async def tag_autocomplete(self, interaction: discord.Interaction, current: str):
+        booru = self.bot.get_cog("Booru")
+        if not booru:
+            return []
+        if current is None:
+            current = ""
+        if "," in current:
+            previous, current = current.rsplit(",", 1)[1]
+            previous += ","
+        else:
+            previous = ""
+        current = current.strip().lower().replace(" ", "_")
+        suggestions = await booru.grab_tags(current)  # noqa
+        suggestions = [app_commands.Choice(name=sug.name.replace("_", " "), value=previous + sug.name.replace("_", " "))
+                       for sug in suggestions]
+        suggestions.insert(0, app_commands.Choice(name="Tag suggestions:", value=previous))
+        return suggestions
+
     @app_commands.command(name="novelaidefaults",
                           description="Views or updates your personal default values for /novelai")
     @app_commands.describe(base_prompt="Gets added after each prompt. \"none\" to delete, \"default\" to reset.",
