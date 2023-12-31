@@ -13,11 +13,14 @@ DEFAULT_NEGATIVE_PROMPT = "{bad}, fewer, extra, missing, worst quality, bad qual
                           "watermark, signature, username, logo, jpeg artifacts, unfinished, displeasing, " \
                           "chromatic aberration, artistic error, scan, [abstract], {simple background}"
 
-NSFW_TERMS = re.compile(r"\b(nsfw|explicit|questionable|sensitive|nude|naked|sex|cum|pussy|cleft|clit(oris|oral)?"
-                        r"|penis|nipples?|topless|bottomless|no panties|no bra|anus|anal|oral|vaginal?|paizuri"
-                        r"|missionary|cowgirl|hetero|fellatio|cunnilingus|futa(nari)?)\b")
+NSFW_TERMS = re.compile(r"\b(nsfw|explicit|questionable|sensitive|suggestive|nude|naked|sex|cum"
+                        r"|topless|bottomless|no panties|no bra|no clothes|no underwear"
+                        r"|anus|penis|pussy|nipples?|labia|vulva|cleft|clit(oris|oral)?"
+                        r"|anal|oral|vaginal?|paizuri|missionary|cowgirl|hetero|fellatio|cunnilingus"
+                        r"|futa(nari)?|undressing|gore|guro|blood|ass juice|scat|poop|pee|peeing"
+                        r"|panty|panties|bra|underwear|lingerie)\b")
 
-TOS_TERMS = re.compile(r"\b(lolis?|shotas?|child(ren|s)?)\b")
+TOS_TERMS = re.compile(r"\b(loli(con)?s?|shota(con)?s?|child(ren|s)?)\b")
 
 SAMPLER_TITLES = OrderedDict({
     "k_euler": "Euler",

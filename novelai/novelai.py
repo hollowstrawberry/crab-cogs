@@ -223,6 +223,11 @@ class NovelAI(commands.Cog):
                 "You may use this command in a server, where your generations may be reviewed by a moderator."
             )
 
+        if NSFW_TERMS.search(prompt) and TOS_TERMS.search(prompt):
+            return await ctx.response.send_message(  # noqa
+                ":warning: To abide by Discord terms of service, the prompt you chose may not be used."
+            )
+
         if ctx.guild and not ctx.channel.nsfw and await self.config.guild(ctx.guild).nsfw_filter():
             prompt = "rating:general, " + prompt
 
