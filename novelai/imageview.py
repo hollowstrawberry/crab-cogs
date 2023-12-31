@@ -67,3 +67,31 @@ class ImageView(View):
             # await ctx.response.send_message("✅ Generation deleted.", ephemeral=True)  # noqa
         else:
             await ctx.response.send_message("Only a moderator or the user who requested the image may delete it.", ephemeral=True)  # noqa
+
+
+class RetryView(View):
+    def __init__(self, cog, prompt: str, preset: ImagePreset):
+        super().__init__(timeout=VIEW_TIMEOUT)
+        self.cog = cog
+        self.prompt = prompt
+        self.preset = preset
+        self.deleted = False
+
+    @discord.ui.button(emoji="🔁", style=discord.ButtonStyle.grey)
+    async def retry(self, ctx: discord.Interaction, _: discord.Button):
+        if not await self.cog.bot.is_owner(ctx.user):
+            if self.cog.generating.get(ctx.user.id, False):
+                message = "Your current image must finish generating before you can request another one."
+                return await ctx.response.send_message(message, ephemeral=True)  # noqa
+
+        self.deleted = True
+        self.stop()
+        await ctx.message.edit(view=None)
+        await ctx.response.defer(thinking=True)  # noqa
+
+        self.preset.seed = 0
+        self.cog.generating[ctx.user.id] = True
+        task = self.cog.fulfill_novelai_request(ctx, self.prompt, self.preset, ctx.user.id)
+        self.cog.queue.append(task)
+        if not self.cog.queue_task or self.cog.queue_task.done():
+            self.cog.queue_task = asyncio.create_task(self.cog.consume_queue())

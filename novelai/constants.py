@@ -4,17 +4,23 @@ from collections import OrderedDict
 
 VIEW_TIMEOUT = 5 * 60
 
+MAX_FREE_IMAGE_SIZE = 1000*1000
+MAX_UPLOADED_IMAGE_SIZE = 1920*1080
+
 DEFAULT_PROMPT = "best quality, amazing quality, very aesthetic, absurdres"
 
 DEFAULT_NEGATIVE_PROMPT = "{bad}, fewer, extra, missing, worst quality, bad quality, " \
                           "watermark, signature, username, logo, jpeg artifacts, unfinished, displeasing, " \
                           "chromatic aberration, artistic error, scan, [abstract], {simple background}"
 
-NSFW_TERMS = re.compile(r"\b(nsfw|explicit|questionable|sensitive|nude|naked|sex|cum|pussy|cleft|clit(oris|oral)?"
-                        r"|penis|nipples?|topless|bottomless|no panties|no bra|anus|anal|oral|vaginal?|paizuri"
-                        r"|missionary|cowgirl|hetero|fellatio|cunnilingus|futa(nari)?)\b")
+NSFW_TERMS = re.compile(r"\b(nsfw|explicit|questionable|sensitive|suggestive|nude|naked|sex|cum"
+                        r"|topless|bottomless|no panties|no bra|no clothes|no underwear"
+                        r"|anus|penis|pussy|nipples?|labia|vulva|cleft|clit(oris|oral)?"
+                        r"|anal|oral|vaginal?|paizuri|missionary|cowgirl|hetero|fellatio|cunnilingus"
+                        r"|futa(nari)?|undressing|gore|guro|blood|ass juice|scat|poop|pee|peeing"
+                        r"|panty|panties|bra|underwear|lingerie)\b")
 
-TOS_TERMS = re.compile(r"\b(lolis?|shotas?|child(ren|s)?)\b")
+TOS_TERMS = re.compile(r"\b(loli(con)?s?|shota(con)?s?|child(ren|s)?)\b")
 
 SAMPLER_TITLES = OrderedDict({
     "k_euler": "Euler",
@@ -46,7 +52,7 @@ RESOLUTION_TITLES = OrderedDict({
 })
 
 NOISE_SCHEDULES = [
-    "native", "karras", "exponential", "polyexponential",
+    "Always pick recommended", "native", "karras", "exponential", "polyexponential",
 ]
 
 SAMPLER_VERSIONS = [
@@ -59,8 +65,11 @@ PARAMETER_DESCRIPTIONS = {
     "guidance_rescale": "Adjusts the guidance somehow.",
     "sampler": "The algotithm that guides image generation.",
     "sampler_version": "SMEA samplers are modified to perform better at higher resolutions.",
+    "noise_schedule": "The recommended option is based on the sampler.",
     "decrisper": "Reduces artifacts caused by high guidance.",
 }
+PARAMETER_DESCRIPTIONS_IMG2IMG = PARAMETER_DESCRIPTIONS.copy()
+PARAMETER_DESCRIPTIONS_IMG2IMG.pop("resolution")
 
 PARAMETER_CHOICES = {
     "resolution": [Choice(name=title, value=value) for value, title in RESOLUTION_TITLES.items()],
@@ -68,3 +77,6 @@ PARAMETER_CHOICES = {
     "sampler_version": [Choice(name=ver, value=ver) for ver in SAMPLER_VERSIONS],
     "noise_schedule": [Choice(name=sch, value=sch) for sch in NOISE_SCHEDULES],
 }
+
+PARAMETER_CHOICES_IMG2IMG = PARAMETER_CHOICES.copy()
+PARAMETER_CHOICES_IMG2IMG.pop("resolution")
