@@ -9,16 +9,16 @@ MAX_UPLOADED_IMAGE_SIZE = 1920*1080
 
 DEFAULT_PROMPT = "best quality, amazing quality, very aesthetic, absurdres"
 
-DEFAULT_NEGATIVE_PROMPT = "{bad}, fewer, extra, missing, worst quality, bad quality, " \
-                          "watermark, signature, username, logo, jpeg artifacts, unfinished, displeasing, " \
-                          "chromatic aberration, artistic error, scan, [abstract], {simple background}"
+DEFAULT_NEGATIVE_PROMPT = "{bad}, text, error, missing, extra, fewer, cropped, jpeg artifacts, " \
+                          "worst quality, bad quality, watermark, signature, username, logo, " \
+                          "displeasing, unfinished, chromatic aberration, scan, scan artifacts, simple background"
 
 NSFW_TERMS = re.compile(r"\b(nsfw|explicit|questionable|sensitive|suggestive|nude|naked|sex|cum"
-                        r"|topless|bottomless|no panties|no bra|no clothes|no underwear"
+                        r"|topless|bottomless|no (panties|bra|clothes|underwear)"
                         r"|anus|penis|pussy|nipples?|labia|vulva|cleft|clit(oris|oral)?"
-                        r"|anal|oral|vaginal?|paizuri|missionary|cowgirl|hetero|fellatio|cunnilingus"
-                        r"|futa(nari)?|undressing|gore|guro|blood|ass juice|scat|poop|pee|peeing"
-                        r"|panty|panties|bra|underwear|lingerie)\b")
+                        r"|anal|oral|vaginal?|[pn]aizuri|miss?ionary|cowgirl|hetero|fell?atio|cunn?ilingus"
+                        r"|futa(nari)?|undressing|gore|guro|ass juice|scat|poop(ing)?|pee(ing)?"
+                        r"|pant(y|ies)|(?<!sports )bra|underwear|lingerie)\b")
 
 TOS_TERMS = re.compile(r"\b(loli(con)?s?|shota(con)?s?|child(ren|s)?)\b")
 

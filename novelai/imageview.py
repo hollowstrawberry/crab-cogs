@@ -1,5 +1,4 @@
 import re
-import asyncio
 import discord
 import calendar
 from datetime import datetime, timedelta
@@ -28,26 +27,23 @@ class ImageView(View):
         if not await self.cog.bot.is_owner(ctx.user):
             cooldown = await self.cog.config.server_cooldown() if ctx.guild else await self.cog.config.dm_cooldown()
             if self.cog.generating.get(ctx.user.id, False):
-                message = "Your current image must finish generating before you can request another one."
-                return await ctx.response.send_message(message, ephemeral=True)  # noqa
+                content = "Your current image must finish generating before you can request another one."
+                return await ctx.response.send_message(content, ephemeral=True)  # noqa
             if ctx.user.id in self.cog.last_img and (datetime.utcnow() - self.cog.last_img[ctx.user.id]).seconds < cooldown:
                 eta = self.cog.last_img[ctx.user.id] + timedelta(seconds=cooldown)
-                message = f"You may use this command again <t:{calendar.timegm(eta.utctimetuple())}:R>."
+                content = f"You may use this command again <t:{calendar.timegm(eta.utctimetuple())}:R>."
                 if not ctx.guild:
-                    message += " (You can use it more frequently inside a server)"
-                return await ctx.response.send_message(message, ephemeral=True)  # noqa
-
-        btn.disabled = True
-        await ctx.message.edit(view=self)
-        await ctx.response.defer(thinking=True)  # noqa
-        btn.disabled = False  # re-enables it after the task calls back
+                    content += " (You can use it more frequently inside a server)"
+                return await ctx.response.send_message(content, ephemeral=True)  # noqa
 
         self.preset.seed = 0
-        self.cog.generating[ctx.user.id] = True
-        task = self.cog.fulfill_novelai_request(ctx, self.prompt, self.preset, ctx.user.id, ctx.message.edit(view=self))
-        self.cog.queue.append(task)
-        if not self.cog.queue_task or self.cog.queue_task.done():
-            self.cog.queue_task = asyncio.create_task(self.cog.consume_queue())
+        btn.disabled = True
+        await ctx.message.edit(view=self)
+        btn.disabled = False  # re-enables it after the task calls back
+
+        content = self.cog.get_loading_message()
+        self.cog.queue_add(ctx, self.prompt, self.preset, ctx.user.id, ctx.message.edit(view=self))
+        await ctx.response.send_message(content=content)  # noqa
 
     @discord.ui.button(emoji="🗑️", style=discord.ButtonStyle.grey)
     async def delete(self, ctx: discord.Interaction, _: discord.Button):
@@ -64,7 +60,6 @@ class ImageView(View):
             if imagelog:
                 imagelog.manual_deleted_by[ctx.message.id] = ctx.user.id
             await ctx.message.delete()
-            # await ctx.response.send_message("✅ Generation deleted.", ephemeral=True)  # noqa
         else:
             await ctx.response.send_message("Only a moderator or the user who requested the image may delete it.", ephemeral=True)  # noqa
 
@@ -81,17 +76,12 @@ class RetryView(View):
     async def retry(self, ctx: discord.Interaction, _: discord.Button):
         if not await self.cog.bot.is_owner(ctx.user):
             if self.cog.generating.get(ctx.user.id, False):
-                message = "Your current image must finish generating before you can request another one."
-                return await ctx.response.send_message(message, ephemeral=True)  # noqa
+                content = "Your current image must finish generating before you can request another one."
+                return await ctx.response.send_message(content, ephemeral=True)  # noqa
 
         self.deleted = True
         self.stop()
         await ctx.message.edit(view=None)
-        await ctx.response.defer(thinking=True)  # noqa
-
-        self.preset.seed = 0
-        self.cog.generating[ctx.user.id] = True
-        task = self.cog.fulfill_novelai_request(ctx, self.prompt, self.preset, ctx.user.id)
-        self.cog.queue.append(task)
-        if not self.cog.queue_task or self.cog.queue_task.done():
-            self.cog.queue_task = asyncio.create_task(self.cog.consume_queue())
+        content = self.cog.get_loading_message()
+        self.cog.queue_add(ctx, self.prompt, self.preset, ctx.user.id, ctx.message.edit(view=None))
+        await ctx.response.send_message(content=content)  # noqa

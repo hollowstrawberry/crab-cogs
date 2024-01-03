@@ -35,12 +35,11 @@ class NovelAI(commands.Cog):
         super().__init__()
         self.bot = bot
         self.api: Optional[NaiAPI] = None
-        self.queue: list[Coroutine] = []
+        self.queue: list[Tuple[Coroutine, discord.Interaction]] = []
         self.queue_task: Optional[asyncio.Task] = None
         self.generating: dict[int, bool] = {}
         self.last_img: dict[int, datetime] = {}
-        self.outage_log: list[datetime] = []
-        self.last_outage_mode: Optional[datetime] = None
+        self.loading_emoji = ""
         self.config = Config.get_conf(self, identifier=66766566169)
         defaults_user = {
             "base_prompt": DEFAULT_PROMPT,
@@ -56,6 +55,7 @@ class NovelAI(commands.Cog):
         defaults_global = {
             "server_cooldown": 0,
             "dm_cooldown": 60,
+            "loading_emoji": "",
         }
         defaults_guild = {
             "nsfw_filter": False,
@@ -66,6 +66,7 @@ class NovelAI(commands.Cog):
 
     async def cog_load(self):
         await self.try_create_api()
+        self.loading_emoji = await self.config.loading_emoji()
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         pass
@@ -80,8 +81,40 @@ class NovelAI(commands.Cog):
             return False
 
     async def consume_queue(self):
+        new = True
         while self.queue:
-            await self.queue.pop(0)
+            task, ctx = self.queue.pop(0)
+            alive = True
+            if not new:
+                try:
+                    await ctx.edit_original_response(content=self.loading_emoji + "`Generating image...`")
+                except:
+                    alive = False
+            if self.queue:
+                asyncio.create_task(self.edit_queue_messages())
+            if alive:
+                await task
+            new = False
+
+    async def edit_queue_messages(self):
+        tasks = [ctx.edit_original_response(content=self.loading_emoji + f"`Position in queue: {i + 1}`")
+                 for i, (task, ctx) in enumerate(self.queue)]
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+    def queue_add(self,
+                  ctx: discord.Interaction,
+                  prompt: str,
+                  preset: ImagePreset,
+                  requester: Optional[int] = None,
+                  callback: Optional[Coroutine] = None):
+        self.generating[ctx.user.id] = True
+        self.queue.append((self.fulfill_novelai_request(ctx, prompt, preset, requester, callback), ctx))
+        if not self.queue_task or self.queue_task.done():
+            self.queue_task = asyncio.create_task(self.consume_queue())
+
+    def get_loading_message(self):
+        message = f"`Position in queue: {len(self.queue) + 1}`" if self.queue_task and not self.queue_task.done() else "`Generating image...`"
+        return self.loading_emoji + message
 
     @app_commands.command(name="novelai",
                           description="Generate anime images with NovelAI v3.")
@@ -110,11 +143,10 @@ class NovelAI(commands.Cog):
         if not result:
             return
         prompt, preset = result
-        await ctx.response.defer()  # noqa
-        self.generating[ctx.user.id] = True
-        self.queue.append(self.fulfill_novelai_request(ctx, prompt, preset))
-        if not self.queue_task or self.queue_task.done():
-            self.queue_task = asyncio.create_task(self.consume_queue())
+
+        message = self.get_loading_message()
+        self.queue_add(ctx, prompt, preset)
+        await ctx.response.send_message(content=message)  # noqa
 
     @app_commands.command(name="novelai-img2img",
                           description="Convert img2img with NovelAI v3.")
@@ -171,10 +203,9 @@ class NovelAI(commands.Cog):
                 return await ctx.followup.send(":warning: Failed to resize image. Please try sending a smaller image.")
         preset.image = base64.b64encode(fp.read()).decode()
 
-        self.generating[ctx.user.id] = True
-        self.queue.append(self.fulfill_novelai_request(ctx, prompt, preset))
-        if not self.queue_task or self.queue_task.done():
-            self.queue_task = asyncio.create_task(self.consume_queue())
+        message = self.get_loading_message()
+        self.queue_add(ctx, prompt, preset)
+        await ctx.edit_original_response(content=message)
 
     async def prepare_novelai_request(self,
                                       ctx: discord.Interaction,
@@ -197,14 +228,14 @@ class NovelAI(commands.Cog):
         if not await self.bot.is_owner(ctx.user):
             cooldown = await self.config.server_cooldown() if ctx.guild else await self.config.dm_cooldown()
             if self.generating.get(ctx.user.id, False):
-                message = "Your current image must finish generating before you can request another one."
-                return await ctx.response.send_message(message, ephemeral=True)  # noqa
+                content = "Your current image must finish generating before you can request another one."
+                return await ctx.response.send_message(content, ephemeral=True)  # noqa
             if ctx.user.id in self.last_img and (datetime.utcnow() - self.last_img[ctx.user.id]).seconds < cooldown:
                 eta = self.last_img[ctx.user.id] + timedelta(seconds=cooldown)
-                message = f"You may use this command again <t:{calendar.timegm(eta.utctimetuple())}:R>."
+                content = f"You may use this command again <t:{calendar.timegm(eta.utctimetuple())}:R>."
                 if not ctx.guild:
-                    message += " (You can use it more frequently inside a server)"
-                return await ctx.response.send_message(message, ephemeral=True)  # noqa
+                    content += " (You can use it more frequently inside a server)"
+                return await ctx.response.send_message(content, ephemeral=True)  # noqa
 
         base_prompt = await self.config.user(ctx.user).base_prompt()
         if base_prompt:
@@ -260,48 +291,57 @@ class NovelAI(commands.Cog):
 
     async def fulfill_novelai_request(self,
                                       ctx: discord.Interaction,
-                                      prompt: str, preset: ImagePreset,
+                                      prompt: str,
+                                      preset: ImagePreset,
                                       requester: Optional[int] = None,
                                       callback: Optional[Coroutine] = None):
         try:
             try:
-                async with self.api as wrapper:
-                    action = ImageGenerationType.IMG2IMG if preset._settings.get("image", None) else ImageGenerationType.NORMAL  # noqa
-                    model = ImageModel.Inpainting_Anime_v3 if action == ImageGenerationType.INPAINTING else ImageModel.Anime_v3
-                    async for _, img in wrapper.api.high_level.generate_image(prompt, model, preset, action):
-                        image_bytes = img
+                for retry in range(4):
+                    try:
+                        async with self.api as wrapper:
+                            action = ImageGenerationType.IMG2IMG if preset._settings.get("image", None) else ImageGenerationType.NORMAL  # noqa
+                            model = ImageModel.Inpainting_Anime_v3 if action == ImageGenerationType.INPAINTING else ImageModel.Anime_v3
+                            async for _, img in wrapper.api.high_level.generate_image(prompt, model, preset, action):
+                                image_bytes = img
+                            break
+                    except NovelAIError as error:
+                        if error.status not in (500, 520, 408, 522, 524) or retry == 3:
+                            raise
+                        log.warning("NovelAI encountered an error." if error.status in (500, 520) else "Timed out.")
+                        if retry == 1:
+                            await ctx.edit_original_response(content=self.loading_emoji + "`Generating image...` :warning:")
+                        await asyncio.sleep(1)
             except Exception as error:
+                view = RetryView(self, prompt, preset)
+                if isinstance(error, discord.errors.NotFound):
+                    raise
                 if isinstance(error, NovelAIError):
-                    view = RetryView(self, prompt, preset)
                     if error.status == 401:
-                        return await ctx.followup.send(":warning: Failed to authenticate NovelAI account.")
+                        return await ctx.edit_original_response(content=":warning: Failed to authenticate NovelAI account.")
                     elif error.status == 402:
-                        return await ctx.followup.send(":warning: The subscription and/or credits have run out for this NovelAI account.")
-                    elif error.status == 500:
-                        message = ":warning: NovelAI encountered an error. Please try again."
+                        return await ctx.edit_original_response(content=":warning: The subscription and/or credits have run out for this NovelAI account.")
+                    elif error.status in (500, 520, 408, 522, 524):
+                        content = "NovelAI seems to be experiencing an outage, and multiple retries have failed. " \
+                                  "Please be patient and try again soon."
                     elif error.status == 429:
-                        message = ":warning: Bot is not allowed to generate multiple images at the same time. Please wait a few seconds."
-                    elif error.status in (408, 522, 524):
-                        message = ":warning: Timed out. Please try again."
+                        content = "Bot is not allowed to generate multiple images at the same time. Please wait a few seconds."
+                        view = None
+                        callback = None
                     elif error.status == 400:
-                        message = ":warning: Failed to generate image: " + (error.message or "A validation error occured.")
+                        content = "Failed to generate image: " + (error.message or "A validation error occured.")
                     elif error.status == 409:
-                        message = ":warning: Failed to generate image: " + (error.message or "A conflict error occured.")
+                        content = "Failed to generate image: " + (error.message or "A conflict error occured.")
                     else:
-                        message = f":warning: Failed to generate image: [{error.status}] {error.message}"
-                    now = datetime.utcnow()
-                    self.outage_log.append(now)
-                    if len(self.outage_log) >= 3 and (self.outage_log[-1] - self.outage_log[-3]).seconds < 300:  # 3 outages within 5 minutes
-                        self.last_outage_mode = now
-                    if self.last_outage_mode and (now - self.last_outage_mode).seconds < 60 * 30:  # outage mode lasts half an hour
-                        log.warning(message)
-                        message = ":warning: NovelAI seems to be experiencing an outage. Please be patient and try again soon."
-                    msg = await ctx.followup.send(message, view=view)
-                    asyncio.create_task(self.delete_button_after(msg, view))
-                    return
+                        content = f"Failed to generate image: Error {error.status}."
+                    log.warning(content)
                 else:
+                    content = "Failed to generate image! Contact the bot owner if the problem persists."
                     log.error(f"Generating image: {type(error).__name__} - {error}")
-                    return await ctx.followup.send(":warning: Failed to generate image! Please try again, or contact the bot owner if the problem persists.")
+                msg = await ctx.edit_original_response(content=f":warning: {content}", view=view)
+                if view:
+                    asyncio.create_task(self.delete_button_after(msg, view))
+                return
             finally:
                 self.generating[ctx.user.id] = False
                 self.last_img[ctx.user.id] = datetime.utcnow()
@@ -312,7 +352,7 @@ class NovelAI(commands.Cog):
             seed = json.loads(image.info["Comment"])["seed"]
             view = ImageView(self, prompt, preset, seed)
             content = f"{'Reroll' if callback else 'Retry'} requested by <@{requester}>" if requester and ctx.guild else None
-            msg = await ctx.followup.send(content, file=file, view=view, allowed_mentions=discord.AllowedMentions.none())
+            msg = await ctx.edit_original_response(content=content, attachments=[file], view=view, allowed_mentions=discord.AllowedMentions.none())
 
             asyncio.create_task(self.delete_button_after(msg, view))
             imagescanner = self.bot.get_cog("ImageScanner")
@@ -321,11 +361,10 @@ class NovelAI(commands.Cog):
                     img_info = imagescanner.convert_novelai_info(image.info)  # noqa
                     imagescanner.image_cache[msg.id] = ({1: img_info}, {1: image_bytes})  # noqa
                     await msg.add_reaction("🔎")
-        except Exception as error:
-            if isinstance(error, discord.errors.NotFound):
-                pass
-            else:
-                log.exception("Fulfilling request")
+        except discord.errors.NotFound:
+            pass
+        except:
+            log.exception("Fulfilling request")
         finally:
             if callback:
                 try:
@@ -436,3 +475,21 @@ class NovelAI(commands.Cog):
             await ctx.reply("NSFW filter enabled in non-nsfw channels. Note that this is not perfect.")
         else:
             await ctx.reply("NSFW filter disabled. Images may more easily be NSFW by accident.")
+
+    @novelaiset.command()
+    @commands.is_owner()
+    async def loadingemoji(self, ctx: commands.Context, emoji: Optional[discord.Emoji]):
+        """Add your own Loading custom emoji with this command."""
+        if emoji is None:
+            self.loading_emoji = ""
+            await self.config.loading_emoji.set(self.loading_emoji)
+            await ctx.reply(f"No emoji will appear when showing position in queue.")
+            return
+        try:
+            await ctx.react_quietly(emoji)
+        except:
+            await ctx.reply("I don't have access to that emoji. I must be in the same server to use it.")
+        else:
+            self.loading_emoji = str(emoji) + " "
+            await self.config.loading_emoji.set(self.loading_emoji)
+            await ctx.reply(f"{emoji} will now appear when showing position in queue.")
