@@ -327,6 +327,7 @@ class NovelAI(commands.Cog):
                     elif error.status in (500, 520, 408, 522, 524):
                         content = "NovelAI seems to be experiencing an outage, and multiple retries have failed. " \
                                   "Please be patient and try again soon."
+                        view = None
                     elif error.status == 429:
                         content = "Bot is not allowed to generate multiple images at the same time. Please wait a minute."
                         view = None
