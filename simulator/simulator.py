@@ -426,10 +426,9 @@ class Simulator(commands.Cog):
                     self.conversation_left -= 1
                     await self.send_generated_message()
                 except Exception as error:
-                    error_msg = f'{type(error).__name__}: {error}'
-                    log.error(error_msg, exc_info=True)
+                    log.exception("Simulator loop")
                     try:
-                        await self.output_channel.send(error_msg)
+                        await self.output_channel.send(f'{type(error).__name__}: {error}')
                     except:
                         pass
         else:
@@ -485,7 +484,7 @@ class Simulator(commands.Cog):
 
         except Exception as error:
             error_msg = f'Failed to set up the simulator - {type(error).__name__}: {error}'
-            log.error(error_msg, exc_info=True)
+            log.exception(error_msg)
             self.simulator_loop.stop()
             self.stage = Stage.NONE
             try:

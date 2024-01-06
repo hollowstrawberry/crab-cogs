@@ -140,8 +140,8 @@ class ImageScanner(commands.Cog):
                 if m := HASHES_GROUP_REGEX.search(data):
                     try:
                         hashes = json.loads(m.group(1))
-                    except Exception as e:
-                        log.error("Trying to parse Civitai hashes", exc_info=e)
+                    except:
+                        log.exception("Trying to parse Civitai hashes")
                     else:
                         hashes["model"] = None
                         hashes["vae"] = None
@@ -219,8 +219,8 @@ class ImageScanner(commands.Cog):
                 async with aiohttp.ClientSession(headers=HEADERS) as session:
                     async with session.get(url) as resp:
                         data = await resp.json()
-            except Exception as e:
-                log.error("Trying to grab model from Civitai", exc_info=e)
+            except:
+                log.exception("Trying to grab model from Civitai")
                 return None
             if not data or "modelId" not in data:
                 self.model_not_found_cache[short_hash] = True

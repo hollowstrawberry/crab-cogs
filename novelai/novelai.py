@@ -88,8 +88,11 @@ class NovelAI(commands.Cog):
             if not new:
                 try:
                     await ctx.edit_original_response(content=self.loading_emoji + "`Generating image...`")
-                except:
+                except discord.errors.NotFound:
+                    self.generating[ctx.user.id] = False
                     alive = False
+                except:
+                    log.exception("Editing message in queue")
             if self.queue:
                 asyncio.create_task(self.edit_queue_messages())
             if alive:
@@ -325,7 +328,7 @@ class NovelAI(commands.Cog):
                         content = "NovelAI seems to be experiencing an outage, and multiple retries have failed. " \
                                   "Please be patient and try again soon."
                     elif error.status == 429:
-                        content = "Bot is not allowed to generate multiple images at the same time. Please wait a few seconds."
+                        content = "Bot is not allowed to generate multiple images at the same time. Please wait a minute."
                         view = None
                         callback = None
                     elif error.status == 400:

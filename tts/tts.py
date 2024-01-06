@@ -32,8 +32,8 @@ class TextToSpeech(Cog):
         try:
             if os.path.exists(self.tts_storage):
                 shutil.rmtree(self.tts_storage)
-        except Exception as error:
-            log.error("Trying to clear old TTS audio files", exc_info=error)
+        except:
+            log.exception("Trying to clear old TTS audio files")
 
     async def cog_unload(self):
         self.clear_old_tts.stop()
@@ -55,7 +55,7 @@ class TextToSpeech(Cog):
             tts = gTTS(text, lang=lang)
         except Exception as error:
             if not isinstance(error, ValueError):
-                log.error("Trying to detect language", exc_info=error)
+                log.exception("Trying to detect language")
             tts = gTTS(text)
 
         self.tts_storage.mkdir(parents=True, exist_ok=True)
@@ -63,8 +63,8 @@ class TextToSpeech(Cog):
 
         try:
             tts.save(audio_path)
-        except Exception as error:
-            log.error("Trying to save TTS audio", exc_info=error)
+        except:
+            log.exception("Trying to save TTS audio")
             return ctx.send("There was an error saving the voice message. Check the logs for more details.")
 
         player = lavalink.get_player(ctx.guild.id)

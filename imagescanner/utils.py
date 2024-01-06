@@ -59,8 +59,8 @@ async def read_attachment_metadata(i: int, attachment: discord.Attachment, metad
                 if "Title" in img.info and img.info["Title"] == "AI generated image":
                     metadata[i] = convert_novelai_info(img.info)
                     image_bytes[i] = image_data
-    except Exception as e:
-        log.error("Downloading attachment", exc_info=e)
+    except:
+        log.exception("Downloading attachment")
 
 def remove_field(embed: discord.Embed, field_name: str):
     for i, field in enumerate(embed.fields):

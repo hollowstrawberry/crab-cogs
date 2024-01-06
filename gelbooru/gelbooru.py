@@ -64,8 +64,8 @@ class Booru(commands.Cog):
 
         try:
             result = await self.grab_image(tags, ctx)
-        except Exception as e:
-            log.error("Failed to grab image from Gelbooru", exc_info=e)
+        except:
+            log.exception("Failed to grab image from Gelbooru")
             await ctx.send("Sorry, there was an error trying to grab an image from Gelbooru. Please try again or contact the bot owner.")
             return
         if not result:
@@ -128,8 +128,8 @@ class Booru(commands.Cog):
         else:
             try:
                 results = await self.grab_tags(last)
-            except Exception as e:
-                log.error("Failed to load Gelbooru tags", exc_info=e)
+            except:
+                log.exception("Failed to load Gelbooru tags")
                 results = ["Error"]
                 previous = None
         if excluded:
