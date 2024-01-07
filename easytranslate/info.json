@@ -3,10 +3,10 @@
     "min_bot_version": "3.5.0",
     "description": "Translate messages using Google Translate for free. Supports context menu commands.",
     "hidden": false,
-    "install_msg": "🎌 __**EasyTranslate**__ ```EasyTranslate installed. Instructions:\n1. Load the cog with [p]load easytranslate\n2. Enable application commands with [p]slash enablecog easytranslate, then [p]slash sync\n3. Right click a message -> Apps -> Translate\n4. Your users may set their default language for translation with /setmylanguage```",
+    "install_msg": "🎌 __**EasyTranslate**__ ```Cog installed. Instructions:\n1. Load it with [p]load easytranslate\n2. Enable application commands with [p]slash enablecog easytranslate\n3. Sync application commands with [p]slash sync\n4. You may need to restart Discord to see the new commands.\n5a. To translate a message for yourself, right click it -> Apps -> Translate\n5b. Your users may set their default language for translation with /setmylanguage\n5c. Your users may use /translate to send a public message in a different language.```",
     "required_cogs": {},
     "requirements": ["googletrans-py"],
-    "short": "Translate messages using Google Translate for free.",
+    "short": "Translate messages using Google Translate for free. Supports context menu commands.",
     "end_user_data_statement": "This cog does not store any user data.",
     "tags": ["crab", "useful", "translate", "translation", "slash", "message", "context", "menu"]
 }

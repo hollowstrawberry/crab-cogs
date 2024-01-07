@@ -3,7 +3,7 @@
     "min_bot_version": "3.5.0",
     "description": "Sends a configured message when a user has been playing a specific game for some time.",
     "hidden": false,
-    "install_msg": "📢 __**GameAlert**__\n```GameAlert cog installed. Instructions:\n1. Load it with [p]load gamealert\n2. Check out [p]help gamealert add\n3. Start adding alerts with [p]gamealert add```",
+    "install_msg": "📢 __**GameAlert**__\n```Cog installed. Instructions:\n1. Load it with [p]load gamealert\n2. View commands with [p]help gamealert```",
     "required_cogs": {},
     "requirements": [],
     "short": "Send a message when someone is playing a game for some time.",

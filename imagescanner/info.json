@@ -3,10 +3,10 @@
     "min_bot_version": "3.5.0",
     "description": "Scans images for AI parameters and other metadata. Supports context menus.",
     "hidden": false,
-    "install_msg": "📎 __**ImageScanner**__ ```Cog installed. Instructions:\n1. Load it with [p]load imagescanner\n2A. Add channels to scan with [p]scanset channel add\n2B. Enable the context menu with [p]slash enablecog imagescanner, then [p]slash sync```",
+    "install_msg": "📎 __**ImageScanner**__ ```Cog installed. Instructions:\n1. Load it with [p]load imagescanner\n2. Add channels to scan with [p]scanset channel add\n3a. Optionally, enable the context menu command with [p]slash enablecog imagescanner\n  3b. Sync application commands with [p]slash sync\n  3c. You may need to restart Discord to see the new command.```",
     "required_cogs": {},
     "requirements": ["Pillow", "expiringdict"],
-    "short": "Scans images for AI parameters and other metadata.",
+    "short": "Scans images for AI parameters and other metadata. Supports context menus.",
     "end_user_data_statement": "This cog does not store user data.",
     "tags": ["crab", "message", "scan", "ai", "image"]
 }
