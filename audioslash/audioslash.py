@@ -5,7 +5,6 @@ from copy import copy
 from redbot.core import commands, app_commands
 from redbot.core.bot import Red
 from redbot.core.commands import Cog
-from redbot.cogs.permissions import Permissions
 from redbot.cogs.audio import Audio
 from redbot.cogs.audio.utils import PlaylistScope
 from redbot.cogs.audio.converters import PlaylistConverter, ScopeParser
@@ -36,18 +35,15 @@ class AudioSlash(Cog):
         ctx.command.cog = cog
         return ctx
 
-    async def can_run_command(self, ctx: commands.Context, command: str) -> bool:
-        perms: Optional[Permissions] = self.bot.get_cog("Permissions")
-        if not perms:
-            return True
+    async def can_run_command(self, ctx: commands.Context, command_name: str) -> bool:
         prefix = await self.bot.get_prefix(ctx.message)
         prefix = prefix[0] if isinstance(prefix, list) else prefix
         fake_message = copy(ctx.message)
-        fake_message.content = prefix + command
-        com = ctx.bot.get_command(command)
+        fake_message.content = prefix + command_name
+        command = ctx.bot.get_command(command_name)
         fake_context: commands.Context = await ctx.bot.get_context(fake_message)  # noqa
         try:
-            can = await com.can_run(fake_context, check_all_parents=True, change_permission_state=False)
+            can = await command.can_run(fake_context, check_all_parents=True, change_permission_state=False)
         except commands.CommandError:
             can = False
         if not can:
