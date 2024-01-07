@@ -9,15 +9,18 @@ from imagescanner.constants import log, NAIV3_PARAMS, PARAM_REGEX, PARAM_GROUP_R
 def get_params_from_string(param_str: str) -> OrderedDict:
     output_dict = OrderedDict()
     if "NovelAI3 Parameters: " in param_str:
-        prompts, params = param_str.split("NovelAI3 Parameters: ")
-        output_dict["NovelAI3 Prompt"], output_dict["Negative Prompt"] = prompts.split("Negative prompt: ")
+        prompts, params = param_str.rsplit("NovelAI3 Parameters: ", 1)
+        output_dict["NovelAI3 Prompt"], output_dict["Negative Prompt"] = prompts.rsplit("Negative prompt: ", 1)
         param_dict = json.loads(params)
         for key, new_key in NAIV3_PARAMS.items():
             if key in param_dict:
                 output_dict[new_key] = str(param_dict[key])
     else:
-        prompts, params = param_str.split("Steps: ", 1)
-        output_dict["Prompt"], output_dict["Negative Prompt"] = prompts.split("Negative prompt: ")
+        prompts, params = param_str.rsplit("Steps: ", 1)
+        try:
+            output_dict["Prompt"], output_dict["Negative Prompt"] = prompts.rsplit("Negative prompt: ", 1)
+        except:
+            output_dict["Prompt"] = prompts
         params = f"Steps: {params},"
         params = PARAM_GROUP_REGEX.sub("", params)
         param_list = PARAM_REGEX.findall(params)
