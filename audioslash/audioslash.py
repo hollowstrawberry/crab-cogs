@@ -1,9 +1,11 @@
 from youtubesearchpython.__future__ import VideosSearch
 import logging
 import discord
+from copy import copy
 from redbot.core import commands, app_commands
 from redbot.core.bot import Red
 from redbot.core.commands import Cog
+from redbot.cogs.permissions import Permissions
 from redbot.cogs.audio import Audio
 from redbot.cogs.audio.utils import PlaylistScope
 from redbot.cogs.audio.converters import PlaylistConverter, ScopeParser
@@ -34,6 +36,24 @@ class AudioSlash(Cog):
         ctx.command.cog = cog
         return ctx
 
+    async def can_run_command(self, ctx: commands.Context, command: str) -> bool:
+        perms: Optional[Permissions] = self.bot.get_cog("Permissions")
+        if not perms:
+            return True
+        prefix = await self.bot.get_prefix(ctx.message)
+        prefix = prefix[0] if isinstance(prefix, list) else prefix
+        fake_message = copy(ctx.message)
+        fake_message.content = prefix + command
+        com = ctx.bot.get_command(command)
+        fake_context: commands.Context = await ctx.bot.get_context(fake_message)  # noqa
+        try:
+            can = await com.can_run(fake_context, check_all_parents=True, change_permission_state=False)
+        except commands.CommandError:
+            can = False
+        if not can:
+            await ctx.send("You do not have permission to do this.", ephemeral=True)
+        return can
+
     @app_commands.command()
     @app_commands.guild_only
     @app_commands.describe(search="Type here to get suggestions, or send anything to get a best match.",
@@ -47,8 +67,12 @@ class AudioSlash(Cog):
             return
         ctx = await self.get_context(inter, audio)
         if when in ("next", "now"):
+            if not await self.can_run_command(ctx, "bumpplay"):
+                return
             await audio.command_bumpplay(ctx, when == "now", query=search)
         else:
+            if not await self.can_run_command(ctx, "play"):
+                return
             await audio.command_play(ctx, query=search)
 
     @app_commands.command()
@@ -58,6 +82,8 @@ class AudioSlash(Cog):
         if not (audio := await self.get_audio_cog(inter)):
             return
         ctx = await self.get_context(inter, audio)
+        if not await self.can_run_command(ctx, "pause"):
+            return
         await audio.command_pause(ctx)
 
     @app_commands.command()
@@ -67,6 +93,8 @@ class AudioSlash(Cog):
         if not (audio := await self.get_audio_cog(inter)):
             return
         ctx = await self.get_context(inter, audio)
+        if not await self.can_run_command(ctx, "stop"):
+            return
         await audio.command_stop(ctx)
 
     @app_commands.command()
@@ -77,6 +105,8 @@ class AudioSlash(Cog):
         if not (audio := await self.get_audio_cog(inter)):
             return
         ctx = await self.get_context(inter, audio)
+        if not await self.can_run_command(ctx, "skip"):
+            return
         await audio.command_skip(ctx, position)
 
     @app_commands.command()
@@ -86,6 +116,8 @@ class AudioSlash(Cog):
         if not (audio := await self.get_audio_cog(inter)):
             return
         ctx = await self.get_context(inter, audio)
+        if not await self.can_run_command(ctx, "queue"):
+            return
         await audio.command_queue(ctx)
 
     toggle = [app_commands.Choice(name="Enabled", value="1"),
@@ -99,6 +131,8 @@ class AudioSlash(Cog):
         if not (audio := await self.get_audio_cog(inter)):
             return
         ctx = await self.get_context(inter, audio)
+        if not await self.can_run_command(ctx, "volume"):
+            return
         await audio.command_volume(ctx, volume)
 
     @app_commands.command()
@@ -112,6 +146,8 @@ class AudioSlash(Cog):
         ctx = await self.get_context(inter, audio)
         value = bool(int(toggle))
         if value != await audio.config.guild(ctx.guild).shuffle():
+            if not await self.can_run_command(ctx, "shuffle"):
+                return
             await audio.command_shuffle(ctx)
         else:
             embed = discord.Embed(title="Setting Unchanged", description="Shuffle tracks: " + ("Enabled" if value else "Disabled"))
@@ -128,6 +164,8 @@ class AudioSlash(Cog):
         ctx = await self.get_context(inter, audio)
         value = bool(int(toggle))
         if value != await audio.config.guild(ctx.guild).repeat():
+            if not await self.can_run_command(ctx, "repeat"):
+                return
             await audio.command_repeat(ctx)
         else:
             embed = discord.Embed(title="Setting Unchanged", description="Repeat tracks: " + ("Enabled" if value else "Disabled"))
@@ -157,10 +195,12 @@ class AudioSlash(Cog):
             can_skip = await audio._can_instaskip(ctx, ctx.author)  # noqa
             if not dj_enabled or can_skip:
                 await audio.config.guild(ctx.guild).shuffle.set(shuffle)
+        if not await self.can_run_command(ctx, "playlist play"):
+            return
         await audio.command_playlist_start(ctx, match)
 
     @playlist.command(name="create")
-    @app_commands.describe(name="The name of the new playlist.",
+    @app_commands.describe(name="The name of the new playlist. Cannot contain spaces.",
                            make_from_queue="This will fill the playlist with the current queue.",
                            scope="Who this playlist will belong to. You need permissions for Server and Global.")
     @app_commands.choices(scope=playlist_scopes)
@@ -168,10 +208,15 @@ class AudioSlash(Cog):
         """Creates a new playlist."""
         if not (audio := await self.get_audio_cog(inter)):
             return
+        name = name.replace(" ", "-")
         ctx = await self.get_context(inter, audio)
         if make_from_queue:
+            if not await self.can_run_command(ctx, "playlist queue"):
+                return
             await audio.command_playlist_queue(ctx, name, scope_data=self.get_scope_data(scope, ctx))
         else:
+            if not await self.can_run_command(ctx, "playlist create"):
+                return
             await audio.command_playlist_create(ctx, name, scope_data=self.get_scope_data(scope, ctx))
 
     @playlist.command(name="add")
@@ -185,6 +230,8 @@ class AudioSlash(Cog):
             return
         ctx = await self.get_context(inter, audio)
         match = await PlaylistConverter().convert(ctx, playlist)
+        if not await self.can_run_command(ctx, "playlist append"):
+            return
         await audio.command_playlist_append(ctx, match, track, scope_data=self.get_scope_data(scope, ctx))
 
     @playlist.command(name="remove")
@@ -198,6 +245,8 @@ class AudioSlash(Cog):
             return
         ctx = await self.get_context(inter, audio)
         match = await PlaylistConverter().convert(ctx, playlist)
+        if not await self.can_run_command(ctx, "playlist remove"):
+            return
         await audio.command_playlist_remove(ctx, match, track, scope_data=self.get_scope_data(scope, ctx))
 
     @playlist.command(name="info")
@@ -210,6 +259,8 @@ class AudioSlash(Cog):
             return
         ctx = await self.get_context(inter, audio)
         match = await PlaylistConverter().convert(ctx, playlist)
+        if not await self.can_run_command(ctx, "playlist info"):
+            return
         await audio.command_playlist_info(ctx, match, scope_data=self.get_scope_data(scope, ctx))
 
     @playlist.command(name="delete")
@@ -222,6 +273,8 @@ class AudioSlash(Cog):
             return
         ctx = await self.get_context(inter, audio)
         match = await PlaylistConverter().convert(ctx, playlist)
+        if not await self.can_run_command(ctx, "playlist delete"):
+            return
         await audio.command_playlist_delete(ctx, match, scope_data=self.get_scope_data(scope, ctx))
 
     @staticmethod
