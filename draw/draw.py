@@ -91,7 +91,7 @@ class Draw(commands.Cog):
         cv2.imwrite(self.output_image(ctx), img_normalized)
         embed = discord.Embed(color=await ctx.embed_color())
         whom = "you" if user == ctx.author else "me" if user == self.bot.user else user.display_name
-        embed.title = f"Here's a drawing of {whom}!"
+        embed.title = f"Here's a painting of {whom}!"
         embed.set_image(url=f"attachment://output_{ctx.command.name}_{ctx.author.id}.jpg")
         try:
             await ctx.send(embed=embed, file=discord.File(self.output_image(ctx)))
