@@ -27,6 +27,9 @@ class Draw(commands.Cog):
     def output_image(self, ctx: commands.Context) -> str:
         return str(cog_data_path(self).joinpath(f"output_{ctx.command.name}_{ctx.author.id}.jpg"))
 
+    @commands.hybrid_command()
+    @commands.guild_only()
+    @app_commands.describe(user="The person whose avatar you want to see.")
     async def avatar(self, ctx: commands.Context, user: Optional[discord.Member]):
         """Simply shows your avatar or somebody else's."""
         if not user:
@@ -39,12 +42,13 @@ class Draw(commands.Cog):
 
     # context menu added in __init__
     async def avatar_app_command(self, inter: discord.Interaction, member: discord.Member):
-        """Gets the avatar for a user quieyly."""
+        """Gets the avatar for a user quietly."""
         ctx = await commands.Context.from_interaction(inter)
         await self.avatar(ctx, member)
 
     @commands.hybrid_command()
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
+    @app_commands.describe(user="The person whose avatar I should draw.")
     async def draw(self, ctx: commands.Context, user: Optional[discord.User]):
         """Produces a pencil drawing of you or someone else."""
         if not user:
@@ -72,6 +76,7 @@ class Draw(commands.Cog):
 
     @commands.hybrid_command()
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
+    @app_commands.describe(user="The person whose avatar I should paint.")
     async def paint(self, ctx: commands.Context, user: Optional[discord.User]):
         """Produces an oil painting of you or someone else."""
         if not user:
@@ -89,7 +94,7 @@ class Draw(commands.Cog):
         cv2.imwrite(self.output_image(ctx), img_normalized)
         embed = discord.Embed(color=await ctx.embed_color())
         whom = "you" if user == ctx.author else "me" if user == self.bot.user else user.display_name
-        embed.title = f"Here's a drawing of {whom}!"
+        embed.title = f"Here's a painting of {whom}!"
         embed.set_image(url=f"attachment://output_{ctx.command.name}_{ctx.author.id}.jpg")
         try:
             await ctx.send(embed=embed, file=discord.File(self.output_image(ctx)))

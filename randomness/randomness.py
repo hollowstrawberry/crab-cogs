@@ -1,6 +1,6 @@
 import re
 import hashlib
-from redbot.core import commands, Config
+from redbot.core import commands, app_commands, Config
 
 DESSERTS = "🍩 🍰 🎂 🍪 🍫 🧁 🍨 🥨 🥐 🥨 🥯 🥞 🧇"
 
@@ -20,6 +20,7 @@ class Randomness(commands.Cog):
     # Commands
 
     @commands.hybrid_command()
+    @app_commands.describe(thing="The thing to give a rating for.")
     async def rate(self, ctx: commands.Context, *, thing):
         """Gives a unique rating to anything you ask."""
         thing = thing.lower()
@@ -60,9 +61,10 @@ class Randomness(commands.Cog):
         await ctx.send(f'I give {thing} a {rating}/10')
 
     @commands.hybrid_command()
+    @app_commands.describe(whose="Whose pp to evaluate. This is a joke, you can only view your own.")
     async def pp(self, ctx: commands.Context, *, whose=""):
         """Evaluates your pp size."""
-        if whose:
+        if whose and all(x.lower() not in whose.lower() for x in ("me", "my", "mine", str(ctx.author.id), ctx.author.name, ctx.author.display_name)):
             await ctx.reply(f"You can't view someone else's pp")
         else:
             pp = ctx.author.id % 13
