@@ -39,12 +39,13 @@ class Draw(commands.Cog):
 
     # context menu added in __init__
     async def avatar_app_command(self, inter: discord.Interaction, member: discord.Member):
-        """Gets the avatar for a user quieyly."""
+        """Gets the avatar for a user quietly."""
         ctx = await commands.Context.from_interaction(inter)
         await self.avatar(ctx, member)
 
     @commands.hybrid_command()
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
+    @app_commands.describe(user="The person whose avatar I should draw.")
     async def draw(self, ctx: commands.Context, user: Optional[discord.User]):
         """Produces a pencil drawing of you or someone else."""
         if not user:
@@ -72,6 +73,7 @@ class Draw(commands.Cog):
 
     @commands.hybrid_command()
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
+    @app_commands.describe(user="The person whose avatar I should paint.")
     async def paint(self, ctx: commands.Context, user: Optional[discord.User]):
         """Produces an oil painting of you or someone else."""
         if not user:
