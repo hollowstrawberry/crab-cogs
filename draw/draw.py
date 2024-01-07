@@ -28,7 +28,7 @@ class Draw(commands.Cog):
         return str(cog_data_path(self).joinpath(f"output_{ctx.command.name}_{ctx.author.id}.jpg"))
 
     @commands.hybrid_command()
-    @commands.guild_only
+    @commands.guild_only()
     @app_commands.describe(user="The person whose avatar you want to see.")
     async def avatar(self, ctx: commands.Context, user: Optional[discord.Member]):
         """Simply shows your avatar or somebody else's."""
