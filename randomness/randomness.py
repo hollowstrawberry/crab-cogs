@@ -64,7 +64,7 @@ class Randomness(commands.Cog):
     @app_commands.describe(whose="Whose pp to evaluate. This is a joke, you can only view your own.")
     async def pp(self, ctx: commands.Context, *, whose=""):
         """Evaluates your pp size."""
-        if whose and all(x.lower() not in whose.lower() for x in ("me", "my", "mine", ctx.author.id, ctx.author.name, ctx.author.display_name)):
+        if whose and all(x.lower() not in whose.lower() for x in ("me", "my", "mine", str(ctx.author.id), ctx.author.name, ctx.author.display_name)):
             await ctx.reply(f"You can't view someone else's pp")
         else:
             pp = ctx.author.id % 13
