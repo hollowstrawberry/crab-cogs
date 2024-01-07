@@ -16,23 +16,29 @@ To add one of these cogs to your instance of Red, send the following commands on
 
 You may be prompted to respond with "I agree" after the second command.
 
+### 🎵 AudioSlash
+
+Converts many Audio cog commands into slash commands. The fun part is it will autocomplete YouTube search results as well as available playlists. It will also offer convenient options such as making `bumpplay` a setting of `/play` and offering shuffle with `/playlist play`.
+
+![demonstration](https://i.imgur.com/EDJybmH.png)
+
 ### 😶 EmojiSteal
 
 Lets anyone steal emojis and stickers sent by other people, and lets moderators upload them to the current server instantly. Supports context menus. Specially useful if you're on mobile as the Discord app doesn't let you copy emoji links or upload stickers, but this cog has commands for those. Animated stickers are annoying but there's a workaround.
 
-![demonstration](https://media.discordapp.net/attachments/541768631445618689/1103728807430590524/Screenshot_20230504-130350_Discord.png)
+![demonstration](https://i.imgur.com/Mj4jbGo.png)
 
 ### 🎌 EasyTranslate
 
 A simple and unobtrusive translation cog with support for context menus and autocomplete. Choose your primary language with `/setmylanguage` then right click any message to find the Translate button. Alternatively use `/translate` to send a message in a different language. Heavily modified version of the translate cog from ob13-cogs.
 
-![demonstration](https://cdn.discordapp.com/attachments/541768631445618689/1103626125520928828/ezgif-1-204db4b118.gif)
+![demonstration](https://i.imgur.com/zlc5BVJ.gif)
 
 ### 🎤 VoiceLog
 
 Logs users joining and leaving voicechat, inside the text chat embedded in the voicechat channel itself. Finally gives a use to those things.
 
-![demonstration](https://media.discordapp.net/attachments/541768631445618689/1103627951934820412/Screenshot_20230504-062308_Discord.png)
+![demonstration](https://i.imgur.com/CAzmA9R.png)
 
 ### 🎐 ImageLog
 
@@ -40,25 +46,29 @@ Logs and stores deleted images in a designated moderation channel. Useful for mo
 
 **⚠️ Usage Warning:** You may or may not be liable for keeping content that breaks Discord TOS.
 
-![demonstration](https://media.discordapp.net/attachments/541768631445618689/1103725009794510919/Screenshot_20230504-123424_Discord.png)
+![demonstration](https://i.imgur.com/i2glgOA.png)
 
 ### 📜 Logs
 
 Developer cog that opens an interactive view of your bot's console output within Discord. Can also send the entire log file. These are sent to your DMs by default. Useful if you're not currently in a position to access the host machine.
 
+### 🗣 TTS
+
+PLays text to speech in voice chat. Detects the language automatically. The voice cannot be changed for now. Unfortunately will override music if it is playing.
+
 ### ⏺ Autoreact
 
 Lets you configure emoji reactions that will be added to any message containing text matching a regex. Can be useful or just for fun. Now also lets you make the bot copy other people's reactions randomly.  
 
-![demonstration](https://media.discordapp.net/attachments/541768631445618689/1103721844072251423/Screenshot_20230504-123621_Discord.png)
+![demonstration](https://i.imgur.com/yQ7LJd2.png)
 
 ### ⛩ Booru
 
 Grab images from Gelbooru based on tags. The slash command version features smart tag suggestions/autocompletion. It will also avoid sending the same image in the same channel twice until absolutely necessary (within 24 hours).
 
-### 🗣 TTS
+**⚠️ Usage Warning:** This cog is allowed to display NSFW material in channels marked as NSFW
 
-PLays text to speech in voice chat. Detects the language automatically. The voice cannot be changed for now. Unfortunately will override music if it is playing.
+![demonstration](https://i.imgur.com/KxD7pKq.png)
 
 ### 🎲 Randomness
 
@@ -72,9 +82,15 @@ A couple fun hybrid commands involving random seeds, including:
 
 A couple fun hybrid commands with image filters for you and your friends' avatars. Also includes an avatar context menu. May take a minute to install due to the image processing libraries (opencv and Pillow).
 
+### 🖼 NovelAI
+
+Connects to this AI anime generation service to to generate images with the latest SDXL technology. Most parameters are available, as well as img2img. Requires a subscription. Connects with ImageScanner and ImageLog.
+
+**⚠️ Usage Warning:** This cog is capable of generating NSFW content. Be mindful.
+
 ### 📎 ImageScanner
 
-Lets you view basic information about other people's images with a context menu. Its real purpose is to view AI image generation metadata (Stable Diffusion). Additionally it can scan all images sent in specified channels and put a reaction button on AI images; the bot will DM the results to the users who react.
+Lets you view basic information about other people's images with a context menu. Its real purpose is to view AI image generation metadata (Stable Diffusion and NovelAI). Additionally it can scan all images sent in specified channels and put a magnifying glass reaction button on AI images; the bot will DM the results to the users who react.
 
 ### 📢 GameAlert
 
