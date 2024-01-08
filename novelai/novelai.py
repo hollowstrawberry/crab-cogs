@@ -5,7 +5,7 @@ import asyncio
 import discord
 import logging
 import calendar
-from PIL import Image
+from PIL import Image, PngImagePlugin
 from hashlib import md5
 from datetime import datetime, timedelta
 from redbot.core import commands, app_commands, Config
@@ -350,10 +350,18 @@ class NovelAI(commands.Cog):
                 self.generating[ctx.user.id] = False
                 self.last_img[ctx.user.id] = datetime.utcnow()
 
+            image = Image.open(io.BytesIO(image_bytes))
+            comment = json.loads(image.info["Comment"])
+            seed = comment["seed"]
+            del comment["signed_hash"]
+            image.info["Comment"] = json.dumps(comment)
+            pnginfo = PngImagePlugin.PngInfo()
+            for key, val in image.info.items():
+                pnginfo.add_text(key, val)
+            image.save(image_bytes, "png", pnginfo=pnginfo)
+
             name = md5(image_bytes).hexdigest() + ".png"
             file = discord.File(io.BytesIO(image_bytes), name)
-            image = Image.open(io.BytesIO(image_bytes))
-            seed = json.loads(image.info["Comment"])["seed"]
             view = ImageView(self, prompt, preset, seed)
             content = f"{'Reroll' if callback else 'Retry'} requested by <@{requester}>" if requester and ctx.guild else None
             msg = await ctx.edit_original_response(content=content, attachments=[file], view=view, allowed_mentions=discord.AllowedMentions.none())
