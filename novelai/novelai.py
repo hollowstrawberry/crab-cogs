@@ -315,7 +315,7 @@ class NovelAI(commands.Cog):
                         log.warning("NovelAI encountered an error." if error.status in (500, 520) else "Timed out.")
                         if retry == 1:
                             await ctx.edit_original_response(content=self.loading_emoji + "`Generating image...` :warning:")
-                        await asyncio.sleep(1)
+                        await asyncio.sleep(retry + 2)
             except Exception as error:
                 view = RetryView(self, prompt, preset)
                 if isinstance(error, discord.errors.NotFound):
