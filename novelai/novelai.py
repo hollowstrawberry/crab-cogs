@@ -98,6 +98,7 @@ class NovelAI(commands.Cog):
                 asyncio.create_task(self.edit_queue_messages())
             if alive:
                 await task
+            await asyncio.sleep(2)
             new = False
 
     async def edit_queue_messages(self):
