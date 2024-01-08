@@ -186,14 +186,18 @@ class AudioSlash(Cog):
             return
         ctx = await self.get_context(inter, audio)
         match = await PlaylistConverter().convert(ctx, playlist)
+        enabled = False
         if shuffle is not None and shuffle != await audio.config.guild(ctx.guild).shuffle():
             dj_enabled = audio._dj_status_cache.setdefault(ctx.guild.id, await audio.config.guild(ctx.guild).dj_enabled())  # noqa
             can_skip = await audio._can_instaskip(ctx, ctx.author)  # noqa
-            if not dj_enabled or can_skip:
+            if not dj_enabled or can_skip and await self.can_run_command(ctx, "shuffle"):
                 await audio.config.guild(ctx.guild).shuffle.set(shuffle)
+                enabled = shuffle
         if not await self.can_run_command(ctx, "playlist play"):
             return
         await audio.command_playlist_start(ctx, match)
+        if enabled:
+            await audio.config.guild(ctx.guild).shuffle.set(False)
 
     @playlist.command(name="create")
     @app_commands.describe(name="The name of the new playlist. Cannot contain spaces.",
