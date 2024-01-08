@@ -24,7 +24,7 @@ class ImageView(View):
 
     @discord.ui.button(emoji="♻", style=discord.ButtonStyle.grey)
     async def recycle(self, ctx: discord.Interaction, btn: discord.Button):
-        if not await self.cog.bot.is_owner(ctx.user):
+        if ctx.user.id not in await self.cog.config.vip():
             cooldown = await self.cog.config.server_cooldown() if ctx.guild else await self.cog.config.dm_cooldown()
             if self.cog.generating.get(ctx.user.id, False):
                 content = "Your current image must finish generating before you can request another one."

@@ -56,6 +56,7 @@ class NovelAI(commands.Cog):
             "server_cooldown": 0,
             "dm_cooldown": 60,
             "loading_emoji": "",
+            "vip": []
         }
         defaults_guild = {
             "nsfw_filter": False,
@@ -97,6 +98,7 @@ class NovelAI(commands.Cog):
                 asyncio.create_task(self.edit_queue_messages())
             if alive:
                 await task
+            await asyncio.sleep(2)
             new = False
 
     async def edit_queue_messages(self):
@@ -228,7 +230,7 @@ class NovelAI(commands.Cog):
                 "NovelAI username and password not set. The bot owner needs to set them like this:\n"
                 "[p]set api novelai username,USERNAME\n[p]set api novelai password,PASSWORD")
 
-        if not await self.bot.is_owner(ctx.user):
+        if ctx.user.id not in await self.config.vip():
             cooldown = await self.config.server_cooldown() if ctx.guild else await self.config.dm_cooldown()
             if self.generating.get(ctx.user.id, False):
                 content = "Your current image must finish generating before you can request another one."
@@ -314,7 +316,7 @@ class NovelAI(commands.Cog):
                         log.warning("NovelAI encountered an error." if error.status in (500, 520) else "Timed out.")
                         if retry == 1:
                             await ctx.edit_original_response(content=self.loading_emoji + "`Generating image...` :warning:")
-                        await asyncio.sleep(1)
+                        await asyncio.sleep(retry + 2)
             except Exception as error:
                 view = RetryView(self, prompt, preset)
                 if isinstance(error, discord.errors.NotFound):
@@ -358,7 +360,10 @@ class NovelAI(commands.Cog):
             pnginfo = PngImagePlugin.PngInfo()
             for key, val in image.info.items():
                 pnginfo.add_text(key, val)
-            image.save(image_bytes, "png", pnginfo=pnginfo)
+            fp = io.BytesIO()
+            image.save(fp, "png", pnginfo=pnginfo)
+            fp.seek(0)
+            image_bytes = fp.read()
 
             name = md5(image_bytes).hexdigest() + ".png"
             file = discord.File(io.BytesIO(image_bytes), name)
@@ -505,3 +510,37 @@ class NovelAI(commands.Cog):
             self.loading_emoji = str(emoji) + " "
             await self.config.loading_emoji.set(self.loading_emoji)
             await ctx.reply(f"{emoji} will now appear when showing position in queue.")
+
+    @novelaiset.group(name="vip", invoke_without_command=True)
+    @commands.is_owner()
+    async def vip(self, ctx: commands.Context):
+        """Manage the VIP list which skips the cooldown."""
+        await ctx.send_help()
+
+    @vip.command(name="add")
+    async def vip_add(self, ctx: commands.Context, *, users: str):
+        """Add a list of users to the VIP list."""
+        user_ids = [int(uid) for uid in re.findall(r"([0-9]+)", users)]
+        if not user_ids:
+            return await ctx.reply("Please enter one or more valid users.")
+        vip = set(await self.config.vip())
+        vip.update(uid for uid in user_ids)
+        await self.config.vip.set(list(vip))
+        await ctx.react_quietly("✅")
+
+    @vip.command(name="remove")
+    async def vip_remove(self, ctx: commands.Context, *, users: str):
+        """Remove a list of users from the VIP list."""
+        user_ids = [int(uid) for uid in re.findall(r"([0-9]+)", users)]
+        if not user_ids:
+            return await ctx.reply("Please enter one or more valid users.")
+        vip = set(await self.config.vip())
+        vip.difference_update(uid for uid in user_ids)
+        await self.config.vip.set(list(vip))
+        await ctx.react_quietly("✅")
+
+    @vip.command(name="list")
+    async def vip_list(self, ctx: commands.Context):
+        """Show all users in the VIP list."""
+        await ctx.reply('\n'.join([f'<@{uid}>' for uid in await self.config.vip()]) or "*None*",
+                        allowed_mentions=discord.AllowedMentions.none())
