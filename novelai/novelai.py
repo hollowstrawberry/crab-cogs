@@ -358,7 +358,10 @@ class NovelAI(commands.Cog):
             pnginfo = PngImagePlugin.PngInfo()
             for key, val in image.info.items():
                 pnginfo.add_text(key, val)
-            image.save(image_bytes, "png", pnginfo=pnginfo)
+            fp = io.BytesIO()
+            image.save(fp, "png", pnginfo=pnginfo)
+            fp.seek(0)
+            image_bytes = fp.read()
 
             name = md5(image_bytes).hexdigest() + ".png"
             file = discord.File(io.BytesIO(image_bytes), name)
