@@ -54,7 +54,7 @@ async def read_attachment_metadata(i: int, attachment: discord.Attachment, metad
                 if attachment.filename.endswith(".png"):
                     info = img.info['parameters']
                 else:  # jpeg jank
-                    info = img._getexif().get(37510).decode('utf8')[7:]  # noqa
+                    info = img._getexif().get(37510).decode('utf8')[7:]
                 if info and "Steps" in info:
                     metadata[i] = info
                     image_bytes[i] = image_data

@@ -20,7 +20,7 @@ class ImageView(View):
     @discord.ui.button(emoji="🌱", style=discord.ButtonStyle.grey)
     async def seed(self, ctx: discord.Interaction, _: discord.Button):
         embed = discord.Embed(title="Generation seed", description=f"{self.seed}", color=0x77B255)
-        await ctx.response.send_message(embed=embed, ephemeral=True)  # noqa
+        await ctx.response.send_message(embed=embed, ephemeral=True)
 
     @discord.ui.button(emoji="♻", style=discord.ButtonStyle.grey)
     async def recycle(self, ctx: discord.Interaction, btn: discord.Button):
@@ -28,13 +28,13 @@ class ImageView(View):
             cooldown = await self.cog.config.server_cooldown() if ctx.guild else await self.cog.config.dm_cooldown()
             if self.cog.generating.get(ctx.user.id, False):
                 content = "Your current image must finish generating before you can request another one."
-                return await ctx.response.send_message(content, ephemeral=True)  # noqa
+                return await ctx.response.send_message(content, ephemeral=True)
             if ctx.user.id in self.cog.last_img and (datetime.utcnow() - self.cog.last_img[ctx.user.id]).seconds < cooldown:
                 eta = self.cog.last_img[ctx.user.id] + timedelta(seconds=cooldown)
                 content = f"You may use this command again <t:{calendar.timegm(eta.utctimetuple())}:R>."
                 if not ctx.guild:
                     content += " (You can use it more frequently inside a server)"
-                return await ctx.response.send_message(content, ephemeral=True)  # noqa
+                return await ctx.response.send_message(content, ephemeral=True)
 
         self.preset.seed = 0
         btn.disabled = True
@@ -43,7 +43,7 @@ class ImageView(View):
 
         content = self.cog.get_loading_message()
         self.cog.queue_add(ctx, self.prompt, self.preset, ctx.user.id, ctx.message.edit(view=self))
-        await ctx.response.send_message(content=content)  # noqa
+        await ctx.response.send_message(content=content)
 
     @discord.ui.button(emoji="🗑️", style=discord.ButtonStyle.grey)
     async def delete(self, ctx: discord.Interaction, _: discord.Button):
@@ -61,7 +61,7 @@ class ImageView(View):
                 imagelog.manual_deleted_by[ctx.message.id] = ctx.user.id
             await ctx.message.delete()
         else:
-            await ctx.response.send_message("Only a moderator or the user who requested the image may delete it.", ephemeral=True)  # noqa
+            await ctx.response.send_message("Only a moderator or the user who requested the image may delete it.", ephemeral=True)
 
 
 class RetryView(View):
@@ -77,11 +77,11 @@ class RetryView(View):
         if not await self.cog.bot.is_owner(ctx.user):
             if self.cog.generating.get(ctx.user.id, False):
                 content = "Your current image must finish generating before you can request another one."
-                return await ctx.response.send_message(content, ephemeral=True)  # noqa
+                return await ctx.response.send_message(content, ephemeral=True)
 
         self.deleted = True
         self.stop()
         await ctx.message.edit(view=None)
         content = self.cog.get_loading_message()
         self.cog.queue_add(ctx, self.prompt, self.preset, ctx.user.id, ctx.message.edit(view=None))
-        await ctx.response.send_message(content=content)  # noqa
+        await ctx.response.send_message(content=content)

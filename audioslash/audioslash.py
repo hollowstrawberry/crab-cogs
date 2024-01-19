@@ -28,7 +28,7 @@ class AudioSlash(Cog):
         cog: Optional[Audio] = self.bot.get_cog("Audio")
         if cog:
             return cog
-        await inter.response.send_message("Audio cog not loaded! Contact the bot owner for more information.", ephemeral=True)  # noqa
+        await inter.response.send_message("Audio cog not loaded! Contact the bot owner for more information.", ephemeral=True)
 
     async def get_context(self, inter: discord.Interaction, cog: Audio) -> commands.Context:
         ctx: commands.Context = await self.bot.get_context(inter)  # noqa
@@ -188,8 +188,8 @@ class AudioSlash(Cog):
         match = await PlaylistConverter().convert(ctx, playlist)
         enabled = False
         if shuffle is not None and shuffle != await audio.config.guild(ctx.guild).shuffle():
-            dj_enabled = audio._dj_status_cache.setdefault(ctx.guild.id, await audio.config.guild(ctx.guild).dj_enabled())  # noqa
-            can_skip = await audio._can_instaskip(ctx, ctx.author)  # noqa
+            dj_enabled = audio._dj_status_cache.setdefault(ctx.guild.id, await audio.config.guild(ctx.guild).dj_enabled())
+            can_skip = await audio._can_instaskip(ctx, ctx.author)
             if not dj_enabled or can_skip and await self.can_run_command(ctx, "shuffle"):
                 await audio.config.guild(ctx.guild).shuffle.set(shuffle)
                 enabled = shuffle

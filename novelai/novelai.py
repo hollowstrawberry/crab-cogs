@@ -151,7 +151,7 @@ class NovelAI(commands.Cog):
 
         message = self.get_loading_message()
         self.queue_add(ctx, prompt, preset)
-        await ctx.response.send_message(content=message)  # noqa
+        await ctx.response.send_message(content=message)
 
     @app_commands.command(name="novelai-img2img",
                           description="Convert img2img with NovelAI v3.")
@@ -179,7 +179,7 @@ class NovelAI(commands.Cog):
                           decrisper: Optional[bool],
                           ):
         if "image" not in image.content_type or not image.width or not image.height:
-            return await ctx.response.send_message("Attachment must be a valid image.", ephemeral=True)  # noqa
+            return await ctx.response.send_message("Attachment must be a valid image.", ephemeral=True)
         width, height = scale_to_size(image.width, image.height, MAX_FREE_IMAGE_SIZE)
         resolution = f"{round_to_nearest(width, 64)},{round_to_nearest(height, 64)}"
 
@@ -189,7 +189,7 @@ class NovelAI(commands.Cog):
         )
         if not result:
             return
-        await ctx.response.defer()  # noqa
+        await ctx.response.defer()
 
         prompt, preset = result
         preset.strength = strength
@@ -226,7 +226,7 @@ class NovelAI(commands.Cog):
                                       decrisper: Optional[bool],
                                       ) -> Optional[Tuple[str, ImagePreset]]:
         if not self.api and not await self.try_create_api():
-            return await ctx.response.send_message(  # noqa
+            return await ctx.response.send_message(
                 "NovelAI username and password not set. The bot owner needs to set them like this:\n"
                 "[p]set api novelai username,USERNAME\n[p]set api novelai password,PASSWORD")
 
@@ -234,13 +234,13 @@ class NovelAI(commands.Cog):
             cooldown = await self.config.server_cooldown() if ctx.guild else await self.config.dm_cooldown()
             if self.generating.get(ctx.user.id, False):
                 content = "Your current image must finish generating before you can request another one."
-                return await ctx.response.send_message(content, ephemeral=True)  # noqa
+                return await ctx.response.send_message(content, ephemeral=True)
             if ctx.user.id in self.last_img and (datetime.utcnow() - self.last_img[ctx.user.id]).seconds < cooldown:
                 eta = self.last_img[ctx.user.id] + timedelta(seconds=cooldown)
                 content = f"You may use this command again <t:{calendar.timegm(eta.utctimetuple())}:R>."
                 if not ctx.guild:
                     content += " (You can use it more frequently inside a server)"
-                return await ctx.response.send_message(content, ephemeral=True)  # noqa
+                return await ctx.response.send_message(content, ephemeral=True)
 
         base_prompt = await self.config.user(ctx.user).base_prompt()
         if base_prompt:
@@ -251,16 +251,16 @@ class NovelAI(commands.Cog):
         resolution = resolution or await self.config.user(ctx.user).resolution()
 
         if ctx.guild and not ctx.channel.nsfw and NSFW_TERMS.search(prompt):
-            return await ctx.response.send_message(":warning: You may not generate NSFW images in non-NSFW channels.")  # noqa
+            return await ctx.response.send_message(":warning: You may not generate NSFW images in non-NSFW channels.")
 
         if not ctx.guild and TOS_TERMS.search(prompt):
-            return await ctx.response.send_message(  # noqa
+            return await ctx.response.send_message(
                 ":warning: To abide by Discord terms of service, the prompt you chose may not be used in private.\n"
                 "You may use this command in a server, where your generations may be reviewed by a moderator."
             )
 
         if NSFW_TERMS.search(prompt) and TOS_TERMS.search(prompt):
-            return await ctx.response.send_message(  # noqa
+            return await ctx.response.send_message(
                 ":warning: To abide by Discord terms of service, the prompt you chose may not be used."
             )
 
@@ -305,7 +305,7 @@ class NovelAI(commands.Cog):
                 for retry in range(4):
                     try:
                         async with self.api as wrapper:
-                            action = ImageGenerationType.IMG2IMG if preset._settings.get("image", None) else ImageGenerationType.NORMAL  # noqa
+                            action = ImageGenerationType.IMG2IMG if preset._settings.get("image", None) else ImageGenerationType.NORMAL
                             model = ImageModel.Inpainting_Anime_v3 if action == ImageGenerationType.INPAINTING else ImageModel.Anime_v3
                             async for _, img in wrapper.api.high_level.generate_image(prompt, model, preset, action):
                                 image_bytes = img
@@ -454,7 +454,7 @@ class NovelAI(commands.Cog):
         embed.add_field(name="Sampler Version", value=await self.config.user(ctx.user).sampler_version())
         embed.add_field(name="Noise Schedule", value=await self.config.user(ctx.user).noise_schedule())
         embed.add_field(name="Decrisper", value=f"{await self.config.user(ctx.user).decrisper()}")
-        await ctx.response.send_message(embed=embed, ephemeral=True)  # noqa
+        await ctx.response.send_message(embed=embed, ephemeral=True)
 
     @commands.group()
     async def novelaiset(self, _):

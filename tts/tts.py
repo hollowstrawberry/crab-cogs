@@ -6,7 +6,7 @@ from gtts import gTTS
 from googletrans import Translator
 from discord.ext import tasks
 from redbot.core import commands
-from redbot.core.bot import Red, cog_data_path  # noqa
+from redbot.core.bot import Red, cog_data_path
 from redbot.core.commands import Cog
 from redbot.cogs.audio import Audio
 from typing import Optional

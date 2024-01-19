@@ -182,9 +182,8 @@ class ImageScanner(commands.Cog):
         """Get image metadata"""
         attachments = [a for a in message.attachments if a.filename.lower().endswith(IMAGE_TYPES)]
         if not attachments:
-            await ctx.response.send_message("This post contains no images.", ephemeral=True)  # noqa
+            await ctx.response.send_message("This post contains no images.", ephemeral=True)
             return
-        # await ctx.defer(ephemeral=True)
         if message.id in self.image_cache:
             metadata, image_bytes = self.image_cache[message.id]
         else:
@@ -199,12 +198,12 @@ class ImageScanner(commands.Cog):
                               f"Filesize: " + (f"{size_mb} MB" if size_mb >= 1.0 else f"{size_kb} KB")
         response = "\n\n".join([data for i, data in sorted(metadata.items())])
         if len(response) < 1980:
-            await ctx.response.send_message(f"```yaml\n{response}```", ephemeral=True)  # noqa
+            await ctx.response.send_message(f"```yaml\n{response}```", ephemeral=True)
         else:
             with io.StringIO() as f:
                 f.write(response)
                 f.seek(0)
-                await ctx.response.send_message(file=discord.File(f, "parameters.yaml"), ephemeral=True)  # noqa
+                await ctx.response.send_message(file=discord.File(f, "parameters.yaml"), ephemeral=True)
 
     async def grab_civitai_model_link(self, short_hash: str) -> Optional[str]:
         if not short_hash:
