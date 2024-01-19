@@ -110,9 +110,9 @@ class EmojiSteal(commands.Cog):
         if message.stickers:
             emojis = message.stickers
         elif not (emojis := self.get_emojis(message.content)):
-            return await ctx.response.send_message(MISSING_EMOJIS, ephemeral=True)  # noqa
+            return await ctx.response.send_message(MISSING_EMOJIS, ephemeral=True)
         response = '\n'.join([emoji.url for emoji in emojis])
-        await ctx.response.send_message(content=response, ephemeral=True)  # noqa
+        await ctx.response.send_message(content=response, ephemeral=True)
 
     @steal_command.command(name="upload")
     @commands.guild_only()
@@ -164,9 +164,9 @@ class EmojiSteal(commands.Cog):
         if message.stickers:
             emojis: list[Union[StolenEmoji, discord.StickerItem]] = message.stickers
         elif not (emojis := self.get_emojis(message.content)):
-            return await ctx.response.send_message(MISSING_EMOJIS, ephemeral=True)  # noqa
+            return await ctx.response.send_message(MISSING_EMOJIS, ephemeral=True)
         
-        await ctx.response.defer(thinking=True)  # noqa
+        await ctx.response.defer(thinking=True)
         
         if isinstance(emojis[0], discord.StickerItem):
             if len(ctx.guild.stickers) >= ctx.guild.sticker_limit:

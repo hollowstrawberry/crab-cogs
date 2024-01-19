@@ -15,12 +15,12 @@ class ImageView(View):
     @discord.ui.button(emoji="🔧", label='View Full Parameters', style=discord.ButtonStyle.grey)
     async def view_full_parameters(self, ctx: discord.Interaction, _: discord.Button):
         if len(self.params) < 1980:
-            await ctx.response.send_message(f"```yaml\n{self.params}```")  # noqa
+            await ctx.response.send_message(f"```yaml\n{self.params}```")
         else:
             with io.StringIO() as f:
                 f.write(self.params)
                 f.seek(0)
-                await ctx.response.send_message(file=discord.File(f, "parameters.yaml"))  # noqa
+                await ctx.response.send_message(file=discord.File(f, "parameters.yaml"))
         await ctx.message.edit(view=None, embed=self.embed)
         self.pressed = True
         self.stop()

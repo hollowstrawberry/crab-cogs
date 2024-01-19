@@ -3,7 +3,7 @@ import discord
 from typing import Optional
 from redbot.core import commands, Config
 from redbot.core.bot import Red
-from redbot.core.utils.menus import SimpleMenu  # noqa
+from redbot.core.utils.menus import SimpleMenu
 from redbot.core.data_manager import core_data_path
 
 LATEST_LOGS = os.path.join(core_data_path(), "logs/latest.log")
@@ -52,8 +52,8 @@ class Logs(commands.Cog):
                 pages[i] += f"`Page {i+1}/{len(pages)}`"
             ctx.message.channel = channel
             ctx.message.guild = None
-            ctx = await self.bot.get_context(ctx.message)
-            await SimpleMenu(pages, timeout=7200, page_start=len(pages)-1).start(ctx)  # noqa
+            ctx: commands.Context = await self.bot.get_context(ctx.message)  # noqa
+            await SimpleMenu(pages, timeout=7200, page_start=len(pages)-1).start(ctx)
 
     @logs.command(name="file")
     async def logs_file(self, ctx: commands.Context):

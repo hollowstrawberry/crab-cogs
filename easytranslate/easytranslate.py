@@ -106,7 +106,7 @@ class EasyTranslate(commands.Cog):
         except:
             fail_embed = discord.Embed(description=TRANSLATION_FAILED, color=discord.Color.red())
             if isinstance(ctx, discord.Interaction):
-                return await ctx.response.send_message(embed=fail_embed, ephemeral=True)  # noqa
+                return await ctx.response.send_message(embed=fail_embed, ephemeral=True)
             else:
                 return await ctx.send(embed=fail_embed)
 
@@ -121,7 +121,7 @@ class EasyTranslate(commands.Cog):
                 ephemeral = True
             else:
                 ephemeral = False
-            await ctx.response.send_message(embed=embed, ephemeral=ephemeral)  # noqa
+            await ctx.response.send_message(embed=embed, ephemeral=ephemeral)
         elif message:
             await message.reply(embed=embed, mention_author=False)
         else:
