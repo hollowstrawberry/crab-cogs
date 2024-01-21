@@ -1,5 +1,5 @@
 {
-    "author": ["OrchidAlloy"],
+    "author": ["hollowstrawberry"],
     "min_bot_version": "3.5.0",
     "description": "Logs users joining and leaving a VC, inside the VC chat itself.",
     "hidden": false,

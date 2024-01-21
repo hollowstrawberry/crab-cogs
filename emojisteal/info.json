@@ -1,5 +1,5 @@
 {
-    "author": ["OrchidAlloy"],
+    "author": ["hollowstrawberry"],
     "min_bot_version": "3.5.0",
     "description": "Steals emojis and stickers sent by other people and optionally uploads them to your own server. Supports context menu commands. Can also upload stickers from mobile.",
     "hidden": false,
