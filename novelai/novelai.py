@@ -235,7 +235,7 @@ class NovelAI(commands.Cog):
             if self.generating.get(ctx.user.id, False):
                 content = "Your current image must finish generating before you can request another one."
                 return await ctx.response.send_message(content, ephemeral=True)
-            if ctx.user.id in self.last_img and (datetime.utcnow() - self.last_img[ctx.user.id]).seconds < cooldown:
+            if ctx.user.id in self.last_img and (datetime.utcnow() - self.last_img[ctx.user.id]).total_seconds() < cooldown:
                 eta = self.last_img[ctx.user.id] + timedelta(seconds=cooldown)
                 content = f"You may use this command again <t:{calendar.timegm(eta.utctimetuple())}:R>."
                 if not ctx.guild:
