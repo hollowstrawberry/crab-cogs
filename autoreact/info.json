@@ -1,5 +1,5 @@
 {
-    "author": ["OrchidAlloy"],
+    "author": ["hollowstrawberry"],
     "min_bot_version": "3.5.0",
     "description": "Lets you configure emojis that will be added to any message containing text matching a regex.",
     "hidden": false,

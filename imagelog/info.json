@@ -1,5 +1,5 @@
 {
-    "author": ["OrchidAlloy"],
+    "author": ["hollowstrawberry"],
     "min_bot_version": "3.5.0",
     "description": "Logs deleted images for moderation purposes.\n⚠️ Usage warning: You may or may not be liable for keeping content that breaks Discord TOS.",
     "hidden": false,

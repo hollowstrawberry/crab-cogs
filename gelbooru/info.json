@@ -1,5 +1,5 @@
 {
-    "author": ["OrchidAlloy"],
+    "author": ["hollowstrawberry"],
     "min_bot_version": "3.5.0",
     "description": "Searches images on Gelbooru with slash command and tag completion support. ",
     "hidden": false,

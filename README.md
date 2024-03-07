@@ -9,7 +9,7 @@ These require Red 3.5, which uses the newer Discord interaction features.
 To add one of these cogs to your instance of Red, send the following commands one by one (`[p]` is your prefix):
 ```
 [p]load downloader
-[p]repo add crab-cogs https://github.com/orchidalloy/crab-cogs
+[p]repo add crab-cogs https://github.com/hollowstrawberry/crab-cogs
 [p]cog install crab-cogs [cog name]
 [p]load [cog name]
 ```
