@@ -281,7 +281,7 @@ class NovelAI(commands.Cog):
         preset.cfg_rescale = guidance_rescale if guidance_rescale is not None else await self.config.user(ctx.user).guidance_rescale()
         preset.decrisper = decrisper if decrisper is not None else await self.config.user(ctx.user).decrisper()
         preset.noise_schedule = noise_schedule or await self.config.user(ctx.user).noise_schedule()
-        preset.seed = seed if seed is not None and seed > 0 else -1
+        preset.seed = seed if seed else 0
         if "recommended" in preset.noise_schedule:
             preset.noise_schedule = "exponential" if "2m" in str(preset.sampler) else "native"
         if "ddim" in str(preset.sampler) or "ancestral" in str(preset.sampler) and preset.noise_schedule == "karras":
