@@ -8,7 +8,6 @@ from aiohttp import ClientSession
 from novelai_api import NovelAIAPI
 from novelai_api.utils import get_encryption_key
 
-NovelAIAPI.BASE_ADDRESS = "https://image.novelai.net"
 
 class NaiAPI:
     """
@@ -47,6 +46,7 @@ class NaiAPI:
         self.logger.addHandler(StreamHandler())
 
         self.api = NovelAIAPI(logger=self.logger)
+        self.api.BASE_ADDRESS = "https://image.novelai.net"
 
     @property
     def encryption_key(self):
