@@ -31,7 +31,13 @@ class Logs(commands.Cog):
             if not lines or lines < 0:
                 lines = 100
             pages = []
-            with open(LATEST_LOGS, 'r') as f:
+            if os.path.exists(LATEST_LOGS):
+                latest_logs = LATEST_LOGS
+            else:
+                paths = os.listdir(os.path.join(core_data_path(), "logs"))
+                paths.sort()
+                latest_logs = paths[-1]
+            with open(latest_logs, 'r') as f:
                 result = [line.strip() for line in f.readlines()[-lines:]]
             while result:
                 page = ""
@@ -56,7 +62,7 @@ class Logs(commands.Cog):
                 ctx: commands.Context = await self.bot.get_context(ctx.message)  # noqa
                 await SimpleMenu(pages, timeout=7200, page_start=len(pages)-1).start(ctx)
         except Exception as ex:
-            await ctx.send(f"{type(ex)}: {ex}")
+            await ctx.send(f"{type(ex).__name__}: {ex}")
 
     @logs.command(name="file")
     async def logs_file(self, ctx: commands.Context):
