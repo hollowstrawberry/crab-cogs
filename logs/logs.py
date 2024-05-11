@@ -34,9 +34,10 @@ class Logs(commands.Cog):
             if os.path.exists(LATEST_LOGS):
                 latest_logs = LATEST_LOGS
             else:
-                paths = os.listdir(os.path.join(core_data_path(), "logs"))
-                paths.sort()
-                latest_logs = paths[-1]
+                path = os.path.join(core_data_path(), "logs")
+                files = os.listdir(path)
+                files.sort()
+                latest_logs = os.path.join(path, files[-1])
             with open(latest_logs, 'r') as f:
                 result = [line.strip() for line in f.readlines()[-lines:]]
             while result:
