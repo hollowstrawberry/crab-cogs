@@ -656,7 +656,7 @@ class NovelAI(commands.Cog):
     @commands.is_owner()
     async def maximagesize(self, ctx: commands.Context, size: Optional[int]):
         """Max image size in MB that will be accepted for images provided by a user."""
-        if seconds is None:
+        if size is None:
             size = await self.config.max_image_size()
         else:
             await self.config.max_image_size.set(max(1, size))
