@@ -52,8 +52,8 @@ class NovelAI(commands.Cog):
             "sampler_version": "Regular",
             "noise_schedule": "Always pick recommended",
             "decrisper": False,
-            "model": ImageModel.Anime_v3,
-            "inpainting_model": ImageModel.Inpainting_Anime_v3,
+            "model": "nai-diffusion-3",
+            "inpainting_model": "nai-diffusion-3-inpainting",
         }
         defaults_global = {
             "generation_cooldown": 0,
