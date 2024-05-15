@@ -3,7 +3,7 @@ import discord
 import calendar
 from datetime import datetime, timedelta
 from discord.ui import View
-from novelai_api.ImagePreset import ImagePreset
+from novelai_api.ImagePreset import ImagePreset, ImageModel
 
 from novelai.constants import VIEW_TIMEOUT
 
