@@ -135,7 +135,7 @@ class NovelAI(commands.Cog):
     @app_commands.describe(prompt="Gets added to your base prompt (/novelaidefaults)",
                            negative_prompt="Gets added to your base negative prompt (/novelaidefaults)",
                            seed="Random number that determines image generation.",
-                           reference_image: "The image to use as a reference for vibe transfer.",
+                           reference_image= "The image to use as a reference for vibe transfer.",
                            **PARAMETER_DESCRIPTIONS)
     @app_commands.choices(**PARAMETER_CHOICES)
     async def novelai(self,
@@ -186,7 +186,7 @@ class NovelAI(commands.Cog):
                            prompt="Gets added to your base prompt (/novelaidefaults)",
                            negative_prompt="Gets added to your base negative prompt (/novelaidefaults)",
                            seed="Random number that determines image generation.",
-                           reference_image: "The image to use as a reference for vibe transfer.",
+                           reference_image= "The image to use as a reference for vibe transfer.",
                            **PARAMETER_DESCRIPTIONS_IMG2IMG)
     @app_commands.choices(**PARAMETER_CHOICES_IMG2IMG)
     async def novelai_img(self,
