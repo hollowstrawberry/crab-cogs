@@ -53,7 +53,6 @@ class NovelAI(commands.Cog):
             "noise_schedule": "Always pick recommended",
             "decrisper": False,
             "model": "nai-diffusion-3",
-            "inpainting_model": "nai-diffusion-3-inpainting",
         }
         defaults_global = {
             "generation_cooldown": 0,
@@ -88,7 +87,7 @@ class NovelAI(commands.Cog):
     async def consume_queue(self):
         new = True
         while self.queue:
-            # if (datetime.utcnow() - self.last_img).total_seconds() < generation_cooldown:
+            # if (datetime.utcnow() - self.last_img).total_seconds() < await self.config.generation_cooldown():
             task, ctx = self.queue.pop(0)
             alive = True
             if not new:
@@ -194,7 +193,7 @@ class NovelAI(commands.Cog):
         width, height = scale_to_size(image.width, image.height, MAX_FREE_IMAGE_SIZE)
         resolution = f"{round_to_nearest(width, 64)},{round_to_nearest(height, 64)}"
         
-        model = model or ImageModel(await self.config.user(ctx.user).inpainting_model())
+        model = model or ImageModel(await self.config.user(ctx.user).model())
 
         result = await self.prepare_novelai_request(
             ctx, prompt, negative_prompt, seed, resolution, guidance, guidance_rescale,
@@ -364,6 +363,7 @@ class NovelAI(commands.Cog):
             finally:
                 self.generating[ctx.user.id] = False
                 self.user_last_img[ctx.user.id] = datetime.utcnow()
+                self.last_img = datetime.utcnow()
 
             image = Image.open(io.BytesIO(image_bytes))
             comment = json.loads(image.info["Comment"])
@@ -426,7 +426,6 @@ class NovelAI(commands.Cog):
                               noise_schedule: Optional[str],
                               decrisper: Optional[bool],
                               model: Optional[ImageModel],
-                              inpainting_model: Optional[ImageModel],
                               ):
         if base_prompt is not None:
             base_prompt = base_prompt.strip(" ,")
@@ -458,8 +457,6 @@ class NovelAI(commands.Cog):
             await self.config.user(ctx.user).decrisper.set(decrisper)
         if model is not None:
             await self.config.user(ctx.user).model.set(model)
-        if inpainting_model is not None:
-            await self.config.user(ctx.user).inpainting_model.set(inpainting_model)
 
         embed = discord.Embed(title="NovelAI default settings", color=0xffffff)
         prompt = str(await self.config.user(ctx.user).base_prompt())
@@ -474,7 +471,6 @@ class NovelAI(commands.Cog):
         embed.add_field(name="Noise Schedule", value=await self.config.user(ctx.user).noise_schedule())
         embed.add_field(name="Decrisper", value=f"{await self.config.user(ctx.user).decrisper()}")
         embed.add_field(name="Model", value=MODELS[await self.config.user(ctx.user).model()])
-        embed.add_field(name="Inpainting Model", value=INPAINTING_MODELS[await self.config.user(ctx.user).inpainting_model()])
         await ctx.response.send_message(embed=embed, ephemeral=True)
 
     @commands.group()
