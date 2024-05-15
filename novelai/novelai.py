@@ -183,30 +183,26 @@ class NovelAI(commands.Cog):
             return
         prompt, preset = result
         
-        preset.reference_image_multiple = [image1, image2, image3]
-        preset.reference_strength_multiple = [0.6, 0.6, 0.6]
-        preset.reference_information_extracted_multiple = [1.0, 1.0, 1.0]
-        
         if reference_image1 or reference_image2 or reference_image3:
             reference_images = []
             reference_strengths = []
             reference_infos = []
             default_strength = await self.config.user(ctx.user).reference_image_strength() or 0.6
             default_info = await self.config.user(ctx.user).reference_image_info_extracted() or 1.0
-                if reference_image1:
-                    reference_images.append(base64.b64encode(await reference_image1.read()).decode())
-                    reference_strengths.append(reference_image_strength1 or default_strength)
-                    reference_infos.append(reference_image_info_extracted1 or default_info)
+            if reference_image1:
+                reference_images.append(base64.b64encode(await reference_image1.read()).decode())
+                reference_strengths.append(reference_image_strength1 or default_strength)
+                reference_infos.append(reference_image_info_extracted1 or default_info)
+            
+            if reference_image2:
+                reference_images.append(base64.b64encode(await reference_image2.read()).decode())
+                reference_strengths.append(reference_image_strength2 or default_strength)
+                reference_infos.append(reference_image_info_extracted2 or default_info)
                 
-                if reference_image2:
-                    reference_images.append(base64.b64encode(await reference_image2.read()).decode())
-                    reference_strengths.append(reference_image_strength2 or default_strength)
-                    reference_infos.append(reference_image_info_extracted2 or default_info)
-                    
-                if reference_image3:
-                    reference_images.append(base64.b64encode(await reference_image3.read()).decode())
-                    reference_strengths.append(reference_image_strength3 or default_strength)
-                    reference_infos.append(reference_image_info_extracted3 or default_info)
+            if reference_image3:
+                reference_images.append(base64.b64encode(await reference_image3.read()).decode())
+                reference_strengths.append(reference_image_strength3 or default_strength)
+                reference_infos.append(reference_image_info_extracted3 or default_info)
             preset.reference_image_multiple = reference_images
             preset.reference_strength_multiple = reference_strengths
             preset.reference_information_extracted_multiple = reference_infos
@@ -301,20 +297,20 @@ class NovelAI(commands.Cog):
             reference_infos = []
             default_strength = await self.config.user(ctx.user).reference_image_strength() or 0.6
             default_info = await self.config.user(ctx.user).reference_image_info_extracted() or 1.0
-                if reference_image1:
-                    reference_images.append(base64.b64encode(await reference_image1.read()).decode())
-                    reference_strengths.append(reference_image_strength1 or default_strength)
-                    reference_infos.append(reference_image_info_extracted1 or default_info)
+            if reference_image1:
+                reference_images.append(base64.b64encode(await reference_image1.read()).decode())
+                reference_strengths.append(reference_image_strength1 or default_strength)
+                reference_infos.append(reference_image_info_extracted1 or default_info)
+            
+            if reference_image2:
+                reference_images.append(base64.b64encode(await reference_image2.read()).decode())
+                reference_strengths.append(reference_image_strength2 or default_strength)
+                reference_infos.append(reference_image_info_extracted2 or default_info)
                 
-                if reference_image2:
-                    reference_images.append(base64.b64encode(await reference_image2.read()).decode())
-                    reference_strengths.append(reference_image_strength2 or default_strength)
-                    reference_infos.append(reference_image_info_extracted2 or default_info)
-                    
-                if reference_image3:
-                    reference_images.append(base64.b64encode(await reference_image3.read()).decode())
-                    reference_strengths.append(reference_image_strength3 or default_strength)
-                    reference_infos.append(reference_image_info_extracted3 or default_info)
+            if reference_image3:
+                reference_images.append(base64.b64encode(await reference_image3.read()).decode())
+                reference_strengths.append(reference_image_strength3 or default_strength)
+                reference_infos.append(reference_image_info_extracted3 or default_info)
             preset.reference_image_multiple = reference_images
             preset.reference_strength_multiple = reference_strengths
             preset.reference_information_extracted_multiple = reference_infos
