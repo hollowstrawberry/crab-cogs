@@ -59,10 +59,11 @@ class NovelAI(commands.Cog):
             "reference_image_info_extracted": 1.0,
         }
         defaults_global = {
-            "max_image_size": 50,
+            "max_image_size": 25,
             "generation_cooldown": 0,
             "server_cooldown": 0,
             "dm_cooldown": 60,
+            "dm_allowed": True,
             "loading_emoji": "",
             "vip": [],
         }
@@ -337,6 +338,9 @@ class NovelAI(commands.Cog):
             return await ctx.response.send_message(
                 "NovelAI username and password not set. The bot owner needs to set them like this:\n"
                 "[p]set api novelai username,USERNAME\n[p]set api novelai password,PASSWORD")
+                
+        if not ctx.guild and not await self.config.dm_allowed():
+            return await ctx.response.send_message("Direct message use is disabled.", ephemeral=True)
 
         if ctx.user.id not in await self.config.vip():
             cooldown = await self.config.server_cooldown() if ctx.guild else await self.config.dm_cooldown()
@@ -651,6 +655,17 @@ class NovelAI(commands.Cog):
         else:
             await self.config.dm_cooldown.set(max(0, seconds))
         await ctx.reply(f"Users will need to wait {max(0, seconds)} seconds between generations in DMs with the bot.")
+        
+    @novelaiset.command()
+    @commands.is_owner()
+    async def dmallowed(self, ctx: commands.Context):
+        """Toggles allowing generation via direct messages with the bot."""
+        new = not await self.config.dm_allowed()
+        await self.config.dm_allowed.set(new)
+        if new:
+            await ctx.reply("Direct messages enabled.")
+        else:
+            await ctx.reply("Direct messages disabled.")
         
     @novelaiset.command()
     @commands.is_owner()
