@@ -447,7 +447,7 @@ class NovelAI(commands.Cog):
                             await ctx.edit_original_response(content=self.loading_emoji + "`Generating image...` :warning:")
                         await asyncio.sleep(retry + 2)
             except Exception as error:
-                view = RetryView(self, prompt, preset)
+                view = RetryView(self, prompt, preset, model)
                 if isinstance(error, discord.errors.NotFound):
                     raise
                 if isinstance(error, NovelAIError):
@@ -496,7 +496,7 @@ class NovelAI(commands.Cog):
 
             name = md5(image_bytes).hexdigest() + ".png"
             file = discord.File(io.BytesIO(image_bytes), name)
-            view = ImageView(self, prompt, preset, seed)
+            view = ImageView(self, prompt, preset, seed, model)
             content = f"{'Reroll' if callback else 'Retry'} requested by <@{requester}>" if requester and ctx.guild else None
             msg = await ctx.edit_original_response(content=content, attachments=[file], view=view, allowed_mentions=discord.AllowedMentions.none())
 
