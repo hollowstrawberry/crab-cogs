@@ -88,24 +88,24 @@ class NovelAI(commands.Cog):
     async def consume_queue(self):
         new = True
         while self.queue:
-            if (datetime.utcnow() - self.last_img).total_seconds() < generation_cooldown:
-                task, ctx = self.queue.pop(0)
-                alive = True
-                if not new:
-                    try:
-                        await ctx.edit_original_response(content=self.loading_emoji + "`Generating image...`")
-                    except discord.errors.NotFound:
-                        self.generating[ctx.user.id] = False
-                        alive = False
-                    except:
-                        log.exception("Editing message in queue")
-                if self.queue:
-                    asyncio.create_task(self.edit_queue_messages())
-                if alive:
-                    await task
-                await asyncio.sleep(2)
-                new = False
-            await asyncio.sleep(1)
+            # if (datetime.utcnow() - self.last_img).total_seconds() < generation_cooldown:
+            task, ctx = self.queue.pop(0)
+            alive = True
+            if not new:
+                try:
+                    await ctx.edit_original_response(content=self.loading_emoji + "`Generating image...`")
+                except discord.errors.NotFound:
+                    self.generating[ctx.user.id] = False
+                    alive = False
+                except:
+                    log.exception("Editing message in queue")
+            if self.queue:
+                asyncio.create_task(self.edit_queue_messages())
+            if alive:
+                await task
+            await asyncio.sleep(2)
+            new = False
+            #await asyncio.sleep(1)
 
     async def edit_queue_messages(self):
         tasks = [ctx.edit_original_response(content=self.loading_emoji + f"`Position in queue: {i + 1}`")
