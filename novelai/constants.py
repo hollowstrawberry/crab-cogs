@@ -88,8 +88,8 @@ PARAMETER_DESCRIPTIONS = {
     "decrisper": "Reduces artifacts caused by high guidance.",
     "model": "The model to use for generation.",
     "reference_image": "The image to use for vibe transfer.",
-    "reference_strength": "The how strongly the reference image is referenced during vibe transfer.",
-    "reference_information_extracted": "The amount of information to extract for vibe transfer.",
+    "reference_image_strength": "The how strongly the reference image is referenced during vibe transfer.",
+    "reference_image_information_extracted": "The amount of information to extract for vibe transfer.",
 }
 PARAMETER_DESCRIPTIONS_IMG2IMG = PARAMETER_DESCRIPTIONS.copy()
 PARAMETER_DESCRIPTIONS_IMG2IMG.pop("resolution")
