@@ -51,6 +51,16 @@ RESOLUTION_TITLES = OrderedDict({
     "1536,512": "Landscape (1536x512)",
 })
 
+MODELS = OrderedDict({
+    "nai-diffusion-3": "nai-diffusion-3",
+    "nai-diffusion-furry-3": "nai-diffusion-furry-3",
+})
+
+INPAINTING_MODELS = OrderedDict({
+    "nai-diffusion-3-inpainting": "nai-diffusion-3-inpainting",
+    "nai-diffusion-furry-3-inpainting": "nai-diffusion-furry-3-inpainting",
+})
+
 NOISE_SCHEDULES = [
     "Always pick recommended", "native", "karras", "exponential", "polyexponential",
 ]

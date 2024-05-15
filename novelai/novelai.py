@@ -38,7 +38,8 @@ class NovelAI(commands.Cog):
         self.queue: list[Tuple[Coroutine, discord.Interaction]] = []
         self.queue_task: Optional[asyncio.Task] = None
         self.generating: dict[int, bool] = {}
-        self.last_img: dict[int, datetime] = {}
+        self.user_last_img: dict[int, datetime] = {}
+        self.last_img: datetime = datetime.min
         self.loading_emoji = ""
         self.config = Config.get_conf(self, identifier=66766566169)
         defaults_user = {
@@ -47,16 +48,19 @@ class NovelAI(commands.Cog):
             "resolution": "832,1216",
             "guidance": 5.0,
             "guidance_rescale": 0.0,
-            "sampler": "k_euler",
+            "sampler": "k_euler_ancestral",
             "sampler_version": "Regular",
             "noise_schedule": "Always pick recommended",
             "decrisper": False,
+            "model": ImageModel.Anime_v3,
+            "inpainting_model": ImageModel.Inpainting_Anime_v3,
         }
         defaults_global = {
+            "generation_cooldown": 0,
             "server_cooldown": 0,
             "dm_cooldown": 60,
             "loading_emoji": "",
-            "vip": []
+            "vip": [],
         }
         defaults_guild = {
             "nsfw_filter": False,
@@ -84,22 +88,24 @@ class NovelAI(commands.Cog):
     async def consume_queue(self):
         new = True
         while self.queue:
-            task, ctx = self.queue.pop(0)
-            alive = True
-            if not new:
-                try:
-                    await ctx.edit_original_response(content=self.loading_emoji + "`Generating image...`")
-                except discord.errors.NotFound:
-                    self.generating[ctx.user.id] = False
-                    alive = False
-                except:
-                    log.exception("Editing message in queue")
-            if self.queue:
-                asyncio.create_task(self.edit_queue_messages())
-            if alive:
-                await task
-            await asyncio.sleep(2)
-            new = False
+            if (datetime.utcnow() - self.last_img).total_seconds() < generation_cooldown:
+                task, ctx = self.queue.pop(0)
+                alive = True
+                if not new:
+                    try:
+                        await ctx.edit_original_response(content=self.loading_emoji + "`Generating image...`")
+                    except discord.errors.NotFound:
+                        self.generating[ctx.user.id] = False
+                        alive = False
+                    except:
+                        log.exception("Editing message in queue")
+                if self.queue:
+                    asyncio.create_task(self.edit_queue_messages())
+                if alive:
+                    await task
+                await asyncio.sleep(2)
+                new = False
+            await asyncio.sleep(1)
 
     async def edit_queue_messages(self):
         tasks = [ctx.edit_original_response(content=self.loading_emoji + f"`Position in queue: {i + 1}`")
@@ -110,10 +116,11 @@ class NovelAI(commands.Cog):
                   ctx: discord.Interaction,
                   prompt: str,
                   preset: ImagePreset,
+                  model: ImageModel,
                   requester: Optional[int] = None,
                   callback: Optional[Coroutine] = None):
         self.generating[ctx.user.id] = True
-        self.queue.append((self.fulfill_novelai_request(ctx, prompt, preset, requester, callback), ctx))
+        self.queue.append((self.fulfill_novelai_request(ctx, prompt, preset, model, requester, callback), ctx))
         if not self.queue_task or self.queue_task.done():
             self.queue_task = asyncio.create_task(self.consume_queue())
 
@@ -140,17 +147,20 @@ class NovelAI(commands.Cog):
                       sampler_version: Optional[str],
                       noise_schedule: Optional[str],
                       decrisper: Optional[bool],
+                      model: Optional[ImageModel],
                       ):
+        model = model or ImageModel(await self.config.user(ctx.user).model())
+                      
         result = await self.prepare_novelai_request(
             ctx, prompt, negative_prompt, seed, resolution, guidance, guidance_rescale,
-            sampler, sampler_version, noise_schedule, decrisper
+            sampler, sampler_version, noise_schedule, decrisper, model
         )
         if not result:
             return
         prompt, preset = result
 
         message = self.get_loading_message()
-        self.queue_add(ctx, prompt, preset)
+        self.queue_add(ctx, prompt, preset, model)
         await ctx.response.send_message(content=message)
 
     @app_commands.command(name="novelai-img2img",
@@ -177,15 +187,18 @@ class NovelAI(commands.Cog):
                           sampler_version: Optional[str],
                           noise_schedule: Optional[str],
                           decrisper: Optional[bool],
-                          ):
+                          model: Optional[ImageModel],
+                          ):                       
         if "image" not in image.content_type or not image.width or not image.height:
             return await ctx.response.send_message("Attachment must be a valid image.", ephemeral=True)
         width, height = scale_to_size(image.width, image.height, MAX_FREE_IMAGE_SIZE)
         resolution = f"{round_to_nearest(width, 64)},{round_to_nearest(height, 64)}"
+        
+        model = model or ImageModel(await self.config.user(ctx.user).inpainting_model())
 
         result = await self.prepare_novelai_request(
             ctx, prompt, negative_prompt, seed, resolution, guidance, guidance_rescale,
-            sampler, sampler_version, noise_schedule, decrisper
+            sampler, sampler_version, noise_schedule, decrisper, model
         )
         if not result:
             return
@@ -209,7 +222,7 @@ class NovelAI(commands.Cog):
         preset.image = base64.b64encode(fp.read()).decode()
 
         message = self.get_loading_message()
-        self.queue_add(ctx, prompt, preset)
+        self.queue_add(ctx, prompt, model, preset)
         await ctx.edit_original_response(content=message)
 
     async def prepare_novelai_request(self,
@@ -224,6 +237,7 @@ class NovelAI(commands.Cog):
                                       sampler_version: Optional[str],
                                       noise_schedule: Optional[str],
                                       decrisper: Optional[bool],
+                                      model: Optional[ImageModel],
                                       ) -> Optional[Tuple[str, ImagePreset]]:
         if not self.api and not await self.try_create_api():
             return await ctx.response.send_message(
@@ -235,8 +249,8 @@ class NovelAI(commands.Cog):
             if self.generating.get(ctx.user.id, False):
                 content = "Your current image must finish generating before you can request another one."
                 return await ctx.response.send_message(content, ephemeral=True)
-            if ctx.user.id in self.last_img and (datetime.utcnow() - self.last_img[ctx.user.id]).total_seconds() < cooldown:
-                eta = self.last_img[ctx.user.id] + timedelta(seconds=cooldown)
+            if ctx.user.id in self.user_last_img and (datetime.utcnow() - self.user_last_img[ctx.user.id]).total_seconds() < cooldown:
+                eta = self.user_last_img[ctx.user.id] + timedelta(seconds=cooldown)
                 content = f"You may use this command again <t:{calendar.timegm(eta.utctimetuple())}:R>."
                 if not ctx.guild:
                     content += " (You can use it more frequently inside a server)"
@@ -297,6 +311,7 @@ class NovelAI(commands.Cog):
                                       ctx: discord.Interaction,
                                       prompt: str,
                                       preset: ImagePreset,
+                                      model: ImageModel,
                                       requester: Optional[int] = None,
                                       callback: Optional[Coroutine] = None):
         try:
@@ -305,7 +320,6 @@ class NovelAI(commands.Cog):
                     try:
                         async with self.api as wrapper:
                             action = ImageGenerationType.IMG2IMG if preset._settings.get("image", None) else ImageGenerationType.NORMAL
-                            model = ImageModel.Inpainting_Anime_v3 if action == ImageGenerationType.INPAINTING else ImageModel.Anime_v3
                             async for _, img in wrapper.api.high_level.generate_image(prompt, model, preset, action):
                                 image_bytes = img
                             break
@@ -349,7 +363,7 @@ class NovelAI(commands.Cog):
                 return
             finally:
                 self.generating[ctx.user.id] = False
-                self.last_img[ctx.user.id] = datetime.utcnow()
+                self.user_last_img[ctx.user.id] = datetime.utcnow()
 
             image = Image.open(io.BytesIO(image_bytes))
             comment = json.loads(image.info["Comment"])
@@ -411,6 +425,8 @@ class NovelAI(commands.Cog):
                               sampler_version: Optional[str],
                               noise_schedule: Optional[str],
                               decrisper: Optional[bool],
+                              model: Optional[ImageModel],
+                              inpainting_model: Optional[ImageModel],
                               ):
         if base_prompt is not None:
             base_prompt = base_prompt.strip(" ,")
@@ -440,6 +456,10 @@ class NovelAI(commands.Cog):
             await self.config.user(ctx.user).noise_schedule.set(noise_schedule)
         if decrisper is not None:
             await self.config.user(ctx.user).decrisper.set(decrisper)
+        if model is not None:
+            await self.config.user(ctx.user).model.set(model)
+        if inpainting_model is not None:
+            await self.config.user(ctx.user).inpainting_model.set(inpainting_model)
 
         embed = discord.Embed(title="NovelAI default settings", color=0xffffff)
         prompt = str(await self.config.user(ctx.user).base_prompt())
@@ -453,6 +473,8 @@ class NovelAI(commands.Cog):
         embed.add_field(name="Sampler Version", value=await self.config.user(ctx.user).sampler_version())
         embed.add_field(name="Noise Schedule", value=await self.config.user(ctx.user).noise_schedule())
         embed.add_field(name="Decrisper", value=f"{await self.config.user(ctx.user).decrisper()}")
+        embed.add_field(name="Model", value=MODELS[await self.config.user(ctx.user).model()])
+        embed.add_field(name="Inpainting Model", value=INPAINTING_MODELS[await self.config.user(ctx.user).inpainting_model()]")
         await ctx.response.send_message(embed=embed, ephemeral=True)
 
     @commands.group()
@@ -469,6 +491,16 @@ class NovelAI(commands.Cog):
         else:
             await self.config.server_cooldown.set(max(0, seconds))
         await ctx.reply(f"Users will need to wait {max(0, seconds)} seconds between generations inside a server.")
+        
+    @novelaiset.command()
+    @commands.is_owner()
+    async def generationcooldown(self, ctx: commands.Context, seconds: Optional[int]):
+        """Time in seconds since the LAST generation GLOBALLY was submitted that must pass before a new one will be submitted to NovelAI from the queue."""
+        if seconds is None:
+            seconds = await self.config.generation_cooldown()
+        else:
+            await self.config.generation_cooldown.set(max(0, seconds))
+        await ctx.reply(f"Bot will globally submit generation requests to NovelAI every {max(0, seconds)} from its queue.")
 
     @novelaiset.command()
     @commands.is_owner()
