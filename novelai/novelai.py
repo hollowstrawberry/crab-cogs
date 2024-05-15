@@ -39,12 +39,14 @@ class NovelAI(commands.Cog):
         self.queue_task: Optional[asyncio.Task] = None
         self.generating: dict[int, bool] = {}
         self.user_last_img: dict[int, datetime] = {}
-        self.last_img: datetime = datetime.min
+        self.last_generation_datetime: datetime = datetime.min
         self.loading_emoji = ""
         self.config = Config.get_conf(self, identifier=66766566169)
         defaults_user = {
             "base_prompt": DEFAULT_PROMPT,
+            "base_furry_prompt": DEFAULT_FURRY_PROMPT,
             "base_negative_prompt": DEFAULT_NEGATIVE_PROMPT,
+            "base_furry_negative_prompt": DEFAULT_FURRY_NEGATIVE_PROMPT,
             "resolution": "832,1216",
             "guidance": 5.0,
             "guidance_rescale": 0.0,
@@ -53,6 +55,8 @@ class NovelAI(commands.Cog):
             "noise_schedule": "Always pick recommended",
             "decrisper": False,
             "model": "nai-diffusion-3",
+            "reference_image_strength": 0.6,
+            "reference_image_information_extracted": 1.0,
         }
         defaults_global = {
             "generation_cooldown": 0,
@@ -87,7 +91,6 @@ class NovelAI(commands.Cog):
     async def consume_queue(self):
         new = True
         while self.queue:
-            # if (datetime.utcnow() - self.last_img).total_seconds() < await self.config.generation_cooldown():
             task, ctx = self.queue.pop(0)
             alive = True
             if not new:
@@ -104,7 +107,7 @@ class NovelAI(commands.Cog):
                 await task
             await asyncio.sleep(2)
             new = False
-            #await asyncio.sleep(1)
+
 
     async def edit_queue_messages(self):
         tasks = [ctx.edit_original_response(content=self.loading_emoji + f"`Position in queue: {i + 1}`")
@@ -147,7 +150,14 @@ class NovelAI(commands.Cog):
                       noise_schedule: Optional[str],
                       decrisper: Optional[bool],
                       model: Optional[ImageModel],
+                      reference_image: Optional[discord.Attachment],
+                      reference_image_strength: Optional[app_commands.Range[float, 0.0, 1.0]],
+                      reference_image_information_extracted: Optional[app_commands.Range[float, 0.0, 1.0]],
                       ):
+        if reference_image:
+            if "image" not in reference_image.content_type or not reference_image.width or not reference_image.height:
+                return await ctx.response.send_message("Attachment must be a valid image.", ephemeral=True)
+                      
         model = model or ImageModel(await self.config.user(ctx.user).model())
                       
         result = await self.prepare_novelai_request(
@@ -157,6 +167,12 @@ class NovelAI(commands.Cog):
         if not result:
             return
         prompt, preset = result
+        
+        if reference_image:
+            preset.reference_image = base64.b64encode(reference_image.read()).decode()
+            preset.reference_image = reference_image
+            preset.reference_strength = reference_image_strength or 0.6
+            preset.reference_information_extracted = reference_image_information_extracted or 1.0
 
         message = self.get_loading_message()
         self.queue_add(ctx, prompt, preset, model)
@@ -255,12 +271,20 @@ class NovelAI(commands.Cog):
                     content += " (You can use it more frequently inside a server)"
                 return await ctx.response.send_message(content, ephemeral=True)
 
-        base_prompt = await self.config.user(ctx.user).base_prompt()
+        base_prompt = ""
+        base_neg = ""
+        if model == ImageModel.Furry_v3:
+            base_prompt = await self.config.user(ctx.user).base_furry_prompt()
+            base_neg = await self.config.user(ctx.user).base_furry_negative_prompt()
+        else:
+            base_prompt = await self.config.user(ctx.user).base_prompt()
+            base_neg = await self.config.user(ctx.user).base_negative_prompt()
+
         if base_prompt:
             prompt = f"{prompt.strip(' ,')}, {base_prompt}" if prompt else base_prompt
-        base_neg = await self.config.user(ctx.user).base_negative_prompt()
         if base_neg:
             negative_prompt = f"{negative_prompt.strip(' ,')}, {base_neg}" if negative_prompt else base_neg
+        
         resolution = resolution or await self.config.user(ctx.user).resolution()
 
         if ctx.guild and not ctx.channel.nsfw and NSFW_TERMS.search(prompt):
@@ -286,7 +310,12 @@ class NovelAI(commands.Cog):
             preset.resolution = tuple(int(num) for num in resolution.split(","))
         except:
             preset.resolution = (1024, 1024)
-        preset.uc = negative_prompt or DEFAULT_NEGATIVE_PROMPT
+            
+        if model == ImageModel.Furry_v3:
+            preset.uc = negative_prompt or DEFAULT_FURRY_NEGATIVE_PROMPT
+        else:
+            preset.uc = negative_prompt or DEFAULT_NEGATIVE_PROMPT
+        
         preset.uc_preset = UCPreset.Preset_None
         preset.quality_toggle = False
         preset.sampler = sampler or ImageSampler(await self.config.user(ctx.user).sampler())
@@ -313,12 +342,17 @@ class NovelAI(commands.Cog):
                                       model: ImageModel,
                                       requester: Optional[int] = None,
                                       callback: Optional[Coroutine] = None):
+        generation_cooldown = await self.config.generation_cooldown();
+        while (seconds := (datetime.utcnow() - self.last_generation_datetime).total_seconds()) < generation_cooldown:
+            log.info(f"Waiting on generation_cooldown... {seconds} seconds remaining.")
+            await asyncio.sleep(1)
         try:
             try:
                 for retry in range(4):
                     try:
                         async with self.api as wrapper:
                             action = ImageGenerationType.IMG2IMG if preset._settings.get("image", None) else ImageGenerationType.NORMAL
+                            self.last_generation_datetime = datetime.utcnow()
                             async for _, img in wrapper.api.high_level.generate_image(prompt, model, preset, action):
                                 image_bytes = img
                             break
@@ -363,7 +397,6 @@ class NovelAI(commands.Cog):
             finally:
                 self.generating[ctx.user.id] = False
                 self.user_last_img[ctx.user.id] = datetime.utcnow()
-                self.last_img = datetime.utcnow()
 
             image = Image.open(io.BytesIO(image_bytes))
             comment = json.loads(image.info["Comment"])
@@ -412,12 +445,15 @@ class NovelAI(commands.Cog):
                           description="Views or updates your personal default values for /novelai")
     @app_commands.describe(base_prompt="Gets added after each prompt. \"none\" to delete, \"default\" to reset.",
                            base_negative_prompt="Gets added after each negative prompt. \"none\" to delete, \"default\" to reset.",
+                           base_furry_prompt="Gets added after each prompt for furry models. \"none\" to delete, \"default\" to reset.",
+                           base_furry_negative_prompt="Gets added after each negative prompt for furry models. \"none\" to delete, \"default\" to reset.",
                            **PARAMETER_DESCRIPTIONS)
     @app_commands.choices(**PARAMETER_CHOICES)
     async def novelaidefaults(self,
                               ctx: discord.Interaction,
                               base_prompt: Optional[str],
-                              base_negative_prompt: Optional[str],
+                              base_furry_prompt: Optional[str],
+                              base_furry_negative_prompt: Optional[str],
                               resolution: Optional[str],
                               guidance: Optional[app_commands.Range[float, 0.0, 10.0]],
                               guidance_rescale: Optional[app_commands.Range[float, 0.0, 1.0]],
@@ -425,6 +461,8 @@ class NovelAI(commands.Cog):
                               sampler_version: Optional[str],
                               noise_schedule: Optional[str],
                               decrisper: Optional[bool],
+                              reference_image_strength: Optional[app_commands.Range[float, 0.0, 1.0]],
+                              reference_image_information_extracted: Optional[app_commands.Range[float, 0.0, 1.0]],
                               model: Optional[ImageModel],
                               ):
         if base_prompt is not None:
@@ -441,6 +479,20 @@ class NovelAI(commands.Cog):
             elif base_negative_prompt.lower() == "default":
                 base_negative_prompt = DEFAULT_NEGATIVE_PROMPT
             await self.config.user(ctx.user).base_negative_prompt.set(base_negative_prompt)
+        if base_furry_prompt is not None:
+            base_furry_prompt = base_furry_prompt.strip(" ,")
+            if base_furry_prompt.lower() == "none":
+                base_furry_prompt = None
+            elif base_furry_prompt.lower() == "default":
+                base_furry_prompt = DEFAULT_FURRY_PROMPT
+            await self.config.user(ctx.user).base_furry_prompt.set(base_furry_prompt)
+        if base_furry_negative_prompt is not None:
+            base_furry_negative_prompt = base_furry_negative_prompt.strip(" ,")
+            if base_furry_negative_prompt.lower() == "none":
+                base_furry_negative_prompt = None
+            elif base_furry_negative_prompt.lower() == "default":
+                base_furry_negative_prompt = DEFAULT_FURRY_NEGATIVE_PROMPT
+            await self.config.user(ctx.user).base_furry_negative_prompt.set(base_furry_negative_prompt)
         if resolution is not None:
             await self.config.user(ctx.user).resolution.set(resolution)
         if guidance is not None:
@@ -457,12 +509,20 @@ class NovelAI(commands.Cog):
             await self.config.user(ctx.user).decrisper.set(decrisper)
         if model is not None:
             await self.config.user(ctx.user).model.set(model)
+        if reference_image_strength is not None:
+            await self.config.user(ctx.user).reference_image_strength.set(reference_image_strength)
+        if reference_image_information_extracted is not None:
+            await self.config.user(ctx.user).reference_image_information_extracted.set(reference_image_information_extracted)
 
         embed = discord.Embed(title="NovelAI default settings", color=0xffffff)
         prompt = str(await self.config.user(ctx.user).base_prompt())
         neg = str(await self.config.user(ctx.user).base_negative_prompt())
+        furry_prompt = str(await self.config.user(ctx.user).base_furry_prompt())
+        furry_neg = str(await self.config.user(ctx.user).base_furry_negative_prompt())
         embed.add_field(name="Base prompt", value=prompt[:1000] + "..." if len(prompt) > 1000 else prompt, inline=False)
         embed.add_field(name="Base negative prompt", value=neg[:1000] + "..." if len(neg) > 1000 else neg, inline=False)
+        embed.add_field(name="Base furry prompt", value=furry_prompt[:1000] + "..." if len(furry_prompt) > 1000 else furry_prompt, inline=False)
+        embed.add_field(name="Base furry negative prompt", value=furry_neg[:1000] + "..." if len(furry_neg) > 1000 else furry_neg, inline=False)
         embed.add_field(name="Resolution", value=RESOLUTION_TITLES[await self.config.user(ctx.user).resolution()])
         embed.add_field(name="Guidance", value=f"{await self.config.user(ctx.user).guidance():.1f}")
         embed.add_field(name="Guidance Rescale", value=f"{await self.config.user(ctx.user).guidance_rescale():.2f}")
@@ -470,6 +530,8 @@ class NovelAI(commands.Cog):
         embed.add_field(name="Sampler Version", value=await self.config.user(ctx.user).sampler_version())
         embed.add_field(name="Noise Schedule", value=await self.config.user(ctx.user).noise_schedule())
         embed.add_field(name="Decrisper", value=f"{await self.config.user(ctx.user).decrisper()}")
+        embed.add_field(name="Reference Image Strength", value=f"{await self.config.user(ctx.user).reference_image_strength():.2f}")
+        embed.add_field(name="Reference Information Extracted", value=f"{await self.config.user(ctx.user).reference_image_information_extracted():.2f}")
         embed.add_field(name="Model", value=MODELS[await self.config.user(ctx.user).model()])
         await ctx.response.send_message(embed=embed, ephemeral=True)
 

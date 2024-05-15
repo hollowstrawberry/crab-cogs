@@ -9,9 +9,18 @@ MAX_UPLOADED_IMAGE_SIZE = 1920*1080
 
 DEFAULT_PROMPT = "best quality, amazing quality, very aesthetic, absurdres"
 
+DEFAULT_FURRY_PROMPT = "{best quality}, {amazing quality}"
+
 DEFAULT_NEGATIVE_PROMPT = "{bad}, text, error, missing, extra, fewer, cropped, jpeg artifacts, " \
                           "worst quality, bad quality, watermark, signature, username, logo, " \
                           "displeasing, unfinished, chromatic aberration, scan, scan artifacts, simple background"
+                          
+DEFAULT_FURRY_NEGATIVE_PROMPT = "{{worst quality}}, [displeasing], {unusual pupils}, guide lines, {{unfinished}}, " \
+                                "{bad}, url, artist name, {{tall image}}, mosaic, {sketch page}, comic panel, " \
+                                "impact (font), [dated], {logo}, ych, {what}, {where is your god now}, " \
+                                "{distorted text}, repeated text, {floating head}, {1994}, {widescreen}, " \ 
+                                "absolutely everyone, sequence, {compression artifacts}, hard translated, " \
+                                "{cropped}, {commissioner name}, unknown text, high contrast"
 
 NSFW_TERMS = re.compile(r"\b(nsfw|explicit|questionable|sensitive|suggestive|nude|naked|sex|cum"
                         r"|topless|bottomless|no (panties|bra|clothes|underwear)"
@@ -78,6 +87,9 @@ PARAMETER_DESCRIPTIONS = {
     "noise_schedule": "The recommended option is based on the sampler.",
     "decrisper": "Reduces artifacts caused by high guidance.",
     "model": "The model to use for generation.",
+    "reference_image": "The image to use for vibe transfer.",
+    "reference_strength": "The how strongly the reference image is referenced during vibe transfer.",
+    "reference_information_extracted": "The amount of information to extract for vibe transfer.",
 }
 PARAMETER_DESCRIPTIONS_IMG2IMG = PARAMETER_DESCRIPTIONS.copy()
 PARAMETER_DESCRIPTIONS_IMG2IMG.pop("resolution")
