@@ -222,7 +222,7 @@ class NovelAI(commands.Cog):
         preset.image = base64.b64encode(fp.read()).decode()
 
         message = self.get_loading_message()
-        self.queue_add(ctx, prompt, model, preset)
+        self.queue_add(ctx, prompt, preset, model)
         await ctx.edit_original_response(content=message)
 
     async def prepare_novelai_request(self,
