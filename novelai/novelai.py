@@ -474,7 +474,7 @@ class NovelAI(commands.Cog):
         embed.add_field(name="Noise Schedule", value=await self.config.user(ctx.user).noise_schedule())
         embed.add_field(name="Decrisper", value=f"{await self.config.user(ctx.user).decrisper()}")
         embed.add_field(name="Model", value=MODELS[await self.config.user(ctx.user).model()])
-        embed.add_field(name="Inpainting Model", value=INPAINTING_MODELS[await self.config.user(ctx.user).inpainting_model()]")
+        embed.add_field(name="Inpainting Model", value=INPAINTING_MODELS[await self.config.user(ctx.user).inpainting_model()])
         await ctx.response.send_message(embed=embed, ephemeral=True)
 
     @commands.group()
