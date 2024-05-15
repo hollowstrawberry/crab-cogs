@@ -61,13 +61,13 @@ RESOLUTION_TITLES = OrderedDict({
 })
 
 MODELS = OrderedDict({
-    "nai-diffusion-3": "nai-diffusion-3",
-    "nai-diffusion-furry-3": "nai-diffusion-furry-3",
+    "nai-diffusion-3": "Anime v3",
+    "nai-diffusion-furry-3": "Furry v3",
 })
 
 INPAINTING_MODELS = OrderedDict({
-    "nai-diffusion-3-inpainting": "nai-diffusion-3-inpainting",
-    "nai-diffusion-furry-3-inpainting": "nai-diffusion-furry-3-inpainting",
+    "nai-diffusion-3-inpainting": "Anime v3 Inpainting",
+    "nai-diffusion-furry-3-inpainting": "Furry v3 Inpainting",
 })
 
 NOISE_SCHEDULES = [

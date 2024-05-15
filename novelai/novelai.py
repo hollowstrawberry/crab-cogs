@@ -166,13 +166,13 @@ class NovelAI(commands.Cog):
         max_image_size = await self.config.max_image_size()
         if reference_image1:
             if "image" not in reference_image1.content_type or not reference_image1.width or not reference_image1.height or not (reference_image1.size / 1024 / 1024) <= max_image_size:
-                return await ctx.response.send_message(f"reference_image1 must be a valid image and less than {max_image_size}.", ephemeral=True)
+                return await ctx.response.send_message(f"reference_image1 must be a valid image and less than {max_image_size} MB.", ephemeral=True)
         if reference_image2:
             if "image" not in reference_image2.content_type or not reference_image2.width or not reference_image2.height or not (reference_image2.size / 1024 / 1024) <= max_image_size:
-                return await ctx.response.send_message(f"reference_image1 must be a valid image and less than {max_image_size}.", ephemeral=True)
+                return await ctx.response.send_message(f"reference_image2 must be a valid image and less than {max_image_size} MB.", ephemeral=True)
         if reference_image3:
             if "image" not in reference_image3.content_type or not reference_image3.width or not reference_image3.height or not (reference_image3.size / 1024 / 1024) <= max_image_size:
-                return await ctx.response.send_message(f"reference_image1 must be a valid image and less than {max_image_size}.", ephemeral=True)
+                return await ctx.response.send_message(f"reference_image3 must be a valid image and less than {max_image_size} MB.", ephemeral=True)
                       
         model = model or ImageModel(await self.config.user(ctx.user).model())
                       
@@ -250,16 +250,16 @@ class NovelAI(commands.Cog):
                           ):
         max_image_size = await self.config.max_image_size()
         if "image" not in image.content_type or not image.width or not image.height or not (image.size / 1024 / 1024) <= max_image_size:
-            return await ctx.response.send_message(f"Attachment must be a valid image and less than {max_image_size}.", ephemeral=True)
+            return await ctx.response.send_message(f"Attachment must be a valid image and less than {max_image_size} MB.", ephemeral=True)
         if reference_image1:
             if "image" not in reference_image1.content_type or not reference_image1.width or not reference_image1.height or not (reference_image1.size / 1024 / 1024) <= max_image_size:
-                return await ctx.response.send_message(f"reference_image1 must be a valid image and less than {max_image_size}.", ephemeral=True)
+                return await ctx.response.send_message(f"reference_image1 must be a valid image and less than {max_image_size} MB.", ephemeral=True)
         if reference_image2:
             if "image" not in reference_image2.content_type or not reference_image2.width or not reference_image2.height or not (reference_image2.size / 1024 / 1024) <= max_image_size:
-                return await ctx.response.send_message(f"reference_image2 must be a valid image and less than {max_image_size}.", ephemeral=True)
+                return await ctx.response.send_message(f"reference_image2 must be a valid image and less than {max_image_size} MB.", ephemeral=True)
         if reference_image3:
             if "image" not in reference_image3.content_type or not reference_image3.width or not reference_image3.height or not (reference_image3.size / 1024 / 1024) <= max_image_size:
-                return await ctx.response.send_message(f"reference_image3 must be a valid image and less than {max_image_size}.", ephemeral=True)
+                return await ctx.response.send_message(f"reference_image3 must be a valid image and less than {max_image_size} MB.", ephemeral=True)
             
             
         width, height = scale_to_size(image.width, image.height, MAX_FREE_IMAGE_SIZE)
@@ -425,7 +425,7 @@ class NovelAI(commands.Cog):
                                       model: ImageModel,
                                       requester: Optional[int] = None,
                                       callback: Optional[Coroutine] = None):
-        generation_cooldown = await self.config.generation_cooldown();
+        generation_cooldown = await self.config.generation_cooldown()
         while (seconds := (datetime.utcnow() - self.last_generation_datetime).total_seconds()) < generation_cooldown:
             log.info(f"Waiting on generation_cooldown... {seconds} seconds remaining.")
             await asyncio.sleep(1)
@@ -663,9 +663,9 @@ class NovelAI(commands.Cog):
         new = not await self.config.dm_allowed()
         await self.config.dm_allowed.set(new)
         if new:
-            await ctx.reply("Direct messages enabled.")
+            await ctx.reply("Direct message generation enabled.")
         else:
-            await ctx.reply("Direct messages disabled.")
+            await ctx.reply("Direct message generation disabled.")
         
     @novelaiset.command()
     @commands.is_owner()
