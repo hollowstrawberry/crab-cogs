@@ -170,7 +170,7 @@ class NovelAI(commands.Cog):
         prompt, preset = result
         
         if reference_image:
-            preset.reference_image = base64.b64encode(reference_image.read()).decode()
+            preset.reference_image = base64.b64encode(await reference_image.read()).decode()
             preset.reference_strength = reference_image_strength or 0.6
             preset.reference_information_extracted = reference_image_info_extracted or 1.0
 
@@ -241,7 +241,7 @@ class NovelAI(commands.Cog):
         preset.image = base64.b64encode(fp.read()).decode()
         
         if reference_image:
-            preset.reference_image = base64.b64encode(reference_image.read()).decode()
+            preset.reference_image = base64.b64encode(await reference_image.read()).decode()
             preset.reference_strength = reference_image_strength or 0.6
             preset.reference_information_extracted = reference_image_info_extracted or 1.0
 
