@@ -459,6 +459,7 @@ class NovelAI(commands.Cog):
     async def novelaidefaults(self,
                               ctx: discord.Interaction,
                               base_prompt: Optional[str],
+                              base_negative_prompt: Optional[str],
                               base_furry_prompt: Optional[str],
                               base_furry_negative_prompt: Optional[str],
                               resolution: Optional[str],
