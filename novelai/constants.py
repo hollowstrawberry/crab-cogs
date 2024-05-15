@@ -4,7 +4,7 @@ from collections import OrderedDict
 
 VIEW_TIMEOUT = 5 * 60
 
-MAX_FREE_IMAGE_SIZE = 1000*1000
+MAX_FREE_IMAGE_SIZE = 1024*1024
 MAX_UPLOADED_IMAGE_SIZE = 1920*1080
 
 DEFAULT_PROMPT = "best quality, amazing quality, very aesthetic, absurdres"
@@ -87,8 +87,6 @@ PARAMETER_DESCRIPTIONS = {
     "noise_schedule": "The recommended option is based on the sampler.",
     "decrisper": "Reduces artifacts caused by high guidance.",
     "model": "The model to use for generation.",
-    "reference_image_strength": "Vibe transfer: How strongly the reference image is used.",
-    "reference_image_info_extracted": "Vibe transfer: The amount of information to extract.",
 }
 PARAMETER_DESCRIPTIONS_IMG2IMG = PARAMETER_DESCRIPTIONS.copy()
 PARAMETER_DESCRIPTIONS_IMG2IMG.pop("resolution")
@@ -103,3 +101,15 @@ PARAMETER_CHOICES = {
 
 PARAMETER_CHOICES_IMG2IMG = PARAMETER_CHOICES.copy()
 PARAMETER_CHOICES_IMG2IMG.pop("resolution")
+
+PARAMETER_DESCRIPTIONS_VIBE = {
+    "reference_image1": "Vibe transfer: Image to use as a reference.",
+    "reference_image_strength1": "Vibe transfer: How strongly the reference image is used.",
+    "reference_image_info_extracted1": "Vibe transfer: The amount of information to extract.",
+    "reference_image2": "Vibe transfer: Image to use as a reference.",
+    "reference_image_strength2": "Vibe transfer: How strongly the reference image is used.",
+    "reference_image_info_extracted2": "Vibe transfer: The amount of information to extract.",
+    "reference_image3": "Vibe transfer: Image to use as a reference.",
+    "reference_image_strength3": "Vibe transfer: How strongly the reference image is used.",
+    "reference_image_info_extracted3": "Vibe transfer: The amount of information to extract.",
+}

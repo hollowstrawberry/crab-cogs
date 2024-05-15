@@ -59,6 +59,7 @@ class NovelAI(commands.Cog):
             "reference_image_info_extracted": 1.0,
         }
         defaults_global = {
+            "max_image_size": 50,
             "generation_cooldown": 0,
             "server_cooldown": 0,
             "dm_cooldown": 60,
@@ -135,8 +136,8 @@ class NovelAI(commands.Cog):
     @app_commands.describe(prompt="Gets added to your base prompt (/novelaidefaults)",
                            negative_prompt="Gets added to your base negative prompt (/novelaidefaults)",
                            seed="Random number that determines image generation.",
-                           reference_image= "Vibe transfer: Image to use as a reference.",
-                           **PARAMETER_DESCRIPTIONS)
+                           **PARAMETER_DESCRIPTIONS,
+                           **PARAMETER_DESCRIPTIONS_VIBE)
     @app_commands.choices(**PARAMETER_CHOICES)
     async def novelai(self,
                       ctx: discord.Interaction,
@@ -151,13 +152,26 @@ class NovelAI(commands.Cog):
                       noise_schedule: Optional[str],
                       decrisper: Optional[bool],
                       model: Optional[ImageModel],
-                      reference_image: Optional[discord.Attachment],
-                      reference_image_strength: Optional[app_commands.Range[float, 0.0, 1.0]],
-                      reference_image_info_extracted: Optional[app_commands.Range[float, 0.0, 1.0]],
+                      reference_image1: Optional[discord.Attachment],
+                      reference_image_strength1: Optional[app_commands.Range[float, 0.0, 1.0]],
+                      reference_image_info_extracted1: Optional[app_commands.Range[float, 0.0, 1.0]],
+                      reference_image2: Optional[discord.Attachment],
+                      reference_image_strength2: Optional[app_commands.Range[float, 0.0, 1.0]],
+                      reference_image_info_extracted2: Optional[app_commands.Range[float, 0.0, 1.0]],
+                      reference_image3: Optional[discord.Attachment],
+                      reference_image_strength3: Optional[app_commands.Range[float, 0.0, 1.0]],
+                      reference_image_info_extracted3: Optional[app_commands.Range[float, 0.0, 1.0]],
                       ):
-        if reference_image:
-            if "image" not in reference_image.content_type or not reference_image.width or not reference_image.height:
-                return await ctx.response.send_message("Attachment must be a valid image.", ephemeral=True)
+        max_image_size = await self.config.max_image_size()
+        if reference_image1:
+            if "image" not in reference_image1.content_type or not reference_image1.width or not reference_image1.height or not (reference_image1.size / 1024 / 1024) <= max_image_size:
+                return await ctx.response.send_message(f"reference_image1 must be a valid image and less than {max_image_size}.", ephemeral=True)
+        if reference_image2:
+            if "image" not in reference_image2.content_type or not reference_image2.width or not reference_image2.height or not (reference_image2.size / 1024 / 1024) <= max_image_size:
+                return await ctx.response.send_message(f"reference_image1 must be a valid image and less than {max_image_size}.", ephemeral=True)
+        if reference_image3:
+            if "image" not in reference_image3.content_type or not reference_image3.width or not reference_image3.height or not (reference_image3.size / 1024 / 1024) <= max_image_size:
+                return await ctx.response.send_message(f"reference_image1 must be a valid image and less than {max_image_size}.", ephemeral=True)
                       
         model = model or ImageModel(await self.config.user(ctx.user).model())
                       
@@ -169,10 +183,33 @@ class NovelAI(commands.Cog):
             return
         prompt, preset = result
         
-        if reference_image:
-            preset.reference_image = base64.b64encode(await reference_image.read()).decode()
-            preset.reference_strength = reference_image_strength or 0.6
-            preset.reference_information_extracted = reference_image_info_extracted or 1.0
+        preset.reference_image_multiple = [image1, image2, image3]
+        preset.reference_strength_multiple = [0.6, 0.6, 0.6]
+        preset.reference_information_extracted_multiple = [1.0, 1.0, 1.0]
+        
+        if reference_image1 or reference_image2 or reference_image3:
+            reference_images = []
+            reference_strengths = []
+            reference_infos = []
+            default_strength = await self.config.user(ctx.user).reference_image_strength() or 0.6
+            default_info = await self.config.user(ctx.user).reference_image_info_extracted() or 1.0
+                if reference_image1:
+                    reference_images.append(base64.b64encode(await reference_image1.read()).decode())
+                    reference_strengths.append(reference_image_strength1 or default_strength)
+                    reference_infos.append(reference_image_info_extracted1 or default_info)
+                
+                if reference_image2:
+                    reference_images.append(base64.b64encode(await reference_image2.read()).decode())
+                    reference_strengths.append(reference_image_strength2 or default_strength)
+                    reference_infos.append(reference_image_info_extracted2 or default_info)
+                    
+                if reference_image3:
+                    reference_images.append(base64.b64encode(await reference_image3.read()).decode())
+                    reference_strengths.append(reference_image_strength3 or default_strength)
+                    reference_infos.append(reference_image_info_extracted3 or default_info)
+            preset.reference_image_multiple = reference_images
+            preset.reference_strength_multiple = reference_strengths
+            preset.reference_information_extracted_multiple = reference_infos
 
         message = self.get_loading_message()
         self.queue_add(ctx, prompt, preset, model)
@@ -186,8 +223,8 @@ class NovelAI(commands.Cog):
                            prompt="Gets added to your base prompt (/novelaidefaults)",
                            negative_prompt="Gets added to your base negative prompt (/novelaidefaults)",
                            seed="Random number that determines image generation.",
-                           reference_image= "Vibe transfer: Image to use as a reference.",
-                           **PARAMETER_DESCRIPTIONS_IMG2IMG)
+                           **PARAMETER_DESCRIPTIONS_IMG2IMG,
+                           **PARAMETER_DESCRIPTIONS_VIBE)
     @app_commands.choices(**PARAMETER_CHOICES_IMG2IMG)
     async def novelai_img(self,
                           ctx: discord.Interaction,
@@ -203,13 +240,31 @@ class NovelAI(commands.Cog):
                           sampler_version: Optional[str],
                           noise_schedule: Optional[str],
                           decrisper: Optional[bool],
-                          reference_image: Optional[discord.Attachment],
-                          reference_image_strength: Optional[app_commands.Range[float, 0.0, 1.0]],
-                          reference_image_info_extracted: Optional[app_commands.Range[float, 0.0, 1.0]],
                           model: Optional[ImageModel],
-                          ):                       
-        if "image" not in image.content_type or not image.width or not image.height:
-            return await ctx.response.send_message("Attachment must be a valid image.", ephemeral=True)
+                          reference_image1: Optional[discord.Attachment],
+                          reference_image_strength1: Optional[app_commands.Range[float, 0.0, 1.0]],
+                          reference_image_info_extracted1: Optional[app_commands.Range[float, 0.0, 1.0]],
+                          reference_image2: Optional[discord.Attachment],
+                          reference_image_strength2: Optional[app_commands.Range[float, 0.0, 1.0]],
+                          reference_image_info_extracted2: Optional[app_commands.Range[float, 0.0, 1.0]],
+                          reference_image3: Optional[discord.Attachment],
+                          reference_image_strength3: Optional[app_commands.Range[float, 0.0, 1.0]],
+                          reference_image_info_extracted3: Optional[app_commands.Range[float, 0.0, 1.0]],
+                          ):
+        max_image_size = await self.config.max_image_size()
+        if "image" not in image.content_type or not image.width or not image.height or not (image.size / 1024 / 1024) <= max_image_size:
+            return await ctx.response.send_message(f"Attachment must be a valid image and less than {max_image_size}.", ephemeral=True)
+        if reference_image1:
+            if "image" not in reference_image1.content_type or not reference_image1.width or not reference_image1.height or not (reference_image1.size / 1024 / 1024) <= max_image_size:
+                return await ctx.response.send_message(f"reference_image1 must be a valid image and less than {max_image_size}.", ephemeral=True)
+        if reference_image2:
+            if "image" not in reference_image2.content_type or not reference_image2.width or not reference_image2.height or not (reference_image2.size / 1024 / 1024) <= max_image_size:
+                return await ctx.response.send_message(f"reference_image2 must be a valid image and less than {max_image_size}.", ephemeral=True)
+        if reference_image3:
+            if "image" not in reference_image3.content_type or not reference_image3.width or not reference_image3.height or not (reference_image3.size / 1024 / 1024) <= max_image_size:
+                return await ctx.response.send_message(f"reference_image3 must be a valid image and less than {max_image_size}.", ephemeral=True)
+            
+            
         width, height = scale_to_size(image.width, image.height, MAX_FREE_IMAGE_SIZE)
         resolution = f"{round_to_nearest(width, 64)},{round_to_nearest(height, 64)}"
         
@@ -240,10 +295,29 @@ class NovelAI(commands.Cog):
                 return await ctx.followup.send(":warning: Failed to resize image. Please try sending a smaller image.")
         preset.image = base64.b64encode(fp.read()).decode()
         
-        if reference_image:
-            preset.reference_image = base64.b64encode(await reference_image.read()).decode()
-            preset.reference_strength = reference_image_strength or 0.6
-            preset.reference_information_extracted = reference_image_info_extracted or 1.0
+        if reference_image1 or reference_image2 or reference_image3:
+            reference_images = []
+            reference_strengths = []
+            reference_infos = []
+            default_strength = await self.config.user(ctx.user).reference_image_strength() or 0.6
+            default_info = await self.config.user(ctx.user).reference_image_info_extracted() or 1.0
+                if reference_image1:
+                    reference_images.append(base64.b64encode(await reference_image1.read()).decode())
+                    reference_strengths.append(reference_image_strength1 or default_strength)
+                    reference_infos.append(reference_image_info_extracted1 or default_info)
+                
+                if reference_image2:
+                    reference_images.append(base64.b64encode(await reference_image2.read()).decode())
+                    reference_strengths.append(reference_image_strength2 or default_strength)
+                    reference_infos.append(reference_image_info_extracted2 or default_info)
+                    
+                if reference_image3:
+                    reference_images.append(base64.b64encode(await reference_image3.read()).decode())
+                    reference_strengths.append(reference_image_strength3 or default_strength)
+                    reference_infos.append(reference_image_info_extracted3 or default_info)
+            preset.reference_image_multiple = reference_images
+            preset.reference_strength_multiple = reference_strengths
+            preset.reference_information_extracted_multiple = reference_infos
 
         message = self.get_loading_message()
         self.queue_add(ctx, prompt, preset, model)
@@ -456,6 +530,8 @@ class NovelAI(commands.Cog):
                            base_negative_prompt="Gets added after each negative prompt. \"none\" to delete, \"default\" to reset.",
                            base_furry_prompt="Gets added after each prompt for furry models. \"none\" to delete, \"default\" to reset.",
                            base_furry_negative_prompt="Gets added after each negative prompt for furry models. \"none\" to delete, \"default\" to reset.",
+                           reference_image_strength= "Vibe transfer: How strongly the reference image is used.",
+                           reference_image_info_extracted= "Vibe transfer: The amount of information to extract.",
                            **PARAMETER_DESCRIPTIONS)
     @app_commands.choices(**PARAMETER_CHOICES)
     async def novelaidefaults(self,
@@ -579,6 +655,16 @@ class NovelAI(commands.Cog):
         else:
             await self.config.dm_cooldown.set(max(0, seconds))
         await ctx.reply(f"Users will need to wait {max(0, seconds)} seconds between generations in DMs with the bot.")
+        
+    @novelaiset.command()
+    @commands.is_owner()
+    async def maximagesize(self, ctx: commands.Context, size: Optional[int]):
+        """Max image size in MB that will be accepted for images provided by a user."""
+        if seconds is None:
+            seconds = await self.config.max_image_size()
+        else:
+            await self.config.max_image_size.set(max(1, size))
+        await ctx.reply(f"Images provided by users up to {max(1, size)} MB will be accepted.")        
 
     @novelaiset.command()
     @commands.guild_only()
