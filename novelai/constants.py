@@ -4,15 +4,24 @@ from collections import OrderedDict
 
 VIEW_TIMEOUT = 5 * 60
 
-MAX_FREE_IMAGE_SIZE = 1000*1000
+MAX_FREE_IMAGE_SIZE = 1024*1024
 MAX_UPLOADED_IMAGE_SIZE = 1920*1080
 
 DEFAULT_PROMPT = "best quality, amazing quality, very aesthetic, absurdres"
 
+DEFAULT_FURRY_PROMPT = "{best quality}, {amazing quality}"
+
 DEFAULT_NEGATIVE_PROMPT = "{bad}, text, error, missing, extra, fewer, cropped, jpeg artifacts, " \
                           "worst quality, bad quality, watermark, signature, username, logo, " \
                           "displeasing, unfinished, chromatic aberration, scan, scan artifacts, simple background"
-
+                          
+DEFAULT_FURRY_NEGATIVE_PROMPT = "{{worst quality}}, [displeasing], {unusual pupils}, guide lines, {{unfinished}}, " \
+                                "{bad}, url, artist name, {{tall image}}, mosaic, {sketch page}, comic panel, " \
+                                "impact (font), [dated], {logo}, ych, {what}, {where is your god now}, " \
+                                "{distorted text}, repeated text, {floating head}, {1994}, {widescreen}, " \
+                                "absolutely everyone, sequence, {compression artifacts}, hard translated, " \
+                                "{cropped}, {commissioner name}, unknown text, high contrast"
+                                
 NSFW_TERMS = re.compile(r"\b(nsfw|explicit|questionable|sensitive|suggestive|nude|naked|sex|cum"
                         r"|topless|bottomless|no (panties|bra|clothes|underwear)"
                         r"|anus|penis|pussy|nipples?|labia|vulva|cleft|clit(oris|oral)?"
@@ -51,6 +60,16 @@ RESOLUTION_TITLES = OrderedDict({
     "1536,512": "Landscape (1536x512)",
 })
 
+MODELS = OrderedDict({
+    "nai-diffusion-3": "Anime v3",
+    "nai-diffusion-furry-3": "Furry v3",
+})
+
+INPAINTING_MODELS = OrderedDict({
+    "nai-diffusion-3-inpainting": "Anime v3 Inpainting",
+    "nai-diffusion-furry-3-inpainting": "Furry v3 Inpainting",
+})
+
 NOISE_SCHEDULES = [
     "Always pick recommended", "native", "karras", "exponential", "polyexponential",
 ]
@@ -67,6 +86,7 @@ PARAMETER_DESCRIPTIONS = {
     "sampler_version": "SMEA samplers are modified to perform better at higher resolutions.",
     "noise_schedule": "The recommended option is based on the sampler.",
     "decrisper": "Reduces artifacts caused by high guidance.",
+    "model": "The model to use for generation.",
 }
 PARAMETER_DESCRIPTIONS_IMG2IMG = PARAMETER_DESCRIPTIONS.copy()
 PARAMETER_DESCRIPTIONS_IMG2IMG.pop("resolution")
@@ -76,7 +96,20 @@ PARAMETER_CHOICES = {
     "sampler": [Choice(name=title, value=value) for value, title in SAMPLER_TITLES.items()],
     "sampler_version": [Choice(name=ver, value=ver) for ver in SAMPLER_VERSIONS],
     "noise_schedule": [Choice(name=sch, value=sch) for sch in NOISE_SCHEDULES],
+    "model": [Choice(name=mdl, value=mdl) for mdl in MODELS],
 }
 
 PARAMETER_CHOICES_IMG2IMG = PARAMETER_CHOICES.copy()
 PARAMETER_CHOICES_IMG2IMG.pop("resolution")
+
+PARAMETER_DESCRIPTIONS_VIBE = {
+    "reference_image1": "Vibe transfer: Image to use as a reference.",
+    "reference_image_strength1": "Vibe transfer: How strongly the reference image is used.",
+    "reference_image_info_extracted1": "Vibe transfer: The amount of information to extract.",
+    "reference_image2": "Vibe transfer: Image to use as a reference.",
+    "reference_image_strength2": "Vibe transfer: How strongly the reference image is used.",
+    "reference_image_info_extracted2": "Vibe transfer: The amount of information to extract.",
+    "reference_image3": "Vibe transfer: Image to use as a reference.",
+    "reference_image_strength3": "Vibe transfer: How strongly the reference image is used.",
+    "reference_image_info_extracted3": "Vibe transfer: The amount of information to extract.",
+}

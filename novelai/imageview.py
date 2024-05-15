@@ -3,18 +3,19 @@ import discord
 import calendar
 from datetime import datetime, timedelta
 from discord.ui import View
-from novelai_api.ImagePreset import ImagePreset
+from novelai_api.ImagePreset import ImagePreset, ImageModel
 
 from novelai.constants import VIEW_TIMEOUT
 
 
 class ImageView(View):
-    def __init__(self, cog, prompt: str, preset: ImagePreset, seed: int):
+    def __init__(self, cog, prompt: str, preset: ImagePreset, seed: int, model: ImageModel):
         super().__init__(timeout=VIEW_TIMEOUT)
         self.cog = cog
         self.prompt = prompt
         self.preset = preset
         self.seed = seed
+        self.model = model
         self.deleted = False
 
     @discord.ui.button(emoji="🌱", style=discord.ButtonStyle.grey)
@@ -24,6 +25,9 @@ class ImageView(View):
 
     @discord.ui.button(emoji="♻", style=discord.ButtonStyle.grey)
     async def recycle(self, ctx: discord.Interaction, btn: discord.Button):
+        if not ctx.guild and not await self.cog.config.dm_allowed():
+            return await ctx.response.send_message("Direct message use is disabled.", ephemeral=True)
+    
         if ctx.user.id not in await self.cog.config.vip():
             cooldown = await self.cog.config.server_cooldown() if ctx.guild else await self.cog.config.dm_cooldown()
             if self.cog.generating.get(ctx.user.id, False):
@@ -42,7 +46,7 @@ class ImageView(View):
         btn.disabled = False  # re-enables it after the task calls back
 
         content = self.cog.get_loading_message()
-        self.cog.queue_add(ctx, self.prompt, self.preset, ctx.user.id, ctx.message.edit(view=self))
+        self.cog.queue_add(ctx, self.prompt, self.preset, self.model, ctx.user.id, ctx.message.edit(view=self))
         await ctx.response.send_message(content=content)
 
     @discord.ui.button(emoji="🗑️", style=discord.ButtonStyle.grey)
@@ -65,15 +69,19 @@ class ImageView(View):
 
 
 class RetryView(View):
-    def __init__(self, cog, prompt: str, preset: ImagePreset):
+    def __init__(self, cog, prompt: str, preset: ImagePreset, model: ImageModel):
         super().__init__(timeout=VIEW_TIMEOUT)
         self.cog = cog
         self.prompt = prompt
         self.preset = preset
+        self.model = model
         self.deleted = False
 
     @discord.ui.button(emoji="🔁", style=discord.ButtonStyle.grey)
     async def retry(self, ctx: discord.Interaction, _: discord.Button):
+        if not ctx.guild and not await self.cog.config.dm_allowed():
+            return await ctx.response.send_message("Direct message use is disabled.", ephemeral=True)
+    
         if not await self.cog.bot.is_owner(ctx.user):
             if self.cog.generating.get(ctx.user.id, False):
                 content = "Your current image must finish generating before you can request another one."
@@ -83,5 +91,5 @@ class RetryView(View):
         self.stop()
         await ctx.message.edit(view=None)
         content = self.cog.get_loading_message()
-        self.cog.queue_add(ctx, self.prompt, self.preset, ctx.user.id, ctx.message.edit(view=None))
+        self.cog.queue_add(ctx, self.prompt, self.preset, self.model, ctx.user.id, ctx.message.edit(view=None))
         await ctx.response.send_message(content=content)
