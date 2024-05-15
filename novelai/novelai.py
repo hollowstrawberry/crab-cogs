@@ -135,6 +135,7 @@ class NovelAI(commands.Cog):
     @app_commands.describe(prompt="Gets added to your base prompt (/novelaidefaults)",
                            negative_prompt="Gets added to your base negative prompt (/novelaidefaults)",
                            seed="Random number that determines image generation.",
+                           reference_image: "The image to use as a reference for vibe transfer.",
                            **PARAMETER_DESCRIPTIONS)
     @app_commands.choices(**PARAMETER_CHOICES)
     async def novelai(self,
@@ -179,12 +180,13 @@ class NovelAI(commands.Cog):
 
     @app_commands.command(name="novelai-img2img",
                           description="Convert img2img with NovelAI v3.")
-    @app_commands.describe(image="The image you want to use as a base.",
+    @app_commands.describe(image="The image you want to use as a base for img2img.",
                            strength="How much you want the image to change. 0.7 is default.",
                            noise="Adds new detail to your image. 0 is default.",
                            prompt="Gets added to your base prompt (/novelaidefaults)",
                            negative_prompt="Gets added to your base negative prompt (/novelaidefaults)",
                            seed="Random number that determines image generation.",
+                           reference_image: "The image to use as a reference for vibe transfer.",
                            **PARAMETER_DESCRIPTIONS_IMG2IMG)
     @app_commands.choices(**PARAMETER_CHOICES_IMG2IMG)
     async def novelai_img(self,
