@@ -77,6 +77,7 @@ PARAMETER_DESCRIPTIONS = {
     "sampler_version": "SMEA samplers are modified to perform better at higher resolutions.",
     "noise_schedule": "The recommended option is based on the sampler.",
     "decrisper": "Reduces artifacts caused by high guidance.",
+    "model": "The model to use for generation.",
 }
 PARAMETER_DESCRIPTIONS_IMG2IMG = PARAMETER_DESCRIPTIONS.copy()
 PARAMETER_DESCRIPTIONS_IMG2IMG.pop("resolution")
@@ -86,7 +87,9 @@ PARAMETER_CHOICES = {
     "sampler": [Choice(name=title, value=value) for value, title in SAMPLER_TITLES.items()],
     "sampler_version": [Choice(name=ver, value=ver) for ver in SAMPLER_VERSIONS],
     "noise_schedule": [Choice(name=sch, value=sch) for sch in NOISE_SCHEDULES],
+    "model": [Choice(name=mdl, value=mdl) for mdl in MODELS],
 }
 
 PARAMETER_CHOICES_IMG2IMG = PARAMETER_CHOICES.copy()
 PARAMETER_CHOICES_IMG2IMG.pop("resolution")
+PARAMETER_CHOICES_IMG2IMG["model"] = [Choice(name=mdl, value=mdl) for mdl in INPAINTING_MODELS]
