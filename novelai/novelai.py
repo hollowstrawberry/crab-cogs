@@ -170,7 +170,6 @@ class NovelAI(commands.Cog):
         
         if reference_image:
             preset.reference_image = base64.b64encode(reference_image.read()).decode()
-            preset.reference_image = reference_image
             preset.reference_strength = reference_image_strength or 0.6
             preset.reference_information_extracted = reference_image_information_extracted or 1.0
 
@@ -202,6 +201,9 @@ class NovelAI(commands.Cog):
                           sampler_version: Optional[str],
                           noise_schedule: Optional[str],
                           decrisper: Optional[bool],
+                          reference_image: Optional[discord.Attachment],
+                          reference_image_strength: Optional[app_commands.Range[float, 0.0, 1.0]],
+                          reference_image_information_extracted: Optional[app_commands.Range[float, 0.0, 1.0]],
                           model: Optional[ImageModel],
                           ):                       
         if "image" not in image.content_type or not image.width or not image.height:
@@ -235,6 +237,11 @@ class NovelAI(commands.Cog):
                 log.exception("Resizing image")
                 return await ctx.followup.send(":warning: Failed to resize image. Please try sending a smaller image.")
         preset.image = base64.b64encode(fp.read()).decode()
+        
+        if reference_image:
+            preset.reference_image = base64.b64encode(reference_image.read()).decode()
+            preset.reference_strength = reference_image_strength or 0.6
+            preset.reference_information_extracted = reference_image_information_extracted or 1.0
 
         message = self.get_loading_message()
         self.queue_add(ctx, prompt, preset, model)
