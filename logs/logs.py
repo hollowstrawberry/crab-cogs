@@ -25,35 +25,45 @@ class Logs(commands.Cog):
     @commands.group(invoke_without_command=True)
     async def logs(self, ctx: commands.Context, lines: Optional[int]):
         """Sends the last n lines of the latest log file (default 100)."""
-        private = await self.config.private()
-        channel = (ctx.author.dm_channel or await ctx.author.create_dm()) if private else ctx.channel
-        if not lines or lines < 0:
-            lines = 100
-        pages = []
-        with open(LATEST_LOGS, 'r') as f:
-            result = [line.strip() for line in f.readlines()[-lines:]]
-        while result:
-            page = ""
+        try:
+            private = await self.config.private()
+            channel = (ctx.author.dm_channel or await ctx.author.create_dm()) if private else ctx.channel
+            if not lines or lines < 0:
+                lines = 100
+            pages = []
+            if os.path.exists(LATEST_LOGS):
+                latest_logs = LATEST_LOGS
+            else:
+                path = os.path.join(core_data_path(), "logs")
+                files = os.listdir(path)
+                files.sort()
+                latest_logs = os.path.join(path, files[-1])
+            with open(latest_logs, 'r') as f:
+                result = [line.strip() for line in f.readlines()[-lines:]]
             while result:
-                if len(page) + 1 + len(result[-1]) <= MAX_PAGE_LENGTH:
-                    page = result.pop() + "\n" + page
-                elif not page:  # cuts up a huge line
-                    page, result[-1] = "..." + result[-1][-MAX_PAGE_LENGTH:], result[-1][:-MAX_PAGE_LENGTH] + "...",
-                else:
-                    break
-            pages.append(f"```py\n{page.strip()}```")
-        if not pages:
-            await channel.send("Empty")
-        elif len(pages) == 1:
-            await channel.send(content=pages[0])
-        else:
-            pages.reverse()
-            for i in range(len(pages)):
-                pages[i] += f"`Page {i+1}/{len(pages)}`"
-            ctx.message.channel = channel
-            ctx.message.guild = None
-            ctx: commands.Context = await self.bot.get_context(ctx.message)  # noqa
-            await SimpleMenu(pages, timeout=7200, page_start=len(pages)-1).start(ctx)
+                page = ""
+                while result:
+                    if len(page) + 1 + len(result[-1]) <= MAX_PAGE_LENGTH:
+                        page = result.pop() + "\n" + page
+                    elif not page:  # cuts up a huge line
+                        page, result[-1] = "..." + result[-1][-MAX_PAGE_LENGTH:], result[-1][:-MAX_PAGE_LENGTH] + "...",
+                    else:
+                        break
+                pages.append(f"```py\n{page.strip()}```")
+            if not pages:
+                await channel.send("Empty")
+            elif len(pages) == 1:
+                await channel.send(content=pages[0])
+            else:
+                pages.reverse()
+                for i in range(len(pages)):
+                    pages[i] += f"`Page {i+1}/{len(pages)}`"
+                ctx.message.channel = channel
+                ctx.message.guild = None
+                ctx: commands.Context = await self.bot.get_context(ctx.message)  # noqa
+                await SimpleMenu(pages, timeout=7200, page_start=len(pages)-1).start(ctx)
+        except Exception as ex:
+            await ctx.send(f"{type(ex).__name__}: {ex}")
 
     @logs.command(name="file")
     async def logs_file(self, ctx: commands.Context):
