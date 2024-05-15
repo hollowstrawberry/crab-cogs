@@ -56,7 +56,7 @@ class NovelAI(commands.Cog):
             "decrisper": False,
             "model": "nai-diffusion-3",
             "reference_image_strength": 0.6,
-            "reference_image_information_extracted": 1.0,
+            "reference_image_info_extracted": 1.0,
         }
         defaults_global = {
             "generation_cooldown": 0,
@@ -135,7 +135,7 @@ class NovelAI(commands.Cog):
     @app_commands.describe(prompt="Gets added to your base prompt (/novelaidefaults)",
                            negative_prompt="Gets added to your base negative prompt (/novelaidefaults)",
                            seed="Random number that determines image generation.",
-                           reference_image= "The image to use as a reference for vibe transfer.",
+                           reference_image= "Vibe transfer: Image to use as a reference.",
                            **PARAMETER_DESCRIPTIONS)
     @app_commands.choices(**PARAMETER_CHOICES)
     async def novelai(self,
@@ -153,7 +153,7 @@ class NovelAI(commands.Cog):
                       model: Optional[ImageModel],
                       reference_image: Optional[discord.Attachment],
                       reference_image_strength: Optional[app_commands.Range[float, 0.0, 1.0]],
-                      reference_image_information_extracted: Optional[app_commands.Range[float, 0.0, 1.0]],
+                      reference_image_info_extracted: Optional[app_commands.Range[float, 0.0, 1.0]],
                       ):
         if reference_image:
             if "image" not in reference_image.content_type or not reference_image.width or not reference_image.height:
@@ -172,7 +172,7 @@ class NovelAI(commands.Cog):
         if reference_image:
             preset.reference_image = base64.b64encode(reference_image.read()).decode()
             preset.reference_strength = reference_image_strength or 0.6
-            preset.reference_information_extracted = reference_image_information_extracted or 1.0
+            preset.reference_information_extracted = reference_image_info_extracted or 1.0
 
         message = self.get_loading_message()
         self.queue_add(ctx, prompt, preset, model)
@@ -186,7 +186,7 @@ class NovelAI(commands.Cog):
                            prompt="Gets added to your base prompt (/novelaidefaults)",
                            negative_prompt="Gets added to your base negative prompt (/novelaidefaults)",
                            seed="Random number that determines image generation.",
-                           reference_image= "The image to use as a reference for vibe transfer.",
+                           reference_image= "Vibe transfer: Image to use as a reference.",
                            **PARAMETER_DESCRIPTIONS_IMG2IMG)
     @app_commands.choices(**PARAMETER_CHOICES_IMG2IMG)
     async def novelai_img(self,
@@ -205,7 +205,7 @@ class NovelAI(commands.Cog):
                           decrisper: Optional[bool],
                           reference_image: Optional[discord.Attachment],
                           reference_image_strength: Optional[app_commands.Range[float, 0.0, 1.0]],
-                          reference_image_information_extracted: Optional[app_commands.Range[float, 0.0, 1.0]],
+                          reference_image_info_extracted: Optional[app_commands.Range[float, 0.0, 1.0]],
                           model: Optional[ImageModel],
                           ):                       
         if "image" not in image.content_type or not image.width or not image.height:
@@ -243,7 +243,7 @@ class NovelAI(commands.Cog):
         if reference_image:
             preset.reference_image = base64.b64encode(reference_image.read()).decode()
             preset.reference_strength = reference_image_strength or 0.6
-            preset.reference_information_extracted = reference_image_information_extracted or 1.0
+            preset.reference_information_extracted = reference_image_info_extracted or 1.0
 
         message = self.get_loading_message()
         self.queue_add(ctx, prompt, preset, model)
@@ -472,7 +472,7 @@ class NovelAI(commands.Cog):
                               noise_schedule: Optional[str],
                               decrisper: Optional[bool],
                               reference_image_strength: Optional[app_commands.Range[float, 0.0, 1.0]],
-                              reference_image_information_extracted: Optional[app_commands.Range[float, 0.0, 1.0]],
+                              reference_image_info_extracted: Optional[app_commands.Range[float, 0.0, 1.0]],
                               model: Optional[ImageModel],
                               ):
         if base_prompt is not None:
@@ -521,8 +521,8 @@ class NovelAI(commands.Cog):
             await self.config.user(ctx.user).model.set(model)
         if reference_image_strength is not None:
             await self.config.user(ctx.user).reference_image_strength.set(reference_image_strength)
-        if reference_image_information_extracted is not None:
-            await self.config.user(ctx.user).reference_image_information_extracted.set(reference_image_information_extracted)
+        if reference_image_info_extracted is not None:
+            await self.config.user(ctx.user).reference_image_info_extracted.set(reference_image_info_extracted)
 
         embed = discord.Embed(title="NovelAI default settings", color=0xffffff)
         prompt = str(await self.config.user(ctx.user).base_prompt())
@@ -541,7 +541,7 @@ class NovelAI(commands.Cog):
         embed.add_field(name="Noise Schedule", value=await self.config.user(ctx.user).noise_schedule())
         embed.add_field(name="Decrisper", value=f"{await self.config.user(ctx.user).decrisper()}")
         embed.add_field(name="Reference Image Strength", value=f"{await self.config.user(ctx.user).reference_image_strength():.2f}")
-        embed.add_field(name="Reference Information Extracted", value=f"{await self.config.user(ctx.user).reference_image_information_extracted():.2f}")
+        embed.add_field(name="Reference Information Extracted", value=f"{await self.config.user(ctx.user).reference_image_info_extracted():.2f}")
         embed.add_field(name="Model", value=MODELS[await self.config.user(ctx.user).model()])
         await ctx.response.send_message(embed=embed, ephemeral=True)
 
