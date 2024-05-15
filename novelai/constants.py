@@ -18,10 +18,10 @@ DEFAULT_NEGATIVE_PROMPT = "{bad}, text, error, missing, extra, fewer, cropped, j
 DEFAULT_FURRY_NEGATIVE_PROMPT = "{{worst quality}}, [displeasing], {unusual pupils}, guide lines, {{unfinished}}, " \
                                 "{bad}, url, artist name, {{tall image}}, mosaic, {sketch page}, comic panel, " \
                                 "impact (font), [dated], {logo}, ych, {what}, {where is your god now}, " \
-                                "{distorted text}, repeated text, {floating head}, {1994}, {widescreen}, " \ 
+                                "{distorted text}, repeated text, {floating head}, {1994}, {widescreen}, " \
                                 "absolutely everyone, sequence, {compression artifacts}, hard translated, " \
                                 "{cropped}, {commissioner name}, unknown text, high contrast"
-
+                                
 NSFW_TERMS = re.compile(r"\b(nsfw|explicit|questionable|sensitive|suggestive|nude|naked|sex|cum"
                         r"|topless|bottomless|no (panties|bra|clothes|underwear)"
                         r"|anus|penis|pussy|nipples?|labia|vulva|cleft|clit(oris|oral)?"
