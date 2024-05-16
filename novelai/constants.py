@@ -96,7 +96,7 @@ PARAMETER_CHOICES = {
     "sampler": [Choice(name=title, value=value) for value, title in SAMPLER_TITLES.items()],
     "sampler_version": [Choice(name=ver, value=ver) for ver in SAMPLER_VERSIONS],
     "noise_schedule": [Choice(name=sch, value=sch) for sch in NOISE_SCHEDULES],
-    "model": [Choice(name=mdl, value=mdl) for mdl in MODELS],
+    "model": [Choice(name=title, value=value) for value, title in MODELS],
 }
 
 PARAMETER_CHOICES_IMG2IMG = PARAMETER_CHOICES.copy()
