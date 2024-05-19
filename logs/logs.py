@@ -9,6 +9,16 @@ from redbot.core.data_manager import core_data_path
 LATEST_LOGS = os.path.join(core_data_path(), "logs/latest.log")
 MAX_PAGE_LENGTH = 1970
 
+def get_logs_file():
+    if os.path.exists(LATEST_LOGS):
+        return LATEST_LOGS
+    path = os.path.join(core_data_path(), "logs")
+    files = os.listdir(path)
+    if not files:
+        return None
+    files.sort()
+    return os.path.join(path, files[-1])
+
 class Logs(commands.Cog):
     """Owner cog to show the latest logs."""
 
@@ -27,31 +37,25 @@ class Logs(commands.Cog):
         """Sends the last n lines of the latest log file (default 100)."""
         try:
             private = await self.config.private()
-            channel = (ctx.author.dm_channel or await ctx.author.create_dm()) if private else ctx.channel
+            channel = ctx.channel if not private else (ctx.author.dm_channel or await ctx.author.create_dm())
             if not lines or lines < 0:
                 lines = 100
             pages = []
-            if os.path.exists(LATEST_LOGS):
-                latest_logs = LATEST_LOGS
-            else:
-                path = os.path.join(core_data_path(), "logs")
-                files = os.listdir(path)
-                files.sort()
-                latest_logs = os.path.join(path, files[-1])
-            with open(latest_logs, mode='r', encoding="utf8") as f:
-                result = [line.strip() for line in f.readlines()[-lines:]]
-            while result:
-                page = ""
+            if logs_file := get_logs_file():
+                with open(logs_file, 'r', encoding="utf8") as f:
+                    result = [line.strip() for line in f.readlines()[-lines:]]
                 while result:
-                    if len(page) + 1 + len(result[-1]) <= MAX_PAGE_LENGTH:
-                        page = result.pop() + "\n" + page
-                    elif not page:  # cuts up a huge line
-                        page, result[-1] = "..." + result[-1][-MAX_PAGE_LENGTH:], result[-1][:-MAX_PAGE_LENGTH] + "...",
-                    else:
-                        break
-                pages.append(f"```py\n{page.strip()}```")
+                    page = ""
+                    while result:
+                        if len(page) + 1 + len(result[-1]) <= MAX_PAGE_LENGTH:
+                            page = result.pop() + "\n" + page
+                        elif not page:  # cuts up a huge line
+                            page, result[-1] = "..." + result[-1][-MAX_PAGE_LENGTH:], result[-1][:-MAX_PAGE_LENGTH] + "...",
+                        else:
+                            break
+                    pages.append(f"```py\n{page.strip()}```")
             if not pages:
-                await channel.send("Empty")
+                await channel.send("*Empty*")
             elif len(pages) == 1:
                 await channel.send(content=pages[0])
             else:
@@ -59,19 +63,22 @@ class Logs(commands.Cog):
                 for i in range(len(pages)):
                     pages[i] += f"`Page {i+1}/{len(pages)}`"
                 ctx.message.channel = channel
-                ctx.message.guild = None
+                ctx.message.guild = channel.guild
                 ctx: commands.Context = await self.bot.get_context(ctx.message)  # noqa
-                await SimpleMenu(pages, timeout=7200, page_start=len(pages)-1).start(ctx)
-        except Exception as ex:
+                await SimpleMenu(pages, timeout=3600, page_start=len(pages)-1).start(ctx)
+        except Exception as ex:  # Since logs is an important command, all possible errors should be covered
             await ctx.send(f"{type(ex).__name__}: {ex}")
 
     @logs.command(name="file")
     async def logs_file(self, ctx: commands.Context):
         """Sends the entire latest log file."""
         private = await self.config.private()
-        channel = (ctx.author.dm_channel or await ctx.author.create_dm()) if private else ctx.channel
-        file = discord.File(LATEST_LOGS, filename="latest.log")
-        return await channel.send(file=file)
+        channel = ctx.channel if not private else (ctx.author.dm_channel or await ctx.author.create_dm())
+        path = get_logs_file()
+        if not path:
+            return await channel.send("No logs found.")
+        file = discord.File(path)
+        await channel.send(file=file)
 
     @logs.command(name="private")
     async def logs_private(self, ctx: commands.Context):
