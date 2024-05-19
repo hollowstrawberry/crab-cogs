@@ -501,9 +501,7 @@ class NovelAI(commands.Cog):
             msg = await ctx.edit_original_response(content=content, attachments=[file], view=view, allowed_mentions=discord.AllowedMentions.none())
 
             asyncio.create_task(self.delete_button_after(msg, view))
-            imagescanner = self.bot.get_cog("ImageScanner")
             if imagescanner:
-                log.info(imagescanner.always_scan_generated_images)
                 if imagescanner.always_scan_generated_images or ctx.channel.id in imagescanner.scan_channels:  # noqa
                     img_info = imagescanner.convert_novelai_info(image.info)  # noqa
                     imagescanner.image_cache[msg.id] = ({1: img_info}, {1: image_bytes})  # noqa
