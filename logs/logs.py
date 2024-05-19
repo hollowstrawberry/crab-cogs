@@ -38,7 +38,7 @@ class Logs(commands.Cog):
                 files = os.listdir(path)
                 files.sort()
                 latest_logs = os.path.join(path, files[-1])
-            with open(latest_logs, 'r') as f:
+            with open(latest_logs, mode='r', encoding="utf8", errors=None) as f:
                 result = [line.strip() for line in f.readlines()[-lines:]]
             while result:
                 page = ""
