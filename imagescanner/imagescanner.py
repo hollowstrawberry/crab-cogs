@@ -95,12 +95,13 @@ class ImageScanner(commands.Cog):
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, ctx: discord.RawReactionActionEvent):
         """Send image metadata in reacted post to user DMs"""
-        if ctx.emoji.name != '🔎' or ctx.member.bot or ctx.channel_id not in self.scan_channels:
+        log.info(self.bot.user)
+        if (ctx.emoji.name != '🔎' or ctx.member.bot or 
+            (self.always_scan_generated_images and message.author.id == self.bot.user.id) or message.channel.id in self.scan_channels)):
             return
         channel = self.bot.get_channel(ctx.channel_id)
         message: discord.Message = await channel.fetch_message(ctx.message_id)
-        log.info(message.author)
-        log.info(self.bot.user)
+        log.info(message)
         if (not message or not message.guild or (message.author.bot and message.author.id != self.bot.user.id) or not 
             ((self.always_scan_generated_images and message.author.id == self.bot.user.id) or message.channel.id in self.scan_channels)):
             return

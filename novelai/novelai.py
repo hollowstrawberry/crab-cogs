@@ -427,7 +427,7 @@ class NovelAI(commands.Cog):
                                       callback: Optional[Coroutine] = None):
         generation_cooldown = await self.config.generation_cooldown()
         while (seconds := (datetime.utcnow() - self.last_generation_datetime).total_seconds()) < generation_cooldown:
-            log.info(f"Waiting on generation_cooldown... {seconds} seconds remaining.")
+            log.debug(f"Waiting on generation_cooldown... {seconds} seconds remaining.")
             await asyncio.sleep(1)
         try:
             try:
@@ -503,7 +503,7 @@ class NovelAI(commands.Cog):
             asyncio.create_task(self.delete_button_after(msg, view))
             imagescanner = self.bot.get_cog("ImageScanner")
             if imagescanner:
-                log.info(imagescanner.config)
+                log.info(imagescanner)
                 if imagescanner.config.always_scan_generated_images or ctx.channel.id in imagescanner.scan_channels:  # noqa
                     img_info = imagescanner.convert_novelai_info(image.info)  # noqa
                     imagescanner.image_cache[msg.id] = ({1: img_info}, {1: image_bytes})  # noqa
