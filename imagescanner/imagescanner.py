@@ -101,7 +101,7 @@ class ImageScanner(commands.Cog):
             return
         channel = self.bot.get_channel(ctx.channel_id)
         message: discord.Message = await channel.fetch_message(ctx.message_id)
-        if not message:
+        if not message or message.author.bot and message.author.id != self.bot.user.id:
             return
         if ctx.channel_id not in self.scan_channels and message.author.id != self.bot.user.id:
             return
