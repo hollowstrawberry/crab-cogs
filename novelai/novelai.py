@@ -503,8 +503,8 @@ class NovelAI(commands.Cog):
             asyncio.create_task(self.delete_button_after(msg, view))
             imagescanner = self.bot.get_cog("ImageScanner")
             if imagescanner:
-                log.info(imagescanner)
-                if imagescanner.config.always_scan_generated_images or ctx.channel.id in imagescanner.scan_channels:  # noqa
+                log.info(imagescanner.always_scan_generated_images)
+                if imagescanner.always_scan_generated_images or ctx.channel.id in imagescanner.scan_channels:  # noqa
                     img_info = imagescanner.convert_novelai_info(image.info)  # noqa
                     imagescanner.image_cache[msg.id] = ({1: img_info}, {1: image_bytes})  # noqa
                     await msg.add_reaction("🔎")

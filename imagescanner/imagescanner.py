@@ -97,7 +97,7 @@ class ImageScanner(commands.Cog):
         """Send image metadata in reacted post to user DMs"""
         log.info(self.bot.user)
         if (ctx.emoji.name != '🔎' or ctx.member.bot or not
-            ((self.always_scan_generated_images and message.author.id == self.bot.user.id) or message.channel.id in self.scan_channels)):
+            (self.always_scan_generated_images or message.channel.id in self.scan_channels)):
             return
         channel = self.bot.get_channel(ctx.channel_id)
         message: discord.Message = await channel.fetch_message(ctx.message_id)
