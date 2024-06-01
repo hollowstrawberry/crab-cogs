@@ -75,8 +75,6 @@ class DallE(commands.Cog):
                     datetime.utcnow() - self.user_last_img[ctx.user.id]).total_seconds() < cooldown:
                 eta = self.user_last_img[ctx.user.id] + timedelta(seconds=cooldown)
                 content = f"You may use this command again <t:{discord.utils.format_dt(eta, 'R')}:R>."
-                if not ctx.guild:
-                    content += " (You can use it more frequently inside a server)"
                 return await ctx.response.send_message(content, ephemeral=True)
 
         await ctx.response.send_message((f"{self.loading_emoji} " if self.loading_emoji else "") + "Generating your image...")

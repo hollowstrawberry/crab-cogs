@@ -20,8 +20,9 @@ class ImageView(View):
         await self.cog.imagine(ctx=ctx,
                                prompt=self.prompt,
                                simple=self.simple)
-        btn.disabled = False
-        await ctx.message.edit(view=self)
+        if not self.deleted and not self.is_finished():
+            btn.disabled = False
+            await ctx.message.edit(view=self)
 
     @discord.ui.button(emoji="🗑️", style=discord.ButtonStyle.grey)
     async def delete(self, ctx: discord.Interaction, _: discord.Button):
