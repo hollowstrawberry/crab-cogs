@@ -27,6 +27,7 @@ class DallE(commands.Cog):
         self.loading_emoji = ""
         self.config = Config.get_conf(self, identifier=64616665)
         defaults_global = {
+            "vip": [],
             "cooldown": 0,
             "loading_emoji": ""
         }
@@ -56,6 +57,8 @@ class DallE(commands.Cog):
                            simple="Tries to prevent Dall-E from adding detail")
     @app_commands.guild_only()
     async def imagine(self, ctx: discord.Interaction, prompt: str, simple: bool = False):
+        if not self.client:
+            return await ctx.response.send_message("OpenAI key not set.", ephemeral=True)
         prompt = prompt.strip()
         if len(prompt) < 2:
             return await ctx.response.send_message("Prompt too short.", ephemeral=True)
