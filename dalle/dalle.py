@@ -57,6 +57,9 @@ class DallE(commands.Cog):
     @app_commands.describe(prompt="What do you want to generate?",
                            simple="Tries to prevent Dall-E from adding detail")
     @app_commands.guild_only()
+    async def imagine_app(self, ctx: discord.Interaction, prompt: str, simple: bool = False):
+        await self.imagine(ctx, prompt, simple)
+
     async def imagine(self, ctx: discord.Interaction, prompt: str, simple: bool = False):
         if not self.client:
             return await ctx.response.send_message("OpenAI key not set.", ephemeral=True)
