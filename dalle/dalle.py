@@ -98,8 +98,8 @@ class DallE(commands.Cog):
         if not result or not result.data or not result.data[0].b64_json:
             return await ctx.edit_original_response(content="⚠ Sorry, there was a problem trying to generate your image.")
 
-        log.info(result.data[0].b64_json[:100])
         image_data = base64.b64decode(result.data[0].b64_json)
+        log.info(image_data.decode("utf-8")[:100])
         file = discord.File(fp=image_data, filename=f"dalle3_{int(datetime.utcnow().timestamp())}.png")
         content = f"Reroll requested by {ctx.user.mention}" if ctx.type == discord.InteractionType.component else ""
         message = await ctx.original_response()
