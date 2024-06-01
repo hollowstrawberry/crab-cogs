@@ -8,7 +8,7 @@ from redbot.core import commands, app_commands, Config
 from redbot.core.bot import Red
 from typing import Optional
 
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, APIError, APIStatusError
 from dalle.imageview import ImageView
 
 log = logging.getLogger("red.crab-cogs.dalle")
@@ -81,7 +81,6 @@ class DallE(commands.Cog):
         result = None
         try:
             self.generating[ctx.user.id] = True
-            self.user_last_img[ctx.user.id] = datetime.now()
             result = await self.client.images.generate(
                 prompt=SIMPLE_PROMPT+prompt if simple else prompt,
                 model="dall-e-3",
@@ -90,14 +89,18 @@ class DallE(commands.Cog):
                 n=1,
                 response_format="b64_json"
             )
+        except APIStatusError as e:
+            return await ctx.edit_original_response(content=f":warning: Failed to generate image: {e.response.json()['error']['message']}")
+        except APIError as e:
+            return await ctx.edit_original_response(content=f":warning: Failed to generate image: {e.message}")
         except Exception:
             log.exception(msg="Trying to generate image with Dall-E", stack_info=True)
         finally:
             self.generating[ctx.user.id] = False
-
         if not result or not result.data or not result.data[0].b64_json:
-            return await ctx.edit_original_response(content="⚠ Sorry, there was a problem trying to generate your image.")
+            return await ctx.edit_original_response(content=":warning: Sorry, there was a problem trying to generate your image.")
 
+        self.user_last_img[ctx.user.id] = datetime.now()
         image_data = io.BytesIO(base64.b64decode(result.data[0].b64_json))
         file = discord.File(fp=image_data, filename=f"dalle3_{int(datetime.utcnow().timestamp())}.png")
         content = f"Reroll requested by {ctx.user.mention}" if ctx.type == discord.InteractionType.component else ""
