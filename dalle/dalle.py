@@ -72,16 +72,16 @@ class DallE(commands.Cog):
                 content = "Your current image must finish generating before you can request another one."
                 return await ctx.response.send_message(content, ephemeral=True)
             if ctx.user.id in self.user_last_img and (
-                    datetime.utcnow() - self.user_last_img[ctx.user.id]).total_seconds() < cooldown:
+                    datetime.now() - self.user_last_img[ctx.user.id]).total_seconds() < cooldown:
                 eta = self.user_last_img[ctx.user.id] + timedelta(seconds=cooldown)
-                content = f"You may use this command again <t:{discord.utils.format_dt(eta, 'R')}:R>."
+                content = f"You may use this command again {discord.utils.format_dt(eta, 'R')}."
                 return await ctx.response.send_message(content, ephemeral=True)
 
         await ctx.response.send_message((f"{self.loading_emoji} " if self.loading_emoji else "") + "Generating your image...")
         result = None
         try:
             self.generating[ctx.user.id] = True
-            self.user_last_img[ctx.user.id] = datetime.utcnow()
+            self.user_last_img[ctx.user.id] = datetime.now()
             result = await self.client.images.generate(
                 prompt=SIMPLE_PROMPT+prompt if simple else prompt,
                 model="dall-e-3",
@@ -94,7 +94,6 @@ class DallE(commands.Cog):
             log.exception(msg="Trying to generate image with Dall-E", stack_info=True)
         finally:
             self.generating[ctx.user.id] = False
-            self.user_last_img[ctx.user.id] = datetime.utcnow()
 
         if not result or not result.data or not result.data[0].b64_json:
             return await ctx.edit_original_response(content="⚠ Sorry, there was a problem trying to generate your image.")

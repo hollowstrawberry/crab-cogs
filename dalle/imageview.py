@@ -1,7 +1,6 @@
 import re
 import discord
 from discord.ui import View
-from typing import Optional
 
 
 class ImageView(View):
