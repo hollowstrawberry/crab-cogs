@@ -11,7 +11,7 @@ from typing import Optional
 
 import imagescanner.utils as utils
 from imagescanner.imageview import ImageView
-from imagescanner.constants import log, IMAGE_TYPES, HASHES_GROUP_REGEX, VIEW_TIMEOUT, HEADERS
+from imagescanner.constants import log, IMAGE_TYPES, HASHES_GROUP_REGEX, HEADERS
 
 
 class ImageScanner(commands.Cog):
@@ -121,9 +121,11 @@ class ImageScanner(commands.Cog):
             embed = utils.get_embed({}, message.author)
             embed.description = f"{message.jump_url}\nThis post contains no image generation data."
             embed.set_thumbnail(url=attachments[0].url)
-            await ctx.member.send(embed=embed)
+            try:
+                await ctx.member.send(embed=embed)
+            except discord.Forbidden:
+                log.info(f"User {ctx.member.id} does not accept DMs")
             return
-        edit_tasks = []
         for i, data in sorted(metadata.items()):
             params = utils.get_params_from_string(data)
             embed = utils.get_embed(params, message.author)
@@ -166,19 +168,19 @@ class ImageScanner(commands.Cog):
                 filename = md5(image_bytes[i]).hexdigest() + ".png"
                 file = discord.File(img, filename=filename)
                 embed.set_image(url=f"attachment://{filename}")
-                msg = await ctx.member.send(embed=embed, file=file, view=view)
+                try:
+                    msg = await ctx.member.send(embed=embed, file=file, view=view)
+                    view.message = msg
+                except discord.Forbidden:
+                    log.info(f"User {ctx.member.id} does not accept DMs")
             else:
                 if len(attachments) > i:
                     embed.set_thumbnail(url=attachments[i].url)
-                msg = await ctx.member.send(embed=embed, view=view)
-            edit_tasks.append(self.edit_dm(view, embed, msg))
-        await asyncio.sleep(VIEW_TIMEOUT)
-        await asyncio.gather(*edit_tasks)
-
-    @staticmethod
-    async def edit_dm(view: ImageView, embed: discord.Embed, msg: discord.Message):
-        if not view.pressed:
-            await msg.edit(view=None, embed=embed)
+                try:
+                    msg = await ctx.member.send(embed=embed, view=view)
+                    view.message = msg
+                except discord.Forbidden:
+                    log.info(f"User {ctx.member.id} does not accept DMs")
 
     @staticmethod
     def convert_novelai_info(img_info: dict):  # used by novelai cog

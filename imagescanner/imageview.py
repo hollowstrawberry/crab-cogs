@@ -1,6 +1,7 @@
 import io
 import discord
 from discord.ui import View
+from typing import Optional
 
 from imagescanner.constants import VIEW_TIMEOUT
 
@@ -11,6 +12,7 @@ class ImageView(View):
         self.params = params
         self.embed = embed
         self.pressed = False
+        self.message: Optional[discord.Message] = None
 
     @discord.ui.button(emoji="🔧", label='View Full Parameters', style=discord.ButtonStyle.grey)
     async def view_full_parameters(self, ctx: discord.Interaction, _: discord.Button):
@@ -24,3 +26,7 @@ class ImageView(View):
         await ctx.message.edit(view=None, embed=self.embed)
         self.pressed = True
         self.stop()
+
+    async def on_timeout(self) -> None:
+        if self.message and not self.pressed:
+            await self.message.edit(view=None, embed=self.embed)
