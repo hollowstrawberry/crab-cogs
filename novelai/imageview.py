@@ -1,9 +1,9 @@
 import re
 import discord
-import calendar
 from datetime import datetime, timedelta
 from discord.ui import View
 from novelai_api.ImagePreset import ImagePreset, ImageModel
+from typing import Optional
 
 from novelai.constants import VIEW_TIMEOUT
 
@@ -17,6 +17,11 @@ class ImageView(View):
         self.seed = seed
         self.model = model
         self.deleted = False
+        self.message: Optional[discord.Message] = None
+
+    async def message_edit_callback(self, ctx: discord.Interaction):
+        if not self.is_finished() and not self.deleted:
+            ctx.message.edit(view=self)
 
     @discord.ui.button(emoji="🌱", style=discord.ButtonStyle.grey)
     async def seed(self, ctx: discord.Interaction, _: discord.Button):
@@ -33,9 +38,9 @@ class ImageView(View):
             if self.cog.generating.get(ctx.user.id, False):
                 content = "Your current image must finish generating before you can request another one."
                 return await ctx.response.send_message(content, ephemeral=True)
-            if ctx.user.id in self.cog.last_img and (datetime.utcnow() - self.cog.last_img[ctx.user.id]).seconds < cooldown:
-                eta = self.cog.last_img[ctx.user.id] + timedelta(seconds=cooldown)
-                content = f"You may use this command again <t:{calendar.timegm(eta.utctimetuple())}:R>."
+            if ctx.user.id in self.cog.user_last_img and (datetime.now() - self.cog.user_last_img[ctx.user.id]).seconds < cooldown:
+                eta = self.cog.user_last_img[ctx.user.id] + timedelta(seconds=cooldown)
+                content = f"You may use this command again {discord.utils.format_dt(eta, 'R')}."
                 if not ctx.guild:
                     content += " (You can use it more frequently inside a server)"
                 return await ctx.response.send_message(content, ephemeral=True)
@@ -46,7 +51,7 @@ class ImageView(View):
         btn.disabled = False  # re-enables it after the task calls back
 
         content = self.cog.get_loading_message()
-        self.cog.queue_add(ctx, self.prompt, self.preset, self.model, ctx.user.id, ctx.message.edit(view=self))
+        self.cog.queue_add(ctx, self.prompt, self.preset, self.model, ctx.user.id, self.message_edit_callback(ctx))
         await ctx.response.send_message(content=content)
 
     @discord.ui.button(emoji="🗑️", style=discord.ButtonStyle.grey)
@@ -67,6 +72,10 @@ class ImageView(View):
         else:
             await ctx.response.send_message("Only a moderator or the user who requested the image may delete it.", ephemeral=True)
 
+    async def on_timeout(self) -> None:
+        if self.message and not self.deleted:
+            await self.message.edit(view=None)
+
 
 class RetryView(View):
     def __init__(self, cog, prompt: str, preset: ImagePreset, model: ImageModel):
@@ -76,6 +85,7 @@ class RetryView(View):
         self.preset = preset
         self.model = model
         self.deleted = False
+        self.message: Optional[discord.Message] = None
 
     @discord.ui.button(emoji="🔁", style=discord.ButtonStyle.grey)
     async def retry(self, ctx: discord.Interaction, _: discord.Button):
@@ -93,3 +103,7 @@ class RetryView(View):
         content = self.cog.get_loading_message()
         self.cog.queue_add(ctx, self.prompt, self.preset, self.model, ctx.user.id, ctx.message.edit(view=None))
         await ctx.response.send_message(content=content)
+
+    async def on_timeout(self) -> None:
+        if self.message and not self.deleted:
+            await self.message.edit(view=None)

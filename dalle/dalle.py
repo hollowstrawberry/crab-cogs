@@ -102,8 +102,7 @@ class DallE(commands.Cog):
             return await ctx.followup.send(content=":warning: Sorry, there was a problem trying to generate your image.")
 
         self.user_last_img[ctx.user.id] = datetime.now()
-
-        self.user_last_img[ctx.user.id] = datetime.now()
+        
         image_data = io.BytesIO(base64.b64decode(result.data[0].b64_json))
         timestamp = f"{datetime.utcnow().timestamp():.6f}"
         filename = f"dalle3_{timestamp.replace('.', '_')}.png"

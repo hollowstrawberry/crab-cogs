@@ -1,10 +1,10 @@
 import io
+import re
 import json
 import base64
 import asyncio
 import discord
 import logging
-import calendar
 from PIL import Image, PngImagePlugin
 from hashlib import md5
 from datetime import datetime, timedelta
@@ -12,7 +12,7 @@ from redbot.core import commands, app_commands, Config
 from redbot.core.bot import Red
 from novelai_api import NovelAIError
 from novelai_api.ImagePreset import ImageModel, ImagePreset, ImageSampler, ImageGenerationType, UCPreset
-from typing import Optional, Union, Tuple, Coroutine
+from typing import Optional, Tuple, Coroutine
 
 from novelai.naiapi import NaiAPI
 from novelai.imageview import ImageView, RetryView
@@ -109,7 +109,6 @@ class NovelAI(commands.Cog):
                 await task
             await asyncio.sleep(2)
             new = False
-
 
     async def edit_queue_messages(self):
         tasks = [ctx.edit_original_response(content=self.loading_emoji + f"`Position in queue: {i + 1}`")
@@ -260,8 +259,7 @@ class NovelAI(commands.Cog):
         if reference_image3:
             if "image" not in reference_image3.content_type or not reference_image3.width or not reference_image3.height or not (reference_image3.size / 1024 / 1024) <= max_image_size:
                 return await ctx.response.send_message(f"reference_image3 must be a valid image and less than {max_image_size} MB.", ephemeral=True)
-            
-            
+
         width, height = scale_to_size(image.width, image.height, MAX_FREE_IMAGE_SIZE)
         resolution = f"{round_to_nearest(width, 64)},{round_to_nearest(height, 64)}"
         
@@ -347,15 +345,13 @@ class NovelAI(commands.Cog):
             if self.generating.get(ctx.user.id, False):
                 content = "Your current image must finish generating before you can request another one."
                 return await ctx.response.send_message(content, ephemeral=True)
-            if ctx.user.id in self.user_last_img and (datetime.utcnow() - self.user_last_img[ctx.user.id]).total_seconds() < cooldown:
+            if ctx.user.id in self.user_last_img and (datetime.now() - self.user_last_img[ctx.user.id]).total_seconds() < cooldown:
                 eta = self.user_last_img[ctx.user.id] + timedelta(seconds=cooldown)
-                content = f"You may use this command again <t:{calendar.timegm(eta.utctimetuple())}:R>."
+                content = f"You may use this command again {discord.utils.format_dt(eta, 'R')}."
                 if not ctx.guild:
                     content += " (You can use it more frequently inside a server)"
                 return await ctx.response.send_message(content, ephemeral=True)
 
-        base_prompt = ""
-        base_neg = ""
         if model == ImageModel.Furry_v3:
             base_prompt = await self.config.user(ctx.user).base_furry_prompt()
             base_neg = await self.config.user(ctx.user).base_furry_negative_prompt()
@@ -426,7 +422,7 @@ class NovelAI(commands.Cog):
                                       requester: Optional[int] = None,
                                       callback: Optional[Coroutine] = None):
         generation_cooldown = await self.config.generation_cooldown()
-        while (seconds := (datetime.utcnow() - self.last_generation_datetime).total_seconds()) < generation_cooldown:
+        while (seconds := (datetime.now() - self.last_generation_datetime).total_seconds()) < generation_cooldown:
             log.debug(f"Waiting on generation_cooldown... {seconds} seconds remaining.")
             await asyncio.sleep(1)
         try:
@@ -435,7 +431,7 @@ class NovelAI(commands.Cog):
                     try:
                         async with self.api as wrapper:
                             action = ImageGenerationType.IMG2IMG if preset._settings.get("image", None) else ImageGenerationType.NORMAL
-                            self.last_generation_datetime = datetime.utcnow()
+                            self.last_generation_datetime = datetime.now()
                             async for _, img in wrapper.api.high_level.generate_image(prompt, model, preset, action):
                                 image_bytes = img
                             break
@@ -475,11 +471,11 @@ class NovelAI(commands.Cog):
                     log.error(f"Generating image: {type(error).__name__} - {error}")
                 msg = await ctx.edit_original_response(content=f":warning: {content}", view=view)
                 if view:
-                    asyncio.create_task(self.delete_button_after(msg, view))
+                    view.message = msg
                 return
             finally:
                 self.generating[ctx.user.id] = False
-                self.user_last_img[ctx.user.id] = datetime.utcnow()
+                self.user_last_img[ctx.user.id] = datetime.now()
 
             image = Image.open(io.BytesIO(image_bytes))
             comment = json.loads(image.info["Comment"])
@@ -499,8 +495,8 @@ class NovelAI(commands.Cog):
             view = ImageView(self, prompt, preset, seed, model)
             content = f"{'Reroll' if callback else 'Retry'} requested by <@{requester}>" if requester and ctx.guild else None
             msg = await ctx.edit_original_response(content=content, attachments=[file], view=view, allowed_mentions=discord.AllowedMentions.none())
+            view.message = msg
 
-            asyncio.create_task(self.delete_button_after(msg, view))
             imagescanner = self.bot.get_cog("ImageScanner")
             if imagescanner:
                 if imagescanner.always_scan_generated_images or ctx.channel.id in imagescanner.scan_channels:  # noqa
@@ -518,20 +514,14 @@ class NovelAI(commands.Cog):
                 except:
                     pass
 
-    @staticmethod
-    async def delete_button_after(msg: discord.Message, view: Union[ImageView, RetryView]):
-        await asyncio.sleep(VIEW_TIMEOUT)
-        if not view.deleted:
-            await msg.edit(view=None)
-
     @app_commands.command(name="novelaidefaults",
                           description="Views or updates your personal default values for /novelai")
     @app_commands.describe(base_prompt="Gets added after each prompt. \"none\" to delete, \"default\" to reset.",
                            base_negative_prompt="Gets added after each negative prompt. \"none\" to delete, \"default\" to reset.",
                            base_furry_prompt="Gets added after each prompt for furry models. \"none\" to delete, \"default\" to reset.",
                            base_furry_negative_prompt="Gets added after each negative prompt for furry models. \"none\" to delete, \"default\" to reset.",
-                           reference_image_strength= "Vibe transfer: How strongly the reference image is used.",
-                           reference_image_info_extracted= "Vibe transfer: The amount of information to extract.",
+                           reference_image_strength="Vibe transfer: How strongly the reference image is used.",
+                           reference_image_info_extracted="Vibe transfer: The amount of information to extract.",
                            **PARAMETER_DESCRIPTIONS)
     @app_commands.choices(**PARAMETER_CHOICES)
     async def novelaidefaults(self,
