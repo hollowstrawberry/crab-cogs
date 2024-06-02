@@ -4,13 +4,19 @@ from discord.ui import View
 
 
 class ImageView(View):
-    def __init__(self, cog, message: discord.Message, prompt: str, simple: bool):
-        super().__init__(timeout=300)
+    def __init__(self, cog, message: discord.Message, prompt: str, revised_prompt: str, add_detail: bool):
+        super().__init__(timeout=600)
         self.cog = cog
         self.prompt = prompt
-        self.simple = simple
+        self.revised_prompt = revised_prompt
+        self.add_detail = add_detail
         self.message = message
         self.deleted = False
+
+    @discord.ui.button(emoji="ℹ", style=discord.ButtonStyle.grey)
+    async def info(self, ctx: discord.Interaction, _):
+        content = f"Dall-E has revised the prompt as follows:\n>>> {self.revised_prompt}"
+        await ctx.response.send_message(content, ephemeral=True)
 
     @discord.ui.button(emoji="♻", style=discord.ButtonStyle.grey)
     async def recycle(self, ctx: discord.Interaction, btn: discord.Button):
@@ -18,13 +24,13 @@ class ImageView(View):
         await ctx.message.edit(view=self)
         await self.cog.imagine(ctx=ctx,
                                prompt=self.prompt,
-                               simple=self.simple)
+                               add_detail=self.add_detail)
         if not self.deleted and not self.is_finished():
             btn.disabled = False
             await ctx.message.edit(view=self)
 
-    @discord.ui.button(emoji="🗑️", style=discord.ButtonStyle.grey)
-    async def delete(self, ctx: discord.Interaction, _: discord.Button):
+    @discord.ui.button(emoji="❌", style=discord.ButtonStyle.grey)
+    async def delete(self, ctx: discord.Interaction, _):
         if ctx.message.interaction:
             original_user_id = ctx.message.interaction.user.id
         elif m := re.search(r"([0-9]+)", ctx.message.content):

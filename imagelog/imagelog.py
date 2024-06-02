@@ -1,8 +1,11 @@
 import io
+import logging
 import discord
 from datetime import datetime
 from redbot.core import commands, Config
 from typing import Optional
+
+log = logging.getLogger("red.crab-cogs.imagelog")
 
 IMAGE_TYPES = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
 
@@ -49,9 +52,9 @@ class ImageLog(commands.Cog):
                 embed.add_field(name="Deleted by", value=f"<@{self.manual_deleted_by.pop(message.id)}>")
             elif channel.permissions_for(guild.me).view_audit_log:
                 deleter = None
-                async for log in guild.audit_logs(limit=2, action=discord.AuditLogAction.message_delete):
-                    if log.target.id == message.author.id and log.extra.channel.id == message.channel.id:
-                        deleter = log.user
+                async for alog in guild.audit_logs(limit=2, action=discord.AuditLogAction.message_delete):
+                    if alog.target.id == message.author.id and alog.extra.channel.id == message.channel.id:
+                        deleter = alog.user
                         break
                 if not deleter:
                     if channel.permissions_for(message.author).manage_messages and not await self.config.guild(guild).log_moderator_self_deletes():
@@ -63,7 +66,8 @@ class ImageLog(commands.Cog):
             img = io.BytesIO()
             try:
                 await attachment.save(img, use_cached=True)
-            except:
+            except Exception:
+                log.error("Trying to save attachment", exc_info=True)
                 file = None
             else:
                 file = discord.File(img, filename=attachment.filename)

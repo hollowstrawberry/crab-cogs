@@ -30,7 +30,6 @@ class DallE(commands.Cog):
         defaults_global = {
             "vip": [],
             "cooldown": 0,
-            "loading_emoji": ""
         }
         self.config.register_global(**defaults_global)
 
@@ -54,13 +53,15 @@ class DallE(commands.Cog):
 
     @app_commands.command(name="imagine",
                           description="Generate AI images with Dall-E 3.")
-    @app_commands.describe(prompt="What do you want to generate?",
-                           simple="Tries to prevent Dall-E from adding detail")
+    @app_commands.describe(prompt="Your prompt will get adjusted by OpenAI.",
+                           prompt_style="Dall-E will always edit your prompt before generating.")
+    @app_commands.choices(prompt_style=[app_commands.Choice(name="Add detail", value="detail"),
+                                        app_commands.Choice(name="Don't add detail", value="nodetail")])
     @app_commands.guild_only()
-    async def imagine_app(self, ctx: discord.Interaction, prompt: str, simple: bool = False):
-        await self.imagine(ctx, prompt, simple)
+    async def imagine_app(self, ctx: discord.Interaction, prompt: str, prompt_style: str = "detail"):
+        await self.imagine(ctx, prompt, prompt_style == "detail")
 
-    async def imagine(self, ctx: discord.Interaction, prompt: str, simple: bool = False):
+    async def imagine(self, ctx: discord.Interaction, prompt: str, add_detail: bool):
         if not self.client:
             return await ctx.response.send_message("OpenAI key not set.", ephemeral=True)
         prompt = prompt.strip()
@@ -77,12 +78,12 @@ class DallE(commands.Cog):
                 content = f"You may use this command again {discord.utils.format_dt(eta, 'R')}."
                 return await ctx.response.send_message(content, ephemeral=True)
 
-        await ctx.response.send_message((f"{self.loading_emoji} " if self.loading_emoji else "") + "Generating your image...")
+        await ctx.response.defer(thinking=True)
         result = None
         try:
             self.generating[ctx.user.id] = True
             result = await self.client.images.generate(
-                prompt=SIMPLE_PROMPT+prompt if simple else prompt,
+                prompt=SIMPLE_PROMPT+prompt if not add_detail else prompt,
                 model="dall-e-3",
                 size="1024x1024",
                 quality="standard",
@@ -90,34 +91,35 @@ class DallE(commands.Cog):
                 response_format="b64_json"
             )
         except APIStatusError as e:
-            return await ctx.edit_original_response(content=f":warning: Failed to generate image: {e.response.json()['error']['message']}")
+            return await ctx.followup.send(content=f":warning: Failed to generate image: {e.response.json()['error']['message']}")
         except APIError as e:
-            return await ctx.edit_original_response(content=f":warning: Failed to generate image: {e.message}")
+            return await ctx.followup.send(content=f":warning: Failed to generate image: {e.message}")
         except Exception:
             log.exception(msg="Trying to generate image with Dall-E", stack_info=True)
         finally:
             self.generating[ctx.user.id] = False
         if not result or not result.data or not result.data[0].b64_json:
-            return await ctx.edit_original_response(content=":warning: Sorry, there was a problem trying to generate your image.")
+            return await ctx.followup.send(content=":warning: Sorry, there was a problem trying to generate your image.")
+
+        self.user_last_img[ctx.user.id] = datetime.now()
 
         self.user_last_img[ctx.user.id] = datetime.now()
         image_data = io.BytesIO(base64.b64decode(result.data[0].b64_json))
-        file = discord.File(fp=image_data, filename=f"dalle3_{int(datetime.utcnow().timestamp())}.png")
+        timestamp = f"{datetime.utcnow().timestamp():.6f}"
+        filename = f"dalle3_{timestamp.replace('.', '_')}.png"
+        file = discord.File(fp=image_data, filename=filename)
         content = f"Reroll requested by {ctx.user.mention}" if ctx.type == discord.InteractionType.component else ""
         message = await ctx.original_response()
-        view = ImageView(self, message, prompt, simple)
-        await ctx.edit_original_response(content=content,
-                                         view=view,
-                                         attachments=[file],
-                                         allowed_mentions=discord.AllowedMentions.none())
+        view = ImageView(self, message, prompt, result.data[0].revised_prompt, add_detail)
+        await ctx.followup.send(content=content, view=view, file=file, allowed_mentions=discord.AllowedMentions.none())
 
     @commands.group()
+    @commands.is_owner()
     async def dalleset(self, _):
         """Configure /imagine bot-wide."""
         pass
 
     @dalleset.command()
-    @commands.is_owner()
     async def cooldown(self, ctx: commands.Context, seconds: Optional[int]):
         """Time in seconds between a user's generation ends and they can start a new one."""
         if seconds is None:
@@ -126,26 +128,7 @@ class DallE(commands.Cog):
             await self.config.cooldown.set(max(0, seconds))
         await ctx.reply(f"Users will need to wait {max(0, seconds)} seconds between generations.")
 
-    @dalleset.command()
-    @commands.is_owner()
-    async def loadingemoji(self, ctx: commands.Context, emoji: Optional[discord.Emoji]):
-        """Add your own Loading custom emoji with this command."""
-        if emoji is None:
-            self.loading_emoji = ""
-            await self.config.loading_emoji.set(self.loading_emoji)
-            await ctx.reply(f"No emoji will appear when generating an image.")
-            return
-        try:
-            await ctx.react_quietly(emoji)
-        except:
-            await ctx.reply("I don't have access to that emoji. I must be in the same server to use it.")
-        else:
-            self.loading_emoji = str(emoji) + " "
-            await self.config.loading_emoji.set(self.loading_emoji)
-            await ctx.reply(f"{emoji} will now appear when generating an image.")
-
     @dalleset.group(name="vip", invoke_without_command=True)
-    @commands.is_owner()
     async def vip(self, ctx: commands.Context):
         """Manage the VIP list which skips the cooldown."""
         await ctx.send_help()
