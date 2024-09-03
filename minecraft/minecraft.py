@@ -51,7 +51,6 @@ class Minecraft(commands.Cog):
 
     async def initialize(self):
         await self.bot.wait_until_red_ready()
-        await self._send_pending_owner_notifications(self.bot)
 
     @commands.Cog.listener()
     async def on_member_remove(self, member):
