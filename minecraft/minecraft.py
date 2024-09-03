@@ -98,7 +98,6 @@ class Minecraft(commands.Cog):
             status = await server.async_status() if server else None
         except Exception as e:
             return await ctx.send(f"An error occurred. {e}")
-        log.info(status.__class__)
 
         if not status:
             embed = discord.Embed(title=f"Minecraft Server", color=0xFF0000)
@@ -118,7 +117,7 @@ class Minecraft(commands.Cog):
             if status.players.online:
                 players += "\n" + ", ".join([p.name for p in status.players.sample])
             embed.add_field(name="Players", value=players)
-            b = io.BytesIO(base64.b64decode(status.icon.encode()))
+            b = io.BytesIO(base64.b64decode(status.icon.encode() + b'=='))
             filename = "server.png"
             file = discord.File(b, filename=filename)
             embed.set_image(url=f"attachment://{filename}")
