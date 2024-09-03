@@ -113,9 +113,6 @@ class Minecraft(commands.Cog):
             embed.add_field(name="IP", value=ip)
             embed.add_field(name="Version", value=status.version.name)
             embed.add_field(name="Status", value="🟢 Online")
-            players =
-            if status.players.online:
-                players +=
             embed.add_field(name=f"Players ({status.players.online}/{status.players.max})",
                             value="\n" + ", ".join([p.name for p in status.players.sample]) if status.players.online else "*None*")
             b = io.BytesIO(base64.b64decode(status.icon.encode() + b'=='))
