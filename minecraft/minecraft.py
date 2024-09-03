@@ -98,6 +98,7 @@ class Minecraft(commands.Cog):
             status = await server.async_status() if server else None
         except Exception as e:
             return await ctx.send(f"An error occurred. {e}")
+        log.info(status.__class__)
 
         if not status:
             embed = discord.Embed(title=f"Minecraft Server", color=0xFF0000)
