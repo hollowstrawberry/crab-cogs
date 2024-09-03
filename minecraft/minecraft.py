@@ -97,6 +97,8 @@ class Minecraft(commands.Cog):
             server = await JavaServer.async_lookup(ip)
             status = await server.async_status() if server else None
         except Exception as e:
+            if f"{e}" == "Socket did not respond with any information!":
+                return await ctx.send("🟡 The server is asleep! You can join to start it back up.")
             return await ctx.send(f"An error occurred. {e}")
 
         if not status:
