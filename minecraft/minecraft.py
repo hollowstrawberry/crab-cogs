@@ -28,23 +28,15 @@ class Minecraft(commands.Cog):
         return f"{pre_processed}\n\nVersion: {self.__version__}"
 
     async def red_delete_data_for_user(self, *, requester, user_id):
-        data = await self.config.all_guilds()
-        for guild_id in data:
-            if str(user_id) in data[guild_id]["players"]:
-                path = data[guild_id]["path_to_server"]
-                with open(path) as json_file:
-                    file = json.load(json_file)
-                for e in file:
-                    if e["uuid"] == data[guild_id]["players"][str(user_id)]["uuid"]:
-                        del file[file.index(e)]
-                        with open(F"{path}whitelist.json", "w") as json_file:
-                            json.dump(file, json_file, indent=4)
-                del data[guild_id]["players"][str(user_id)]
-                await self.config.guild_from_id(guild_id).players.set(data[guild_id]["players"])
 
     def __init__(self, bot):
         self.config = Config.get_conf(self, identifier=110320200153)
-        default_guild = {"players": {}, "path_to_server": "", "rcon": ("localhost", "25575", "")}
+        default_guild = {
+            "players": {},
+            "host": "localhost",
+            "port":25565,
+            "rcon_port": 25575,
+            "password": ""}
         self.config.register_guild(**default_guild)
         self.config.register_global(notification=0)
         self.bot = bot
@@ -56,7 +48,9 @@ class Minecraft(commands.Cog):
     async def on_member_remove(self, member):
         """Remove member from whitelist when leaving guild"""
         p_in_conf = await self.config.guild(member.guild).players()
-        host, port, passw = await self.config.guild(member.guild).rcon()
+        host = await self.config.guild(member.guild).host()
+        port = await self.config.guild(member.guild).rcon_port()
+        passw = await self.config.guild(member.guild).password()
         if str(member.id) in p_in_conf:
             async with Client(host, port, passw) as client:
                 await client.send_cmd(f"whitelist remove {p_in_conf[str(member.id)]['name']}")
@@ -70,19 +64,23 @@ class Minecraft(commands.Cog):
 
     @commands.guildowner()
     @minecraft.command()
-    async def setup(self, ctx, host: str, port: int, *, password: str):
+    async def setup(self, ctx, host: str, port: int, rcon_port: int, *, password: str):
         """Set up the cog.
 
         `host`: The IP/URL of your minecraft server.
-        `port`: Your server's RCON port. (The default is 25575)
+        `port`: Your server's normal port. (The default is 25565)
+        `rcon_port`: Your server's RCON port. (The default is 25575)
         `password`: The RCON password.
         RCON needs to be enabled and set up in your `server.properties` file.
         More information is available [here](https://minecraft.wiki/w/Server.properties)
         """
         await ctx.message.delete()
-        await self.config.guild(ctx.guild).rcon.set((host, port, password))
+        await self.config.guild(ctx.guild).host.set(host)
+        await self.config.guild(ctx.guild).port.set(port)
+        await self.config.guild(ctx.guild).rcon_port.set(rcon_port)
+        await self.config.guild(ctx.guild).password.set(password)
         try:
-            async with Client(host, port, password) as c:
+            async with Client(host, rcon_port, password) as c:
                 await c.send_cmd("help")
         except RCONConnectionError:
             await ctx.send("Could not connect to server.")
@@ -94,7 +92,8 @@ class Minecraft(commands.Cog):
     @minecraft.command()
     async def status(self, ctx):
         """Display info about the Minecraft server."""
-        host, port, _ = await self.config.guild(ctx.guild).rcon()
+        host = await self.config.guild(ctx.guild).host()
+        port = await self.config.guild(ctx.guild).port()
         ip = f"{host}:{port}"
         try:
             server = await JavaServer.async_lookup(ip)
@@ -134,18 +133,24 @@ class Minecraft(commands.Cog):
         p_in_conf = await self.config.guild(ctx.guild).players()
         if str(ctx.author.id) in p_in_conf:
             return await ctx.send(f"You are already whitelisted.\nRemove yourself first with {ctx.clean_prefix}minecraft leave")
-        host, port, passw = await self.config.guild(ctx.guild).rcon()
+        host = await self.config.guild(ctx.guild).host()
+        port = await self.config.guild(ctx.guild).rcon_port()
+        passw = await self.config.guild(ctx.guild).password()
         p_in_conf[ctx.author.id] = {"name": name}
         await self.config.guild(ctx.guild).players.set(p_in_conf)
         async with Client(host, port, passw) as c:
             resp = await c.send_cmd(f"whitelist add {name}", 30)
+        await ctx.send(resp[0])
+        resp = await c.send_cmd("whitelist reload")
         await ctx.send(resp[0])
 
     @minecraft.command()
     async def leave(self, ctx):
         """Remove yourself from the whitelist."""
         p_in_conf = await self.config.guild(ctx.guild).players()
-        host, port, passw = await self.config.guild(ctx.guild).rcon()
+        host = await self.config.guild(ctx.guild).host()
+        port = await self.config.guild(ctx.guild).rcon_port()
+        passw = await self.config.guild(ctx.guild).password()
         if str(ctx.author.id) in p_in_conf:
             deleted = p_in_conf[str(ctx.author.id)]
             del p_in_conf[str(ctx.author.id)]
@@ -155,6 +160,8 @@ class Minecraft(commands.Cog):
             await ctx.send(resp[0])
         else:
             await ctx.send("That Minecraft account is not whitelisted on the server.")
+        resp = await c.send_cmd("whitelist reload")
+        await ctx.send(resp[0])
 
     @commands.admin()
     @minecraft.command()
@@ -162,9 +169,13 @@ class Minecraft(commands.Cog):
         """Add someone else to the whitelist.\nThey will not be removed automatically when leaving the guild."""
         if not re_username.match(name):
             return await ctx.send(f"Invalid username.")
-        host, port, passw = await self.config.guild(ctx.guild).rcon()
+        host = await self.config.guild(ctx.guild).host()
+        port = await self.config.guild(ctx.guild).rcon_port()
+        passw = await self.config.guild(ctx.guild).password()
         async with Client(host, port, passw) as c:
             resp = await c.send_cmd(f"whitelist add {name}", 30)
+        await ctx.send(resp[0])
+        resp = await c.send_cmd("whitelist reload")
         await ctx.send(resp[0])
 
     @commands.admin()
@@ -173,16 +184,22 @@ class Minecraft(commands.Cog):
         """Remove someone else from the whitelist.\nThis might not be reflected correctly in `[p]minecraft whitelist`."""
         if not re_username.match(name):
             return await ctx.send(f"Invalid username.")
-        host, port, passw = await self.config.guild(ctx.guild).rcon()
+        host = await self.config.guild(ctx.guild).host()
+        port = await self.config.guild(ctx.guild).rcon_port()
+        passw = await self.config.guild(ctx.guild).password()
         async with Client(host, port, passw) as c:
             resp = await c.send_cmd(f"whitelist remove {name}", 30)
+        await ctx.send(resp[0])
+        resp = await c.send_cmd("whitelist reload")
         await ctx.send(resp[0])
 
     @commands.admin()
     @minecraft.command()
     async def whitelist(self, ctx):
         """See who is whitelisted on your server."""
-        host, port, passw = await self.config.guild(ctx.guild).rcon()
+        host = await self.config.guild(ctx.guild).host()
+        port = await self.config.guild(ctx.guild).rcon_port()
+        passw = await self.config.guild(ctx.guild).password()
         async with Client(host, port, passw) as c:
             resp = await c.send_cmd("whitelist list")
         await ctx.send(resp[0] if len(resp[0]) < 1900 else resp[0][:1900] + "...")
@@ -200,20 +217,13 @@ class Minecraft(commands.Cog):
             rendered.append(emb)
         await menu(ctx, rendered, controls=DEFAULT_CONTROLS, timeout=60.0)
 
-    @commands.admin()
-    @minecraft.command(name="reload")
-    async def reload(self, ctx):
-        """Reload the whitelist on the Minecraft server."""
-        host, port, passw = await self.config.guild(ctx.guild).rcon()
-        async with Client(host, port, passw) as c:
-            resp = await c.send_cmd("whitelist reload")
-        await ctx.send(resp[0])
-
     @commands.guildowner()
     @minecraft.command()
     async def command(self, ctx, *, command):
         """Run a command on the Minecraft server.\n\n**NO VALIDATION is performed on your inputs.**"""
-        host, port, passw = await self.config.guild(ctx.guild).rcon()
+        host = await self.config.guild(ctx.guild).host()
+        port = await self.config.guild(ctx.guild).rcon_port()
+        passw = await self.config.guild(ctx.guild).password()
         async with Client(host, port, passw) as c:
             resp = await c.send_cmd(command)
         await ctx.send(resp[0])
