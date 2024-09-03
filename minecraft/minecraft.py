@@ -60,7 +60,7 @@ class Minecraft(commands.Cog):
         host, port, passw = await self.config.guild(member.guild).rcon()
         if str(member.id) in p_in_conf:
             async with Client(host, port, passw) as client:
-                await client.send_cmd(f"whitelist remove {p_in_conf[str(member.id)]["name"]}")
+                await client.send_cmd(f"whitelist remove {p_in_conf[str(member.id)]['name']}")
             del p_in_conf[str(member.id)]
             await self.config.guild(member.guild).players.set(p_in_conf)
 
@@ -193,7 +193,7 @@ class Minecraft(commands.Cog):
             await ctx.send("Nobody was whitelisted themselves through Discord.")
             return
         for e in p_in_config:
-            outstr.append(f"{ctx.guild.get_member(int(e)).mention} | {p_in_config[e]["name"]}\n")
+            outstr.append(f"{ctx.guild.get_member(int(e)).mention} | {p_in_config[e]['name']}\n")
         pages = list(pagify("\n".join(outstr), page_length=1024))
         rendered = []
         for page in pages:

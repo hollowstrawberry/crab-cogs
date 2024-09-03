@@ -3,7 +3,7 @@
     "min_bot_version": "3.5.0",
     "description": "Manage a Minecraft server from Discord.",
     "hidden": false,
-    "install_msg": "🟫__**Minecraft**__ ```Cog installed. Instructions:\n1. Load it with [p]load minecraft.\n2. Connect your Minecraft server with your Discord server, see [p]help minecraft setup",
+    "install_msg": "🟫__**Minecraft**__ ```Cog installed. Instructions:\n1. Load it with [p]load minecraft.\n2. Connect your Minecraft server with your Discord server, see [p]help minecraft setup```",
     "tags": [
         "Minecraft",
         "Whitelist",
