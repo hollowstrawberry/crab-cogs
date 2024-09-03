@@ -109,16 +109,16 @@ class Minecraft(commands.Cog):
             if status.description:
                 embed.add_field(name="Description", value=status.description, inline=False)
             if status.motd:
-                embed.add_field(name="MOTD", value=status.motd.simplify(), inline=False)
+                embed.add_field(name="MOTD", value=status.motd.simplify().raw, inline=False)
             embed.add_field(name="IP", value=ip)
             embed.add_field(name="Version", value=status.version.name)
             embed.add_field(name="Status", value="🟢 Online")
             embed.add_field(name=f"Players ({status.players.online}/{status.players.max})",
                             value="\n" + ", ".join([p.name for p in status.players.sample]) if status.players.online else "*None*")
-            b = io.BytesIO(base64.b64decode(status.icon.encode() + b'=='))
+            b = io.BytesIO(base64.b64decode(status.icon.removeprefix("data:image/png;base64,")))
             filename = "server.png"
             file = discord.File(b, filename=filename)
-            #embed.set_thumbnail(url=f"attachment://{filename}")
+            embed.set_thumbnail(url=f"attachment://{filename}")
         await ctx.send(embed=embed, file=file)
 
     @minecraft.command()
