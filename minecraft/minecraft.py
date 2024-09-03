@@ -27,8 +27,6 @@ class Minecraft(commands.Cog):
         pre_processed = super().format_help_for_context(ctx)
         return f"{pre_processed}\n\nVersion: {self.__version__}"
 
-    async def red_delete_data_for_user(self, *, requester, user_id):
-
     def __init__(self, bot):
         self.config = Config.get_conf(self, identifier=110320200153)
         default_guild = {
