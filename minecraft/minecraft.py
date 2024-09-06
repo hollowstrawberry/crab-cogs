@@ -139,7 +139,8 @@ class Minecraft(commands.Cog):
         async with Client(host, port, passw) as c:
             resp = await c.send_cmd(f"whitelist add {name}", 30)
         await ctx.send(resp[0])
-        resp = await c.send_cmd("whitelist reload")
+        async with Client(host, port, passw) as c:
+            resp = await c.send_cmd("whitelist reload")
         await ctx.send(resp[0])
 
     @minecraft.command()
@@ -158,7 +159,8 @@ class Minecraft(commands.Cog):
             await ctx.send(resp[0])
         else:
             await ctx.send("That Minecraft account is not whitelisted on the server.")
-        resp = await c.send_cmd("whitelist reload")
+        async with Client(host, port, passw) as c:
+            resp = await c.send_cmd("whitelist reload")
         await ctx.send(resp[0])
 
     @commands.admin()
@@ -173,7 +175,8 @@ class Minecraft(commands.Cog):
         async with Client(host, port, passw) as c:
             resp = await c.send_cmd(f"whitelist add {name}", 30)
         await ctx.send(resp[0])
-        resp = await c.send_cmd("whitelist reload")
+        async with Client(host, port, passw) as c:
+            resp = await c.send_cmd("whitelist reload")
         await ctx.send(resp[0])
 
     @commands.admin()
@@ -188,7 +191,8 @@ class Minecraft(commands.Cog):
         async with Client(host, port, passw) as c:
             resp = await c.send_cmd(f"whitelist remove {name}", 30)
         await ctx.send(resp[0])
-        resp = await c.send_cmd("whitelist reload")
+        async with Client(host, port, passw) as c:
+            resp = await c.send_cmd("whitelist reload")
         await ctx.send(resp[0])
 
     @commands.admin()
@@ -224,4 +228,4 @@ class Minecraft(commands.Cog):
         passw = await self.config.guild(ctx.guild).password()
         async with Client(host, port, passw) as c:
             resp = await c.send_cmd(command)
-        await ctx.send(resp[0])
+        await ctx.send(resp[0] or "✅")
