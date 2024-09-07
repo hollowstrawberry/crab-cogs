@@ -15,7 +15,7 @@ from aiomcrcon.errors import IncorrectPasswordError, RCONConnectionError
 from mcstatus import JavaServer
 
 log = logging.getLogger("red.crab-cogs.minecraft")
-re_username = re.compile("^[a-zA-Z0-9_]{3,30}$")
+re_username = re.compile("^.?[a-zA-Z0-9_]{3,30}$")
 
 
 class Minecraft(commands.Cog):
