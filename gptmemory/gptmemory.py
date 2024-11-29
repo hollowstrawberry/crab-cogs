@@ -2,8 +2,11 @@ import discord
 import logging
 import tiktoken
 import re
+import base64
 from openai import AsyncOpenAI
 from pydantic import BaseModel
+from PIL import Image
+from io import BytesIO
 from typing import Literal
 from datetime import datetime
 from redbot.core import commands, Config
@@ -46,6 +49,21 @@ You are the memory manager of a conversational AI. You must analyze a list of me
 \nThe available entries are: {0}
 \nBelow are the contents of some of the entries:\n\n{1}"
 """
+
+async def extract_image(attachment: discord.Attachment) -> BytesIO:
+    buffer = BytesIO()
+    await attachment.save(buffer)
+    image = Image.open(buffer)
+    width, height = image.size
+    image_resolution = width * height
+    target_resolution = 1024*1024
+    if image_resolution > target_resolution:
+        scale_factor = (target_resolution / image_resolution) ** 0.5
+        image = image.resize((int(width * scale_factor), int(height * scale_factor)), Image.Resampling.LANCZOS)
+    fp = BytesIO()
+    image.save(fp, "PNG")
+    fp.seek(0)
+    return fp
 
 class MemoryRecall(BaseModel):
     memory_names: list[str]
@@ -146,8 +164,28 @@ class GptMemory(commands.Cog):
         messages = []
         tokens = 0
         encoding = tiktoken.encoding_for_model(GPT_MODEL)
+        images = []
         for n, backmsg in enumerate(reversed(backread)):
-            msg_content = await self.parse_message(backmsg)
+            try:
+                quote = message.reference.cached_message or await message.channel.fetch_message(message.reference.message_id)
+            except:
+                quote = None
+            if message.attachments or quote and quote.attachments:
+                attachments = message.attachments + (quote.attachments if quote else [])
+                images = [att for att in attachments if att.content_type.startswith('image/')]
+                for image in images[:2]:
+                    try:
+                        fp = await extract_image(image)
+                    except:
+                        continue
+                    messages.append({
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/png;base64,{base64.b64encode(fp.read()).decode()}"
+                        }
+                    })
+                    tokens += 255
+            msg_content = await self.parse_message(backmsg, quote=quote)
             messages.append({
                 "role": "assistant" if backmsg.author.id == self.bot.user.id else "user",
                 "content": msg_content
@@ -222,7 +260,7 @@ class GptMemory(commands.Cog):
                     self.memory[ctx.guild.id][name] = content
                     log.info(f"memory {name} = {content}")
         
-    async def parse_message(self, message: discord.Message, recursive=True) -> str:
+    async def parse_message(self, message: discord.Message, quote: discord.Message = None, recursive=True) -> str:
         content = f"[Username: {message.author.name}]"
         if message.author.nick:
             content += f" [Alias: {message.author.nick}]"
@@ -232,14 +270,9 @@ class GptMemory(commands.Cog):
         for sticker in message.stickers:
             content += f"\n[Sticker: {sticker.name}]"
         
-        if message.reference and recursive:
-            try:
-                quote = message.reference.cached_message or await message.channel.fetch_message(message.reference.message_id)
-            except:
-                quote = None
-            if quote:
-                quote_content = (await self.parse_message(quote, False)).replace("\n", " ")[:300]
-                content += f"\n[[[This message was in reply to the following: {quote_content}]]]"
+        if quote and recursive:
+            quote_content = (await self.parse_message(quote, recursive=False)).replace("\n", " ")[:300]
+            content += f"\n[[[This message was in reply to the following: {quote_content}]]]"
         
         mentions = message.mentions + message.role_mentions + message.channel_mentions
         if not mentions:
@@ -252,7 +285,7 @@ class GptMemory(commands.Cog):
             else:
                 content = content.replace(mentioned.mention, f'@{mentioned.display_name}')
         return content.strip()
-
+                    
     # Commands
 
     @commands.command()
