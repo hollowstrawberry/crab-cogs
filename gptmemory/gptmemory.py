@@ -194,7 +194,7 @@ class GptMemory(commands.Cog):
                 })
             else:
                 all_contents = msg_content
-	        messages.append({
+            messages.append({
                 "role": "assistant" if backmsg.author.id == self.bot.user.id else "user",
                 "content": all_contents
             })
