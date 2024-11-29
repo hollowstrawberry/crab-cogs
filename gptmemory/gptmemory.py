@@ -165,7 +165,7 @@ class GptMemory(commands.Cog):
             tokens += len(encoding.encode(msg_content))
             if tokens > BACKREAD_TOKENS and n >= 1:
                 break
-        messages = reversed(messages)
+        messages = list(reversed(messages))
         log.info(messages)
 
         # RECALLER
