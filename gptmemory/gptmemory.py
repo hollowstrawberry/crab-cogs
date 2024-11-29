@@ -195,12 +195,12 @@ class GptMemory(commands.Cog):
     @commands.group(invoke_without_command=True)
     @commands.guild_only()
     async def gpt(self, ctx: commands.Context):
-    	"""Manage the GptMemory cog"""
+        """Manage the GptMemory cog"""
         await ctx.send_help()
 
     @gpt.command()
     async def memory(self, ctx: commands.Context, *, name: str):
-    	"""View a memory by name"""
+        """View a memory by name"""
         if ctx.guild.id in self.memory and name in self.memory[ctx.guild.id]:
             await ctx.send(f"[Memory of {name}]\n>>> {self.memory[ctx.guild.id][name]}")
         else:
@@ -208,7 +208,7 @@ class GptMemory(commands.Cog):
 
     @gpt.command()
     async def memories(self, ctx: commands.Context):
-    	"""View a list of memories"""
+        """View a list of memories"""
         if ctx.guild.id in self.memory and self.memory[ctx.guild.id]:
             await ctx.send(f"```{', '.join(self.memory[ctx.guild.id])}```")
         else:
