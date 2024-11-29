@@ -105,9 +105,9 @@ class GptMemory(commands.Cog):
     async def create_response(ctx: commands.Context):
         backread = [message async for message in self.init_message.channel.history(limit=10, before=ctx.message, oldest_first=True)]
         if ctx.message.reference:
-        	try:
-            	quote = ctx.message.reference.cached_message or await ctx.fetch_message(ctx.message.reference.message_id)
-           except:
+	    try:
+                quote = ctx.message.reference.cached_message or await ctx.fetch_message(ctx.message.reference.message_id)
+            except:
            	quote = None
            if quote and quote not in backread:
                 backread.append(quote)
@@ -115,9 +115,9 @@ class GptMemory(commands.Cog):
         messages = []
         for backmsg in backread:
         	messages.append({
-                "role": "assistant" if backmsg.author.id == self.bot.user_id else "user",
-                "content": f"[Username: {backmsg.author.name}] [Alias: {backmsg.author.nick or 'None'}] [said:] {self.parse_message(backmsg)}",
-            })
+                    "role": "assistant" if backmsg.author.id == self.bot.user_id else "user",
+                    "content": f"[Username: {backmsg.author.name}] [Alias: {backmsg.author.nick or 'None'}] [said:] {self.parse_message(backmsg)}",
+                })
 
         memories_str = ", ".join(self.memory[ctx.guild.id].keys()))
         messages_recaller = [msg for msg in messages]
@@ -166,7 +166,7 @@ class GptMemory(commands.Cog):
         )
         completion = response.choices[0].message
         if completion.refusal:
-        	return
+            return
         async with self.config.guild(ctx.guild).memory() as memory:
             for change in completion.parsed["memory_changes"]:
             	action, name, content = change["action_type"], change["memory_name"], change["memory_content"]
@@ -202,17 +202,17 @@ class GptMemory(commands.Cog):
     async def memory(self, ctx: commands.Context, *, name: str):
     	"""View a memory by name"""
         if ctx.guild.id in self.memory and name in self.memory[ctx.guild.id]:
-        	await ctx.send(f"[Memory of {name}]\n>>> {self.memory[ctx.guild.id][name]}")
+            await ctx.send(f"[Memory of {name}]\n>>> {self.memory[ctx.guild.id][name]}")
         else:
-        	await ctx.send(f"No memory of {name}")
+            await ctx.send(f"No memory of {name}")
 
     @gpt.command()
     async def memories(self, ctx: commands.Context):
     	"""View a list of memories"""
         if ctx.guild.id in self.memory and self.memory[ctx.guild.id]:
-        	await ctx.send(f"```{', '.join(self.memory[ctx.guild.id])}```")
+            await ctx.send(f"```{', '.join(self.memory[ctx.guild.id])}```")
         else:
-        	await ctx.send("No memories...")
+            await ctx.send("No memories...")
         
         
         
