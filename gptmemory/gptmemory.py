@@ -170,7 +170,7 @@ class GptMemory(commands.Cog):
                 quote = backmsg.reference.cached_message or await message.channel.fetch_message(message.reference.message_id)
             except:
                 quote = None
-            if backmsg.author.id != self.bot.user.id and (backmsg.attachments or quote and quote.attachments):
+            if backmsg.attachments or quote and quote.attachments:
                 attachments = (backmsg.attachments or []) + (quote.attachments if quote and quote.attachments else [])
                 images = [att for att in attachments if att.content_type.startswith('image/')]
                 for image in images[:2]:
@@ -195,7 +195,7 @@ class GptMemory(commands.Cog):
             else:
                 all_contents = msg_content
             messages.append({
-                "role": "assistant" if backmsg.author.id == self.bot.user.id else "user",
+                "role": "assistant" if backmsg.author.id == self.bot.user.id and isinstance(all_contents, str) else "user",
                 "content": all_contents
             })
             tokens += len(encoding.encode(msg_content))
