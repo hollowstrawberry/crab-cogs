@@ -174,7 +174,7 @@ class GptMemory(commands.Cog):
                     memory[name] = memory[name] + " ... " + content
                 else:
                     memory[name] = content
-	        self.memory[ctx.guild.id] = memory[name]
+                    self.memory[ctx.guild.id] = memory[name]
                 log.info(f"memory {name}: {memory[name]}")
         
     def parse_message(self, message: discord.Message) -> str:
