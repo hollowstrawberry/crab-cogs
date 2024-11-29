@@ -213,7 +213,7 @@ class GptMemory(commands.Cog):
                 break
         messages = list(reversed(messages))
         for msg in messages:
-            log.info(msg["content"] if isinstance(message["content"], str) else f"{len(message['content']) - 1} images /// {message['content'][0]}")
+            log.info(msg["content"] if isinstance(msg["content"], str) else f"{len(msg['content']) - 1} images /// {msg['content'][0]}")
         
         # RECALLER
         memories_str = ", ".join(self.memory[ctx.guild.id].keys())
