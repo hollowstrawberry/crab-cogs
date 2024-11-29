@@ -143,7 +143,7 @@ class GptMemory(commands.Cog):
                 servername=ctx.guild.name,
                 channelname=ctx.channel.name,
                 emotes=EMOTES,
-                currentdate=datetime.now().strftime("%Y-%m-%d %H:%M:%S %Z%z"),
+                currentdatetime=datetime.now().strftime("%Y-%m-%d %H:%M:%S %Z%z"),
                 memories=recalled_memories_str,
             )
         })
