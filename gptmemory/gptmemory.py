@@ -267,7 +267,7 @@ class GptMemory(commands.Cog):
     async def memories(self, ctx: commands.Context):
         """View a list of memories, for GPT"""
         if ctx.guild.id in self.memory and self.memory[ctx.guild.id]:
-            await ctx.send(", ".join(f"`{self.memory[ctx.guild.id]}`"))
+            await ctx.send(", ".join(f"`{mem}`" for mem in self.memory[ctx.guild.id].keys()))
         else:
             await ctx.send("No memories...")
 
