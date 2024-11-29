@@ -233,14 +233,14 @@ class GptMemory(commands.Cog):
             content += f"\n[Sticker: {sticker.name}]"
         
         if message.reference and recursive:
-		    try:
+            try:
                 quote = ctx.message.reference.cached_message or await ctx.fetch_message(ctx.message.reference.message_id)
             except:
                 quote = None
             if quote:
                 content += f"\n[[[This message was a reply to the following: {(await self.parse_message(quote, False)).replace('\n', ' ')[:300]}]]]"
         
-            mentions = message.mentions + message.role_mentions + message.channel_mentions
+        mentions = message.mentions + message.role_mentions + message.channel_mentions
         if not mentions:
             return content.strip()
         for mentioned in mentions:
