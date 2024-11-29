@@ -1,0 +1,12 @@
+{
+    "author": ["hollowstrawberry"],
+    "min_bot_version": "3.5.0",
+    "description": "OpenAI-powered user with persistent memory.",
+    "hidden": false,
+    "install_msg": "good luck",
+    "required_cogs": {},
+    "requirements": ["openai", "tiktoken"],
+    "short": "OpenAI-powered user with persistent memory.",
+    "end_user_data_statement": "This cog stores user data as memories for the AI.",
+    "tags": ["crab", "ai", "gpt", "llm", "chatgpt", "chatbot"]
+}
