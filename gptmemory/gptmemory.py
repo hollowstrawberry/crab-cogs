@@ -115,7 +115,7 @@ class GptMemory(commands.Cog):
         messages = []
         for backmsg in backread:
             messages.append({
-                "role": "assistant" if backmsg.author.id == self.bot.user_id else "user",
+                "role": "assistant" if backmsg.author.id == self.bot.user.id else "user",
                 "content": f"[Username: {backmsg.author.name}] [Alias: {backmsg.author.nick or 'None'}] [said:] {self.parse_message(backmsg)}",
             })
 
