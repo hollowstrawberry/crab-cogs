@@ -162,7 +162,7 @@ class GptMemory(commands.Cog):
         if ctx.guild.id not in self.memory:
             self.memory[ctx.guild.id] = {}
         backread = [message async for message in ctx.channel.history(limit=BACKREAD_MESSAGES, before=ctx.message, oldest_first=False)]
-        backread.append(ctx.message)
+        backread.insert(0, ctx.message)
         #backread = list(reversed(backread))
         messages = []
         sent_images = []
