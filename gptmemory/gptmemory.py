@@ -231,7 +231,7 @@ class GptMemory(commands.Cog):
         
     def parse_message(self, message: discord.Message) -> str:
         content = f"[Username: {message.author.name}]"
-        if backmsg.author.nick:
+        if message.author.nick:
             content += f" [Alias: {message.author.nick}]"
         content += f" [said:] {message.content}"
         for attachment in message.attachments:
