@@ -15,15 +15,15 @@ EMOTES = "<:FubukiEmoteForWhenever:1159695833697104033> <a:FubukiSway:1169172368
 
 
 class MemoryRecall(BaseModel):
-	memory_names: list[str]
+    memory_names: list[str]
 
 class MemoryChange(BaseModel):
-	action_type: Literal["create", "adjust", "append"]
-	memory_name: str
-	memory_content: str
+    action_type: Literal["create", "adjust", "append"]
+    memory_name: str
+    memory_content: str
 	
 class MemoryChangeList(BaseModel):
-	memory_changes: list[MemoryChange]
+    memory_changes: list[MemoryChange]
 
 
 class GptMemory(commands.Cog):
@@ -105,7 +105,7 @@ class GptMemory(commands.Cog):
     async def create_response(ctx: commands.Context):
         backread = [message async for message in self.init_message.channel.history(limit=10, before=ctx.message, oldest_first=True)]
         if ctx.message.reference:
-	        try:
+            try:
                 quote = ctx.message.reference.cached_message or await ctx.fetch_message(ctx.message.reference.message_id)
             except:
                 quote = None
@@ -114,7 +114,7 @@ class GptMemory(commands.Cog):
         backread.append(ctx.message) 
         messages = []
         for backmsg in backread:
-        	messages.append({
+            messages.append({
                 "role": "assistant" if backmsg.author.id == self.bot.user_id else "user",
                 "content": f"[Username: {backmsg.author.name}] [Alias: {backmsg.author.nick or 'None'}] [said:] {self.parse_message(backmsg)}",
             })
@@ -171,9 +171,9 @@ class GptMemory(commands.Cog):
             for change in completion.parsed["memory_changes"]:
             	action, name, content = change["action_type"], change["memory_name"], change["memory_content"]
                 if action == "append" and name in memory:
-                	memory[name] = memory[name] + " ... " + content
+                    memory[name] = memory[name] + " ... " + content
                 else:
-                	memory[name] = content
+                    memory[name] = content
                 log.info(f"memory {name}: {memory[name]}")
         
     def parse_message(message: Message) -> str:
