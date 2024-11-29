@@ -164,7 +164,7 @@ class GptMemory(commands.Cog):
         messages = []
         tokens = 0
         encoding = tiktoken.encoding_for_model(GPT_MODEL)
-        images = []
+        image_contents = []
         for n, backmsg in enumerate(reversed(backread)):
             try:
                 quote = backmsg.reference.cached_message or await message.channel.fetch_message(message.reference.message_id)
@@ -178,8 +178,7 @@ class GptMemory(commands.Cog):
                         fp = await extract_image(image)
                     except:
                         continue
-                    messages.append({
-                        "role": "user",
+                    image_contents.append({
                         "type": "image_url",
                         "image_url": {
                             "url": f"data:image/png;base64,{base64.b64encode(fp.read()).decode()}"
@@ -187,19 +186,27 @@ class GptMemory(commands.Cog):
                     })
                     tokens += 255
             msg_content = await self.parse_message(backmsg, quote=quote)
-            messages.append({
+            if image_contents:
+                all_contents = image_contents
+                all_contents.insert(0, {
+                    "type": "text",
+                    "text": msg_content
+                })
+            else:
+                all_contents = msg_content
+	        messages.append({
                 "role": "assistant" if backmsg.author.id == self.bot.user.id else "user",
-                "content": msg_content
+                "content": all_contents
             })
             tokens += len(encoding.encode(msg_content))
             if tokens > BACKREAD_TOKENS and n >= 1:
                 break
         messages = list(reversed(messages))
-        log.info(msg for msg in messages if "type" not in msg)
+        log.info(msg for msg in messages if isinstance(msg["content"], str))
         
         # RECALLER
         memories_str = ", ".join(self.memory[ctx.guild.id].keys())
-        recaller_messages = [msg for msg in messages if "type" not in msg]
+        recaller_messages = [msg for msg in messages if isinstance(msg["content"], str)]
         recaller_messages.insert(0, {"role": "system", "content": self.prompt_recaller[ctx.guild.id].format(memories_str)})
         recaller_response = await self.openai_client.beta.chat.completions.parse(
             model=GPT_MODEL, 
@@ -236,7 +243,7 @@ class GptMemory(commands.Cog):
 
         # MEMORIZER
         messages.append({"role": "assistant", "content": await self.parse_message(responder_reply)})
-        memorizer_messages = [msg for msg in messages if "type" not in msg]
+        memorizer_messages = [msg for msg in messages if isinstance(msg["content"], str)]
         memorizer_messages.insert(0, {"role": "system", "content": self.prompt_memorizer[ctx.guild.id].format(memories_str, recalled_memories_str)})
         memorizer_response = await self.openai_client.beta.chat.completions.parse(
             model=GPT_MODEL, 
