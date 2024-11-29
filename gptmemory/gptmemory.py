@@ -212,8 +212,8 @@ class GptMemory(commands.Cog):
             if tokens > BACKREAD_TOKENS and n > 0:
                 break
         messages = list(reversed(messages))
-        for msg in messages:
-            log.info(msg["content"] if isinstance(msg["content"], str) else f"{len(msg['content']) - 1} images /// {msg['content'][0]}")
+        for n, msg in enunerate(messages):
+            log.info(f"[{n}]", msg["content"] if isinstance(msg["content"], str) else f"{len(msg['content']) - 1} images /// {msg['content'][0]}")
         
         # RECALLER
         memories_str = ", ".join(self.memory[ctx.guild.id].keys())
