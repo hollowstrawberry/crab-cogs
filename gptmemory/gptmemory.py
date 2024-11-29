@@ -189,6 +189,10 @@ class GptMemory(commands.Cog):
         
     def parse_message(self, message: discord.Message) -> str:
         content = message.content
+        for attachment in message.attachments:
+            content += f"\n[Attachment: {attachment.filename}]"
+        for sticker in message.stickers:
+            content += f"\n[Sticker: {sticker.name}]"
         mentions = message.mentions + message.role_mentions + message.channel_mentions
         if not mentions:
             return content
@@ -199,7 +203,7 @@ class GptMemory(commands.Cog):
                 content = content.replace(mentioned.mention, f'@{mentioned.name}')
             else:
                 content = content.replace(mentioned.mention, f'@{mentioned.display_name}')
-        return content
+        return content.strip()
 
     # Commands
 
