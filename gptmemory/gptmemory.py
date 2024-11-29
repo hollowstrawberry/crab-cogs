@@ -214,7 +214,7 @@ class GptMemory(commands.Cog):
         messages = list(reversed(messages))
         log.info(f"{len(messages)=}")
         for n, msg in enumerate(messages):
-            log.info(f"[{n}]", msg["content"] if isinstance(msg["content"], str) else f"{len(msg['content']) - 1} images /// {msg['content'][0]}")
+            log.info(f"[{n}]" + (msg["content"] if isinstance(msg["content"], str) else f"{len(msg['content']) - 1} images /// {msg['content'][0]}"))
         
         # RECALLER
         memories_str = ", ".join(self.memory[ctx.guild.id].keys())
