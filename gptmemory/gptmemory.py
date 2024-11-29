@@ -166,6 +166,7 @@ class GptMemory(commands.Cog):
         encoding = tiktoken.encoding_for_model(GPT_MODEL)
         sent_images = []
         for n, backmsg in enumerate(reversed(backread)):
+            image_contents = []
             try:
                 quote = backmsg.reference.cached_message or await message.channel.fetch_message(message.reference.message_id)
             except:
