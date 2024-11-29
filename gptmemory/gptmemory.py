@@ -70,8 +70,8 @@ class GptMemory(commands.Cog):
             return
         if not await self.is_bot_mentioned_or_replied(message):
             return
-        async with ctx.channel.typing():
-            await self.create_response(ctx) 
+        await ctx.channel.typing():
+        await self.create_response(ctx) 
 
     async def is_common_valid_reply(self, ctx: commands.Context) -> bool:
         """Run some common checks to see if a message is valid for the bot to reply to"""
