@@ -155,7 +155,7 @@ class GptMemory(commands.Cog):
             msg_content = f"[Username: {backmsg.author.name}]"
             if backmsg.author.nick:
                 msg_content += f" [Alias: {backmsg.author.nick}]"
-            msg_content += f" [said:] {self.parse_message(backmsg)}",
+            msg_content += f" [said:] {self.parse_message(backmsg)}"
             messages.append({
                 "role": "assistant" if backmsg.author.id == self.bot.user.id else "user",
                 "content": msg_content
