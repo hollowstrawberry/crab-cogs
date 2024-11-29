@@ -167,11 +167,11 @@ class GptMemory(commands.Cog):
         images = []
         for n, backmsg in enumerate(reversed(backread)):
             try:
-                quote = message.reference.cached_message or await message.channel.fetch_message(message.reference.message_id)
+                quote = backmsg.reference.cached_message or await message.channel.fetch_message(message.reference.message_id)
             except:
                 quote = None
-            if message.attachments or quote and quote.attachments:
-                attachments = (message.attachments or []) + (quote.attachments if quote and quote.attachments else [])
+            if backmsg.attachments or quote and quote.attachments:
+                attachments = (backmsg.attachments or []) + (quote.attachments if quote and quote.attachments else [])
                 images = [att for att in attachments if att.content_type.startswith('image/')]
                 for image in images[:2]:
                     try:
