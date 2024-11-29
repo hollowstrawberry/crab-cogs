@@ -238,7 +238,8 @@ class GptMemory(commands.Cog):
             except:
                 quote = None
             if quote:
-                content += f"\n[[[This message was a reply to the following: {(await self.parse_message(quote, False)).replace('\n', ' ')[:300]}]]]"
+                quote_content = (await self.parse_message(quote, False)).replace("\n", " ")[:300]
+                content += f"\n[[[This message was in reply to the following: {quote_content}]]]"
         
         mentions = message.mentions + message.role_mentions + message.channel_mentions
         if not mentions:
