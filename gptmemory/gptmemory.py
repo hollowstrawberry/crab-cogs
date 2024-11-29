@@ -81,7 +81,7 @@ class GptMemory(commands.Cog):
         await self.initialize_openai_client()
         all_config = await self.config.all_guilds()
         for guild_id, config in all_config.items():
-            self.prompt_recaller[guild_id] = PROMPT_RRCALLER.strip()
+            self.prompt_recaller[guild_id] = PROMPT_RECALLER.strip()
             self.prompt_responder[guild_id] = PROMPT_RESPONDER.strip()
             self.prompt_memorizer[guild_id] = PROMPT_MEMORIZER.strip()
             self.memory[guild_id] = config["memory"]
