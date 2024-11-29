@@ -70,7 +70,8 @@ class GptMemory(commands.Cog):
             return
         if not await self.is_bot_mentioned_or_replied(message):
             return
-        await ctx.channel.typing():
+        async with ctx.channel.typing():
+            pass
         await self.create_response(ctx) 
 
     async def is_common_valid_reply(self, ctx: commands.Context) -> bool:
