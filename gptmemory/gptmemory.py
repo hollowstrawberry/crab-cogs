@@ -200,16 +200,10 @@ class GptMemory(commands.Cog):
             else:
                 content = content.replace(mentioned.mention, f'@{mentioned.display_name}')
         return content
-    
+
     # Commands
 
-    @commands.group(invoke_without_command=True)
-    @commands.guild_only()
-    async def gpt(self, ctx: commands.Context):
-        """Manage the GptMemory cog"""
-        await ctx.send_help()
-
-    @gpt.command()
+    @commands.command()
     async def memory(self, ctx: commands.Context, *, name: str):
         """View a memory by name"""
         if ctx.guild.id in self.memory and name in self.memory[ctx.guild.id]:
@@ -217,7 +211,7 @@ class GptMemory(commands.Cog):
         else:
             await ctx.send(f"No memory of {name}")
 
-    @gpt.command()
+    @commands.command()
     async def memories(self, ctx: commands.Context):
         """View a list of memories"""
         if ctx.guild.id in self.memory and self.memory[ctx.guild.id]:
