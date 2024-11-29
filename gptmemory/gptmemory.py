@@ -102,7 +102,7 @@ class GptMemory(commands.Cog):
             return
         self.openai_client = AsyncOpenAI(api_key=api_key)
         
-    async def create_response(ctx: commands.Context):
+    async def create_response(self, ctx: commands.Context):
         backread = [message async for message in self.init_message.channel.history(limit=10, before=ctx.message, oldest_first=True)]
         if ctx.message.reference:
             try:
