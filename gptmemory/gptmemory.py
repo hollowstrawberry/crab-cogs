@@ -163,13 +163,16 @@ class GptMemory(commands.Cog):
             self.memory[ctx.guild.id] = {}
         backread = [message async for message in ctx.channel.history(limit=BACKREAD_MESSAGES, before=ctx.message, oldest_first=False)]
         backread.append(ctx.message)
+        backread = list(reversed(backread))
         messages = []
         sent_images = []
         tokens = 0
-        for n, backmsg in enumerate(reversed(backread)):
+        for n, backmsg in enumerate(backread):
             image_contents = []
             try:
                 quote = backmsg.reference.cached_message or await message.channel.fetch_message(message.reference.message_id)
+                if len(backread) > n+1 and quote == backread[n+1]:
+                    quote = None
             except:
                 quote = None
             # image parsing
@@ -288,7 +291,7 @@ class GptMemory(commands.Cog):
         
         if quote and recursive:
             quote_content = (await self.parse_message(quote, recursive=False)).replace("\n", " ")[:QUOTE_LENGTH]
-            content += f"\n[[[This message was in reply to the following: {quote_content}]]]"
+            content += f"\n[[[Replying to: {quote_content}]]]"
         
         mentions = message.mentions + message.role_mentions + message.channel_mentions
         if not mentions:
