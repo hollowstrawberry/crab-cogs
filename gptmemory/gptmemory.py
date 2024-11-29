@@ -18,7 +18,7 @@ class MemoryRecall(BaseModel):
     memory_names: list[str]
 
 class MemoryChange(BaseModel):
-    action_type: str #Literal["create", "adjust", "append"]
+    action_type: Literal["create", "adjust", "append"]
     memory_name: str
     memory_content: str
 	
