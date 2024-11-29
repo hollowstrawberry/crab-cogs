@@ -123,7 +123,7 @@ class GptMemory(commands.Cog):
         memories_str = ", ".join(self.memory[ctx.guild.id].keys() if ctx.guild.id in self.memory else [])
         messages_recaller = [msg for msg in messages]
         messages_recaller.insert(0, {"role": "system", "content": self.prompt_recaller[ctx.guild.id].format(memories_str)})
-        response = await self.openai_client.chat.completions.create(
+        response = await self.openai_client.beta.chat.completions.parse(
             model="gpt-4o", 
             messages=messages_recaller,
             response_format=MemoryRecall,
@@ -160,7 +160,7 @@ class GptMemory(commands.Cog):
         })
         messages_memorizer = [msg for msg in messages]
         messages_memorizer.insert(0, {"role": "system", "content": self.prompt_memorizer[ctx.guild.id].format(memories_str, recalled_memories_str)})
-        response = await self.openai_client.chat.completions.create(
+        response = await self.openai_client.beta.chat.completions.parse(
             model="gpt-4o", 
             messages=messages_memorizer,
             response_format=MemoryChangeList,
