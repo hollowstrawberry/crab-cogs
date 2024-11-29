@@ -11,6 +11,10 @@ from redbot.core.bot import Red
 
 log = logging.getLogger("red.crab-cogs.gptmemory")
 
+GPT_MODEL = "gpt-4o"
+BACKREAD_TOKENS = 1000
+BACKREAD_MESSAGES = 20
+
 EMOTES = "<:FubukiEmoteForWhenever:1159695833697104033> <a:FubukiSway:1169172368313290792> <a:FubukiSpaz:1198104998752571492> <a:fubukitail:1231807727995584532> <:fubukiexcited:1233560648877740094> <:todayiwill:1182055394521137224> <:clueless:1134505916679589898>"
 
 PROMPT_RECALLER = """
@@ -135,7 +139,7 @@ class GptMemory(commands.Cog):
     async def create_response(self, ctx: commands.Context):
         if ctx.guild.id not in self.memory:
             self.memory[ctx.guild.id] = {}
-        backread = [message async for message in ctx.channel.history(limit=10, before=ctx.message, oldest_first=False)]
+        backread = [message async for message in ctx.channel.history(limit=BACKREAD_MESSAGES, before=ctx.message, oldest_first=False)]
         if ctx.message.reference:
             try:
                 quote = ctx.message.reference.cached_message or await ctx.fetch_message(ctx.message.reference.message_id)
@@ -143,9 +147,11 @@ class GptMemory(commands.Cog):
                 quote = None
             if quote and quote not in backread:
                 backread.append(quote)
-        backread.append(ctx.message) 
+        backread.append(ctx.message)
         messages = []
-        for backmsg in backread:
+        tokens = 0
+        encoding = tiktoken.encoding_for_model(GPT_MODEL)
+        for n, backmsg in enumerate(reversed(backread)):
             msg_content = f"[Username: {backmsg.author.name}]"
             if backmsg.author.nick:
                 msg_content += f" [Alias: {backmsg.author.nick}]"
@@ -154,12 +160,16 @@ class GptMemory(commands.Cog):
                 "role": "assistant" if backmsg.author.id == self.bot.user.id else "user",
                 "content": msg_content
             })
+            tokens += len(encoding.encode(msg_content))
+            if tokens > BACKREAD_TOKENS and n >= 1:
+                break
+        messages = reversed(messages)
+
         memories_str = ", ".join(self.memory[ctx.guild.id].keys())
-        
         recaller_messages = [msg for msg in messages]
         recaller_messages.insert(0, {"role": "system", "content": self.prompt_recaller[ctx.guild.id].format(memories_str)})
         recaller_response = await self.openai_client.beta.chat.completions.parse(
-            model="gpt-4o", 
+            model=GPT_MODEL, 
             messages=recaller_messages,
             response_format=MemoryRecall,
         )
@@ -181,18 +191,19 @@ class GptMemory(commands.Cog):
             )
         })
         responder_response = await self.openai_client.chat.completions.create(
-            model="gpt-4o", 
+            model=GPT_MODEL, 
             messages=responder_messages,
+            token_limit=1000
         )
         responder_completion = responder_response.choices[0].message.content
         log.info(f"{responder_completion=}")
         responder_completion = re.sub(r"^(\[.+\] ?)+", "", completion)
-        await ctx.reply(responder_completion, mention_author=False)
+        await ctx.reply(responder_completion[:4000], mention_author=False)
         
         memorizer_messages = [msg for msg in messages]
         memorizer_messages.insert(0, {"role": "system", "content": self.prompt_memorizer[ctx.guild.id].format(memories_str, recalled_memories_str)})
         memorizer_response = await self.openai_client.beta.chat.completions.parse(
-            model="gpt-4o", 
+            model=GPT_MODEL, 
             messages=messages_memorizer,
             response_format=MemoryChangeList,
         )
