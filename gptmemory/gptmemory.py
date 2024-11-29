@@ -105,19 +105,19 @@ class GptMemory(commands.Cog):
     async def create_response(ctx: commands.Context):
         backread = [message async for message in self.init_message.channel.history(limit=10, before=ctx.message, oldest_first=True)]
         if ctx.message.reference:
-	    try:
+	        try:
                 quote = ctx.message.reference.cached_message or await ctx.fetch_message(ctx.message.reference.message_id)
             except:
-           	quote = None
-           if quote and quote not in backread:
+                quote = None
+            if quote and quote not in backread:
                 backread.append(quote)
         backread.append(ctx.message) 
         messages = []
         for backmsg in backread:
         	messages.append({
-                    "role": "assistant" if backmsg.author.id == self.bot.user_id else "user",
-                    "content": f"[Username: {backmsg.author.name}] [Alias: {backmsg.author.nick or 'None'}] [said:] {self.parse_message(backmsg)}",
-                })
+                "role": "assistant" if backmsg.author.id == self.bot.user_id else "user",
+                "content": f"[Username: {backmsg.author.name}] [Alias: {backmsg.author.nick or 'None'}] [said:] {self.parse_message(backmsg)}",
+            })
 
         memories_str = ", ".join(self.memory[ctx.guild.id].keys()))
         messages_recaller = [msg for msg in messages]
