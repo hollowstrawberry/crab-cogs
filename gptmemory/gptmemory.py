@@ -12,7 +12,8 @@ from redbot.core.bot import Red
 log = logging.getLogger("red.crab-cogs.gptmemory")
 
 GPT_MODEL = "gpt-4o"
-BACKREAD_TOKENS = 1000
+RESPONSE_TOKENS = 2000
+BACKREAD_TOKENS = 1333
 BACKREAD_MESSAGES = 20
 
 EMOTES = "<:FubukiEmoteForWhenever:1159695833697104033> <a:FubukiSway:1169172368313290792> <a:FubukiSpaz:1198104998752571492> <a:fubukitail:1231807727995584532> <:fubukiexcited:1233560648877740094> <:todayiwill:1182055394521137224> <:clueless:1134505916679589898>"
@@ -137,6 +138,7 @@ class GptMemory(commands.Cog):
         self.openai_client = AsyncOpenAI(api_key=api_key)
         
     async def create_response(self, ctx: commands.Context):
+        # MESSAGE HISTORY SETUP
         if ctx.guild.id not in self.memory:
             self.memory[ctx.guild.id] = {}
         backread = [message async for message in ctx.channel.history(limit=BACKREAD_MESSAGES, before=ctx.message, oldest_first=False)]
@@ -165,6 +167,7 @@ class GptMemory(commands.Cog):
                 break
         messages = reversed(messages)
 
+        # RECALLER
         memories_str = ", ".join(self.memory[ctx.guild.id].keys())
         recaller_messages = [msg for msg in messages]
         recaller_messages.insert(0, {"role": "system", "content": self.prompt_recaller[ctx.guild.id].format(memories_str)})
@@ -179,6 +182,7 @@ class GptMemory(commands.Cog):
         recalled_memories = {k: v for k, v in self.memory[ctx.guild.id].items() if k in memories_to_recall}
         recalled_memories_str = "\n".join(f"[Memory of {k}:] {v}" for k, v in recalled_memories.items())
 
+        # RESPONDER
         responder_messages = [msg for msg in messages]
         responder_messages.insert(0, {
             "role": "system",
@@ -193,13 +197,14 @@ class GptMemory(commands.Cog):
         responder_response = await self.openai_client.chat.completions.create(
             model=GPT_MODEL, 
             messages=responder_messages,
-            token_limit=1000
+            max_tokens=RESPONSE_TOKENS
         )
         responder_completion = responder_response.choices[0].message.content
         log.info(f"{responder_completion=}")
         responder_completion = re.sub(r"^(\[.+\] ?)+", "", completion)
         await ctx.reply(responder_completion[:4000], mention_author=False)
-        
+
+        # MEMORIZER
         memorizer_messages = [msg for msg in messages]
         memorizer_messages.insert(0, {"role": "system", "content": self.prompt_memorizer[ctx.guild.id].format(memories_str, recalled_memories_str)})
         memorizer_response = await self.openai_client.beta.chat.completions.parse(
