@@ -201,7 +201,7 @@ class GptMemory(commands.Cog):
         )
         responder_completion = responder_response.choices[0].message.content
         log.info(f"{responder_completion=}")
-        responder_completion = re.sub(r"^(\[.+\] ?)+", "", completion)
+        responder_completion = re.sub(r"^(\[.+\] ?)+", "", responder_completion)
         await ctx.reply(responder_completion[:4000], mention_author=False)
 
         # MEMORIZER
