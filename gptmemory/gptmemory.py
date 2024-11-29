@@ -15,9 +15,11 @@ from redbot.core.bot import Red
 log = logging.getLogger("red.crab-cogs.gptmemory")
 
 GPT_MODEL = "gpt-4o"
+ENCODING = tiktoken.encoding_for_model(GPT_MODEL)
 RESPONSE_TOKENS = 1000
 BACKREAD_TOKENS = 1000
 BACKREAD_MESSAGES = 20
+QUOTE_LENGTH = 150
 
 EMOTES = "<:FubukiEmoteForWhenever:1159695833697104033> <a:FubukiSway:1169172368313290792> <a:FubukiSpaz:1198104998752571492> <a:fubukitail:1231807727995584532> <:fubukiexcited:1233560648877740094> <:todayiwill:1182055394521137224> <:clueless:1134505916679589898>"
 
@@ -162,9 +164,8 @@ class GptMemory(commands.Cog):
         backread = [message async for message in ctx.channel.history(limit=BACKREAD_MESSAGES, before=ctx.message, oldest_first=False)]
         backread.append(ctx.message)
         messages = []
-        tokens = 0
-        encoding = tiktoken.encoding_for_model(GPT_MODEL)
         sent_images = []
+        tokens = 0
         for n, backmsg in enumerate(reversed(backread)):
             image_contents = []
             try:
@@ -177,8 +178,7 @@ class GptMemory(commands.Cog):
                 for image in images[:2]:
                     if image in sent_images:
                         continue
-                    else:
-                        sent_images.append(image)
+                    sent_images.append(image)
                     try:
                         fp = await extract_image(image)
                     except:
@@ -192,10 +192,7 @@ class GptMemory(commands.Cog):
                     tokens += 255
             msg_content = await self.parse_message(backmsg, quote=quote)
             if image_contents:
-                image_contents.insert(0, {
-                    "type": "text",
-                    "text": msg_content
-                })
+                image_contents.insert(0, {"type": "text", "text": msg_content})
                 messages.append({
                     "role": "user",
                     "content": image_contents
@@ -205,8 +202,8 @@ class GptMemory(commands.Cog):
                     "role": "assistant" if backmsg.author.id == self.bot.user.id else "user",
                     "content": msg_content
                 })
-            tokens += len(encoding.encode(msg_content))
-            if tokens > BACKREAD_TOKENS and n >= 1:
+            tokens += len(ENCODING.encode(msg_content))
+            if tokens > BACKREAD_TOKENS and n > 0:
                 break
         messages = list(reversed(messages))
         log.info([msg for msg in messages if isinstance(msg["content"], str)])
@@ -287,7 +284,7 @@ class GptMemory(commands.Cog):
             content += f"\n[Sticker: {sticker.name}]"
         
         if quote and recursive:
-            quote_content = (await self.parse_message(quote, recursive=False)).replace("\n", " ")[:300]
+            quote_content = (await self.parse_message(quote, recursive=False)).replace("\n", " ")[:QUOTE_LENGTH]
             content += f"\n[[[This message was in reply to the following: {quote_content}]]]"
         
         mentions = message.mentions + message.role_mentions + message.channel_mentions
