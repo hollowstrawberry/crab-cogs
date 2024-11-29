@@ -12,8 +12,8 @@ from redbot.core.bot import Red
 log = logging.getLogger("red.crab-cogs.gptmemory")
 
 GPT_MODEL = "gpt-4o"
-RESPONSE_TOKENS = 2000
-BACKREAD_TOKENS = 1333
+RESPONSE_TOKENS = 1000
+BACKREAD_TOKENS = 1000
 BACKREAD_MESSAGES = 20
 
 EMOTES = "<:FubukiEmoteForWhenever:1159695833697104033> <a:FubukiSway:1169172368313290792> <a:FubukiSpaz:1198104998752571492> <a:fubukitail:1231807727995584532> <:fubukiexcited:1233560648877740094> <:todayiwill:1182055394521137224> <:clueless:1134505916679589898>"
@@ -255,7 +255,7 @@ class GptMemory(commands.Cog):
     async def memory(self, ctx: commands.Context, *, name: str):
         """View a memory by name, for GPT"""
         if ctx.guild.id in self.memory and name in self.memory[ctx.guild.id]:
-            await ctx.send(f"[Memory of {name}]\n>>> {self.memory[ctx.guild.id][name]}")
+            await ctx.send(f"`[Memory of {name}]`\n>>> {self.memory[ctx.guild.id][name]}")
         else:
             await ctx.send(f"No memory of {name}")
     
