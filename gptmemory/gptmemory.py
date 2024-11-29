@@ -234,7 +234,7 @@ class GptMemory(commands.Cog):
         
         if message.reference and recursive:
             try:
-                quote = ctx.message.reference.cached_message or await ctx.fetch_message(ctx.message.reference.message_id)
+                quote = message.reference.cached_message or await message.channel.fetch_message(message.reference.message_id)
             except:
                 quote = None
             if quote:
