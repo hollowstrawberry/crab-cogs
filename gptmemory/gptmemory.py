@@ -142,19 +142,12 @@ class GptMemory(commands.Cog):
         if ctx.guild.id not in self.memory:
             self.memory[ctx.guild.id] = {}
         backread = [message async for message in ctx.channel.history(limit=BACKREAD_MESSAGES, before=ctx.message, oldest_first=False)]
-        if ctx.message.reference:
-            try:
-                quote = ctx.message.reference.cached_message or await ctx.fetch_message(ctx.message.reference.message_id)
-            except:
-                quote = None
-            if quote and quote not in backread:
-                backread.append(quote)
         backread.append(ctx.message)
         messages = []
         tokens = 0
         encoding = tiktoken.encoding_for_model(GPT_MODEL)
         for n, backmsg in enumerate(reversed(backread)):
-            msg_content = self.parse_message(backmsg)
+            msg_content = await self.parse_message(backmsg)
             messages.append({
                 "role": "assistant" if backmsg.author.id == self.bot.user.id else "user",
                 "content": msg_content
@@ -202,7 +195,7 @@ class GptMemory(commands.Cog):
         responder_reply = await ctx.reply(responder_completion[:4000], mention_author=False)
 
         # MEMORIZER
-        messages.append({"role": "assistant", "content": self.parse_message(responder_reply)})
+        messages.append({"role": "assistant", "content": await self.parse_message(responder_reply)})
         memorizer_messages = [msg for msg in messages]
         memorizer_messages.insert(0, {"role": "system", "content": self.prompt_memorizer[ctx.guild.id].format(memories_str, recalled_memories_str)})
         memorizer_response = await self.openai_client.beta.chat.completions.parse(
@@ -229,7 +222,7 @@ class GptMemory(commands.Cog):
                     self.memory[ctx.guild.id][name] = content
                     log.info(f"memory {name} = {content}")
         
-    def parse_message(self, message: discord.Message) -> str:
+    async def parse_message(self, message: discord.Message, recursive=True) -> str:
         content = f"[Username: {message.author.name}]"
         if message.author.nick:
             content += f" [Alias: {message.author.nick}]"
@@ -239,7 +232,15 @@ class GptMemory(commands.Cog):
         for sticker in message.stickers:
             content += f"\n[Sticker: {sticker.name}]"
         
-        mentions = message.mentions + message.role_mentions + message.channel_mentions
+        if message.reference and recursive:
+		    try:
+                quote = ctx.message.reference.cached_message or await ctx.fetch_message(ctx.message.reference.message_id)
+            except:
+                quote = None
+            if quote:
+                content += f"\n[[[This message was a reply to the following: {(await self.parse_message(quote, False)).replace('\n', ' ')[:300]}]]]"
+        
+            mentions = message.mentions + message.role_mentions + message.channel_mentions
         if not mentions:
             return content.strip()
         for mentioned in mentions:
