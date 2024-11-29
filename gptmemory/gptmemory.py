@@ -164,7 +164,7 @@ class GptMemory(commands.Cog):
         messages = []
         tokens = 0
         encoding = tiktoken.encoding_for_model(GPT_MODEL)
-        image_contents = []
+        sent_images = []
         for n, backmsg in enumerate(reversed(backread)):
             try:
                 quote = backmsg.reference.cached_message or await message.channel.fetch_message(message.reference.message_id)
@@ -174,6 +174,10 @@ class GptMemory(commands.Cog):
                 attachments = (backmsg.attachments or []) + (quote.attachments if quote and quote.attachments else [])
                 images = [att for att in attachments if att.content_type.startswith('image/')]
                 for image in images[:2]:
+                    if image in sent_images:
+                        continue
+                    else:
+                        sent_images.append(image)
                     try:
                         fp = await extract_image(image)
                     except:
@@ -187,17 +191,19 @@ class GptMemory(commands.Cog):
                     tokens += 255
             msg_content = await self.parse_message(backmsg, quote=quote)
             if image_contents:
-                all_contents = image_contents
-                all_contents.insert(0, {
+                image_contents.insert(0, {
                     "type": "text",
                     "text": msg_content
                 })
+                messages.append({
+                    "role": "user",
+                    "content": image_contents
+                })
             else:
-                all_contents = msg_content
-            messages.append({
-                "role": "assistant" if backmsg.author.id == self.bot.user.id and isinstance(all_contents, str) else "user",
-                "content": all_contents
-            })
+                messages.append({
+                    "role": "assistant" if backmsg.author.id == self.bot.user.id else "user",
+                    "content": msg_content
+                })
             tokens += len(encoding.encode(msg_content))
             if tokens > BACKREAD_TOKENS and n >= 1:
                 break
