@@ -18,7 +18,7 @@ class MemoryRecall(BaseModel):
     memory_names: list[str]
 
 class MemoryChange(BaseModel):
-    action_type: Literal["create", "adjust", "append"]
+    action_type: str #Literal["create", "adjust", "append"]
     memory_name: str
     memory_content: str
 	
@@ -171,7 +171,7 @@ class GptMemory(commands.Cog):
         async with self.config.guild(ctx.guild).memory() as memory:
             for change in completion.parsed["memory_changes"]:
                 action, name, content = change["action_type"], change["memory_name"], change["memory_content"]
-                if action == "append" and name in memory:
+                if action.lower() == "append" and name in memory:
                     memory[name] = memory[name] + " ... " + content
                 else:
                     memory[name] = content
