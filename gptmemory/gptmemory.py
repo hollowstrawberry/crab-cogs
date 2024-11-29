@@ -154,10 +154,7 @@ class GptMemory(commands.Cog):
         tokens = 0
         encoding = tiktoken.encoding_for_model(GPT_MODEL)
         for n, backmsg in enumerate(reversed(backread)):
-            msg_content = f"[Username: {backmsg.author.name}]"
-            if backmsg.author.nick:
-                msg_content += f" [Alias: {backmsg.author.nick}]"
-            msg_content += f" [said:] {self.parse_message(backmsg)}"
+            msg_content = self.parse_message(backmsg)
             messages.append({
                 "role": "assistant" if backmsg.author.id == self.bot.user.id else "user",
                 "content": msg_content
@@ -202,9 +199,10 @@ class GptMemory(commands.Cog):
         responder_completion = responder_response.choices[0].message.content
         log.info(f"{responder_completion=}")
         responder_completion = re.sub(r"^(\[.+\] ?)+", "", responder_completion)
-        await ctx.reply(responder_completion[:4000], mention_author=False)
+        responder_reply = await ctx.reply(responder_completion[:4000], mention_author=False)
 
         # MEMORIZER
+        messages.append({"role": "assistant", "content": self.parse_message(responder_reply)})
         memorizer_messages = [msg for msg in messages]
         memorizer_messages.insert(0, {"role": "system", "content": self.prompt_memorizer[ctx.guild.id].format(memories_str, recalled_memories_str)})
         memorizer_response = await self.openai_client.beta.chat.completions.parse(
@@ -232,14 +230,18 @@ class GptMemory(commands.Cog):
                     log.info(f"memory {name} = {content}")
         
     def parse_message(self, message: discord.Message) -> str:
-        content = message.content
+        content = f"[Username: {backmsg.author.name}]"
+        if backmsg.author.nick:
+            content += f" [Alias: {backmsg.author.nick}]"
+        content += f" [said:] {message.content}"
         for attachment in message.attachments:
             content += f"\n[Attachment: {attachment.filename}]"
         for sticker in message.stickers:
             content += f"\n[Sticker: {sticker.name}]"
+        
         mentions = message.mentions + message.role_mentions + message.channel_mentions
         if not mentions:
-            return content
+            return content.strip()
         for mentioned in mentions:
             if mentioned in message.channel_mentions:
                 content = content.replace(mentioned.mention, f'#{mentioned.name}')
