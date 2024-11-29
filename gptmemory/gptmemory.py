@@ -158,7 +158,7 @@ class GptMemory(commands.Cog):
         self.openai_client = AsyncOpenAI(api_key=api_key)
         
     async def create_response(self, ctx: commands.Context):
-        # MESSAGE HISTORY SETUP
+        # CHAT HISTORY SETUP
         if ctx.guild.id not in self.memory:
             self.memory[ctx.guild.id] = {}
         backread = [message async for message in ctx.channel.history(limit=BACKREAD_MESSAGES, before=ctx.message, oldest_first=False)]
@@ -172,6 +172,7 @@ class GptMemory(commands.Cog):
                 quote = backmsg.reference.cached_message or await message.channel.fetch_message(message.reference.message_id)
             except:
                 quote = None
+            # image parsing
             if backmsg.attachments or quote and quote.attachments:
                 attachments = (backmsg.attachments or []) + (quote.attachments if quote and quote.attachments else [])
                 images = [att for att in attachments if att.content_type.startswith('image/')]
@@ -190,6 +191,8 @@ class GptMemory(commands.Cog):
                         }
                     })
                     tokens += 255
+                    log.info(image.filename)
+            # message setup
             msg_content = await self.parse_message(backmsg, quote=quote)
             if image_contents:
                 image_contents.insert(0, {"type": "text", "text": msg_content})
@@ -206,7 +209,7 @@ class GptMemory(commands.Cog):
             if tokens > BACKREAD_TOKENS and n > 0:
                 break
         messages = list(reversed(messages))
-        log.info([msg for msg in messages if isinstance(msg["content"], str)])
+        #log.info([msg for msg in messages if isinstance(msg["content"], str)])
         
         # RECALLER
         memories_str = ", ".join(self.memory[ctx.guild.id].keys())
