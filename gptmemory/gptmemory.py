@@ -146,27 +146,31 @@ class GptMemory(commands.Cog):
         backread.append(ctx.message) 
         messages = []
         for backmsg in backread:
+            msg_content = f"[Username: {backmsg.author.name}]"
+            if backmsg.author.nick:
+                msg_content += f" [Alias: {backmsg.author.nick}]"
+            msg_content += f" [said:] {self.parse_message(backmsg)}",
             messages.append({
                 "role": "assistant" if backmsg.author.id == self.bot.user.id else "user",
-                "content": f"[Username: {backmsg.author.name}] [Alias: {backmsg.author.nick or 'None'}] [said:] {self.parse_message(backmsg)}",
+                "content": msg_content
             })
-
-        memories_str = ", ".join(self.memory[ctx.guild.id].keys() if ctx.guild.id in self.memory else [])
-        messages_recaller = [msg for msg in messages]
-        messages_recaller.insert(0, {"role": "system", "content": self.prompt_recaller[ctx.guild.id].format(memories_str)})
-        response = await self.openai_client.beta.chat.completions.parse(
+        memories_str = ", ".join(self.memory[ctx.guild.id].keys())
+        
+        recaller_messages = [msg for msg in messages]
+        recaller_messages.insert(0, {"role": "system", "content": self.prompt_recaller[ctx.guild.id].format(memories_str)})
+        recaller_response = await self.openai_client.beta.chat.completions.parse(
             model="gpt-4o", 
-            messages=messages_recaller,
+            messages=recaller_messages,
             response_format=MemoryRecall,
         )
-        completion = response.choices[0].message
-        memories_to_recall = completion.parsed.memory_names if not completion.refusal else []
+        recaller_completion = recaller_response.choices[0].message
+        memories_to_recall = recaller_completion.parsed.memory_names if not recaller_completion.refusal else []
         log.info(f"{memories_to_recall=}")
         recalled_memories = {k: v for k, v in self.memory[ctx.guild.id].items() if k in memories_to_recall}
         recalled_memories_str = "\n".join(f"[Memory of {k}:] {v}" for k, v in recalled_memories.items())
 
-        messages_responder = [msg for msg in messages]
-        messages_responder.insert(0, {
+        responder_messages = [msg for msg in messages]
+        responder_messages.insert(0, {
             "role": "system",
             "content": self.prompt_responder[ctx.guild.id].format(
                 servername=ctx.guild.name,
@@ -176,31 +180,27 @@ class GptMemory(commands.Cog):
                 memories=recalled_memories_str,
             )
         })
-        response = await self.openai_client.chat.completions.create(
+        responder_response = await self.openai_client.chat.completions.create(
             model="gpt-4o", 
-            messages=messages_responder,
+            messages=responder_messages,
         )
-        completion = response.choices[0].message.content
-        log.info(f"{completion=}")
-        completion = re.sub(r"^(\[.+\] ?)+", "", completion)
-        completion_reply = await ctx.reply(completion, mention_author=False)
+        responder_completion = responder_response.choices[0].message.content
+        log.info(f"{responder_completion=}")
+        responder_completion = re.sub(r"^(\[.+\] ?)+", "", completion)
+        await ctx.reply(responder_completion, mention_author=False)
         
-        messages.append({
-            "role": "assistant",
-            "content": f"[Username: {completion_reply.author.name}] [Alias: {completion_reply.author.nick or 'None'}] [said:] {self.parse_message(completion_reply)}",
-        })
-        messages_memorizer = [msg for msg in messages]
-        messages_memorizer.insert(0, {"role": "system", "content": self.prompt_memorizer[ctx.guild.id].format(memories_str, recalled_memories_str)})
-        response = await self.openai_client.beta.chat.completions.parse(
+        memorizer_messages = [msg for msg in messages]
+        memorizer_messages.insert(0, {"role": "system", "content": self.prompt_memorizer[ctx.guild.id].format(memories_str, recalled_memories_str)})
+        memorizer_response = await self.openai_client.beta.chat.completions.parse(
             model="gpt-4o", 
             messages=messages_memorizer,
             response_format=MemoryChangeList,
         )
-        completion = response.choices[0].message
-        if completion.refusal:
+        memorizer_completion = memorizer_response.choices[0].message
+        if memorizer_completion.refusal:
             return
         async with self.config.guild(ctx.guild).memory() as memory:
-            for change in completion.parsed.memory_changes:
+            for change in memorizer_completion.parsed.memory_changes:
                 action, name, content = change.action_type, change.memory_name, change.memory_content
                 if action == "delete":
                     del memory[name]
@@ -209,11 +209,11 @@ class GptMemory(commands.Cog):
                 elif action == "append" and name in memory:
                     memory[name] = memory[name] + " ... " + content
                     self.memory[ctx.guild.id][name] = memory[name]
-                    log.info(f"memory {name}: {memory[name]}")
+                    log.info(f"memory {name} = {memory[name]}")
                 else:
                     memory[name] = content
                     self.memory[ctx.guild.id][name] = content
-                    log.info(f"memory {name}: {content}")
+                    log.info(f"memory {name} = {content}")
         
     def parse_message(self, message: discord.Message) -> str:
         content = message.content
