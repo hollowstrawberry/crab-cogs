@@ -169,7 +169,7 @@ class GptMemory(commands.Cog):
             return
         async with self.config.guild(ctx.guild).memory() as memory:
             for change in completion.parsed["memory_changes"]:
-            	action, name, content = change["action_type"], change["memory_name"], change["memory_content"]
+                action, name, content = change["action_type"], change["memory_name"], change["memory_content"]
                 if action == "append" and name in memory:
                     memory[name] = memory[name] + " ... " + content
                 else:
