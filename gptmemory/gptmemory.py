@@ -176,7 +176,7 @@ class GptMemory(commands.Cog):
                     memory[name] = content
                 log.info(f"memory {name}: {memory[name]}")
         
-    def parse_message(message: Message) -> str:
+    def parse_message(message: discord.Message) -> str:
         content = message.content
         mentions = message.mentions + message.role_mentions + message.channel_mentions
         if not mentions:
