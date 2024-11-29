@@ -152,7 +152,7 @@ class GptMemory(commands.Cog):
             messages=messages_responder,
         )
         completion = response.choices[0].message.content
-        logger.info(f"{completion=}")
+        log.info(f"{completion=}")
         completion = re.sub(r"^(\[.+\] ?)+", "", completion)
         completion_reply = await ctx.reply(completion, mention_author=False)
         
