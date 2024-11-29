@@ -34,7 +34,7 @@ class GptMemory(commands.Cog):
         self.bot = bot
         self.openai_client = None
         self.config = Config.get_conf(self, identifier=19475820)
-        self.config.register_guild({
+        self.config.register_guild(**{
             "prompt_recaller": "",
             "prompt_responder": "",
             "prompt_memorizer": "",
