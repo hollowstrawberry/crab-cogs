@@ -179,6 +179,7 @@ class GptMemory(commands.Cog):
                     except:
                         continue
                     messages.append({
+                        "role": "user",
                         "type": "image_url",
                         "image_url": {
                             "url": f"data:image/png;base64,{base64.b64encode(fp.read()).decode()}"
@@ -194,10 +195,11 @@ class GptMemory(commands.Cog):
             if tokens > BACKREAD_TOKENS and n >= 1:
                 break
         messages = list(reversed(messages))
-
+        log.info(msg for msg in messages if "type" not in msg)
+        
         # RECALLER
         memories_str = ", ".join(self.memory[ctx.guild.id].keys())
-        recaller_messages = [msg for msg in messages]
+        recaller_messages = [msg for msg in messages if "type" not in msg]
         recaller_messages.insert(0, {"role": "system", "content": self.prompt_recaller[ctx.guild.id].format(memories_str)})
         recaller_response = await self.openai_client.beta.chat.completions.parse(
             model=GPT_MODEL, 
@@ -234,7 +236,7 @@ class GptMemory(commands.Cog):
 
         # MEMORIZER
         messages.append({"role": "assistant", "content": await self.parse_message(responder_reply)})
-        memorizer_messages = [msg for msg in messages]
+        memorizer_messages = [msg for msg in messages if "type" not in msg]
         memorizer_messages.insert(0, {"role": "system", "content": self.prompt_memorizer[ctx.guild.id].format(memories_str, recalled_memories_str)})
         memorizer_response = await self.openai_client.beta.chat.completions.parse(
             model=GPT_MODEL, 
