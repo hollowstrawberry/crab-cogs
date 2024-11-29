@@ -119,7 +119,7 @@ class GptMemory(commands.Cog):
                 "content": f"[Username: {backmsg.author.name}] [Alias: {backmsg.author.nick or 'None'}] [said:] {self.parse_message(backmsg)}",
             })
 
-        memories_str = ", ".join(self.memory[ctx.guild.id].keys())
+        memories_str = ", ".join(self.memory[ctx.guild.id].keys() if ctx.guild.id in self.memory else [])
         messages_recaller = [msg for msg in messages]
         messages_recaller.insert(0, {"role": "system", "content": self.prompt_recaller[ctx.guild.id].format(memories_str)})
         response = await self.openai_client.ChatCompletion.create(
@@ -174,6 +174,7 @@ class GptMemory(commands.Cog):
                     memory[name] = memory[name] + " ... " + content
                 else:
                     memory[name] = content
+	        self.memory[ctx.guild.id] = memory[name]
                 log.info(f"memory {name}: {memory[name]}")
         
     def parse_message(self, message: discord.Message) -> str:
