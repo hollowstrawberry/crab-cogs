@@ -129,7 +129,7 @@ class GptMemory(commands.Cog):
             response_format=MemoryRecall,
         )
         completion = response.choices[0].message
-        memories_to_recall = completion.parsed["memory_names"] if not completion.refusal else []
+        memories_to_recall = completion.parsed.memory_names if not completion.refusal else []
         log.info(f"{memories_to_recall=}")
         recalled_memories = {k: v for k, v in self.memory[ctx.guild.id].items() if k in memories_to_recall}
         recalled_memories_str = "\n".join(f"[Memory of {k}:] {v}" for k, v in recalled_memories.items())
@@ -169,8 +169,8 @@ class GptMemory(commands.Cog):
         if completion.refusal:
             return
         async with self.config.guild(ctx.guild).memory() as memory:
-            for change in completion.parsed["memory_changes"]:
-                action, name, content = change["action_type"], change["memory_name"], change["memory_content"]
+            for change in completion.parsed.memory_changes:
+                action, name, content = change.action_type, change.memory_name, change.memory_content
                 if action.lower() == "append" and name in memory:
                     memory[name] = memory[name] + " ... " + content
                 else:
