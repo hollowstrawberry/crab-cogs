@@ -177,13 +177,15 @@ class GptMemory(commands.Cog):
                 if action == "delete":
                     del memory[name]
                     del self.memory[ctx.guild.id][name]
+                    log.info(f"memory {name} deleted")
                 elif action == "append" and name in memory:
                     memory[name] = memory[name] + " ... " + content
                     self.memory[ctx.guild.id][name] = memory[name]
+                    log.info(f"memory {name}: {memory[name]}")
                 else:
                     memory[name] = content
                     self.memory[ctx.guild.id][name] = content
-                log.info(f"memory {name}: {memory[name]}")
+                    log.info(f"memory {name}: {content}")
         
     def parse_message(self, message: discord.Message) -> str:
         content = message.content
