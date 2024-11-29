@@ -171,7 +171,7 @@ class GptMemory(commands.Cog):
             except:
                 quote = None
             if message.attachments or quote and quote.attachments:
-                attachments = message.attachments + (quote.attachments if quote else [])
+                attachments = (message.attachments or []) + (quote.attachments if quote and quote.attachments else [])
                 images = [att for att in attachments if att.content_type.startswith('image/')]
                 for image in images[:2]:
                     try:
