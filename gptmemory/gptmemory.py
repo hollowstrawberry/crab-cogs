@@ -209,7 +209,7 @@ class GptMemory(commands.Cog):
         memorizer_messages.insert(0, {"role": "system", "content": self.prompt_memorizer[ctx.guild.id].format(memories_str, recalled_memories_str)})
         memorizer_response = await self.openai_client.beta.chat.completions.parse(
             model=GPT_MODEL, 
-            messages=messages_memorizer,
+            messages=memorizer_messages,
             response_format=MemoryChangeList,
         )
         memorizer_completion = memorizer_response.choices[0].message
