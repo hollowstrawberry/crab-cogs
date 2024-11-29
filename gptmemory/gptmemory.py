@@ -107,7 +107,7 @@ class GptMemory(commands.Cog):
     async def create_response(self, ctx: commands.Context):
         if ctx.guild.id not in self.memory:
             self.memory[ctx.guild.id] = {}
-        backread = [message async for message in ctx.channel.history(limit=10, before=ctx.message, oldest_first=True)]
+        backread = [message async for message in ctx.channel.history(limit=10, before=ctx.message, oldest_first=False)]
         if ctx.message.reference:
             try:
                 quote = ctx.message.reference.cached_message or await ctx.fetch_message(ctx.message.reference.message_id)
