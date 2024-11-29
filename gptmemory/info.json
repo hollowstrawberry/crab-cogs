@@ -5,7 +5,7 @@
     "hidden": false,
     "install_msg": "good luck",
     "required_cogs": {},
-    "requirements": ["openai", "tiktoken"],
+    "requirements": ["pydantic"],
     "short": "OpenAI-powered user with persistent memory.",
     "end_user_data_statement": "This cog stores user data as memories for the AI.",
     "tags": ["crab", "ai", "gpt", "llm", "chatgpt", "chatbot"]
