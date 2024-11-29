@@ -166,7 +166,6 @@ class GptMemory(commands.Cog):
             if tokens > BACKREAD_TOKENS and n >= 1:
                 break
         messages = list(reversed(messages))
-        log.info(messages)
 
         # RECALLER
         memories_str = ", ".join(self.memory[ctx.guild.id].keys())
