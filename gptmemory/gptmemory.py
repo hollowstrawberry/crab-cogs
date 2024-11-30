@@ -287,13 +287,13 @@ class GptMemory(commands.Cog):
                 elif action == "append" and name in memory:
                     memory[name] = memory[name] + " ... " + content
                     self.memory[ctx.guild.id][name] = memory[name]
-                    log.info(f"memory {name} = {memory[name]}")
+                    log.info(f"memory {name} = \"{memory[name]}\"")
                 elif name in memory and memory[name] == content:
                     continue
                 else:
                     memory[name] = content
                     self.memory[ctx.guild.id][name] = content
-                    log.info(f"memory {name} = {content}")
+                    log.info(f"memory {name} = \"{content}\"")
         if MEMORY_CHANGE_ALERTS and memory_changes:
             await ctx.send(f"`Revised memories: {', '.join(memory_changes)}`")
         
