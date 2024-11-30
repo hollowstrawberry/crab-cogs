@@ -21,7 +21,9 @@ RESPONSE_TOKENS = 1000
 BACKREAD_TOKENS = 1000
 BACKREAD_MESSAGES = 20
 QUOTE_LENGTH = 300
+ALLOW_MEMORIZER = True
 
+ALLOWED_SERVERS = [1113893773714399392]
 EMOTES = "<:FubukiEmoteForWhenever:1159695833697104033> <a:FubukiSway:1169172368313290792> <a:FubukiSpaz:1198104998752571492> <a:fubukitail:1231807727995584532> <:fubukiexcited:1233560648877740094> <:todayiwill:1182055394521137224> <:clueless:1134505916679589898>"
 
 PROMPT_RECALLER = """
@@ -43,11 +45,12 @@ You are a conversational AI which is part of a Discord server called {servername
 PROMPT_MEMORIZER = """
 You are the memory manager of a conversational AI. You must analyze a list of memory entries as well as a conversation given below,
  and formulate a list of memory changes, consisting of important pieces of information about a specific username or topic.
- A memory change may either create, adjust, append, or delete an entry. You can submit an empty list if no new important information is found.
- If you're told to remember something or you think it's important you should save it. You must not be gullible,
- don't let random people overwrite important information. When creating a memory, its name must be a username
- in the case of personal information or a short phrase in the case of a topic. If a memory exists but you don't know its contents
- you should append to it. If you know its contents you may adjust that memory, making a concise summary including previous and new information. 
+ You must only perform memory changes if you're told to remember or forget something.
+ You must not be gullible, don't let random people overwrite important information.
+ A memory change may either create, adjust, append, or delete an entry.
+ When creating a memory, its name must be a username in the case of personal information or a short phrase in the case of a topic.
+ If a memory exists but you don't know its contents you should append to it. If you know its contents you may adjust that memory,
+ making a concise summary including previous and new information. 
  Only delete a memory if it becomes completely useless.
 \nThe available entries are: {0}
 \nBelow are the contents of some of the entries:\n\n{1}"
@@ -133,9 +136,7 @@ class GptMemory(commands.Cog):
         if not ctx.guild:
             return False
         #if any(ctx.guild.id not in prompt for prompt in [self.prompt_manager, self.prompt_responder, self.prompt_memorizer]):
-        if ctx.guild.id != 1113893773714399392:
-            return False
-        if ctx.channel.id == 1146039163414650941 or isinstance(ctx.channel, discord.Thread) and ctx.channel.parent_id == 1146039163414650941:
+        if ctx.guild.id not in ALLOWED_SERVERS:
             return False
         if await self.bot.cog_disabled_in_guild(self, ctx.guild):
             return False
@@ -166,7 +167,6 @@ class GptMemory(commands.Cog):
             self.memory[ctx.guild.id] = {}
         backread = [message async for message in ctx.channel.history(limit=BACKREAD_MESSAGES, before=ctx.message, oldest_first=False)]
         backread.insert(0, ctx.message)
-        #backread = list(reversed(backread))
         messages = []
         sent_images = []
         tokens = 0
@@ -256,6 +256,9 @@ class GptMemory(commands.Cog):
         responder_completion = re.sub(r"^(\[.+\] ?)+", "", responder_completion)
         responder_reply = await ctx.reply(responder_completion[:4000], mention_author=False)
 
+        if not ALLOW_MEMORIZER:
+            return
+        
         # MEMORIZER
         messages.append({"role": "assistant", "content": await self.parse_message(responder_reply)})
         memorizer_messages = [msg for msg in messages if isinstance(msg["content"], str)]
@@ -353,4 +356,3 @@ class GptMemory(commands.Cog):
             memory[name] = content
         self.memory[ctx.guild.id][name] = content
         await ctx.send("✅")
-
