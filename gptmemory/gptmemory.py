@@ -135,6 +135,8 @@ class GptMemory(commands.Cog):
         #if any(ctx.guild.id not in prompt for prompt in [self.prompt_manager, self.prompt_responder, self.prompt_memorizer]):
         if ctx.guild.id != 1113893773714399392:
             return False
+        if ctx.channel.id == 1146039163414650941:
+            return False
         if await self.bot.cog_disabled_in_guild(self, ctx.guild):
             return False
         if ctx.author.bot:
