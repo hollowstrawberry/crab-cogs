@@ -89,7 +89,8 @@ class Booru(commands.Cog):
         tag_search = tag_search.replace(" ", "_").strip()
         results = await self.tags_autocomplete(None, tag_search)
         if results:
-            await ctx.send(", ".join([choice.name for choice in results]))
+            results_str = ", ".join([f"`{choice.name}`" for choice in results])
+            await ctx.send(f"Matches for `{tag_search}` in order of popularity:\n{results_str}")
         else:
             await ctx.send(f"No matches for `{tag_search}`")
 
