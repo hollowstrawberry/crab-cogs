@@ -59,6 +59,12 @@ You are the memory manager of a conversational AI. You must analyze a list of me
 \nBelow are the contents of some of the entries:\n\n{1}"
 """
 
+def sanitize_name(name: str) -> str:
+    special_characters = "[]"
+    for c in special_characters:
+        name = name.replace(c, "")
+    return name
+
 async def extract_image(attachment: discord.Attachment) -> BytesIO:
     buffer = BytesIO()
     await attachment.save(buffer)
@@ -299,10 +305,10 @@ class GptMemory(commands.Cog):
             await ctx.send(f"`Revised memories: {', '.join(memory_changes)}`")
         
     async def parse_message(self, message: discord.Message, quote: discord.Message = None, recursive=True) -> str:
-        special_characters = ("[", "]")
-        content = f"[Username: {message.author.name.replace(special_characters, '')}]"
+        name = message.author.name
+        content = f"[Username: {sanitize_name(message.author.name})]"
         if isinstance(message.author, discord.Member) and message.author.nick:
-            content += f" [Alias: {message.author.nick.replace(special_characters, '')}]"
+            content += f" [Alias: {sanitize_name(message.author.nick)}]"
         content += f" [said:] {message.content}"
         
         for attachment in message.attachments:
