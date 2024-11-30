@@ -271,6 +271,7 @@ class GptMemory(commands.Cog):
                 action, name, content = change.action_type, change.memory_name, change.memory_content
                 if name not in memory:
                     name = difflib.get_close_matches(name, memory)[0]
+                    log.info(f"{name=}")
                 if action == "delete":
                     del memory[name]
                     del self.memory[ctx.guild.id][name]
