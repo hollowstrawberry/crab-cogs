@@ -292,7 +292,7 @@ class GptMemory(commands.Cog):
                     memory[name] = content
                     self.memory[ctx.guild.id][name] = content
                     log.info(f"memory {name} = {content}")
-        if MEMORY_CHANGE_ALERTS:
+        if MEMORY_CHANGE_ALERTS and memory_changes:
             await ctx.send(f"`Revised memories: {', '.join(memory_changes)}`")
         
     async def parse_message(self, message: discord.Message, quote: discord.Message = None, recursive=True) -> str:
