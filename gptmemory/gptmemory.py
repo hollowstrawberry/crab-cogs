@@ -51,7 +51,7 @@ You are the memory manager of a conversational AI. You must analyze a list of me
  A memory change may either create, adjust, append, or delete an entry.
  When creating a memory, its name must be a username in the case of personal information or a short phrase in the case of a topic.
  If a memory exists but you don't know its contents you should append to it. If you know its contents you may adjust that memory,
- making a concise summary including previous and new information. 
+ making a concise summary including previous and new information. Don't overwrite old information unless told to.
  Only delete a memory if it becomes completely useless.
 \nThe available entries are: {0}
 \nBelow are the contents of some of the entries:\n\n{1}"
