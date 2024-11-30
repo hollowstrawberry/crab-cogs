@@ -279,7 +279,6 @@ class GptMemory(commands.Cog):
                 if name not in memory and action != "create":
                     name = difflib.get_close_matches(name, memory)[0]
                     log.info(f"{name=}")
-                memory_changes.append(name)
                 if action == "delete":
                     del memory[name]
                     del self.memory[ctx.guild.id][name]
@@ -294,6 +293,7 @@ class GptMemory(commands.Cog):
                     memory[name] = content
                     self.memory[ctx.guild.id][name] = content
                     log.info(f"memory {name} = \"{content}\"")
+                memory_changes.append(name)
         if MEMORY_CHANGE_ALERTS and memory_changes:
             await ctx.send(f"`Revised memories: {', '.join(memory_changes)}`")
         
