@@ -288,6 +288,8 @@ class GptMemory(commands.Cog):
                     memory[name] = memory[name] + " ... " + content
                     self.memory[ctx.guild.id][name] = memory[name]
                     log.info(f"memory {name} = {memory[name]}")
+                elif name in memory and memory[name] == content:
+                    continue
                 else:
                     memory[name] = content
                     self.memory[ctx.guild.id][name] = content
