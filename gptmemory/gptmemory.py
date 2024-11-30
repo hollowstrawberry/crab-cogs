@@ -24,6 +24,7 @@ BACKREAD_MEMORIZER = 3
 QUOTE_LENGTH = 300
 ALLOW_MEMORIZER = True
 MEMORY_CHANGE_ALERTS = True
+RESPONSE_CLEANUP_PATTERN = r"^(\[[^[\]]+\] ?)+"
 
 ALLOWED_SERVERS = [1113893773714399392]
 EMOTES = "<:FubukiEmoteForWhenever:1159695833697104033> <a:FubukiSway:1169172368313290792> <a:FubukiSpaz:1198104998752571492> <a:fubukitail:1231807727995584532> <:fubukiexcited:1233560648877740094> <:todayiwill:1182055394521137224> <:clueless:1134505916679589898>"
@@ -255,7 +256,7 @@ class GptMemory(commands.Cog):
         )
         responder_completion = responder_response.choices[0].message.content
         log.info(f"{responder_completion=}")
-        responder_completion = re.sub(r"^(\[.+\] ?)+", "", responder_completion)
+        responder_completion = re.sub(RESPONSE_CLEANUP_PATTERN, "", responder_completion)
         responder_reply = await ctx.reply(responder_completion[:4000], mention_author=False)
 
         # MEMORIZER
@@ -298,29 +299,31 @@ class GptMemory(commands.Cog):
             await ctx.send(f"`Revised memories: {', '.join(memory_changes)}`")
         
     async def parse_message(self, message: discord.Message, quote: discord.Message = None, recursive=True) -> str:
-        content = f"[Username: {message.author.name}]"
+        special_characters = ("[", "]")
+        content = f"[Username: {message.author.name.replace(special_characters, '')}]"
         if isinstance(message.author, discord.Member) and message.author.nick:
-            content += f" [Alias: {message.author.nick}]"
+            content += f" [Alias: {message.author.nick.replace(special_characters, '')}]"
         content += f" [said:] {message.content}"
+        
         for attachment in message.attachments:
-            content += f"\n[Attachment: {attachment.filename}]"
+            content += f" [Attachment: {attachment.filename}]"
         for sticker in message.stickers:
-            content += f"\n[Sticker: {sticker.name}]"
+            content += f" [Sticker: {sticker.name}]"
         
         if quote and recursive:
             quote_content = (await self.parse_message(quote, recursive=False)).replace("\n", " ")[:QUOTE_LENGTH]
             content += f"\n[[[Replying to: {quote_content}]]]"
         
         mentions = message.mentions + message.role_mentions + message.channel_mentions
-        if not mentions:
-            return content.strip()
-        for mentioned in mentions:
-            if mentioned in message.channel_mentions:
-                content = content.replace(mentioned.mention, f'#{mentioned.name}')
-            elif mentioned in message.role_mentions:
-                content = content.replace(mentioned.mention, f'@{mentioned.name}')
-            else:
-                content = content.replace(mentioned.mention, f'@{mentioned.display_name}')
+        if mentions:
+            for mentioned in mentions:
+                if mentioned in message.channel_mentions:
+                    content = content.replace(mentioned.mention, f'#{mentioned.name}')
+                elif mentioned in message.role_mentions:
+                    content = content.replace(mentioned.mention, f'@{mentioned.name}')
+                else:
+                    content = content.replace(mentioned.mention, f'@{mentioned.display_name}')
+        
         return content.strip()
                     
     # Commands
