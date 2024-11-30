@@ -20,6 +20,7 @@ ENCODING = tiktoken.encoding_for_model(GPT_MODEL)
 RESPONSE_TOKENS = 1000
 BACKREAD_TOKENS = 1000
 BACKREAD_MESSAGES = 20
+BACKREAD_MEMORIZER = 3
 QUOTE_LENGTH = 300
 ALLOW_MEMORIZER = True
 MEMORY_CHANGE_ALERTS = True
@@ -46,7 +47,7 @@ You are a conversational AI which is part of a Discord server called {servername
 PROMPT_MEMORIZER = """
 You are the memory manager of a conversational AI. You must analyze a list of memory entries as well as a conversation given below,
  and formulate a list of memory changes, consisting of important pieces of information about a specific username or topic.
- You must only perform memory changes if the last user message tells you to remember or forget something, otherwise you may submit an empty list.
+ You must only perform memory changes if a user tells you to remember or forget something, otherwise you may submit an empty list.
  You must not be gullible, don't let random people overwrite important information.
  A memory change may either create, adjust, append, or delete an entry.
  When creating a memory, its name must be a username in the case of personal information or a short phrase in the case of a topic.
@@ -261,7 +262,7 @@ class GptMemory(commands.Cog):
         if not ALLOW_MEMORIZER:
             return
         messages.append({"role": "assistant", "content": await self.parse_message(responder_reply)})
-        memorizer_messages = [msg for msg in messages if isinstance(msg["content"], str)]
+        memorizer_messages = [msg for msg in messages if isinstance(msg["content"], str)][-BACKREAD_MEMORIZER:]
         memorizer_messages.insert(0, {"role": "system", "content": self.prompt_memorizer[ctx.guild.id].format(memories_str, recalled_memories_str)})
         memorizer_response = await self.openai_client.beta.chat.completions.parse(
             model=GPT_MODEL, 
