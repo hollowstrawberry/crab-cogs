@@ -306,7 +306,7 @@ class GptMemory(commands.Cog):
         
     async def parse_message(self, message: discord.Message, quote: discord.Message = None, recursive=True) -> str:
         name = message.author.name
-        content = f"[Username: {sanitize_name(message.author.name})]"
+        content = f"[Username: {sanitize_name(message.author.name)}]"
         if isinstance(message.author, discord.Member) and message.author.nick:
             content += f" [Alias: {sanitize_name(message.author.nick)}]"
         content += f" [said:] {message.content}"
