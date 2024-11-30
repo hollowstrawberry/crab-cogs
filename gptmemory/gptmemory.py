@@ -3,6 +3,7 @@ import logging
 import tiktoken
 import re
 import base64
+import difflib
 from openai import AsyncOpenAI
 from pydantic import BaseModel
 from PIL import Image
@@ -268,6 +269,8 @@ class GptMemory(commands.Cog):
         async with self.config.guild(ctx.guild).memory() as memory:
             for change in memorizer_completion.parsed.memory_changes:
                 action, name, content = change.action_type, change.memory_name, change.memory_content
+                if name not in memory:
+                    name = difflib.get_close_matches(name, memory)[0]
                 if action == "delete":
                     del memory[name]
                     del self.memory[ctx.guild.id][name]
