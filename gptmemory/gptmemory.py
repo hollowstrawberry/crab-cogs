@@ -169,7 +169,7 @@ class GptMemory(commands.Cog):
         backread = [message async for message in ctx.channel.history(limit=BACKREAD_MESSAGES, before=ctx.message, oldest_first=False)]
         backread.insert(0, ctx.message)
         messages = []
-        sent_images = []
+        processed_images = []
         tokens = 0
         for n, backmsg in enumerate(backread):
             image_contents = []
@@ -184,9 +184,9 @@ class GptMemory(commands.Cog):
                 attachments = (backmsg.attachments or []) + (quote.attachments if quote and quote.attachments else [])
                 images = [att for att in attachments if att.content_type.startswith('image/')]
                 for image in images[:2]:
-                    if image in sent_images:
+                    if image in processed_images:
                         continue
-                    sent_images.append(image)
+                    processed_images.append(image)
                     try:
                         fp = await extract_image(image)
                     except:
@@ -216,9 +216,9 @@ class GptMemory(commands.Cog):
             if tokens > BACKREAD_TOKENS and n > 0:
                 break
         messages = list(reversed(messages))
-        log.info(f"{len(messages)=}")
-        for n, msg in enumerate(messages):
-            log.info(f"[{n}] " + (f"\"{msg['content']}\"" if isinstance(msg["content"], str) else f"{len(msg['content']) - 1} images /// \"{msg['content'][0]['text']}\""))
+        log.info(f"{len(messages)=} / {tokens=}")
+        #for n, msg in enumerate(messages):
+        #    log.info(f"[{n}] " + (f"\"{msg['content']}\"" if isinstance(msg["content"], str) else f"{len(msg['content']) - 1} images /// \"{msg['content'][0]['text']}\""))
         
         # RECALLER
         memories_str = ", ".join(self.memory[ctx.guild.id].keys())
@@ -257,10 +257,9 @@ class GptMemory(commands.Cog):
         responder_completion = re.sub(r"^(\[.+\] ?)+", "", responder_completion)
         responder_reply = await ctx.reply(responder_completion[:4000], mention_author=False)
 
+        # MEMORIZER
         if not ALLOW_MEMORIZER:
             return
-        
-        # MEMORIZER
         messages.append({"role": "assistant", "content": await self.parse_message(responder_reply)})
         memorizer_messages = [msg for msg in messages if isinstance(msg["content"], str)]
         memorizer_messages.insert(0, {"role": "system", "content": self.prompt_memorizer[ctx.guild.id].format(memories_str, recalled_memories_str)})
