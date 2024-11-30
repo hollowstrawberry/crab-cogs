@@ -326,10 +326,14 @@ class GptMemory(commands.Cog):
     @commands.command()
     async def memory(self, ctx: commands.Context, *, name: str):
         """View a memory by name, for GPT"""
-        if ctx.guild.id in self.memory and name in self.memory[ctx.guild.id]:
-            await ctx.send(f"`[Memory of {name}]`\n>>> {self.memory[ctx.guild.id][name]}")
-        else:
-            await ctx.send(f"No memory of {name}")
+        if ctx.guild.id in self.memory:
+            if name not in self.memory[ctx.guild.id]:
+                matches = difflib.get_close_matches(name, self.memory[ctx.guild.id])
+                if matches:
+                    name = matches[0]
+            if name in self.memory[ctx.guild.id]:
+                return await ctx.send(f"`[Memory of {name}]`\n>>> {self.memory[ctx.guild.id][name]}")
+        await ctx.send(f"No memory of {name}")
     
     @commands.command()
     async def memories(self, ctx: commands.Context):
