@@ -22,6 +22,7 @@ BACKREAD_TOKENS = 1000
 BACKREAD_MESSAGES = 20
 QUOTE_LENGTH = 300
 ALLOW_MEMORIZER = True
+MEMORY_CHANGE_ALERTS = True
 
 ALLOWED_SERVERS = [1113893773714399392]
 EMOTES = "<:FubukiEmoteForWhenever:1159695833697104033> <a:FubukiSway:1169172368313290792> <a:FubukiSpaz:1198104998752571492> <a:fubukitail:1231807727995584532> <:fubukiexcited:1233560648877740094> <:todayiwill:1182055394521137224> <:clueless:1134505916679589898>"
@@ -271,12 +272,14 @@ class GptMemory(commands.Cog):
         memorizer_completion = memorizer_response.choices[0].message
         if memorizer_completion.refusal:
             return
+        memory_changes = []
         async with self.config.guild(ctx.guild).memory() as memory:
             for change in memorizer_completion.parsed.memory_changes:
                 action, name, content = change.action_type, change.memory_name, change.memory_content
                 if name not in memory:
                     name = difflib.get_close_matches(name, memory)[0]
                     log.info(f"{name=}")
+                memory_changes.append(name)
                 if action == "delete":
                     del memory[name]
                     del self.memory[ctx.guild.id][name]
@@ -289,6 +292,8 @@ class GptMemory(commands.Cog):
                     memory[name] = content
                     self.memory[ctx.guild.id][name] = content
                     log.info(f"memory {name} = {content}")
+        if MEMORY_CHANGE_ALERTS:
+            await ctx.send(f"`Revised memories: {', '.join(memory_changes)}`")
         
     async def parse_message(self, message: discord.Message, quote: discord.Message = None, recursive=True) -> str:
         content = f"[Username: {message.author.name}]"
