@@ -172,12 +172,12 @@ class GptMemory(commands.Cog):
         return self.bot.user in message.mentions
 
     async def wait_for_embed(self, ctx: commands.Context) -> commands.Context:
-    for n in range(3):
-        if ctx.message.embeds:
-            return ctx
-        await asyncio.sleep(1)
-        ctx.message = await ctx.channel.fetch_message(ctx.message.id)
-    return ctx
+        for n in range(2):
+            if ctx.message.embeds:
+                return ctx
+            await asyncio.sleep(1)
+            ctx.message = await ctx.channel.fetch_message(ctx.message.id)
+        return ctx
 
     async def initialize_openai_client(self, ctx: commands.Context = None):
         api_key = (await self.bot.get_shared_api_tokens("openai")).get("api_key")
