@@ -374,9 +374,9 @@ class GptMemory(commands.Cog):
             for match in matches:
                 if match.endswith(IMAGE_EXTENSIONS):
                     image_url.append(match)
-            if backmsg.embeds and message.embeds[0].image:
+            if message.embeds and message.embeds[0].image:
                 image_url.append(message.embeds[0].image.url)
-            if backmsg.embeds and message.embeds[0].thumbnail:
+            if message.embeds and message.embeds[0].thumbnail:
                 image_url.append(message.embeds[0].thumbnail.url)
             image_fp = [] 
             if not image_url:
