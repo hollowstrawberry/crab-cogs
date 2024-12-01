@@ -140,7 +140,7 @@ class GptMemory(commands.Cog):
             return
         async with ctx.channel.typing():
             pass
-        await self.create_response(ctx) 
+        await self.run_response(ctx) 
 
     async def is_common_valid_reply(self, ctx: commands.Context) -> bool:
         """Run some common checks to see if a message is valid for the bot to reply to"""
@@ -172,10 +172,9 @@ class GptMemory(commands.Cog):
             return
         self.openai_client = AsyncOpenAI(api_key=api_key)
         
-    async def create_response(self, ctx: commands.Context):
+    async def run_response(self, ctx: commands.Context):
         if ctx.guild.id not in self.memory:
             self.memory[ctx.guild.id] = {}
-            
         messages = await self.get_message_history(ctx)      
         memories = ", ".join(self.memory[ctx.guild.id].keys())
         recalled_memories = await self.execute_recaller(ctx, messages, memories)
