@@ -381,7 +381,7 @@ class GptMemory(commands.Cog):
             image_fp = [] 
             if not image_url:
                 return image_contents
-            async with aiohttp.ClientSession as session:
+            async with aiohttp.ClientSession() as session:
                 for url in image_url:
                     fp = None
                     async with session.get(url) as response:
