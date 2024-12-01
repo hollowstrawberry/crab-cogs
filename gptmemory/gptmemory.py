@@ -15,7 +15,9 @@ from redbot.core.bot import Red
 
 log = logging.getLogger("red.crab-cogs.gptmemory")
 
-GPT_MODEL = "gpt-4o"
+MODEL_RECALLER = "gpt-4o-mini"
+MODEL_RESPONDER = "gpt-4o"
+MODEL_MEMORIZER = "gpt-4o"
 ENCODING = tiktoken.encoding_for_model(GPT_MODEL)
 RESPONSE_TOKENS = 1000
 BACKREAD_TOKENS = 1000
@@ -233,7 +235,7 @@ class GptMemory(commands.Cog):
         recaller_messages = [msg for msg in messages if isinstance(msg["content"], str)]
         recaller_messages.insert(0, {"role": "system", "content": self.prompt_recaller[ctx.guild.id].format(memories_str)})
         recaller_response = await self.openai_client.beta.chat.completions.parse(
-            model=GPT_MODEL, 
+            model=MODEL_RECALLER, 
             messages=recaller_messages,
             response_format=MemoryRecall,
         )
@@ -256,7 +258,7 @@ class GptMemory(commands.Cog):
             )
         })
         responder_response = await self.openai_client.chat.completions.create(
-            model=GPT_MODEL, 
+            model=MODEL_RESPONDER, 
             messages=responder_messages,
             max_tokens=RESPONSE_TOKENS
         )
@@ -269,10 +271,12 @@ class GptMemory(commands.Cog):
         if not ALLOW_MEMORIZER:
             return
         messages.append({"role": "assistant", "content": await self.parse_message(responder_reply)})
-        memorizer_messages = [msg for msg in messages if isinstance(msg["content"], str)][-BACKREAD_MEMORIZER:]
+        memorizer_messages = [msg for msg in messages if isinstance(msg["content"], str)]
+        if len(memorizer_messages) > BACKREAD_MEMORIZER:
+            memorizer_messages = memorizer_messages[-BACKREAD_MEMORIZER:]
         memorizer_messages.insert(0, {"role": "system", "content": self.prompt_memorizer[ctx.guild.id].format(memories_str, recalled_memories_str)})
         memorizer_response = await self.openai_client.beta.chat.completions.parse(
-            model=GPT_MODEL, 
+            model=MODEL_MEMORIZER, 
             messages=memorizer_messages,
             response_format=MemoryChangeList,
         )
