@@ -326,8 +326,7 @@ class GptMemory(commands.Cog):
                     quote = None
             except:
                 quote = None
-            
-            image_contents = await self.extract_images()
+            image_contents = await self.extract_images(backmsg, quote)
             msg_content = await self.parse_discord_message(backmsg, quote=quote)
             if image_contents:
                 image_contents.insert(0, {"type": "text", "text": msg_content})
@@ -347,11 +346,11 @@ class GptMemory(commands.Cog):
         log.info(f"{len(messages)=} / {tokens=}")
         return list(reversed(messages))
 
-    async def extract_images(self) -> list[dict]:
+    async def extract_images(self, message: discord.Message, quote: discord.Message) -> list[dict]:
         image_contents = []
         processed_attachments = []
-        if backmsg.attachments or quote and quote.attachments:
-            attachments = (backmsg.attachments or []) + (quote.attachments if quote and quote.attachments else [])
+        if message.attachments or quote and quote.attachments:
+            attachments = (message.attachments or []) + (quote.attachments if quote and quote.attachments else [])
             images = [att for att in attachments if att.content_type.startswith('image/')]
             for image in images[:2]:
                 if image in processed_attachments:
@@ -371,14 +370,14 @@ class GptMemory(commands.Cog):
                 log.info(image.filename)
         if not image_contents:
             image_url = []
-            matches = URL_PATTERN.findall(backmsg.content)
+            matches = URL_PATTERN.findall(message.content)
             for match in matches:
                 if match.endswith(IMAGE_EXTENSIONS):
                     image_url.append(match)
-            if backmsg.embeds and backmsg.embeds[0].image:
-                image_url.append(backmsg.embeds[0].image.url)
-            if backmsg.embeds and backmsg.embeds[0].thumbnail:
-                image_url.append(backmsg.embeds[0].thumbnail.url)
+            if backmsg.embeds and message.embeds[0].image:
+                image_url.append(message.embeds[0].image.url)
+            if backmsg.embeds and message.embeds[0].thumbnail:
+                image_url.append(message.embeds[0].thumbnail.url)
             image_fp = [] 
             if not image_url:
                 return image_contents
