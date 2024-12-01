@@ -229,11 +229,11 @@ class GptMemory(commands.Cog):
         )
         completion = response.choices[0].message.content
         log.info(f"{completion=}")
-        completion = re.sub(RESPONSE_CLEANUP_PATTERN, "", completion)
-        reply = await ctx.reply(responder_completion[:4000], mention_author=False)
+        reply_content = re.sub(RESPONSE_CLEANUP_PATTERN, "", completion)[:4000]
+        discord_reply = await ctx.reply(reply_content, mention_author=False)
         response_message = {
             "role": "assistant",
-            "content": await self.parse_discord_message(reply)
+            "content": await self.parse_discord_message(discord_reply)
         }
         return response_message
 
