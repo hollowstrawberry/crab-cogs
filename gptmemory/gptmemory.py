@@ -30,7 +30,7 @@ ALLOW_MEMORIZER = True
 MEMORY_CHANGE_ALERTS = True
 RESPONSE_CLEANUP_PATTERN = re.compile(r"(^(\[[^[\]]+\] ?)+|\[\[\[.+\]\]\]$)")
 URL_PATTERN = re.compile(r"(https?://\S+)")
-IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", "webp", ".bmp")
+IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", "webp", ".bmp", ".gif")
 
 ALLOWED_SERVERS = [1113893773714399392]
 EMOTES = "<:FubukiEmoteForWhenever:1159695833697104033> <a:FubukiSway:1169172368313290792> <a:FubukiSpaz:1198104998752571492> <a:fubukitail:1231807727995584532> <:fubukiexcited:1233560648877740094> <:todayiwill:1182055394521137224> <:clueless:1134505916679589898>"
