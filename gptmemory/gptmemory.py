@@ -373,7 +373,7 @@ class GptMemory(commands.Cog):
             image_url = []
             matches = URL_PATTERN.findall(backmsg.content)
             for match in matches:
-                if match.endswith(IMAGE_EXTENSIONS)
+                if match.endswith(IMAGE_EXTENSIONS):
                     image_url.append(match)
             if backmsg.embeds and backmsg.embeds[0].image:
                 image_url.append(backmsg.embeds[0].image.url)
