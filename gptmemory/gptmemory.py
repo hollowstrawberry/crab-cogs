@@ -78,7 +78,7 @@ def make_image_content(fp: BytesIO) -> dict:
         "image_url": {
             "url": f"data:image/png;base64,{base64.b64encode(fp.read()).decode()}"
         }
-    })
+    }
 
 def process_image(buffer: BytesIO) -> BytesIO | None:
     try:
