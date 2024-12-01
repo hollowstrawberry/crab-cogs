@@ -413,7 +413,7 @@ class GptMemory(commands.Cog):
                 content += f" [Embed Content: {sanitize_name(embed.description)}]"
         
         if quote and recursive:
-            quote_content = (await self.parse_message(quote, recursive=False)).replace("\n", " ")
+            quote_content = (await self.parse_discord_message(quote, recursive=False)).replace("\n", " ")
             if len(quote_content) > QUOTE_LENGTH:
                 quote_content = quote_content[:QUOTE_LENGTH-3] + "..."
             content += f"\n[[[Replying to: {quote_content}]]]"
