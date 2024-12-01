@@ -386,7 +386,7 @@ class GptMemory(commands.Cog):
                 for url in image_url:
                     fp = None
                     async with session.get(url) as response:
-                        if response.status = 200:
+                        if response.status == 200:
                             fp = BytesIO(await response.read())
                             fp.seek(0)
                     processed_image = process_image(fp)
