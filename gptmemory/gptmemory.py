@@ -3,6 +3,7 @@ import base64
 import difflib
 import logging
 import asyncio
+import aiohttp
 import tiktoken
 import discord
 from io import BytesIO
@@ -29,6 +30,7 @@ ALLOW_MEMORIZER = True
 MEMORY_CHANGE_ALERTS = True
 RESPONSE_CLEANUP_PATTERN = re.compile(r"(^(\[[^[\]]+\] ?)+|\[\[\[.+\]\]\]$)")
 URL_PATTERN = re.compile(r"(https?://\S+)")
+IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", "webp", ".bmp")
 
 ALLOWED_SERVERS = [1113893773714399392]
 EMOTES = "<:FubukiEmoteForWhenever:1159695833697104033> <a:FubukiSway:1169172368313290792> <a:FubukiSpaz:1198104998752571492> <a:fubukitail:1231807727995584532> <:fubukiexcited:1233560648877740094> <:todayiwill:1182055394521137224> <:clueless:1134505916679589898>"
@@ -70,10 +72,19 @@ def sanitize_name(name: str) -> str:
         name = name.replace(c, "")
     return name
 
-async def extract_image(attachment: discord.Attachment) -> BytesIO:
-    buffer = BytesIO()
-    await attachment.save(buffer)
-    image = Image.open(buffer)
+def make_image_content(fp: BytesIO) -> dict:
+    return {
+        "type": "image_url",
+        "image_url": {
+            "url": f"data:image/png;base64,{base64.b64encode(fp.read()).decode()}"
+        }
+    })
+
+def process_image(buffer: BytesIO) -> BytesIO | None:
+    try:
+        image = Image.open(buffer)
+    except:
+        return None
     width, height = image.size
     image_resolution = width * height
     target_resolution = 1024*1024
@@ -315,28 +326,8 @@ class GptMemory(commands.Cog):
                     quote = None
             except:
                 quote = None
-            # images
-            image_contents = []
-            if backmsg.attachments or quote and quote.attachments:
-                attachments = (backmsg.attachments or []) + (quote.attachments if quote and quote.attachments else [])
-                images = [att for att in attachments if att.content_type.startswith('image/')]
-                for image in images[:2]:
-                    if image in processed_images:
-                        continue
-                    processed_images.append(image)
-                    try:
-                        fp = await extract_image(image)
-                    except:
-                        continue
-                    image_contents.append({
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/png;base64,{base64.b64encode(fp.read()).decode()}"
-                        }
-                    })
-                    tokens += 255
-                    log.info(image.filename)
-            # message dict
+            
+            image_contents = await self.extract_images()
             msg_content = await self.parse_discord_message(backmsg, quote=quote)
             if image_contents:
                 image_contents.insert(0, {"type": "text", "text": msg_content})
@@ -349,12 +340,62 @@ class GptMemory(commands.Cog):
                     "role": "assistant" if backmsg.author.id == self.bot.user.id else "user",
                     "content": msg_content
                 })
-            tokens += len(ENCODING.encode(msg_content))
+            tokens += len(ENCODING.encode(msg_content)) + 255 * len(image_contents)
             if tokens > BACKREAD_TOKENS and n > 0:
                 break
 
         log.info(f"{len(messages)=} / {tokens=}")
         return list(reversed(messages))
+
+    async def extract_images(self) -> list[dict]:
+        image_contents = []
+        processed_attachments = []
+        if backmsg.attachments or quote and quote.attachments:
+            attachments = (backmsg.attachments or []) + (quote.attachments if quote and quote.attachments else [])
+            images = [att for att in attachments if att.content_type.startswith('image/')]
+            for image in images[:2]:
+                if image in processed_attachments:
+                    continue
+                processed_attachments.append(image)
+                try:
+                    buffer = BytesIO()
+                    await attachment.save(buffer)
+                    fp = process_image(buffer)
+                    del buffer
+                    if not fp:
+                        continue
+                except:
+                    continue
+                image_contents.append(make_image_content(fp))
+                del fp
+                log.info(image.filename)
+        if not image_contents:
+            image_url = []
+            matches = URL_PATTERN.findall(backmsg.content)
+            for match in matches:
+                if match.endswith(IMAGE_EXTENSIONS)
+                    image_url.append(match)
+            if backmsg.embeds and backmsg.embeds[0].image:
+                image_url.append(backmsg.embeds[0].image.url)
+            if backmsg.embeds and backmsg.embeds[0].thumbnail:
+                image_url.append(backmsg.embeds[0].thumbnail.url)
+            image_fp = [] 
+            if not image_url:
+                return image_contents
+            async with aiohttp.ClientSession as session:
+                for url in image_url:
+                    fp = None
+                    async with session.get(url) as response:
+                        if response.status = 200:
+                            fp = BytesIO(await response.read())
+                            fp.seek(0)
+                    processed_image = process_image(fp)
+                    if processed_image:
+                        image_fp.append(processed_image)
+            for fp in image_fp:
+                image_contents.append(make_image_content(fp))
+            del image_fp
+        return image_contents
     
     async def parse_discord_message(self, message: discord.Message, quote: discord.Message = None, recursive=True) -> str:
         content = f"[Username: {sanitize_name(message.author.name)}]"
