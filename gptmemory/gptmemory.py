@@ -15,7 +15,7 @@ from redbot.core.bot import Red
 
 log = logging.getLogger("red.crab-cogs.gptmemory")
 
-MODEL_RECALLER = "gpt-4o-mini"
+MODEL_RECALLER = "gpt-4o"
 MODEL_RESPONDER = "gpt-4o"
 MODEL_MEMORIZER = "gpt-4o"
 ENCODING = tiktoken.encoding_for_model(MODEL_RESPONDER)
