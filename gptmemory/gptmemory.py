@@ -1,15 +1,15 @@
-import discord
-import logging
-import tiktoken
 import re
 import base64
 import difflib
-from openai import AsyncOpenAI
-from pydantic import BaseModel
-from PIL import Image
+import logging
+import tiktoken
+import discord
 from io import BytesIO
 from typing import Literal
 from datetime import datetime
+from PIL import Image
+from openai import AsyncOpenAI
+from pydantic import BaseModel
 from redbot.core import commands, Config
 from redbot.core.bot import Red
 
@@ -233,7 +233,10 @@ class GptMemory(commands.Cog):
         # RECALLER
         memories_str = ", ".join(self.memory[ctx.guild.id].keys())
         recaller_messages = [msg for msg in messages if isinstance(msg["content"], str)]
-        recaller_messages.insert(0, {"role": "system", "content": self.prompt_recaller[ctx.guild.id].format(memories_str)})
+        recaller_messages.insert(0, {
+            "role": "system",
+            "content": self.prompt_recaller[ctx.guild.id].format(memories_str)
+        })
         recaller_response = await self.openai_client.beta.chat.completions.parse(
             model=MODEL_RECALLER, 
             messages=recaller_messages,
@@ -270,26 +273,34 @@ class GptMemory(commands.Cog):
         # MEMORIZER
         if not ALLOW_MEMORIZER:
             return
-        messages.append({"role": "assistant", "content": await self.parse_message(responder_reply)})
+        messages.append({
+            "role": "assistant",
+            "content": await self.parse_message(responder_reply)
+        })
         memorizer_messages = [msg for msg in messages if isinstance(msg["content"], str)]
         if len(memorizer_messages) > BACKREAD_MEMORIZER:
             memorizer_messages = memorizer_messages[-BACKREAD_MEMORIZER:]
-        memorizer_messages.insert(0, {"role": "system", "content": self.prompt_memorizer[ctx.guild.id].format(memories_str, recalled_memories_str)})
+        memorizer_messages.insert(0, {
+            "role": "system",
+            "content": self.prompt_memorizer[ctx.guild.id].format(memories_str, recalled_memories_str)
+        })
         memorizer_response = await self.openai_client.beta.chat.completions.parse(
             model=MODEL_MEMORIZER, 
             messages=memorizer_messages,
             response_format=MemoryChangeList,
         )
         memorizer_completion = memorizer_response.choices[0].message
-        if memorizer_completion.refusal:
+        if memorizer_completion.refusal or not memorizer_completion.parsed.memory_changes:
             return
         memory_changes = []
         async with self.config.guild(ctx.guild).memory() as memory:
             for change in memorizer_completion.parsed.memory_changes:
                 action, name, content = change.action_type, change.memory_name, change.memory_content
                 if name not in memory and action != "create":
-                    name = difflib.get_close_matches(name, memory)[0]
-                    log.info(f"{name=}")
+                    matches = difflib.get_close_matches(name, memory)
+                    if not matches:
+                        continue
+                    name = matches[0]
                 if action == "delete":
                     del memory[name]
                     del self.memory[ctx.guild.id][name]
@@ -309,7 +320,6 @@ class GptMemory(commands.Cog):
             await ctx.send(f"`Revised memories: {', '.join(memory_changes)}`")
         
     async def parse_message(self, message: discord.Message, quote: discord.Message = None, recursive=True) -> str:
-        name = message.author.name
         content = f"[Username: {sanitize_name(message.author.name)}]"
         if isinstance(message.author, discord.Member) and message.author.nick:
             content += f" [Alias: {sanitize_name(message.author.nick)}]"
@@ -321,18 +331,19 @@ class GptMemory(commands.Cog):
             content += f" [Sticker: {sticker.name}]"
         
         if quote and recursive:
-            quote_content = (await self.parse_message(quote, recursive=False)).replace("\n", " ")[:QUOTE_LENGTH]
+            quote_content = (await self.parse_message(quote, recursive=False)).replace("\n", " ")
+            if len(quote_content) > QUOTE_LENGTH:
+                quote_content = quote_content[:QUOTE_LENGTH-3] + "..."
             content += f"\n[[[Replying to: {quote_content}]]]"
         
         mentions = message.mentions + message.role_mentions + message.channel_mentions
-        if mentions:
-            for mentioned in mentions:
-                if mentioned in message.channel_mentions:
-                    content = content.replace(mentioned.mention, f'#{mentioned.name}')
-                elif mentioned in message.role_mentions:
-                    content = content.replace(mentioned.mention, f'@{mentioned.name}')
-                else:
-                    content = content.replace(mentioned.mention, f'@{mentioned.display_name}')
+        for mentioned in mentions:
+            if mentioned in message.channel_mentions:
+                content = content.replace(mentioned.mention, f'#{mentioned.name}')
+            elif mentioned in message.role_mentions:
+                content = content.replace(mentioned.mention, f'@{mentioned.name}')
+            else:
+                content = content.replace(mentioned.mention, f'@{mentioned.display_name}')
         
         return content.strip()
                     
@@ -374,9 +385,9 @@ class GptMemory(commands.Cog):
     @commands.has_permissions(manage_guild=True)
     async def setmemory(self, ctx: commands.Context, name, *, content):
         """Overwrite a memory, for GPT"""
-        if ctx.guild.id not in self.memory:
-            return
         async with self.config.guild(ctx.guild).memory() as memory:
             memory[name] = content
+        if ctx.guild.id not in self.memory:
+            self.memory[ctx.guild.id] = {}
         self.memory[ctx.guild.id][name] = content
         await ctx.send("✅")
