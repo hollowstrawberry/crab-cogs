@@ -237,7 +237,7 @@ class GptMemory(commands.Cog):
         }
         return response_message
 
-    async def execute_memorizer(self, ctx: commands.Context, memories: str, recalled_memories: str) -> None:
+    async def execute_memorizer(self, ctx: commands.Context, messages: list[dict], memories: str, recalled_memories: str) -> None:
         """
         Runs an openai completion with the chat history, a list of memories, and the contents of some memories,
         and executes database operations as decided by the LLM.
