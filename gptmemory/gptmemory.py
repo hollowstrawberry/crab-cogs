@@ -22,7 +22,7 @@ ENCODING = tiktoken.encoding_for_model(MODEL_RESPONDER)
 RESPONSE_TOKENS = 1000
 BACKREAD_TOKENS = 1000
 BACKREAD_MESSAGES = 20
-BACKREAD_MEMORIZER = 3
+BACKREAD_MEMORIZER = 2
 QUOTE_LENGTH = 300
 ALLOW_MEMORIZER = True
 MEMORY_CHANGE_ALERTS = True
@@ -173,128 +173,95 @@ class GptMemory(commands.Cog):
         self.openai_client = AsyncOpenAI(api_key=api_key)
         
     async def create_response(self, ctx: commands.Context):
-        # CHAT HISTORY SETUP
         if ctx.guild.id not in self.memory:
             self.memory[ctx.guild.id] = {}
-        backread = [message async for message in ctx.channel.history(limit=BACKREAD_MESSAGES, before=ctx.message, oldest_first=False)]
-        backread.insert(0, ctx.message)
-        messages = []
-        processed_images = []
-        tokens = 0
-        for n, backmsg in enumerate(backread):
-            image_contents = []
-            try:
-                quote = backmsg.reference.cached_message or await message.channel.fetch_message(message.reference.message_id)
-                if len(backread) > n+1 and quote == backread[n+1]:
-                    quote = None
-            except:
-                quote = None
-            # image parsing
-            if backmsg.attachments or quote and quote.attachments:
-                attachments = (backmsg.attachments or []) + (quote.attachments if quote and quote.attachments else [])
-                images = [att for att in attachments if att.content_type.startswith('image/')]
-                for image in images[:2]:
-                    if image in processed_images:
-                        continue
-                    processed_images.append(image)
-                    try:
-                        fp = await extract_image(image)
-                    except:
-                        continue
-                    image_contents.append({
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/png;base64,{base64.b64encode(fp.read()).decode()}"
-                        }
-                    })
-                    tokens += 255
-                    log.info(image.filename)
-            # message setup
-            msg_content = await self.parse_message(backmsg, quote=quote)
-            if image_contents:
-                image_contents.insert(0, {"type": "text", "text": msg_content})
-                messages.append({
-                    "role": "user",
-                    "content": image_contents
-                })
-            else:
-                messages.append({
-                    "role": "assistant" if backmsg.author.id == self.bot.user.id else "user",
-                    "content": msg_content
-                })
-            tokens += len(ENCODING.encode(msg_content))
-            if tokens > BACKREAD_TOKENS and n > 0:
-                break
-        messages = list(reversed(messages))
-        log.info(f"{len(messages)=} / {tokens=}")
-        #for n, msg in enumerate(messages):
-        #    log.info(f"[{n}] " + (f"\"{msg['content']}\"" if isinstance(msg["content"], str) else f"{len(msg['content']) - 1} images /// \"{msg['content'][0]['text']}\""))
-        
-        # RECALLER
-        memories_str = ", ".join(self.memory[ctx.guild.id].keys())
-        recaller_messages = [msg for msg in messages if isinstance(msg["content"], str)]
-        recaller_messages.insert(0, {
+            
+        messages = await self.get_message_history(ctx)      
+        memories = ", ".join(self.memory[ctx.guild.id].keys())
+        recalled_memories = await self.execute_recaller(ctx, messages, memories)
+        response_message = await self.execute_responder(ctx, messages, recalled_memories)
+        messages.append(response_message)
+        if ALLOW_MEMORIZER:
+            await self.execute_memorizer(ctx, messages, memories, recalled_memories)
+
+    async def execute_recaller(self, ctx: commands.Context, messages: list[dict], memories: str) -> str:
+        """
+        Runs an openai completion with the chat history and a list of memories from the database
+        and returns a parsed string of memories and their contents as chosen by the LLM.
+        """
+        system_prompt = {
             "role": "system",
-            "content": self.prompt_recaller[ctx.guild.id].format(memories_str)
-        })
-        recaller_response = await self.openai_client.beta.chat.completions.parse(
+            "content": self.prompt_recaller[ctx.guild.id].format(memories)
+        }
+        temp_messages = [msg for msg in messages if isinstance(msg["content"], str)]
+        temp_messages.insert(0, system_prompt)
+        response = await self.openai_client.beta.chat.completions.parse(
             model=MODEL_RECALLER, 
-            messages=recaller_messages,
+            messages=temp_messages,
             response_format=MemoryRecall,
         )
-        recaller_completion = recaller_response.choices[0].message
-        memories_to_recall = recaller_completion.parsed.memory_names if not recaller_completion.refusal else []
+        completion = response.choices[0].message
+        memories_to_recall = completion.parsed.memory_names if not completion.refusal else []
         log.info(f"{memories_to_recall=}")
         recalled_memories = {k: v for k, v in self.memory[ctx.guild.id].items() if k in memories_to_recall}
         recalled_memories_str = "\n".join(f"[Memory of {k}:] {v}" for k, v in recalled_memories.items())
+        return recalled_memories_str
 
-        # RESPONDER
-        responder_messages = [msg for msg in messages]
-        responder_messages.insert(0, {
+    async def execute_responder(self, ctx: commands.Context, messages: list[dir], recalled_memories: str) -> dict:
+        """
+        Runs an openai completion with the chat history and the contents of memories
+        and returns a response message after sending it to the user.
+        """
+        system_prompt = {
             "role": "system",
             "content": self.prompt_responder[ctx.guild.id].format(
                 servername=ctx.guild.name,
                 channelname=ctx.channel.name,
                 emotes=EMOTES,
                 currentdatetime=datetime.now().strftime("%Y-%m-%d %H:%M:%S %Z%z"),
-                memories=recalled_memories_str,
-            )
-        })
-        responder_response = await self.openai_client.chat.completions.create(
+                memories=recalled_memories,
+        )}
+        temp_messages = [msg for msg in messages]
+        temp_messages.insert(0, system_prompt)
+        response = await self.openai_client.chat.completions.create(
             model=MODEL_RESPONDER, 
-            messages=responder_messages,
+            messages=temp_messages,
             max_tokens=RESPONSE_TOKENS
         )
-        responder_completion = responder_response.choices[0].message.content
-        log.info(f"{responder_completion=}")
-        responder_completion = re.sub(RESPONSE_CLEANUP_PATTERN, "", responder_completion)
-        responder_reply = await ctx.reply(responder_completion[:4000], mention_author=False)
-
-        # MEMORIZER
-        if not ALLOW_MEMORIZER:
-            return
-        messages.append({
+        completion = response.choices[0].message.content
+        log.info(f"{completion=}")
+        completion = re.sub(RESPONSE_CLEANUP_PATTERN, "", completion)
+        reply = await ctx.reply(responder_completion[:4000], mention_author=False)
+        response_message = {
             "role": "assistant",
-            "content": await self.parse_message(responder_reply)
-        })
-        memorizer_messages = [msg for msg in messages if isinstance(msg["content"], str)]
-        if len(memorizer_messages) > BACKREAD_MEMORIZER:
-            memorizer_messages = memorizer_messages[-BACKREAD_MEMORIZER:]
-        memorizer_messages.insert(0, {
+            "content": await self.parse_discord_message(reply)
+        }
+        return response_message
+
+    async def execute_memorizer(self, ctx: commands.Context, memories: str, recalled_memories: str) -> None:
+        """
+        Runs an openai completion with the chat history, a list of memories, and the contents of some memories,
+        and executes database operations as decided by the LLM.
+        """
+        system_prompt = {
             "role": "system",
-            "content": self.prompt_memorizer[ctx.guild.id].format(memories_str, recalled_memories_str)
-        })
-        memorizer_response = await self.openai_client.beta.chat.completions.parse(
+            "content": self.prompt_memorizer[ctx.guild.id].format(memories, recalled_memories)
+        }
+        temp_messages = [msg for msg in messages if isinstance(msg["content"], str)]
+        if len(temp_messages) > BACKREAD_MEMORIZER:
+            temp_messages = temp_messages[-BACKREAD_MEMORIZER:]
+        temp_messages.insert(0, system_prompt)
+        response = await self.openai_client.beta.chat.completions.parse(
             model=MODEL_MEMORIZER, 
-            messages=memorizer_messages,
+            messages=temp_messages,
             response_format=MemoryChangeList,
         )
-        memorizer_completion = memorizer_response.choices[0].message
-        if memorizer_completion.refusal or not memorizer_completion.parsed.memory_changes:
+        completion = response.choices[0].message
+        if completion.refusal or not completion.parsed.memory_changes:
             return
         memory_changes = []
         async with self.config.guild(ctx.guild).memory() as memory:
-            for change in memorizer_completion.parsed.memory_changes:
+            for change in completion.parsed.memory_changes:
                 action, name, content = change.action_type, change.memory_name, change.memory_content
                 if name not in memory and action != "create":
                     matches = difflib.get_close_matches(name, memory)
@@ -319,7 +286,65 @@ class GptMemory(commands.Cog):
         if MEMORY_CHANGE_ALERTS and memory_changes:
             await ctx.send(f"`Revised memories: {', '.join(memory_changes)}`")
         
-    async def parse_message(self, message: discord.Message, quote: discord.Message = None, recursive=True) -> str:
+    async def get_message_history(self, ctx: commands.Context) -> list[dict]:
+        backread = [message async for message in ctx.channel.history(
+            limit=BACKREAD_MESSAGES,
+            before=ctx.message,
+            oldest_first=False
+        )]
+        backread.insert(0, ctx.message)
+        messages = []
+        processed_images = []
+        tokens = 0
+        for n, backmsg in enumerate(backread):
+            try:
+                quote = backmsg.reference.cached_message or await message.channel.fetch_message(message.reference.message_id)
+                if len(backread) > n+1 and quote == backread[n+1]:
+                    quote = None
+            except:
+                quote = None
+            # images
+            image_contents = []
+            if backmsg.attachments or quote and quote.attachments:
+                attachments = (backmsg.attachments or []) + (quote.attachments if quote and quote.attachments else [])
+                images = [att for att in attachments if att.content_type.startswith('image/')]
+                for image in images[:2]:
+                    if image in processed_images:
+                        continue
+                    processed_images.append(image)
+                    try:
+                        fp = await extract_image(image)
+                    except:
+                        continue
+                    image_contents.append({
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/png;base64,{base64.b64encode(fp.read()).decode()}"
+                        }
+                    })
+                    tokens += 255
+                    log.info(image.filename)
+            # message dict
+            msg_content = await self.parse_discord_message(backmsg, quote=quote)
+            if image_contents:
+                image_contents.insert(0, {"type": "text", "text": msg_content})
+                messages.append({
+                    "role": "user",
+                    "content": image_contents
+                })
+            else:
+                messages.append({
+                    "role": "assistant" if backmsg.author.id == self.bot.user.id else "user",
+                    "content": msg_content
+                })
+            tokens += len(ENCODING.encode(msg_content))
+            if tokens > BACKREAD_TOKENS and n > 0:
+                break
+
+        log.info(f"{len(messages)=} / {tokens=}")
+        return list(reversed(messages))
+    
+    async def parse_discord_message(self, message: discord.Message, quote: discord.Message = None, recursive=True) -> str:
         content = f"[Username: {sanitize_name(message.author.name)}]"
         if isinstance(message.author, discord.Member) and message.author.nick:
             content += f" [Alias: {sanitize_name(message.author.nick)}]"
@@ -346,6 +371,8 @@ class GptMemory(commands.Cog):
                 content = content.replace(mentioned.mention, f'@{mentioned.display_name}')
         
         return content.strip()
+
+    
                     
     # Commands
 
