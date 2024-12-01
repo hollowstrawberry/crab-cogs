@@ -2,6 +2,7 @@ import re
 import base64
 import difflib
 import logging
+import asyncio
 import tiktoken
 import discord
 from io import BytesIO
@@ -26,7 +27,8 @@ BACKREAD_MEMORIZER = 2
 QUOTE_LENGTH = 300
 ALLOW_MEMORIZER = True
 MEMORY_CHANGE_ALERTS = True
-RESPONSE_CLEANUP_PATTERN = r"(^(\[[^[\]]+\] ?)+|\[\[\[.+\]\]\]$)"
+RESPONSE_CLEANUP_PATTERN = re.compile(r"(^(\[[^[\]]+\] ?)+|\[\[\[.+\]\]\]$)")
+URL_PATTERN = re.compile(r"(https?://\S+)")
 
 ALLOWED_SERVERS = [1113893773714399392]
 EMOTES = "<:FubukiEmoteForWhenever:1159695833697104033> <a:FubukiSway:1169172368313290792> <a:FubukiSpaz:1198104998752571492> <a:fubukitail:1231807727995584532> <:fubukiexcited:1233560648877740094> <:todayiwill:1182055394521137224> <:clueless:1134505916679589898>"
@@ -138,6 +140,8 @@ class GptMemory(commands.Cog):
             return
         if not await self.is_bot_mentioned_or_replied(message):
             return
+        if URL_PATTERN.search(message.content):
+            ctx = await self.wait_for_embed(ctx)
         async with ctx.channel.typing():
             pass
         await self.run_response(ctx) 
@@ -165,6 +169,14 @@ class GptMemory(commands.Cog):
 
     async def is_bot_mentioned_or_replied(self, message: discord.Message) -> bool:
         return self.bot.user in message.mentions
+
+    async def wait_for_embed(self, ctx: commands.Context) -> commands.Context:
+    for n in range(3):
+        if ctx.message.embeds:
+            return ctx
+        await asyncio.sleep(1)
+        ctx.message = await ctx.channel.fetch_message(ctx.message.id)
+    return ctx
 
     async def initialize_openai_client(self, ctx: commands.Context = None):
         api_key = (await self.bot.get_shared_api_tokens("openai")).get("api_key")
@@ -229,7 +241,7 @@ class GptMemory(commands.Cog):
         )
         completion = response.choices[0].message.content
         log.info(f"{completion=}")
-        reply_content = re.sub(RESPONSE_CLEANUP_PATTERN, "", completion)[:4000]
+        reply_content = RESPONSE_CLEANUP_PATTERN.sub("", completion)[:4000]
         discord_reply = await ctx.reply(reply_content, mention_author=False)
         response_message = {
             "role": "assistant",
@@ -353,6 +365,11 @@ class GptMemory(commands.Cog):
             content += f" [Attachment: {attachment.filename}]"
         for sticker in message.stickers:
             content += f" [Sticker: {sticker.name}]"
+        for embed in message.embeds:
+            if embed.title:
+                content += f" [Embed Title: {sanitize_name(embed.title)}]"
+            if embed.description:
+                content += f" [Embed Content: {sanitize_name(embed.description)}]"
         
         if quote and recursive:
             quote_content = (await self.parse_message(quote, recursive=False)).replace("\n", " ")
