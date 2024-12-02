@@ -317,7 +317,7 @@ class GptMemory(commands.Cog):
         )]
         backread.insert(0, ctx.message)
         messages = []
-        processed_images = []
+        processed_attachments = []
         tokens = 0
         for n, backmsg in enumerate(backread):
             try:
@@ -326,7 +326,7 @@ class GptMemory(commands.Cog):
                     quote = None
             except:
                 quote = None
-            image_contents = await self.extract_images(backmsg, quote)
+            image_contents = await self.extract_images(backmsg, quote, processed_attachments)
             msg_content = await self.parse_discord_message(backmsg, quote=quote)
             if image_contents:
                 image_contents.insert(0, {"type": "text", "text": msg_content})
@@ -346,9 +346,8 @@ class GptMemory(commands.Cog):
         log.info(f"{len(messages)=} / {tokens=}")
         return list(reversed(messages))
 
-    async def extract_images(self, message: discord.Message, quote: discord.Message) -> list[dict]:
+    async def extract_images(self, message: discord.Message, quote: discord.Message, processed_attachments: list[discord.Attachment]) -> list[dict]:
         image_contents = []
-        processed_attachments = []
         if message.attachments or quote and quote.attachments:
             attachments = (message.attachments or []) + (quote.attachments if quote and quote.attachments else [])
             images = [att for att in attachments if att.content_type.startswith('image/')]
@@ -358,12 +357,13 @@ class GptMemory(commands.Cog):
                 processed_attachments.append(image)
                 try:
                     buffer = BytesIO()
-                    await attachment.save(buffer)
+                    await attachment.save(buffer, seek_begin=True)
                     fp = process_image(buffer)
                     del buffer
                     if not fp:
                         continue
                 except:
+                    log.warning("Processing image attachment", exc_info=True)
                     continue
                 image_contents.append(make_image_content(fp))
                 del fp
