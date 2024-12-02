@@ -278,7 +278,10 @@ class GptMemory(commands.Cog):
             response_format=MemoryChangeList,
         )
         completion = response.choices[0].message
-        if completion.refusal or not completion.parsed.memory_changes:
+        if completion.refusal:
+            log.warning(completion.refusal)
+            return
+        if not completion.parsed or not completion.parsed.memory_changes:
             return
         memory_changes = []
         async with self.config.guild(ctx.guild).memory() as memory:
