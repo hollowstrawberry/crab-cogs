@@ -272,6 +272,7 @@ class GptMemory(commands.Cog):
         if len(temp_messages) > BACKREAD_MEMORIZER:
             temp_messages = temp_messages[-BACKREAD_MEMORIZER:]
         temp_messages.insert(0, system_prompt)
+        log.info(temp_messages)
         response = await self.openai_client.beta.chat.completions.parse(
             model=MODEL_MEMORIZER, 
             messages=temp_messages,
