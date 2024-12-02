@@ -31,6 +31,7 @@ MEMORY_CHANGE_ALERTS = True
 RESPONSE_CLEANUP_PATTERN = re.compile(r"(^(\[[^[\]]+\] ?)+|\[\[\[.+\]\]\]$)")
 URL_PATTERN = re.compile(r"(https?://\S+)")
 IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", "webp", ".bmp", ".gif")
+IMAGES_PER_MESSAGE = 2
 
 ALLOWED_SERVERS = [1113893773714399392]
 EMOTES = "<:FubukiEmoteForWhenever:1159695833697104033> <a:FubukiSway:1169172368313290792> <a:FubukiSpaz:1198104998752571492> <a:fubukitail:1231807727995584532> <:fubukiexcited:1233560648877740094> <:todayiwill:1182055394521137224> <:clueless:1134505916679589898>"
@@ -81,10 +82,7 @@ def make_image_content(fp: BytesIO) -> dict:
     }
 
 def process_image(buffer: BytesIO) -> BytesIO | None:
-    try:
-        image = Image.open(buffer)
-    except:
-        return None
+    image = Image.open(buffer)
     width, height = image.size
     image_resolution = width * height
     target_resolution = 1024*1024
@@ -348,49 +346,51 @@ class GptMemory(commands.Cog):
 
     async def extract_images(self, message: discord.Message, quote: discord.Message, processed_attachments: list[discord.Attachment]) -> list[dict]:
         image_contents = []
+        # Attachments
         if message.attachments or quote and quote.attachments:
             attachments = (message.attachments or []) + (quote.attachments if quote and quote.attachments else [])
             images = [att for att in attachments if att.content_type.startswith('image/')]
-            for image in images[:2]:
+            for image in images[:IMAGES_PER_MESSAGE]:
                 if image in processed_attachments:
                     continue
                 processed_attachments.append(image)
                 try:
                     buffer = BytesIO()
-                    await attachment.save(buffer, seek_begin=True)
+                    await image.save(buffer, seek_begin=True)
                     fp = process_image(buffer)
                     del buffer
-                    if not fp:
-                        continue
                 except:
                     log.warning("Processing image attachment", exc_info=True)
                     continue
                 image_contents.append(make_image_content(fp))
                 del fp
                 log.info(image.filename)
+        # URLs
         if not image_contents:
             image_url = []
-            matches = URL_PATTERN.findall(message.content)
-            for match in matches:
-                if match.endswith(IMAGE_EXTENSIONS):
-                    image_url.append(match)
             if message.embeds and message.embeds[0].image:
                 image_url.append(message.embeds[0].image.url)
             if message.embeds and message.embeds[0].thumbnail:
                 image_url.append(message.embeds[0].thumbnail.url)
-            image_fp = [] 
+            matches = URL_PATTERN.findall(message.content)
+            for match in matches:
+                if match.endswith(IMAGE_EXTENSIONS):
+                    image_url.append(match)
             if not image_url:
                 return image_contents
+            image_fp = []
             async with aiohttp.ClientSession() as session:
-                for url in image_url:
-                    fp = None
-                    async with session.get(url) as response:
-                        if response.status == 200:
-                            fp = BytesIO(await response.read())
-                            fp.seek(0)
-                    processed_image = process_image(fp)
-                    if processed_image:
+                for url in image_url[:IMAGES_PER_MESSAGE]:
+                    try:
+                        fp = None
+                        async with session.get(url) as response:
+                            if response.status == 200:
+                                fp = BytesIO(await response.read())
+                                fp.seek(0)
+                        processed_image = process_image(fp)
                         image_fp.append(processed_image)
+                    except:
+                        log.warning("Processing image URL", exc_info=True)
             for fp in image_fp:
                 image_contents.append(make_image_content(fp))
             del image_fp
