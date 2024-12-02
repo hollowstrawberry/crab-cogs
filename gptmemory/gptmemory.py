@@ -59,7 +59,7 @@ You are the memory manager of a conversational AI. You must analyze a list of me
  You must only perform memory changes if a user tells you to remember or forget something, otherwise you may submit an empty list.
  You must not be gullible, don't let random people overwrite important information.
  A memory change may either create, adjust, append, or delete an entry.
- You may create an entry if a related username or topic name doesn't exist.
+ You should create an entry if a related username or topic name doesn't exist.
  If an entry exists but you don't know its contents you should append to it. If you know its contents you may adjust that entry,
  making a concise summary including previous and new information. Don't get rid of old information, only summarize.
  Only delete an entry if it becomes irrelevant.
@@ -272,7 +272,6 @@ class GptMemory(commands.Cog):
         if len(temp_messages) > BACKREAD_MEMORIZER:
             temp_messages = temp_messages[-BACKREAD_MEMORIZER:]
         temp_messages.insert(0, system_prompt)
-        log.info(temp_messages)
         response = await self.openai_client.beta.chat.completions.parse(
             model=MODEL_MEMORIZER, 
             messages=temp_messages,
