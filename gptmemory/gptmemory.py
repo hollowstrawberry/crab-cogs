@@ -28,7 +28,7 @@ BACKREAD_MEMORIZER = 2
 QUOTE_LENGTH = 300
 ALLOW_MEMORIZER = True
 MEMORY_CHANGE_ALERTS = True
-RESPONSE_CLEANUP_PATTERN = re.compile(r"(^(\[[^[\]]+\] ?)+|\[\[\[.+\]\]\]$)")
+RESPONSE_CLEANUP_PATTERN = re.compile(r"(^(\[[^[\]]+\] ?)+|\[\[\[.+\]\]\])")
 URL_PATTERN = re.compile(r"(https?://\S+)")
 IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", "webp", ".bmp", ".gif")
 IMAGES_PER_MESSAGE = 2
@@ -38,7 +38,7 @@ EMOTES = "<:FubukiEmoteForWhenever:1159695833697104033> <a:FubukiSway:1169172368
 
 PROMPT_RECALLER = """
 You are the memory manager of a conversational AI. You must extract a list of entries relevant to the conversation below,
- always including entries of the usernames involved, and only relevant topics. The available entries are: {0}"
+ always including entries of the usernames involved, and any entries of relevant topics being discussed. The available entries are:\n{0}"
 """
 
 PROMPT_RESPONDER = """
@@ -223,7 +223,7 @@ class GptMemory(commands.Cog):
             response_format=MemoryRecall,
         )
         completion = response.choices[0].message
-        memories_to_recall = completion.parsed.memory_names if not completion.refusal else []
+        memories_to_recall = list(set(completion.parsed.memory_names)) if not completion.refusal else []
         log.info(f"{memories_to_recall=}")
         recalled_memories = {k: v for k, v in self.memory[ctx.guild.id].items() if k in memories_to_recall}
         recalled_memories_str = "\n".join(f"[Memory of {k}:] {v}" for k, v in recalled_memories.items())
