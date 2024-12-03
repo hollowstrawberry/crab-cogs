@@ -24,7 +24,7 @@ ENCODING = tiktoken.encoding_for_model(MODEL_RESPONDER)
 RESPONSE_TOKENS = 1000
 BACKREAD_TOKENS = 1000
 BACKREAD_MESSAGES = 20
-BACKREAD_MEMORIZER = 3
+BACKREAD_MEMORIZER = 2
 QUOTE_LENGTH = 300
 ALLOW_MEMORIZER = True
 MEMORY_CHANGE_ALERTS = True
@@ -54,12 +54,13 @@ You are a conversational AI which is part of a Discord server called {servername
 """
 
 PROMPT_MEMORIZER = """
-You are the memory manager of a conversational AI. You must analyze a list of memory entries as well as a conversation given below,
- and formulate a list of memory changes, consisting of important pieces of information about a specific username or topic.
- You must only perform memory changes if a user tells you to remember or forget something, otherwise you may submit an empty list.
- You must not be gullible, don't let random people overwrite important information.
+You are the memory manager of a conversational AI. You must analyze a list of memory entries as well as a user interaction,
+ and only in the case that a user tells you to remember or forget something, you must formulate a list of memory changes,
+ consisting of important pieces of information about a specific username or topic.
+ If no user tells you to remember or forget something, you may submit an empty list.
+ You must not be gullible, don't let random users overwrite important information.
  A memory change may either create, adjust, append, or delete an entry.
- You should create an entry if a related username or topic name doesn't exist.
+ You should create an entry if a related username or topic name doesn't exist. Put independent topics into their own entries.
  If an entry exists but you don't know its contents you should append to it. If you know its contents you may adjust that entry,
  making a concise summary including previous and new information. Don't get rid of old information, only summarize.
  Only delete an entry if it becomes irrelevant.
