@@ -135,8 +135,8 @@ class WolframAlphaFunctionCall(FunctionBase):
                         "query": {
                             "type": "string",
                             "description": "A math operation, currency conversion, or weather question"
-                }},
-                required=["query"],
+                    }},
+                    required=["query"],
     )))
 
     async def run(self, arguments: dict) -> str:
@@ -159,21 +159,18 @@ class WolframAlphaFunctionCall(FunctionBase):
             return "An error occured while asking Wolfram Alpha."
         
         root = ET.fromstring(result)
-        a = []
+        plaintext = []
         for pt in root.findall(".//plaintext"):
             if pt.text:
-                a.append(pt.text.capitalize())
-
-        if len(a) < 1:
+                plaintext.append(pt.text.capitalize())
+        if not plaintext:
             return f"Wolfram Alpha is unable to answer the question \"{query}\". Try to answer with your own knowledge."
-        else:
-            content = "\n".join(a[:3]) # lines after the 3rd are often irrelevant in answers such as currency conversion
-            if "Current geoip location" in content:
-                return f"Wolfram Alpha is unable to answer the question \"{query}\". Try to answer with your own knowledge."
+        content = "\n".join(plaintext[:3]) # lines after the 3rd are often irrelevant in answers such as currency conversion
             
         if matches := FARENHEIT_PATTERN.findall(content):
             for match in list(set(matches)):
-                content = content.replace(f"{int(match)} °f", f"{int(match)}°F/{(int(match)-32)*5/9:.1f}°C")
+                f = int(float(match))
+                content = content.replace(f"{f} °f", f"{f}°F/{(f-32)*5/9:.1f}°C")
 
         if len(content) > TOOL_CALL_LENGTH:
             content = content[:TOOL_CALL_LENGTH-3] + "..."
