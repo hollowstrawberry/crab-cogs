@@ -325,7 +325,7 @@ class GptMemory(commands.Cog):
         tokens = 0
         for n, backmsg in enumerate(backread):
             try:
-                quote = backmsg.reference.cached_message or await message.channel.fetch_message(message.reference.message_id)
+                quote = backmsg.reference.cached_message or await backmsg.channel.fetch_message(backmsg.reference.message_id)
                 if len(backread) > n+1 and quote == backread[n+1]:
                     quote = None
             except:
