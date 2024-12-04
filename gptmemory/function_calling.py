@@ -90,9 +90,9 @@ class SearchFunctionCall(FunctionBase):
         return f"Google Search result: {content}"
 
 
-class ScrapeFunctionCall:
+class ScrapeFunctionCall(FunctionBase):
     schema = ToolCall(
-        function=Function(
+        Function(
             name="open_url",
             description="Opens a URL and returns its contents. Does not support non-text content types.",
             parameters=Parameters(
