@@ -51,8 +51,7 @@ class SearchFunctionCall(FunctionBase):
         if not api_key:
             log.error("Tried to do a google search but serper api_key not found")
             return "An error occured while searching Google."
-        
-        query = arguments["query"]["description"]
+        query = json.loads(arguments["query"])["description"]
         payload = json.dumps({"q": query})
         headers = {'X-API-KEY': api_key, 'Content-Type': 'application/json'}
         try:
