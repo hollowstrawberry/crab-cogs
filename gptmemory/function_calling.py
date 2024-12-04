@@ -119,4 +119,4 @@ class ScrapeFunctionCall(FunctionBase):
 
         if len(content) > TOOL_CALL_LENGTH:
             content = content[:TOOL_CALL_LENGTH-3] + "..."
-        return content
+        return f"Contents of {link}: {content}"
