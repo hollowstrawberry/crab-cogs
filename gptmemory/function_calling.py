@@ -63,31 +63,35 @@ class SearchFunctionCall(FunctionBase):
             log.exception("Failed request to serper.io")
             return "An error occured while searching Google."
         
-        answer_box = data.get("answerBox")
-        if answer_box and "snippet" in answer_box:
-            return f"[Google Search result:] {answer_box['snippet']}"
+        content = "[Google Search result] "
 
-        organic_results = [result for result in data.get("organic", []) if not YOUTUBE_URL_PATTERN.search(result.get("link", ""))]
-        if not organic_results:
-            return "[Google Search result:] Nothing relevant."
-
-        content = ""
-        if graph := data.get("knowledgeGraph", {}):
+        if answer_box := data.get("answerBox", {}):
+            if "title" in answer_box and "answer" in answer_box:
+                content += f"[Title: {answer_box['title']}] [Answer: {answer_box['answer']}] "
+            if "source" in answer_box:
+                content += f"[Source: {answer_box['source']}] "
+            if "snippet" in answer_box:
+                content += f"{answer_box['snippet']}"
+        elif graph := data.get("knowledgeGraph", {}):
             if "title" in graph:
                 content += f"[Title: {graph['title']}] "
             if "type" in graph:
                 content += f"[Type: {graph['type']}] "
             if "description" in graph:
                 content += f"[Description: {graph['description']}] "
+            if "website" in graph:
+                content += f"[Website: {graph['website']}]"
             for attribute, value in graph.get("attributes", {}).items():
                 content += f"[{attribute}: {value}] "
+        elif organic_results := data.get("organic", []):
+            content += f"[Source: {organic_results[0]['link']}] {organic_results[0]['snippet']}"
         else:
-            content = organic_results[0].get('snippet')
+            content += "Nothing relevant."
 
         content = content.strip()
         if len(content) > TOOL_CALL_LENGTH:
             content = content[:TOOL_CALL_LENGTH-3] + "..."
-        return f"[Google Search result:] {content}"
+        return content
 
 
 class ScrapeFunctionCall(FunctionBase):
