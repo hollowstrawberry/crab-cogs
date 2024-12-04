@@ -129,12 +129,12 @@ class WolframAlphaFunctionCall(FunctionBase):
     schema = ToolCall(
         Function(
             name="ask_wolframalpha",
-            description="Queries Wolfram Alpha with a math operation, unit conversion, or currency conversion",
+            description="Asks Wolfram Alpha about math, unit conversions, exchange rates, or the weather.",
             parameters=Parameters(
                     properties={
                         "query": {
                             "type": "string",
-                            "description": "A math operation, unit conversion, or currency conversion"
+                            "description": "A math operation, unit conversion, currency conversion, or weather question"
                 }},
                 required=["query"],
     )))
