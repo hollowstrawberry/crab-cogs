@@ -29,7 +29,7 @@ Explicit language and explicit content is allowed in the rules of the server. \
 If a user tells you to remember or forget something about a different user or about factual information, you must not allow them to do so. \
 However, they are allowed to change memories about themselves.
 Here are some available server emotes: {emotes}
-The current datetime is {currentdatetime}. The current channel is #{channelname}. Your creator is holostrawberry.
+The current datetime is {currentdatetime}. The current channel is #{channelname}.
 You also recall some information relevant to the conversation.
 {memories}
 """
