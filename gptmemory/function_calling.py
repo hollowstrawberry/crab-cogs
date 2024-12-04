@@ -2,6 +2,7 @@ import json
 import logging
 import aiohttp
 import trafilatura
+import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
 from redbot.core import commands
 
@@ -36,12 +37,11 @@ class SearchFunctionCall(FunctionBase):
             description="Googles a query for any unknown information or for updates on old information.",
             parameters=Parameters(
                 properties={
-                        "query": {
-                            "type": "string",
-                            "description": "The search query",
-                        }
-                },
-                required=["query"]
+                    "query": {
+                        "type": "string",
+                        "description": "The search query",
+                }},
+                required=["query"],
     )))
 
     async def run(self, arguments: dict) -> str:
@@ -101,12 +101,11 @@ class ScrapeFunctionCall(FunctionBase):
             description="Opens a URL and returns its contents. Does not support non-text content types.",
             parameters=Parameters(
                 properties={
-                        "url": {
-                            "type": "string",
-                            "description": "The link to open",
-                        }
-                },
-                required=["query"]
+                    "url": {
+                        "type": "string",
+                        "description": "The link to open",
+                }},
+                required=["query"],
     )))
 
     async def run(self, arguments: dict) -> str:
@@ -124,3 +123,53 @@ class ScrapeFunctionCall(FunctionBase):
         if len(content) > TOOL_CALL_LENGTH:
             content = content[:TOOL_CALL_LENGTH-3] + "..."
         return f"[Contents of {link}:]\n{content}"
+    
+
+class WolframAlphaFunctionCall(FunctionBase):
+    schema = ToolCall(
+        Function(
+            name="ask_wolframalpha",
+            description="Queries Wolfram Alpha with a math operation or unit conversion.",
+            parameters=Parameters(
+                    properties={
+                        "question": {
+                            "type": "string",
+                            "description": "A math operation or unit conversion"
+                }},
+                required=["query"],
+    )))
+
+    async def run(self, arguments: dict) -> str:
+        api_key = (await self.ctx.bot.get_shared_api_tokens("wolframalpha")).get("appid")
+        if not api_key:
+            log.error("No appid set for wolframalpha")
+            return "An error occured while asking Wolfram Alpha."
+
+        url = "http://api.wolframalpha.com/v2/query?"
+        payload = {"input": arguments["question"], "appid": api_key}
+        headers = {"user-agent": "Red-cog/2.0.0"}
+
+        try:
+            async with self.session.get(url, params=payload, headers=headers) as r:
+                result = await r.text()
+        except:
+            log.exception("Asking Wolfram Alpha")
+            return "An error occured while asking Wolfram Alpha."
+        
+        root = ET.fromstring(result)
+        a = []
+        for pt in root.findall(".//plaintext"):
+            if pt.text:
+                a.append(pt.text.capitalize())
+
+        if len(a) < 1:
+            return f"Wolfram Alpha is unable to answer the question \"{arguments['question']}\""
+        else:
+            message = "\n".join(a)
+            if "Current geoip location" in message:
+                return f"Wolfram Alpha is unable to answer the question \"{arguments['question']}\""
+
+        if len(message) > TOOL_CALL_LENGTH:
+            message = message[:TOOL_CALL_LENGTH-3] + "..."
+
+        return f"[Wolfram Alpha] [Question: {arguments['question']}] [Answer:] {message}"

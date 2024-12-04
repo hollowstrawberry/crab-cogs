@@ -22,7 +22,7 @@ class GptMemoryCogCommands(GptMemoryCogBase):
                 return await ctx.send(f"`[Memory of {name}]`\n>>> {self.memory[ctx.guild.id][name]}")
         await ctx.send(f"No memory of {name}")
 
-    @commands.command()
+    @commands.command(aliases="delmemory")
     @commands.has_permissions(manage_guild=True)
     async def deletememory(self, ctx: commands.Context, *, name):
         """Delete a memory, for GPT"""

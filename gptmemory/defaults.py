@@ -15,7 +15,7 @@ MEMORY_CHANGE_ALERTS = True
 ALLOWED_SERVERS = [1113893773714399392]
 EMOTES = "<:FubukiEmoteForWhenever:1159695833697104033> <a:FubukiSway:1169172368313290792> <a:FubukiSpaz:1198104998752571492> <a:fubukitail:1231807727995584532> <:fubukiexcited:1233560648877740094> <:todayiwill:1182055394521137224> <:clueless:1134505916679589898>"
 
-ALLOWED_FUNCTIONS = ["search_google", "open_url"]
+ALLOWED_FUNCTIONS = ["search_google", "open_url", "ask_wolframalpha"]
 
 PROMPT_RECALLER = """
 You are the memory manager of a conversational AI. You must extract a list of entries relevant to the conversation below,
