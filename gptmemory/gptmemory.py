@@ -16,7 +16,6 @@ from gptmemory.defaults import *
 from gptmemory.constants import URL_PATTERN, RESPONSE_CLEANUP_PATTERN, IMAGE_EXTENSIONS, DISCORD_MESSAGE_LENGTH
 from gptmemory.utils import sanitize, make_image_content, process_image
 from gptmemory.schema import MemoryRecall, MemoryChangeList
-from gptmemory.cogbase import GptMemoryCogBase
 from gptmemory.commands import GptMemoryCogCommands
 from gptmemory.function_calling import SearchFunctionCall
 
@@ -25,7 +24,7 @@ log = logging.getLogger("red.crab-cogs.gptmemory")
 all_tools = [SearchFunctionCall]
 
 
-class GptMemory(GptMemoryCogBase, GptMemoryCogCommands):
+class GptMemory(GptMemoryCogCommands):
     """OpenAI-powered user with persistent memory."""
 
     def __init__(self, bot: Red):
