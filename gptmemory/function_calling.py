@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from redbot.core import commands
 
 from gptmemory.schema import ToolCall, Function, Parameters
-from gptmemory.constants import YOUTUBE_URL_PATTERN
+from gptmemory.constants import FARENHEIT_PATTERN
 from gptmemory.defaults import TOOL_CALL_LENGTH
 
 log = logging.getLogger("red.crab-cogs.gptmemory")
@@ -129,12 +129,12 @@ class WolframAlphaFunctionCall(FunctionBase):
     schema = ToolCall(
         Function(
             name="ask_wolframalpha",
-            description="Asks Wolfram Alpha about math, unit conversions, exchange rates, or the weather.",
+            description="Asks Wolfram Alpha about math, exchange rates, or the weather.",
             parameters=Parameters(
                     properties={
                         "query": {
                             "type": "string",
-                            "description": "A math operation, unit conversion, currency conversion, or weather question"
+                            "description": "A math operation, currency conversion, or weather question"
                 }},
                 required=["query"],
     )))
@@ -167,11 +167,15 @@ class WolframAlphaFunctionCall(FunctionBase):
         if len(a) < 1:
             return f"Wolfram Alpha is unable to answer the question \"{query}\". Try to answer with your own knowledge."
         else:
-            message = "\n".join(a[:3]) # lines after the 3rd are often irrelevant in answers such as currency conversion
-            if "Current geoip location" in message:
+            content = "\n".join(a[:3]) # lines after the 3rd are often irrelevant in answers such as currency conversion
+            if "Current geoip location" in content:
                 return f"Wolfram Alpha is unable to answer the question \"{query}\". Try to answer with your own knowledge."
+            
+        if matches := FARENHEIT_PATTERN.findall(content):
+            for match in list(set(matches)):
+                content = content.replace(f"{int(match)}°F", f"{int(match)}°F/{(int(match)-32)*5/9}°C")
 
-        if len(message) > TOOL_CALL_LENGTH:
-            message = message[:TOOL_CALL_LENGTH-3] + "..."
+        if len(content) > TOOL_CALL_LENGTH:
+            content = content[:TOOL_CALL_LENGTH-3] + "..."
 
-        return f"[Wolfram Alpha] [Question: {query}] [Answer:] {message}"
+        return f"[Wolfram Alpha] [Question: {query}] [Answer:] {content}"
