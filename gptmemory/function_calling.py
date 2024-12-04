@@ -106,7 +106,7 @@ class ScrapeFunctionCall(FunctionBase):
     )))
 
     async def run(self, arguments: dict) -> str:
-        link = arguments["link"]
+        link = arguments["url"]
 
         async with aiohttp.ClientSession(headers=SCRAPE_HEADERS) as session:
             async with session.get(link) as response:
