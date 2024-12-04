@@ -167,7 +167,7 @@ class WolframAlphaFunctionCall(FunctionBase):
         if len(a) < 1:
             return f"Wolfram Alpha is unable to answer the question \"{query}\". Try to answer with your own knowledge."
         else:
-            message = "\n".join(a[:4])
+            message = "\n".join(a[:3]) # lines after the 3rd are often irrelevant in answers such as currency conversion
             if "Current geoip location" in message:
                 return f"Wolfram Alpha is unable to answer the question \"{query}\". Try to answer with your own knowledge."
 
