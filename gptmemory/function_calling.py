@@ -1,12 +1,13 @@
 import json
 import logging
 import aiohttp
+import trafilatura
 from abc import ABC, abstractmethod
-from redbot.core import Config, commands
+from redbot.core import commands
 
 from gptmemory.schema import ToolCall, Function, Parameters
 from gptmemory.constants import YOUTUBE_URL_PATTERN
-from gptmemory.defaults import SEARCH_LENGTH
+from gptmemory.defaults import TOOL_CALL_LENGTH
 
 log = logging.getLogger("red.crab-cogs.gptmemory")
 
@@ -41,15 +42,14 @@ class SearchFunctionCall(FunctionBase):
                         }
                 },
                 required=["query"]
-            )
-        )
-    )
+    )))
 
     async def run(self, arguments: dict) -> str:
         api_key = (await self.ctx.bot.get_shared_api_tokens("serper")).get("api_key")
         if not api_key:
             log.error("Tried to do a google search but serper api_key not found")
             return "An error occured while searching Google."
+        
         query = arguments["query"]
         payload = json.dumps({"q": query})
         headers = {'X-API-KEY': api_key, 'Content-Type': 'application/json'}
@@ -70,22 +70,52 @@ class SearchFunctionCall(FunctionBase):
         if not organic_results:
             return "Google Search result: Nothing relevant"
 
-        first_result = organic_results[0]
-        text_content = ""
-        graph = data.get("knowledgeGraph", {})
-        if graph:
+        content = ""
+        if graph := data.get("knowledgeGraph", {}):
             if "title" in graph:
-                text_content += f"[Title: {graph['title']}] "
+                content += f"[Title: {graph['title']}] "
             if "type" in graph:
-                text_content += f"[Type: {graph['title']}] "
+                content += f"[Type: {graph['type']}] "
             if "description" in graph:
-                text_content += f"[Description: {graph['description']}] "
+                content += f"[Description: {graph['description']}] "
             for attribute, value in graph.get("attributes", {}).items():
-                text_content += f"[{attribute}: {value}] "
+                content += f"[{attribute}: {value}] "
         else:
-            text_content = first_result.get('snippet')
+            content = organic_results[0].get('snippet')
 
-        text_content = text_content.strip()
-        if len(text_content) > SEARCH_LENGTH:
-            text_content = text_content[:SEARCH_LENGTH] + "..."
-        return f"Google Search result: {text_content}"
+        content = content.strip()
+        if len(content) > TOOL_CALL_LENGTH:
+            content = content[:TOOL_CALL_LENGTH-3] + "..."
+        return f"Google Search result: {content}"
+
+
+class ScrapeFunctionCall:
+    schema = ToolCall(
+        function=Function(
+            name="open_url",
+            description="Opens a URL and returns its contents. Does not support non-text content types.",
+            parameters=Parameters(
+                properties={
+                        "url": {
+                            "type": "string",
+                            "description": "The link to open",
+                        }
+                },
+                required=["query"]
+    )))
+
+    async def run(self, arguments: dict) -> str:
+        link = arguments["link"]
+
+        async with aiohttp.ClientSession(headers=SCRAPE_HEADERS) as session:
+            async with session.get(link) as response:
+                response.raise_for_status()
+                content_type = response.headers.get('Content-Type', '').lower()
+                if not 'text/html' in content_type:
+                    return f"Contents of {link} is not text/html"
+                
+                content = trafilatura.extract(await response.text())
+
+        if len(content) > TOOL_CALL_LENGTH:
+            content = content[:TOOL_CALL_LENGTH-3] + "..."
+        return content
