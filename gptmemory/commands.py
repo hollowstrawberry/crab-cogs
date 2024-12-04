@@ -87,7 +87,7 @@ class GptMemoryBase(commands.Cog):
             await self.config.guild(ctx.guild).channel_mode.set(mode)
             await self.config.guild(ctx.guild).channels.set(channels)
         
-        await ctx.reply(f"`[channel_mode:]` {mode}\n`[channels]`\n" + "\n".join([f"<#{cid}>" for cid in channels]))
+        await ctx.reply(f"`[channel_mode:]` {mode}\n`[channels]`\n>>> " + "\n".join([f"<#{cid}>" for cid in channels]))
 
 
     @memoryconfig.group(name="prompt")

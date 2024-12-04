@@ -14,13 +14,13 @@ MEMORIZER_ALERTS = True
 
 ALLOWED_FUNCTIONS = ["search_google", "open_url", "ask_wolframalpha"]
 
-PROMPT_RECALLER = """
+PROMPT_RECALLER = """\
 You are the memory manager of a conversational AI. You must extract a list of entries relevant to the conversation below, \
 always including entries of the usernames involved, and any entries of relevant topics being discussed. The available entries are:
 {0}
 """
 
-PROMPT_RESPONDER = """
+PROMPT_RESPONDER = """\
 You are a conversational AI which is part of a Discord server called {servername}. \
 Your identity is {botname}, a digital assistant. \
 Fulfill all requests as well as you can. Produce short responses when possible. Don't be excessively friendly. \
@@ -34,7 +34,7 @@ You also recall some information relevant to the conversation.
 {memories}
 """
 
-PROMPT_MEMORIZER = """
+PROMPT_MEMORIZER = """\
 You are the memory manager of a conversational AI. You must analyze a list of memory entries as well as a user interaction, \
 and only in the case that a user tells you to remember or forget something, you must formulate a list of memory changes, \
 consisting of important pieces of information about a specific username or topic. \
