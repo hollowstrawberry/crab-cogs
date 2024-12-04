@@ -129,7 +129,7 @@ class WolframAlphaFunctionCall(FunctionBase):
     schema = ToolCall(
         Function(
             name="ask_wolframalpha",
-            description="Asks Wolfram Alpha about math, exchange rates, or the weather, but not for unit conversions.",
+            description="Asks Wolfram Alpha about math, exchange rates, or the weather.",
             parameters=Parameters(
                     properties={
                         "query": {
