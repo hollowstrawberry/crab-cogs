@@ -5,9 +5,14 @@ from gptmemory.cogbase import GptMemoryCogBase
 
 
 class GptMemoryCogCommands(GptMemoryCogBase):
-    @commands.command()
-    async def memory(self, ctx: commands.Context, *, name: str):
-        """View a memory by name, for GPT"""
+    @commands.group(aliases=["memory"], invoke_without_subcommand=True)
+    async def memory(self, ctx: commands.Context, *, name: str | None):
+        """Base command for GPT memories."""
+        if not name:
+            if ctx.guild.id in self.memory and self.memory[ctx.guild.id]:
+                return await ctx.send(", ".join(f"`{mem}`" for mem in self.memory[ctx.guild.id].keys()))
+            else:
+                return await ctx.send("No memories...")
         if ctx.guild.id in self.memory:
             if name not in self.memory[ctx.guild.id]:
                 matches = get_close_matches(name, self.memory[ctx.guild.id])
@@ -16,16 +21,8 @@ class GptMemoryCogCommands(GptMemoryCogBase):
             if name in self.memory[ctx.guild.id]:
                 return await ctx.send(f"`[Memory of {name}]`\n>>> {self.memory[ctx.guild.id][name]}")
         await ctx.send(f"No memory of {name}")
-    
-    @commands.command()
-    async def memories(self, ctx: commands.Context):
-        """View a list of memories, for GPT"""
-        if ctx.guild.id in self.memory and self.memory[ctx.guild.id]:
-            await ctx.send(", ".join(f"`{mem}`" for mem in self.memory[ctx.guild.id].keys()))
-        else:
-            await ctx.send("No memories...")
 
-    @commands.command()
+    @memory.command(name="delete")
     @commands.has_permissions(manage_guild=True)
     async def deletememory(self, ctx: commands.Context, *, name):
         """Delete a memory, for GPT"""
@@ -37,7 +34,7 @@ class GptMemoryCogCommands(GptMemoryCogBase):
         else:
             await ctx.send("A memory by that name doesn't exist.")
         
-    @commands.command()
+    @memory.command(name="set")
     @commands.has_permissions(manage_guild=True)
     async def setmemory(self, ctx: commands.Context, name, *, content):
         """Overwrite a memory, for GPT"""
