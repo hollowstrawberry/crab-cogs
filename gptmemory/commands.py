@@ -5,9 +5,9 @@ from gptmemory.cogbase import GptMemoryCogBase
 
 
 class GptMemoryCogCommands(GptMemoryCogBase):
-    @commands.group(aliases=["memories"], invoke_without_subcommand=True)
-    async def memory(self, ctx: commands.Context, name: str | None):
-        """Base command for GPT memories."""
+    @commands.command(aliases=["memories"], invoke_without_subcommand=True)
+    async def memory(self, ctx: commands.Context, *, name: str | None):
+        """View all memories or a specific memory, of the GPT bot."""
         if not name:
             if ctx.guild.id in self.memory and self.memory[ctx.guild.id]:
                 return await ctx.send(", ".join(f"`{mem}`" for mem in self.memory[ctx.guild.id].keys()))
@@ -22,7 +22,7 @@ class GptMemoryCogCommands(GptMemoryCogBase):
                 return await ctx.send(f"`[Memory of {name}]`\n>>> {self.memory[ctx.guild.id][name]}")
         await ctx.send(f"No memory of {name}")
 
-    @memory.command(name="delete")
+    @commands.command()
     @commands.has_permissions(manage_guild=True)
     async def deletememory(self, ctx: commands.Context, *, name):
         """Delete a memory, for GPT"""
@@ -34,7 +34,7 @@ class GptMemoryCogCommands(GptMemoryCogBase):
         else:
             await ctx.send("A memory by that name doesn't exist.")
         
-    @memory.command(name="set")
+    @commands.command()
     @commands.has_permissions(manage_guild=True)
     async def setmemory(self, ctx: commands.Context, name, *, content):
         """Overwrite a memory, for GPT"""
