@@ -5,7 +5,7 @@ from gptmemory.cogbase import GptMemoryCogBase
 
 
 class GptMemoryCogCommands(GptMemoryCogBase):
-    @commands.group(aliases=["memory"], invoke_without_subcommand=True)
+    @commands.group(aliases=["memories"], invoke_without_subcommand=True)
     async def memory(self, ctx: commands.Context, *, name: str | None):
         """Base command for GPT memories."""
         if not name:
