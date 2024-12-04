@@ -164,11 +164,11 @@ class WolframAlphaFunctionCall(FunctionBase):
                 a.append(pt.text.capitalize())
 
         if len(a) < 1:
-            return f"Wolfram Alpha is unable to answer the question \"{arguments['question']}\""
+            return f"Wolfram Alpha is unable to answer the question \"{arguments['question']}\". Try to answer with your own knowledge."
         else:
-            message = "\n".join(a)
+            message = "\n".join(a[:4])
             if "Current geoip location" in message:
-                return f"Wolfram Alpha is unable to answer the question \"{arguments['question']}\""
+                return f"Wolfram Alpha is unable to answer the question \"{arguments['question']}\". Try to answer with your own knowledge."
 
         if len(message) > TOOL_CALL_LENGTH:
             message = message[:TOOL_CALL_LENGTH-3] + "..."
