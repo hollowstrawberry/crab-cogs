@@ -171,18 +171,19 @@ class GptMemory(GptMemoryCogCommands):
         if response.choices[0].message.tool_calls:
             temp_messages.append(response.choices[0].message)
             for call in response.choices[0].message.tool_calls:
-                cls = [t for t in tools if t.schema.function.name == call.function.name]
                 try:
-                    tool_result = await cls[0](ctx).run(json.loads(call.function.arguments))
+                    cls = next(t for t in tools if t.schema.function.name == call.function.name)
+                    args = json.loads(call.function.arguments)
+                    tool_result = await cls(ctx).run(args)
+                    log.info(f"{tool_result=}")
                 except:
+                    tool_result = "Error"
                     log.exception("Calling tool")
-                    continue
                 temp_messages.append({
                     "role": "tool",
                     "content": tool_result,
                     "tool_call_id": call.id,
                 })
-                log.info(f"{tool_result=}")
             response = await self.openai_client.chat.completions.create(
                 model=MODEL_RESPONDER, 
                 messages=temp_messages,
