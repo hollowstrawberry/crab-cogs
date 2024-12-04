@@ -178,12 +178,13 @@ class GptMemory(GptMemoryCogCommands):
                 except:
                     log.exception("Calling tool")
                     continue
-                messages.append(response.choices[0].message)
-                messages.append({
+                temp_messages.append(response.choices[0].message)
+                temp_messages.append({
                     "role": "tool",
                     "content": tool_result,
                     "tool_call_id": call.id,
                 })
+                log.info(f"{tool_result=}")
             response = await self.openai_client.chat.completions.create(
                 model=MODEL_RESPONDER, 
                 messages=temp_messages,
