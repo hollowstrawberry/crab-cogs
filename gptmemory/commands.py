@@ -84,7 +84,7 @@ class GptMemoryBase(commands.Cog):
             channels = await self.config.guild(ctx.guild).channels()
         else:
             channels = [c.id for c in channels]
-            await self.config.guild(ctx.guild).channel_mode().set(mode)
+            await self.config.guild(ctx.guild).channel_mode.set(mode)
             await self.config.guild(ctx.guild).channels.set(channels)
         
         await ctx.reply(f"`[channel_mode:]` {mode}\n`[channels]`\n" + "\n".join([f"<#{cid}>" for cid in channels]))
