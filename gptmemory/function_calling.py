@@ -9,6 +9,7 @@ from redbot.core import commands
 from gptmemory.schema import ToolCall, Function, Parameters
 from gptmemory.constants import FARENHEIT_PATTERN
 from gptmemory.defaults import TOOL_CALL_LENGTH
+from gptmemory.utils import farenheit_to_celsius
 
 log = logging.getLogger("red.crab-cogs.gptmemory")
 
@@ -166,11 +167,9 @@ class WolframAlphaFunctionCall(FunctionBase):
         if not plaintext:
             return f"Wolfram Alpha is unable to answer the question. Try to answer with your own knowledge."
         content = "\n".join(plaintext[:3]) # lines after the 3rd are often irrelevant in answers such as currency conversion
-            
-        if matches := FARENHEIT_PATTERN.findall(content):
-            for match in list(set(matches)):
-                f = int(float(match))
-                content = content.replace(f"{f} °f", f"{f}°F/{(f-32)*5/9:.1f}°C")
+
+        if FARENHEIT_PATTERN.search(content):
+            content = FARENHEIT_PATTERN.sub(farenheit_to_celsius, content)
 
         if len(content) > TOOL_CALL_LENGTH:
             content = content[:TOOL_CALL_LENGTH-3] + "..."
