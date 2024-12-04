@@ -17,11 +17,11 @@ from gptmemory.constants import URL_PATTERN, RESPONSE_CLEANUP_PATTERN, IMAGE_EXT
 from gptmemory.utils import sanitize, make_image_content, process_image
 from gptmemory.schema import MemoryRecall, MemoryChangeList
 from gptmemory.commands import GptMemoryCogCommands
-from gptmemory.function_calling import SearchFunctionCall, ScrapeFunctionCall
+from gptmemory.function_calling import SearchFunctionCall, ScrapeFunctionCall, WolframAlphaFunctionCall
 
 log = logging.getLogger("red.crab-cogs.gptmemory")
 
-all_tools = [SearchFunctionCall, ScrapeFunctionCall]
+all_tools = [SearchFunctionCall, ScrapeFunctionCall, WolframAlphaFunctionCall]
 
 
 class GptMemory(GptMemoryCogCommands):
