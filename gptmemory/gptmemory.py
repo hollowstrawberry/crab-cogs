@@ -169,16 +169,14 @@ class GptMemory(GptMemoryCogCommands):
         )
 
         if response.choices[0].message.tool_calls:
+            temp_messages.append(response.choices[0].message)
             for call in response.choices[0].message.tool_calls:
                 cls = [t for t in tools if t.schema.function.name == call.function.name]
-                if not cls:
-                    continue
                 try:
                     tool_result = await cls[0](ctx).run(json.loads(call.function.arguments))
                 except:
                     log.exception("Calling tool")
                     continue
-                temp_messages.append(response.choices[0].message)
                 temp_messages.append({
                     "role": "tool",
                     "content": tool_result,
