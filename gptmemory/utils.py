@@ -9,6 +9,11 @@ def sanitize(text: str) -> str:
         text = text.replace(c, "")
     return text
 
+def farenheit_to_celsius(match) -> str:
+    f = float(match.group(1))
+    c = (f - 32) * 5.0/9.0
+    return f"{round(f)}°F/{round(c)}°C"
+
 def make_image_content(fp: BytesIO) -> dict:
     return {
         "type": "image_url",
