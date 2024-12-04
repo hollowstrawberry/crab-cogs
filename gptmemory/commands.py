@@ -1,12 +1,36 @@
+from typing import Literal
 from difflib import get_close_matches
-from redbot.core import commands
+from redbot.core import commands, Config
+from redbot.core.bot import Red
 
-from gptmemory.cogbase import GptMemoryCogBase
+from gptmemory.defaults import *
 
 
-class GptMemoryCogCommands(GptMemoryCogBase):
-    @commands.command(aliases=["memories"], invoke_without_subcommand=True)
-    async def memory(self, ctx: commands.Context, *, name: str | None):
+class GptMemoryBase(commands.Cog):
+    def __init__(self, bot: Red):
+        super().__init__()
+        self.bot = bot
+        self.config = Config.get_conf(self, identifier=19475820)
+        self.config.register_guild(**{
+            "channel_mode": "whitelist",
+            "channels": [],
+            "memory": {},
+            "prompt_recaller": PROMPT_RECALLER,
+            "prompt_responder": PROMPT_RESPONDER,
+            "prompt_memorizer": PROMPT_MEMORIZER,
+            "response_tokens": RESPONSE_TOKENS,
+            "backread_tokens": BACKREAD_TOKENS,
+            "backread_messages": BACKREAD_MESSAGES,
+            "backread_memorizer": BACKREAD_MEMORIZER,
+            "allow_memorizer": ALLOW_MEMORIZER,
+            "memorizer_alerts": MEMORIZER_ALERTS,
+            "allowed_functions": ALLOWED_FUNCTIONS,
+            "emotes": "",
+        })
+        self.memory: dict[int, dict[str, str]] = {}
+
+    @commands.command(name="memory", aliases=["memories"], invoke_without_subcommand=True)
+    async def command_memory(self, ctx: commands.Context, *, name: str | None):
         """View all memories or a specific memory, of the GPT bot."""
         if not name:
             if ctx.guild.id in self.memory and self.memory[ctx.guild.id]:
@@ -22,9 +46,9 @@ class GptMemoryCogCommands(GptMemoryCogBase):
                 return await ctx.send(f"`[Memory of {name}]`\n>>> {self.memory[ctx.guild.id][name]}")
         await ctx.send(f"No memory of {name}")
 
-    @commands.command(aliases=["delmemory"])
+    @commands.command(name="deletememory", aliases=["delmemory"])
     @commands.has_permissions(manage_guild=True)
-    async def deletememory(self, ctx: commands.Context, *, name):
+    async def command_deletememory(self, ctx: commands.Context, *, name: str):
         """Delete a memory, for GPT"""
         if ctx.guild.id in self.memory and name in self.memory[ctx.guild.id]:
             async with self.config.guild(ctx.guild).memory() as memory:
@@ -34,9 +58,9 @@ class GptMemoryCogCommands(GptMemoryCogBase):
         else:
             await ctx.send("A memory by that name doesn't exist.")
         
-    @commands.command()
+    @commands.command(name="setmemory")
     @commands.has_permissions(manage_guild=True)
-    async def setmemory(self, ctx: commands.Context, name, *, content):
+    async def command_setmemory(self, ctx: commands.Context, name: str, *, content: str):
         """Overwrite a memory, for GPT"""
         async with self.config.guild(ctx.guild).memory() as memory:
             memory[name] = content
@@ -44,3 +68,131 @@ class GptMemoryCogCommands(GptMemoryCogBase):
             self.memory[ctx.guild.id] = {}
         self.memory[ctx.guild.id][name] = content
         await ctx.send("✅")
+
+    @commands.group(name="memoryconfig")
+    @commands.is_owner()
+    async def memoryconfig(self, ctx: commands.Context):
+        """Base command for configuring the GPT Memory cog."""
+        pass
+
+    @memoryconfig.group()
+    async def memoryconfig_prompt(self, ctx: commands.Context):
+        """View or edit the prompts"""
+        pass
+
+    PromptTypes = Literal["recaller", "responder", "memorizer"]
+
+    @memoryconfig_prompt.command(name="show", aliases=["view"])
+    async def memoryconfig_prompt_show(self, ctx: commands.Context, module: PromptTypes):
+        """
+        The recaller grabs relevant memories.
+        The responder sends the chat message.
+        The memorizer edits memories.
+        """
+        prompt = ""
+        if module == "recaller":
+            prompt = await self.config.guild(ctx.guild).prompt_recaller()
+        elif module == "responder":
+            prompt = await self.config.guild(ctx.guild).prompt_responder()
+        elif module == "memorizer":
+            prompt = await self.config.guild(ctx.guild).prompt_memorizer()
+        
+        await ctx.reply(f"`[{module} prompt]`\n>>> {prompt or '*None*'}")
+
+    @memoryconfig_prompt.command(name="set", aliases=["edit"])
+    async def memoryconfig_prompt_set(self, ctx: commands.Context, module: PromptTypes, *, prompt):
+        """
+        Examples in the default values. Each prompt will require some variables between curly brackets.
+        The recaller grabs relevant memories.
+        The responder sends the chat message.
+        The memorizer edits memories.
+        """
+        prompt = prompt.strip()
+        if not prompt:
+            await ctx.reply("Invalid prompt")
+            return
+        
+        if module == "recaller":
+            await self.config.guild(ctx.guild).prompt_recaller.set(prompt)
+        elif module == "responder":
+            await self.config.guild(ctx.guild).prompt_responder.set(prompt)
+        elif module == "memorizer":
+            await self.config.guild(ctx.guild).prompt_memorizer.set(prompt)
+
+        await ctx.reply(f"`[New {module} prompt]`\n>>> {prompt}")
+
+    @memoryconfig.command(name="response_tokens")
+    async def memoryconfig_response_tokens(self, ctx: commands.Context, value: int | None):
+        """Hard limit on the number of tokens the responder will send."""
+        if not value:
+            value = await self.config.guild(ctx.guild).response_tokens()
+        elif value < 100 or value > 10000:
+            await ctx.reply("Value must be between 100 and 10000")
+            return
+        else:
+            await self.config.guild(ctx.guild).response_tokens.set(value)
+        await ctx.reply(f"`[response_tokens:]` {value}")
+
+    @memoryconfig.command(name="backread_tokens")
+    async def memoryconfig_backread_tokens(self, ctx: commands.Context, value: int | None):
+        """Soft limit on the number of tokens the LLM will read from the chat history."""
+        if not value:
+            value = await self.config.guild(ctx.guild).backread_tokens()
+        elif value < 100 or value > 10000:
+            await ctx.reply("Value must be between 100 and 10000")
+            return
+        else:
+            await self.config.guild(ctx.guild).backread_tokens.set(value)
+        await ctx.reply(f"`[backread_tokens:]` {value}")
+
+    @memoryconfig.command(name="backread_messages")
+    async def memoryconfig_backread_messages(self, ctx: commands.Context, value: int | None):
+        """How many messages in chat the recaller and responder will read."""
+        if not value:
+            value = await self.config.guild(ctx.guild).backread_messages()
+        elif value < 100 or value > 10000:
+            await ctx.reply("Value must be between 100 and 10000")
+            return
+        else:
+            await self.config.guild(ctx.guild).backread_messages.set(value)
+        await ctx.reply(f"`[backread_messages:]` {value}")
+
+    @memoryconfig.command(name="backread_memorizer")
+    async def memoryconfig_backread_memorizer(self, ctx: commands.Context, value: int | None):
+        """How many messages in chat the memorizer will read."""
+        if value is None:
+            value = await self.config.guild(ctx.guild).backread_memorizer()
+        elif value < 100 or value > 10000:
+            await ctx.reply("Value must be between 100 and 10000")
+            return
+        else:
+            await self.config.guild(ctx.guild).backread_memorizer.set(value)
+        await ctx.reply(f"`[backread_memorizer:]` {value}")
+
+    @memoryconfig.command(name="allow_memorizer")
+    async def memoryconfig_allow_memorizer(self, ctx: commands.Context, value: bool | None):
+        """Whether the memorizer will run at all, editing memories."""
+        if value is None:
+            value = await self.config.guild(ctx.guild).allow_memorizer()
+        else:
+            await self.config.guild(ctx.guild).allow_memorizer.set(value)
+        await ctx.reply(f"`[allow_memorizer:]` {value}")
+
+    @memoryconfig.command(name="memorizer_alerts")
+    async def memoryconfig_memorizer_alerts(self, ctx: commands.Context, value: bool | None):
+        """Whether the memorizer will send a message in chat after editing memories."""
+        if value is None:
+            value = await self.config.guild(ctx.guild).memorizer_alerts()
+        else:
+            await self.config.guild(ctx.guild).memorizer_alerts.set(value)
+        await ctx.reply(f"`[memorizer_alerts:]` {value}")
+
+    @memoryconfig_prompt.command(name="emotes")
+    async def memoryconfig_emotes(self, ctx: commands.Context, *, emotes):
+        """A list of emotes to show the responder."""
+        emotes = emotes.strip()
+        if not emotes:
+            emotes = await self.config.guild(ctx.guild).emotes()
+        else:
+            await self.config.guild(ctx.guild).emotes.set(emotes)
+        await ctx.reply(f"`[emotes]`\n>>> {emotes}")

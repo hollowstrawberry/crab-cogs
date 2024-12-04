@@ -1,5 +1,4 @@
 import json
-import difflib
 import logging
 import asyncio
 import aiohttp
@@ -7,16 +6,17 @@ import discord
 from io import BytesIO
 from datetime import datetime
 from dataclasses import asdict
+from difflib import get_close_matches
 from openai import AsyncOpenAI
 from tiktoken import encoding_for_model
 from redbot.core import commands
 from redbot.core.bot import Red
 
-from gptmemory.defaults import *
+from gptmemory.defaults import MODEL_RECALLER, MODEL_RESPONDER, MODEL_MEMORIZER, IMAGES_PER_MESSAGE, QUOTE_LENGTH
 from gptmemory.constants import URL_PATTERN, RESPONSE_CLEANUP_PATTERN, IMAGE_EXTENSIONS, DISCORD_MESSAGE_LENGTH
 from gptmemory.utils import sanitize, make_image_content, process_image
 from gptmemory.schema import MemoryRecall, MemoryChangeList
-from gptmemory.commands import GptMemoryCogCommands
+from gptmemory.commands import GptMemoryBase
 from gptmemory.function_calling import SearchFunctionCall, ScrapeFunctionCall, WolframAlphaFunctionCall
 
 log = logging.getLogger("red.crab-cogs.gptmemory")
@@ -24,7 +24,7 @@ log = logging.getLogger("red.crab-cogs.gptmemory")
 all_tools = [SearchFunctionCall, ScrapeFunctionCall, WolframAlphaFunctionCall]
 
 
-class GptMemory(GptMemoryCogCommands):
+class GptMemory(GptMemoryBase):
     """OpenAI-powered user with persistent memory."""
 
     def __init__(self, bot: Red):
@@ -36,9 +36,6 @@ class GptMemory(GptMemoryCogCommands):
         await self.initialize_openai_client()
         all_config = await self.config.all_guilds()
         for guild_id, config in all_config.items():
-            self.prompt_recaller[guild_id] = PROMPT_RECALLER.strip()
-            self.prompt_responder[guild_id] = PROMPT_RESPONDER.strip()
-            self.prompt_memorizer[guild_id] = PROMPT_MEMORIZER.strip()
             self.memory[guild_id] = config["memory"]
 
 
@@ -77,9 +74,14 @@ class GptMemory(GptMemoryCogCommands):
             return
         if ctx.author.bot:
             return False
-        if not ctx.guild or ctx.guild.id not in ALLOWED_SERVERS:
-            return False
         
+        if await self.config.guild(ctx.guild).channel_mode() == "blacklist" \
+                and ctx.channel.id in await self.config.guild(ctx.guild).channels():
+            return
+        elif await self.config.guild(ctx.guild).channel_mode() == "whitelist" \
+            and ctx.channel.id not in await self.config.guild(ctx.guild).channels():
+            return
+
         if await self.bot.cog_disabled_in_guild(self, ctx.guild):
             return False
         if not await self.bot.ignored_channel_or_guild(ctx):
@@ -124,7 +126,7 @@ class GptMemory(GptMemoryCogCommands):
         """
         system_prompt = {
             "role": "system",
-            "content": self.prompt_recaller[ctx.guild.id].format(memories)
+            "content": (await self.config.guild(ctx.guild).prompt_recaller()).format(memories)
         }
         temp_messages = [msg for msg in messages if isinstance(msg["content"], str)]
         temp_messages.insert(0, system_prompt)
@@ -146,13 +148,14 @@ class GptMemory(GptMemoryCogCommands):
         Runs an openai completion with the chat history and the contents of memories
         and returns a response message after sending it to the user.
         """
-        tools = [t for t in all_tools if t.schema.function.name in ALLOWED_FUNCTIONS]
+        tools = [t for t in all_tools if t.schema.function.name in await self.config.guild(ctx.guild).allowed_functions()]
         system_prompt = {
             "role": "system",
-            "content": self.prompt_responder[ctx.guild.id].format(
+            "content": (await self.config.guild(ctx.guild).prompt_responder()).format(
+                botname=self.bot.user.name,
                 servername=ctx.guild.name,
                 channelname=ctx.channel.name,
-                emotes=EMOTES,
+                emotes=await self.config.guild(ctx.guild).emotes(),
                 currentdatetime=datetime.now().strftime("%Y-%m-%d %H:%M:%S %Z%z"),
                 memories=recalled_memories,
         )}
@@ -162,7 +165,7 @@ class GptMemory(GptMemoryCogCommands):
         response = await self.openai_client.chat.completions.create(
             model=MODEL_RESPONDER, 
             messages=temp_messages,
-            max_tokens=RESPONSE_TOKENS,
+            max_tokens=await self.config.guild(ctx.guild).response_tokens(),
             tools=[asdict(t.schema) for t in tools],
         )
 
@@ -185,7 +188,7 @@ class GptMemory(GptMemoryCogCommands):
             response = await self.openai_client.chat.completions.create(
                 model=MODEL_RESPONDER, 
                 messages=temp_messages,
-                max_tokens=RESPONSE_TOKENS,
+                max_tokens=await self.config.guild(ctx.guild).response_tokens(),
             )
 
         completion = response.choices[0].message.content
@@ -205,16 +208,17 @@ class GptMemory(GptMemoryCogCommands):
         Runs an openai completion with the chat history, a list of memories, and the contents of some memories,
         and executes database operations as decided by the LLM.
         """
-        if not ALLOW_MEMORIZER:
+        if not await self.config.guild(ctx.guild).allow_memorizer():
             return
         
         system_prompt = {
             "role": "system",
-            "content": self.prompt_memorizer[ctx.guild.id].format(memories, recalled_memories)
+            "content": (await self.config.guild(ctx.guild).prompt_memorizer()).format(memories, recalled_memories)
         }
         temp_messages = [msg for msg in messages if isinstance(msg["content"], str)]
-        if len(temp_messages) > BACKREAD_MEMORIZER:
-            temp_messages = temp_messages[-BACKREAD_MEMORIZER:]
+        num_backread = await self.config.guild(ctx.guild).backread_memorizer()
+        if len(temp_messages) > num_backread:
+            temp_messages = temp_messages[-num_backread:]
         temp_messages.insert(0, system_prompt)
 
         response = await self.openai_client.beta.chat.completions.parse(
@@ -235,7 +239,7 @@ class GptMemory(GptMemoryCogCommands):
                 action, name, content = change.action_type, change.memory_name, change.memory_content
 
                 if name not in memory and action != "create":
-                    matches = difflib.get_close_matches(name, memory)
+                    matches = get_close_matches(name, memory)
                     if not matches:
                         continue
                     name = matches[0]
@@ -257,13 +261,13 @@ class GptMemory(GptMemoryCogCommands):
 
                 memory_changes.append(name)
 
-        if MEMORY_CHANGE_ALERTS and memory_changes:
+        if memory_changes and await self.config.guild(ctx.guild).memorizer_alerts():
             await ctx.send(f"`Revised memories: {', '.join(memory_changes)}`")
 
 
     async def get_message_history(self, ctx: commands.Context) -> list[dict]:
         backread = [message async for message in ctx.channel.history(
-            limit=BACKREAD_MESSAGES,
+            limit=await self.config.guild(ctx.guild).backread_messages(),
             before=ctx.message,
             oldest_first=False
         )]
@@ -297,7 +301,7 @@ class GptMemory(GptMemoryCogCommands):
                 })
 
             tokens += len(encoding.encode(msg_content)) + 255 * len(image_contents)
-            if tokens > BACKREAD_TOKENS and n > 0:
+            if n > 0 and tokens > await self.config.guild(ctx.guild).response_tokens():
                 break
 
         log.info(f"{len(messages)=} / {tokens=}")
