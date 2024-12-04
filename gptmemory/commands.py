@@ -77,10 +77,10 @@ class GptMemoryBase(commands.Cog):
         pass
 
     @memoryconfig.command(name="channels")
-    async def memoryconfig_channels(self, ctx: commands.Context, mode: Literal["whitelist", "blacklist", ""], channels: commands.Greedy[discord.TextChannel]):
+    async def memoryconfig_channels(self, ctx: commands.Context, mode: Literal["whitelist", "blacklist", "show"], channels: commands.Greedy[discord.TextChannel]):
         """Configure the channels the bot has access to."""
-        if not mode:
-            channel_mode = await self.config.guild(ctx.guild).channel_mode()
+        if mode == "show":
+            mode = await self.config.guild(ctx.guild).channel_mode()
             channels = await self.config.guild(ctx.guild).channels()
         else:
             channels = [c.id for c in channels]
