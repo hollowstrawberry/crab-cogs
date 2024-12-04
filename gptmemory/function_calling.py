@@ -65,11 +65,11 @@ class SearchFunctionCall(FunctionBase):
         
         answer_box = data.get("answerBox")
         if answer_box and "snippet" in answer_box:
-            return f"Google Search result: {answer_box['snippet']}"
+            return f"[Google Search result:] {answer_box['snippet']}"
 
         organic_results = [result for result in data.get("organic", []) if not YOUTUBE_URL_PATTERN.search(result.get("link", ""))]
         if not organic_results:
-            return "Google Search result: Nothing relevant"
+            return "[Google Search result:] Nothing relevant."
 
         content = ""
         if graph := data.get("knowledgeGraph", {}):
@@ -87,7 +87,7 @@ class SearchFunctionCall(FunctionBase):
         content = content.strip()
         if len(content) > TOOL_CALL_LENGTH:
             content = content[:TOOL_CALL_LENGTH-3] + "..."
-        return f"Google Search result: {content}"
+        return f"[Google Search result:] {content}"
 
 
 class ScrapeFunctionCall(FunctionBase):
@@ -119,4 +119,4 @@ class ScrapeFunctionCall(FunctionBase):
 
         if len(content) > TOOL_CALL_LENGTH:
             content = content[:TOOL_CALL_LENGTH-3] + "..."
-        return f"Contents of {link}: {content}"
+        return f"[Contents of {link}:]\n{content}"
