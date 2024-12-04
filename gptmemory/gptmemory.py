@@ -1,4 +1,4 @@
-import re
+import json
 import difflib
 import logging
 import asyncio
@@ -6,6 +6,7 @@ import aiohttp
 import discord
 from io import BytesIO
 from datetime import datetime
+from dataclasses import asdict
 from openai import AsyncOpenAI
 from tiktoken import encoding_for_model
 from redbot.core import commands
@@ -17,8 +18,11 @@ from gptmemory.utils import sanitize, make_image_content, process_image
 from gptmemory.schema import MemoryRecall, MemoryChangeList
 from gptmemory.cogbase import GptMemoryCogBase
 from gptmemory.commands import GptMemoryCogCommands
+from gptmemory.function_calling import SearchFunctionCall
 
 log = logging.getLogger("red.crab-cogs.gptmemory")
+
+all_tools = [SearchFunctionCall]
 
 
 class GptMemory(GptMemoryCogBase, GptMemoryCogCommands):
@@ -145,6 +149,7 @@ class GptMemory(GptMemoryCogBase, GptMemoryCogCommands):
         Runs an openai completion with the chat history and the contents of memories
         and returns a response message after sending it to the user.
         """
+        tools = [t for t in all_tools if t.schema.function.name in ALLOWED_FUNCTIONS]
         system_prompt = {
             "role": "system",
             "content": self.prompt_responder[ctx.guild.id].format(
@@ -160,8 +165,31 @@ class GptMemory(GptMemoryCogBase, GptMemoryCogCommands):
         response = await self.openai_client.chat.completions.create(
             model=MODEL_RESPONDER, 
             messages=temp_messages,
-            max_tokens=RESPONSE_TOKENS
+            max_tokens=RESPONSE_TOKENS,
+            tools=[asdict(t) for t in tools],
         )
+
+        if response.choices[0].message.tool_calls:
+            for call in response.choices[0].message.tool_calls:
+                cls = [t for t in tools if t.schema.function.name == call['function']['name']]
+                if not cls:
+                    continue
+                try:
+                    tool_result = await cls[0](ctx).run(json.loads(call['function']['arguments']))
+                except:
+                    log.exception("Calling tool")
+                    continue
+                messages.append({
+                    "role": "tool",
+                    "content": tool_result,
+                    "tool_call_id": call['id'],
+                })
+            response = await self.openai_client.chat.completions.create(
+                model=MODEL_RESPONDER, 
+                messages=temp_messages,
+                max_tokens=RESPONSE_TOKENS,
+            )
+
         completion = response.choices[0].message.content
         log.info(f"{completion=}")
 
