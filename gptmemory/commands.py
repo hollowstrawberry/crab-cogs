@@ -87,7 +87,7 @@ class GptMemoryBase(commands.Cog):
             await self.config.guild(ctx.guild).channel_mode.set(mode)
             await self.config.guild(ctx.guild).channels.set(channels)
         
-        await ctx.reply(f"`[channel_mode:]` {mode}\n`[channels]`\n>>> " + "\n".join([f"<#{cid}>" for cid in channels]))
+        await ctx.reply(f"`[channel_mode:]` {mode}\n`[channels]`\n>>> " + "\n".join([f"<#{cid}>" for cid in channels]), mention_author=False)
 
 
     @memoryconfig.group(name="prompt")
@@ -112,7 +112,7 @@ class GptMemoryBase(commands.Cog):
         elif module == "memorizer":
             prompt = await self.config.guild(ctx.guild).prompt_memorizer()
         
-        await ctx.reply(f"`[{module} prompt]`\n>>> {prompt or '*None*'}")
+        await ctx.reply(f"`[{module} prompt]`\n>>> {prompt or '*None*'}", mention_author=False)
 
     @memoryconfig_prompt.command(name="set", aliases=["edit"])
     async def memoryconfig_prompt_set(self, ctx: commands.Context, module: PromptTypes, *, prompt):
@@ -124,7 +124,7 @@ class GptMemoryBase(commands.Cog):
         """
         prompt = prompt.strip()
         if not prompt:
-            await ctx.reply("Invalid prompt")
+            await ctx.reply("Invalid prompt", mention_author=False)
             return
         
         if module == "recaller":
@@ -134,7 +134,7 @@ class GptMemoryBase(commands.Cog):
         elif module == "memorizer":
             await self.config.guild(ctx.guild).prompt_memorizer.set(prompt)
 
-        await ctx.reply(f"`[New {module} prompt]`\n>>> {prompt}")
+        await ctx.reply(f"`[New {module} prompt]`\n>>> {prompt}", mention_author=False)
 
     @memoryconfig.command(name="response_tokens")
     async def memoryconfig_response_tokens(self, ctx: commands.Context, value: int | None):
@@ -142,11 +142,11 @@ class GptMemoryBase(commands.Cog):
         if not value:
             value = await self.config.guild(ctx.guild).response_tokens()
         elif value < 100 or value > 10000:
-            await ctx.reply("Value must be between 100 and 10000")
+            await ctx.reply("Value must be between 100 and 10000", mention_author=False)
             return
         else:
             await self.config.guild(ctx.guild).response_tokens.set(value)
-        await ctx.reply(f"`[response_tokens:]` {value}")
+        await ctx.reply(f"`[response_tokens:]` {value}", mention_author=False)
 
     @memoryconfig.command(name="backread_tokens")
     async def memoryconfig_backread_tokens(self, ctx: commands.Context, value: int | None):
@@ -154,11 +154,11 @@ class GptMemoryBase(commands.Cog):
         if not value:
             value = await self.config.guild(ctx.guild).backread_tokens()
         elif value < 100 or value > 10000:
-            await ctx.reply("Value must be between 100 and 10000")
+            await ctx.reply("Value must be between 100 and 10000", mention_author=False)
             return
         else:
             await self.config.guild(ctx.guild).backread_tokens.set(value)
-        await ctx.reply(f"`[backread_tokens:]` {value}")
+        await ctx.reply(f"`[backread_tokens:]` {value}", mention_author=False)
 
     @memoryconfig.command(name="backread_messages")
     async def memoryconfig_backread_messages(self, ctx: commands.Context, value: int | None):
@@ -166,11 +166,11 @@ class GptMemoryBase(commands.Cog):
         if not value:
             value = await self.config.guild(ctx.guild).backread_messages()
         elif value < 100 or value > 10000:
-            await ctx.reply("Value must be between 100 and 10000")
+            await ctx.reply("Value must be between 100 and 10000", mention_author=False)
             return
         else:
             await self.config.guild(ctx.guild).backread_messages.set(value)
-        await ctx.reply(f"`[backread_messages:]` {value}")
+        await ctx.reply(f"`[backread_messages:]` {value}", mention_author=False)
 
     @memoryconfig.command(name="backread_memorizer")
     async def memoryconfig_backread_memorizer(self, ctx: commands.Context, value: int | None):
@@ -178,11 +178,11 @@ class GptMemoryBase(commands.Cog):
         if value is None:
             value = await self.config.guild(ctx.guild).backread_memorizer()
         elif value < 100 or value > 10000:
-            await ctx.reply("Value must be between 100 and 10000")
+            await ctx.reply("Value must be between 100 and 10000", mention_author=False)
             return
         else:
             await self.config.guild(ctx.guild).backread_memorizer.set(value)
-        await ctx.reply(f"`[backread_memorizer:]` {value}")
+        await ctx.reply(f"`[backread_memorizer:]` {value}", mention_author=False)
 
     @memoryconfig.command(name="allow_memorizer")
     async def memoryconfig_allow_memorizer(self, ctx: commands.Context, value: bool | None):
@@ -191,7 +191,7 @@ class GptMemoryBase(commands.Cog):
             value = await self.config.guild(ctx.guild).allow_memorizer()
         else:
             await self.config.guild(ctx.guild).allow_memorizer.set(value)
-        await ctx.reply(f"`[allow_memorizer:]` {value}")
+        await ctx.reply(f"`[allow_memorizer:]` {value}", mention_author=False)
 
     @memoryconfig.command(name="memorizer_alerts")
     async def memoryconfig_memorizer_alerts(self, ctx: commands.Context, value: bool | None):
@@ -200,7 +200,7 @@ class GptMemoryBase(commands.Cog):
             value = await self.config.guild(ctx.guild).memorizer_alerts()
         else:
             await self.config.guild(ctx.guild).memorizer_alerts.set(value)
-        await ctx.reply(f"`[memorizer_alerts:]` {value}")
+        await ctx.reply(f"`[memorizer_alerts:]` {value}", mention_author=False)
 
     @memoryconfig_prompt.command(name="emotes")
     async def memoryconfig_emotes(self, ctx: commands.Context, *, emotes):
@@ -210,4 +210,4 @@ class GptMemoryBase(commands.Cog):
             emotes = await self.config.guild(ctx.guild).emotes()
         else:
             await self.config.guild(ctx.guild).emotes.set(emotes)
-        await ctx.reply(f"`[emotes]`\n>>> {emotes}")
+        await ctx.reply(f"`[emotes]`\n>>> {emotes}", mention_author=False)
