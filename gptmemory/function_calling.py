@@ -1,7 +1,6 @@
 import json
 import logging
 import aiohttp
-import trafilatura
 from abc import ABC, abstractmethod
 from redbot.core import Config, commands
 
@@ -72,28 +71,19 @@ class SearchFunctionCall(FunctionBase):
             return "Google Search result: Nothing relevant"
 
         first_result = organic_results[0]
-        link = first_result.get("link")
         text_content = ""
-        try:
-            log.info(f"Requesting {link} from Google query \"{query}\"")
-            async with aiohttp.ClientSession(headers=SCRAPE_HEADERS) as session:
-                async with session.get(link) as response:
-                    response.raise_for_status()
-                    text_content = trafilatura.extract(await response.text())        
-        except:
-            log.warning(f"Failed scraping URL {link}", exc_info=True)
-            graph = data.get("knowledgeGraph", {})
-            if graph:
-                if "title" in graph:
-                    text_content += f"[Title: {graph['title']}] "
-                if "type" in graph:
-                    text_content += f"[Type: {graph['title']}] "
-                if "description" in graph:
-                    text_content += f"[Description: {graph['description']}] "
-                for attribute, value in graph.get("attributes", {}).items():
-                    text_content += f"[{attribute}: {value}] "
-            else:
-                text_content = first_result.get('snippet')
+        graph = data.get("knowledgeGraph", {})
+        if graph:
+            if "title" in graph:
+                text_content += f"[Title: {graph['title']}] "
+            if "type" in graph:
+                text_content += f"[Type: {graph['title']}] "
+            if "description" in graph:
+                text_content += f"[Description: {graph['description']}] "
+            for attribute, value in graph.get("attributes", {}).items():
+                text_content += f"[{attribute}: {value}] "
+        else:
+            text_content = first_result.get('snippet')
 
         text_content = text_content.strip()
         if len(text_content) > SEARCH_LENGTH:
