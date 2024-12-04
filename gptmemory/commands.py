@@ -75,7 +75,7 @@ class GptMemoryBase(commands.Cog):
         """Base command for configuring the GPT Memory cog."""
         pass
 
-    @memoryconfig.group()
+    @memoryconfig.group(name="prompt")
     async def memoryconfig_prompt(self, ctx: commands.Context):
         """View or edit the prompts"""
         pass
