@@ -160,7 +160,6 @@ class GptMemory(GptMemoryCogCommands):
         )}
         temp_messages = [msg for msg in messages]
         temp_messages.insert(0, system_prompt)
-        log.info(f"{tools=}")
 
         response = await self.openai_client.chat.completions.create(
             model=MODEL_RESPONDER, 
