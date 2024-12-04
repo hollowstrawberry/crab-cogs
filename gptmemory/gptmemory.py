@@ -178,6 +178,7 @@ class GptMemory(GptMemoryCogCommands):
                 except:
                     log.exception("Calling tool")
                     continue
+                messages.append(response.choices[0].message)
                 messages.append({
                     "role": "tool",
                     "content": tool_result,
