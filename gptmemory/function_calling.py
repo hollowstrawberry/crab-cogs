@@ -173,7 +173,7 @@ class WolframAlphaFunctionCall(FunctionBase):
             
         if matches := FARENHEIT_PATTERN.findall(content):
             for match in list(set(matches)):
-                content = content.replace(f"{int(match)}°F", f"{int(match)}°F/{(int(match)-32)*5/9}°C")
+                content = content.replace(f"{int(match)} °f", f"{int(match)}°F/{(int(match)-32)*5/9}°C")
 
         if len(content) > TOOL_CALL_LENGTH:
             content = content[:TOOL_CALL_LENGTH-3] + "..."
