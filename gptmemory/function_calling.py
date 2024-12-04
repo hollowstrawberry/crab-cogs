@@ -75,7 +75,7 @@ class SearchFunctionCall(FunctionBase):
         link = first_result.get("link")
         text_content = ""
         try:
-            log.info(f"Requesting {link} from Google query \"{self.query}\" in {self.guild}")
+            log.info(f"Requesting {link} from Google query \"{self['query']}\"")
             async with aiohttp.ClientSession(headers=SCRAPE_HEADERS) as session:
                 async with session.get(link) as response:
                     response.raise_for_status()
