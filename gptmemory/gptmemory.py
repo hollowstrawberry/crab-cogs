@@ -69,9 +69,6 @@ class GptMemory(GptMemoryCogCommands):
         if URL_PATTERN.search(message.content):
             ctx = await self.wait_for_embed(ctx)
 
-        async with ctx.channel.typing():
-            pass
-
         await self.run_response(ctx) 
 
 
@@ -112,9 +109,10 @@ class GptMemory(GptMemoryCogCommands):
             self.memory[ctx.guild.id] = {}
         memories = ", ".join(self.memory[ctx.guild.id].keys())
 
-        messages = await self.get_message_history(ctx)
-        recalled_memories = await self.execute_recaller(ctx, messages, memories)
-        response_message = await self.execute_responder(ctx, messages, recalled_memories)
+        async with ctx.channel.typing():
+            messages = await self.get_message_history(ctx)
+            recalled_memories = await self.execute_recaller(ctx, messages, memories)
+            response_message = await self.execute_responder(ctx, messages, recalled_memories)
         messages.append(response_message)
         await self.execute_memorizer(ctx, messages, memories, recalled_memories)
 
