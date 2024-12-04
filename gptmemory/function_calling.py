@@ -51,6 +51,7 @@ class SearchFunctionCall(FunctionBase):
             return "An error occured while searching Google."
         
         query = arguments["query"]
+        log.info(f"{query=}")
         payload = json.dumps({"q": query})
         headers = {'X-API-KEY': api_key, 'Content-Type': 'application/json'}
         try:
