@@ -165,7 +165,7 @@ class GptMemory(GptMemoryCogCommands):
             model=MODEL_RESPONDER, 
             messages=temp_messages,
             max_tokens=RESPONSE_TOKENS,
-            tools=[asdict(t) for t in tools],
+            tools=[asdict(t(ctx)) for t in tools],
         )
 
         if response.choices[0].message.tool_calls:
