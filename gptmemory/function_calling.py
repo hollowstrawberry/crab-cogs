@@ -129,12 +129,12 @@ class WolframAlphaFunctionCall(FunctionBase):
     schema = ToolCall(
         Function(
             name="ask_wolframalpha",
-            description="Queries Wolfram Alpha with a math operation or unit conversion.",
+            description="Queries Wolfram Alpha with a math operation, unit conversion, or currency conversion",
             parameters=Parameters(
                     properties={
-                        "question": {
+                        "query": {
                             "type": "string",
-                            "description": "A math operation or unit conversion"
+                            "description": "A math operation, unit conversion, or currency conversion"
                 }},
                 required=["query"],
     )))
@@ -146,7 +146,8 @@ class WolframAlphaFunctionCall(FunctionBase):
             return "An error occured while asking Wolfram Alpha."
 
         url = "http://api.wolframalpha.com/v2/query?"
-        payload = {"input": arguments["question"], "appid": api_key}
+        query = arguments["query"]
+        payload = {"input": query, "appid": api_key}
         headers = {"user-agent": "Red-cog/2.0.0"}
 
         try:
@@ -164,13 +165,13 @@ class WolframAlphaFunctionCall(FunctionBase):
                 a.append(pt.text.capitalize())
 
         if len(a) < 1:
-            return f"Wolfram Alpha is unable to answer the question \"{arguments['question']}\". Try to answer with your own knowledge."
+            return f"Wolfram Alpha is unable to answer the question \"{query}\". Try to answer with your own knowledge."
         else:
             message = "\n".join(a[:4])
             if "Current geoip location" in message:
-                return f"Wolfram Alpha is unable to answer the question \"{arguments['question']}\". Try to answer with your own knowledge."
+                return f"Wolfram Alpha is unable to answer the question \"{query}\". Try to answer with your own knowledge."
 
         if len(message) > TOOL_CALL_LENGTH:
             message = message[:TOOL_CALL_LENGTH-3] + "..."
 
-        return f"[Wolfram Alpha] [Question: {arguments['question']}] [Answer:] {message}"
+        return f"[Wolfram Alpha] [Question: {query}] [Answer:] {message}"
