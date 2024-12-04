@@ -150,8 +150,9 @@ class WolframAlphaFunctionCall(FunctionBase):
         headers = {"user-agent": "Red-cog/2.0.0"}
 
         try:
-            async with self.session.get(url, params=payload, headers=headers) as r:
-                result = await r.text()
+            async with aiohttp.ClientSession(headers=headers) as session:
+                async with session.get(url, params=payload) as response:
+                    result = await response.text()
         except:
             log.exception("Asking Wolfram Alpha")
             return "An error occured while asking Wolfram Alpha."
