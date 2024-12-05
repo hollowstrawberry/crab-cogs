@@ -9,18 +9,12 @@ from redbot.core import commands
 from gptmemory.schema import ToolCall, Function, Parameters
 from gptmemory.constants import FARENHEIT_PATTERN
 from gptmemory.defaults import TOOL_CALL_LENGTH
-from gptmemory.utils import farenheit_to_celsius
+from gptmemory.utils import farenheit_to_celsius, get_subclasses
 
 log = logging.getLogger("red.crab-cogs.gptmemory")
 
-SCRAPE_HEADERS = {
-    "Cache-Control": "no-cache",
-    "Referer": "https://www.google.com/",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
-}
 
-
-class FunctionBase(ABC):
+class FunctionCallBase(ABC):
     schema: ToolCall = None
 
     def __init__(self, ctx: commands.Context):
@@ -31,7 +25,7 @@ class FunctionBase(ABC):
         raise NotImplementedError
 
 
-class SearchFunctionCall(FunctionBase):
+class SearchFunctionCall(FunctionCallBase):
     schema = ToolCall(
         Function(
             name="search_google",
@@ -51,13 +45,14 @@ class SearchFunctionCall(FunctionBase):
             log.error("Tried to do a google search but serper api_key not found")
             return "An error occured while searching Google."
         
+        url = "https://google.serper.dev/search"
         query = arguments["query"]
         log.info(f"{query=}")
         payload = json.dumps({"q": query})
         headers = {'X-API-KEY': api_key, 'Content-Type': 'application/json'}
         try:
             async with aiohttp.ClientSession(headers=headers) as session:
-                async with session.post("https://google.serper.dev/search", data=payload) as response:
+                async with session.post(url, data=payload) as response:
                     response.raise_for_status()
                     data = await response.json()
         except:
@@ -95,7 +90,7 @@ class SearchFunctionCall(FunctionBase):
         return content
 
 
-class ScrapeFunctionCall(FunctionBase):
+class ScrapeFunctionCall(FunctionCallBase):
     schema = ToolCall(
         Function(
             name="open_url",
@@ -106,38 +101,48 @@ class ScrapeFunctionCall(FunctionBase):
                         "type": "string",
                         "description": "The link to open",
                 }},
-                required=["query"],
+                required=["url"],
     )))
 
-    async def run(self, arguments: dict) -> str:
-        link = arguments["url"]
+    headers = {
+        "Cache-Control": "no-cache",
+        "Referer": "https://www.google.com/",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
+    }
 
-        async with aiohttp.ClientSession(headers=SCRAPE_HEADERS) as session:
-            async with session.get(link) as response:
-                response.raise_for_status()
-                content_type = response.headers.get('Content-Type', '').lower()
-                if not 'text/html' in content_type:
-                    return f"Contents of {link} is not text/html"
-                
-                content = trafilatura.extract(await response.text())
+    async def run(self, arguments: dict) -> str:
+        url = arguments["url"]
+
+        try:
+            async with aiohttp.ClientSession(headers=self.headers) as session:
+                async with session.get(url) as response:
+                    response.raise_for_status()
+                    content_type = response.headers.get('Content-Type', '').lower()
+                    if not 'text/html' in content_type:
+                        return f"Contents of {url} is not text/html"
+
+                    content = trafilatura.extract(await response.text())
+        except:
+            log.exception(f"Opening {url}")
+            return f"Failed to open {url}"
 
         if len(content) > TOOL_CALL_LENGTH:
             content = content[:TOOL_CALL_LENGTH-3] + "..."
-        return f"[Contents of {link}:]\n{content}"
+        return f"[Contents of {url}:]\n{content}"
     
 
-class WolframAlphaFunctionCall(FunctionBase):
+class WolframAlphaFunctionCall(FunctionCallBase):
     schema = ToolCall(
         Function(
             name="ask_wolframalpha",
             description="Asks Wolfram Alpha about math, exchange rates, or the weather.",
             parameters=Parameters(
-                    properties={
-                        "query": {
-                            "type": "string",
-                            "description": "A math operation, currency conversion, or weather question"
-                    }},
-                    required=["query"],
+                properties={
+                    "query": {
+                        "type": "string",
+                        "description": "A math operation, currency conversion, or weather question"
+                }},
+                required=["query"],
     )))
 
     async def run(self, arguments: dict) -> str:
@@ -154,6 +159,7 @@ class WolframAlphaFunctionCall(FunctionBase):
         try:
             async with aiohttp.ClientSession(headers=headers) as session:
                 async with session.get(url, params=payload) as response:
+                    response.raise_for_status()
                     result = await response.text()
         except:
             log.exception("Asking Wolfram Alpha")
@@ -175,3 +181,6 @@ class WolframAlphaFunctionCall(FunctionBase):
             content = content[:TOOL_CALL_LENGTH-3] + "..."
 
         return f"[Wolfram Alpha] [Question: {query}] [Answer:] {content}"
+    
+
+all_function_calls = get_subclasses(globals(), FunctionCallBase)

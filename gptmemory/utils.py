@@ -1,4 +1,5 @@
 from io import BytesIO
+from re import Match
 from PIL import Image
 from base64 import b64encode
 
@@ -9,10 +10,10 @@ def sanitize(text: str) -> str:
         text = text.replace(c, "")
     return text
 
-def farenheit_to_celsius(match) -> str:
+def farenheit_to_celsius(match: Match) -> str:
     f = float(match.group(1))
     c = (f - 32) * 5.0/9.0
-    return f"{round(f)}°F/{round(c)}°C"
+    return f"{round(c)}°C/{round(f)}°F"
 
 def make_image_content(fp: BytesIO) -> dict:
     return {
@@ -22,7 +23,7 @@ def make_image_content(fp: BytesIO) -> dict:
         }
     }
 
-def process_image(buffer: BytesIO) -> BytesIO | None:
+def process_image(buffer: BytesIO) -> BytesIO:
     image = Image.open(buffer)
     width, height = image.size
     image_resolution = width * height
@@ -34,3 +35,22 @@ def process_image(buffer: BytesIO) -> BytesIO | None:
     image.save(fp, "PNG")
     fp.seek(0)
     return fp
+
+def get_text_contents(messages: list[dict]):
+    temp_messages = []
+    for msg in messages:
+        if isinstance(msg["content"], str):
+            temp_messages.append(msg)
+        else:
+            for cnt in msg["content"]:
+                if "text" in cnt:
+                    temp_messages.append({
+                        "role": msg["role"],
+                        "content": cnt["text"]
+                    })
+                break
+    return temp_messages
+
+def get_subclasses(glob: dict, base_cls: type) -> list[type]:
+    return [cls for cls in glob.values()
+            if isinstance(cls, type) and issubclass(cls, base_cls) and cls is not base_cls]

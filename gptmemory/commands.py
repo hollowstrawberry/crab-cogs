@@ -4,7 +4,7 @@ from difflib import get_close_matches
 from redbot.core import commands, Config
 from redbot.core.bot import Red
 
-from gptmemory.defaults import *
+import gptmemory.defaults as defaults
 
 
 class GptMemoryBase(commands.Cog):
@@ -16,16 +16,16 @@ class GptMemoryBase(commands.Cog):
             "channel_mode": "whitelist",
             "channels": [],
             "memory": {},
-            "prompt_recaller": PROMPT_RECALLER,
-            "prompt_responder": PROMPT_RESPONDER,
-            "prompt_memorizer": PROMPT_MEMORIZER,
-            "response_tokens": RESPONSE_TOKENS,
-            "backread_tokens": BACKREAD_TOKENS,
-            "backread_messages": BACKREAD_MESSAGES,
-            "backread_memorizer": BACKREAD_MEMORIZER,
-            "allow_memorizer": ALLOW_MEMORIZER,
-            "memorizer_alerts": MEMORIZER_ALERTS,
-            "allowed_functions": ALLOWED_FUNCTIONS,
+            "prompt_recaller": defaults.PROMPT_RECALLER,
+            "prompt_responder": defaults.PROMPT_RESPONDER,
+            "prompt_memorizer": defaults.PROMPT_MEMORIZER,
+            "response_tokens": defaults.RESPONSE_TOKENS,
+            "backread_tokens": defaults.BACKREAD_TOKENS,
+            "backread_messages": defaults.BACKREAD_MESSAGES,
+            "backread_memorizer": defaults.BACKREAD_MEMORIZER,
+            "allow_memorizer": defaults.ALLOW_MEMORIZER,
+            "memorizer_alerts": defaults.MEMORIZER_ALERTS,
+            "disabled_functions": defaults.DISABLED_FUNCTIONS,
             "emotes": "",
         })
         self.memory: dict[int, dict[str, str]] = {}
@@ -78,7 +78,7 @@ class GptMemoryBase(commands.Cog):
 
     @memoryconfig.command(name="channels")
     async def memoryconfig_channels(self, ctx: commands.Context, mode: Literal["whitelist", "blacklist", "show"], channels: commands.Greedy[discord.TextChannel]):
-        """Configure the channels the bot has access to."""
+        """Resets the channels the bot has access to."""
         if mode == "show":
             mode = await self.config.guild(ctx.guild).channel_mode()
             channels = await self.config.guild(ctx.guild).channels()
@@ -165,8 +165,8 @@ class GptMemoryBase(commands.Cog):
         """How many messages in chat the recaller and responder will read."""
         if not value:
             value = await self.config.guild(ctx.guild).backread_messages()
-        elif value < 100 or value > 10000:
-            await ctx.reply("Value must be between 100 and 10000", mention_author=False)
+        elif value < 0 or value > 100:
+            await ctx.reply("Value must be between 0 and 100", mention_author=False)
             return
         else:
             await self.config.guild(ctx.guild).backread_messages.set(value)
@@ -177,8 +177,8 @@ class GptMemoryBase(commands.Cog):
         """How many messages in chat the memorizer will read."""
         if value is None:
             value = await self.config.guild(ctx.guild).backread_memorizer()
-        elif value < 100 or value > 10000:
-            await ctx.reply("Value must be between 100 and 10000", mention_author=False)
+        elif value < 0 or value > 100:
+            await ctx.reply("Value must be between 0 and 100", mention_author=False)
             return
         else:
             await self.config.guild(ctx.guild).backread_memorizer.set(value)
