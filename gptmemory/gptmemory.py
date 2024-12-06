@@ -178,7 +178,6 @@ class GptMemory(GptMemoryBase):
                     log.exception("Calling tool")
 
                 tool_result = tool_result.strip()
-                log.info(f"{len(tool_result)=} {defaults.TOOL_CALL_LENGTH=}")
                 if len(tool_result) > defaults.TOOL_CALL_LENGTH:
                     tool_result = tool_result[:defaults.TOOL_CALL_LENGTH-3] + "..."
                 log.info(f"{tool_result=}")

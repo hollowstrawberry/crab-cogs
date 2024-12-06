@@ -71,7 +71,8 @@ class SearchFunctionCall(FunctionCallBase):
             if "source" in answer_box:
                 content += f"[Source: {answer_box['source']}] "
             if "snippet" in answer_box:
-                content += f"{answer_box['snippet']}"
+                content += f"[Snippet: {answer_box['snippet']}] "
+
         if graph := data.get("knowledgeGraph", {}):
             if "title" in graph:
                 content += f"[Title: {graph['title']}] "
@@ -80,11 +81,13 @@ class SearchFunctionCall(FunctionCallBase):
             if "description" in graph:
                 content += f"[Description: {graph['description']}] "
             if "website" in graph:
-                content += f"[Website: {graph['website']}]"
+                content += f"[Website: {graph['website']}] "
             for attribute, value in graph.get("attributes", {}).items():
                 content += f"[{attribute}: {value}] "
+
         if organic_results := data.get("organic", []):
-            content += f"[First Result URL: {organic_results[0]['link']}] [First Result Content:] {organic_results[0]['snippet']}"
+            content += f"[First result URL: {organic_results[0]['link']}] [First result snippet:] {organic_results[0]['snippet']}"
+
         if len(content) < 25:
             content += "Nothing relevant."
 
