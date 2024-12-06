@@ -9,7 +9,6 @@ from redbot.core import commands
 
 from gptmemory.schema import ToolCall, Function, Parameters
 from gptmemory.constants import FARENHEIT_PATTERN
-from gptmemory.defaults import TOOL_CALL_LENGTH
 from gptmemory.utils import farenheit_to_celsius
 
 log = logging.getLogger("red.crab-cogs.gptmemory")
