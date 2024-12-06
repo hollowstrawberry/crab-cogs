@@ -5,7 +5,6 @@ import aiohttp
 import discord
 from io import BytesIO
 from datetime import datetime
-from dataclasses import asdict
 from difflib import get_close_matches
 from openai import AsyncOpenAI
 from tiktoken import encoding_for_model
@@ -164,7 +163,7 @@ class GptMemory(GptMemoryBase):
             model=defaults.MODEL_RESPONDER, 
             messages=temp_messages,
             max_tokens=await self.config.guild(ctx.guild).response_tokens(),
-            tools=[asdict(t.schema) for t in tools],
+            tools=[t.asdict() for t in tools],
         )
 
         if response.choices[0].message.tool_calls:

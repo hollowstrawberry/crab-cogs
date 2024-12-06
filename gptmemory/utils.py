@@ -2,6 +2,7 @@ from io import BytesIO
 from re import Match
 from PIL import Image
 from base64 import b64encode
+from typing import TypeVar
 
 
 def sanitize(text: str) -> str:
@@ -51,6 +52,8 @@ def get_text_contents(messages: list[dict]):
                 break
     return temp_messages
 
-def get_subclasses(glob: dict, base_cls: type) -> list[type]:
+T = TypeVar("T", bound=type)
+
+def get_subclasses(glob: dict, base_cls: T) -> list[T]:
     return [cls for cls in glob.values()
             if isinstance(cls, type) and issubclass(cls, base_cls) and cls is not base_cls]

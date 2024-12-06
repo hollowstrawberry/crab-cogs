@@ -4,6 +4,7 @@ import aiohttp
 import trafilatura
 import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
+from dataclasses import asdict
 from redbot.core import commands
 
 from gptmemory.schema import ToolCall, Function, Parameters
@@ -19,6 +20,10 @@ class FunctionCallBase(ABC):
 
     def __init__(self, ctx: commands.Context):
         self.ctx = ctx
+
+    @classmethod
+    def asdict(cls):
+        return asdict(cls.schema)
 
     @abstractmethod
     def run(self, arguments: dict) -> str:
