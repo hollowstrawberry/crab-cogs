@@ -74,6 +74,7 @@ class SearchFunctionCall(FunctionCallBase):
             if "snippet" in answer_box:
                 content += f"{answer_box['snippet']}"
         elif graph := data.get("knowledgeGraph", {}):
+            log.info(f"{graph=}")
             if "title" in graph:
                 content += f"[Title: {graph['title']}] "
             if "type" in graph:
