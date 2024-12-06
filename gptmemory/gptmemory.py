@@ -173,15 +173,21 @@ class GptMemory(GptMemoryBase):
                     cls = next(t for t in tools if t.schema.function.name == call.function.name)
                     args = json.loads(call.function.arguments)
                     tool_result = await cls(ctx).run(args)
-                    log.info(f"{tool_result=}")
                 except:
                     tool_result = "Error"
                     log.exception("Calling tool")
+
+                tool_result = tool_result.strip()
+                if len(tool_result) > defaults.TOOL_CALL_LENGTH:
+                    tool_result = tool_result[:defaults.TOOL_CALL_LENGTH-3] + "..."
+                log.info(f"{tool_result=:4000s}")
+
                 temp_messages.append({
                     "role": "tool",
                     "content": tool_result,
                     "tool_call_id": call.id,
                 })
+
             response = await self.openai_client.chat.completions.create(
                 model=defaults.MODEL_RESPONDER, 
                 messages=temp_messages,

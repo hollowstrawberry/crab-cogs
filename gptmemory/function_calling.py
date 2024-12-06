@@ -89,9 +89,6 @@ class SearchFunctionCall(FunctionCallBase):
         if len(content) < 25:
             content += "Nothing relevant."
 
-        content = content.strip()
-        if len(content) > TOOL_CALL_LENGTH:
-            content = content[:TOOL_CALL_LENGTH-3] + "..."
         return content
 
 
@@ -131,8 +128,6 @@ class ScrapeFunctionCall(FunctionCallBase):
             log.exception(f"Opening {url}")
             return f"Failed to open {url}"
 
-        if len(content) > TOOL_CALL_LENGTH:
-            content = content[:TOOL_CALL_LENGTH-3] + "..."
         return f"[Contents of {url}:]\n{content}"
     
 
@@ -181,9 +176,6 @@ class WolframAlphaFunctionCall(FunctionCallBase):
 
         if FARENHEIT_PATTERN.search(content):
             content = FARENHEIT_PATTERN.sub(farenheit_to_celsius, content)
-
-        if len(content) > TOOL_CALL_LENGTH:
-            content = content[:TOOL_CALL_LENGTH-3] + "..."
 
         return f"[Wolfram Alpha] [Question: {query}] [Answer:] {content}"
     
