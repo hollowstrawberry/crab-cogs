@@ -188,4 +188,4 @@ class WolframAlphaFunctionCall(FunctionCallBase):
         return f"[Wolfram Alpha] [Question: {query}] [Answer:] {content}"
     
 
-all_function_calls = get_subclasses(globals(), FunctionCallBase)
+all_function_calls = FunctionCallBase.__subclasses__()

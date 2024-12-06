@@ -51,9 +51,3 @@ def get_text_contents(messages: list[dict]):
                     })
                 break
     return temp_messages
-
-T = TypeVar("T", bound=type)
-
-def get_subclasses(glob: dict, base_cls: T) -> list[T]:
-    return [cls for cls in glob.values()
-            if isinstance(cls, type) and issubclass(cls, base_cls) and cls is not base_cls]
