@@ -71,7 +71,7 @@ class SearchFunctionCall(FunctionCallBase):
             if "source" in answer_box:
                 content += f"[Source: {answer_box['source']}] "
             if "snippet" in answer_box:
-                content += f"[Snippet: {answer_box['snippet']}] "
+                content += f"[snippet:] {answer_box['snippet']} "
 
         if graph := data.get("knowledgeGraph", {}):
             if "title" in graph:
