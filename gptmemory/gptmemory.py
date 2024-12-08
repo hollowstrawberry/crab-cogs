@@ -323,18 +323,16 @@ class GptMemory(GptMemoryBase):
                 if image in processed_attachments:
                     continue
                 processed_attachments.append(image)
-
                 try:
                     buffer = BytesIO()
                     await image.save(buffer, seek_begin=True)
                     fp = process_image(buffer)
                     del buffer
+                    image_contents.append(make_image_content(fp))
+                    del fp
+                    log.info(image.filename)
                 except:
                     log.warning("Processing image attachment", exc_info=True)
-                    continue
-                image_contents.append(make_image_content(fp))
-                del fp
-                log.info(image.filename)
 
         if image_contents:
             return image_contents
@@ -366,6 +364,7 @@ class GptMemory(GptMemoryBase):
                     del fp
                     image_contents.append(make_image_content(processed_image))
                     del processed_image
+                    log.info(url)
                 except:
                     log.warning("Processing image URL", exc_info=True)
 
