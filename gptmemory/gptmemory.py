@@ -375,7 +375,15 @@ class GptMemory(GptMemoryBase):
         content = f"[Username: {sanitize(message.author.name)}]"
         if isinstance(message.author, discord.Member) and message.author.nick:
             content += f" [Alias: {sanitize(message.author.nick)}]"
-        content += f" [said:] {message.content}"
+        starting_len = len(content)
+        
+        if message.is_system():
+            if message.type == discord.MessageType.new_member:
+                content += " [Joined the server]"
+            else:
+                content += f" {message.system_content}"
+        elif message.content:
+            content += f" [said:] {message.content}"
         
         for attachment in message.attachments:
             content += f" [Attachment: {attachment.filename}]"
@@ -392,7 +400,10 @@ class GptMemory(GptMemoryBase):
             if len(quote_content) > defaults.QUOTE_LENGTH:
                 quote_content = quote_content[:defaults.QUOTE_LENGTH-3] + "..."
             content += f"\n[[[Replying to: {quote_content}]]]"
-        
+
+        if len(content) == starting_len:
+            content += " [Message empty or not supported]"
+
         mentions = message.mentions + message.role_mentions + message.channel_mentions
         for mentioned in mentions:
             if mentioned in message.channel_mentions:
@@ -401,5 +412,5 @@ class GptMemory(GptMemoryBase):
                 content = content.replace(mentioned.mention, f'@{mentioned.name}')
             else:
                 content = content.replace(mentioned.mention, f'@{mentioned.name}')
-        
+
         return content.strip()
