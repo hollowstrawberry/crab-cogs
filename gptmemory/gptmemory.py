@@ -6,6 +6,7 @@ import discord
 from io import BytesIO
 from datetime import datetime
 from difflib import get_close_matches
+from expiringdict import ExpiringDict
 from openai import AsyncOpenAI
 from tiktoken import encoding_for_model
 from redbot.core import commands
@@ -27,6 +28,7 @@ class GptMemory(GptMemoryBase):
     def __init__(self, bot: Red):
         super().__init__(bot)
         self.openai_client = None
+        self.image_cache = ExpiringDict(max_len=50, max_age_seconds=24*60*60)
 
 
     async def cog_load(self):
@@ -312,6 +314,10 @@ class GptMemory(GptMemoryBase):
 
 
     async def extract_images(self, message: discord.Message, quote: discord.Message, processed_attachments: list[discord.Attachment]) -> list[dict]:
+        if message.id in self.image_cache:
+            log.info("Retrieving cached image(s)")
+            return self.image_cache[message.id]
+
         image_contents = []
 
         # Attachments
@@ -335,6 +341,7 @@ class GptMemory(GptMemoryBase):
                     log.warning("Processing image attachment", exc_info=True)
 
         if image_contents:
+            self.image_cache[message.id] = [cnt for cnt in image_contents]
             return image_contents
 
         # URLs
@@ -367,6 +374,9 @@ class GptMemory(GptMemoryBase):
                     log.info(url)
                 except:
                     log.warning("Processing image URL", exc_info=True)
+
+        if image_contents:
+            self.image_cache[message.id] = [cnt for cnt in image_contents]
 
         return image_contents
     
