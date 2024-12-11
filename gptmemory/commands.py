@@ -70,7 +70,7 @@ class GptMemoryBase(commands.Cog):
         self.memory[ctx.guild.id][name] = content
         await ctx.send("✅")
 
-    @commands.group(name="memoryconfig")
+    @commands.group(name="gptmemory", aliases=["memoryconfig"])
     @commands.is_owner()
     async def memoryconfig(self, ctx: commands.Context):
         """Base command for configuring the GPT Memory cog."""
