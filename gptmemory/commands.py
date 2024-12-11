@@ -22,6 +22,8 @@ class GptMemoryBase(commands.Cog):
             "response_tokens": defaults.RESPONSE_TOKENS,
             "backread_tokens": defaults.BACKREAD_TOKENS,
             "backread_messages": defaults.BACKREAD_MESSAGES,
+            "backread_memorizer": defaults.BACKREAD_MEMORIZER,
+            "allow_memorizer": defaults.ALLOW_MEMORIZER,
             "memorizer_alerts": defaults.MEMORIZER_ALERTS,
             "disabled_functions": defaults.DISABLED_FUNCTIONS,
             "emotes": "",
@@ -68,7 +70,7 @@ class GptMemoryBase(commands.Cog):
         self.memory[ctx.guild.id][name] = content
         await ctx.send("✅")
 
-    @commands.group(name="gptmemory", aliases=["memoryconfig"])
+    @commands.group(name="memoryconfig")
     @commands.is_owner()
     async def memoryconfig(self, ctx: commands.Context):
         """Base command for configuring the GPT Memory cog."""
@@ -169,6 +171,27 @@ class GptMemoryBase(commands.Cog):
         else:
             await self.config.guild(ctx.guild).backread_messages.set(value)
         await ctx.reply(f"`[backread_messages:]` {value}", mention_author=False)
+
+    @memoryconfig.command(name="backread_memorizer")
+    async def memoryconfig_backread_memorizer(self, ctx: commands.Context, value: int | None):
+        """How many messages in chat the memorizer will read."""
+        if value is None:
+            value = await self.config.guild(ctx.guild).backread_memorizer()
+        elif value < 0 or value > 100:
+            await ctx.reply("Value must be between 0 and 100", mention_author=False)
+            return
+        else:
+            await self.config.guild(ctx.guild).backread_memorizer.set(value)
+        await ctx.reply(f"`[backread_memorizer:]` {value}", mention_author=False)
+
+    @memoryconfig.command(name="allow_memorizer")
+    async def memoryconfig_allow_memorizer(self, ctx: commands.Context, value: bool | None):
+        """Whether the memorizer will run at all, editing memories."""
+        if value is None:
+            value = await self.config.guild(ctx.guild).allow_memorizer()
+        else:
+            await self.config.guild(ctx.guild).allow_memorizer.set(value)
+        await ctx.reply(f"`[allow_memorizer:]` {value}", mention_author=False)
 
     @memoryconfig.command(name="memorizer_alerts")
     async def memoryconfig_memorizer_alerts(self, ctx: commands.Context, value: bool | None):
