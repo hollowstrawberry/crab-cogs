@@ -114,8 +114,7 @@ class GptMemory(GptMemoryBase):
             messages = await self.get_message_history(ctx)
             recalled_memories = await self.execute_recaller(ctx, messages, memories)
             response_message = await self.execute_responder(ctx, messages, recalled_memories)
-        messages.append(response_message)
-        await self.execute_memorizer(ctx, messages, memories, recalled_memories)
+        await self.execute_memorizer(ctx, response_message, memories, recalled_memories)
 
 
     async def execute_recaller(self, ctx: commands.Context, messages: list[dict], memories: str) -> str:
@@ -208,23 +207,16 @@ class GptMemory(GptMemoryBase):
         return response_message
 
 
-    async def execute_memorizer(self, ctx: commands.Context, messages: list[dict], memories: str, recalled_memories: str) -> None:
+    async def execute_memorizer(self, ctx: commands.Context, response_message: dict, memories: str, recalled_memories: str) -> None:
         """
-        Runs an openai completion with the chat history, a list of memories, and the contents of some memories,
+        Runs an openai completion with the last message by the responder, a list of memories, and the contents of some memories,
         and executes database operations as decided by the LLM.
-        """
-        if not await self.config.guild(ctx.guild).allow_memorizer():
-            return
-        
+        """        
         system_prompt = {
             "role": "system",
             "content": (await self.config.guild(ctx.guild).prompt_memorizer()).format(memories, recalled_memories)
         }
-        temp_messages = get_text_contents(messages)
-        num_backread = await self.config.guild(ctx.guild).backread_memorizer()
-        if len(temp_messages) > num_backread:
-            temp_messages = temp_messages[-num_backread:]
-        temp_messages.insert(0, system_prompt)
+        temp_messages = [system_prompt, response_message]
 
         response = await self.openai_client.beta.chat.completions.parse(
             model=defaults.MODEL_MEMORIZER, 
