@@ -96,8 +96,6 @@ class AudioSlash(Cog):
                     await ctx.send("Downloading video...")
                     await download_video(ydl, search)
                 search = DOWNLOAD_FOLDER + "/" + filename
-            else:
-                log.info(search)
                 
         if when in ("next", "now"):
             if not await self.can_run_command(ctx, "bumpplay"):
