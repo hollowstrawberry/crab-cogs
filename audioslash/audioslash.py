@@ -27,9 +27,6 @@ async def extract_info(ydl: YoutubeDL, url: str) -> dict:
 async def download_video(ydl: YoutubeDL, url: str) -> dict:
     return await asyncio.to_thread(ydl.extract_info, url)
 
-def extract_filename(ydl: YoutubeDL, info: dict) -> str:
-    return BACKUP_DOWNLOAD_FOLDER + "/" + ydl.prepare_filename(info)
-
 
 class AudioSlash(Cog):
     """Audio cog commands in the form of slash commands, with YouTube and playlist autocomplete."""
@@ -94,11 +91,11 @@ class AudioSlash(Cog):
                 os.chdir(audio.local_folder_current_path / BACKUP_DOWNLOAD_FOLDER)
                 ydl = YoutubeDL(DOWNLOAD_CONFIG)
                 video_info = await extract_info(ydl, search)
-                filename = extract_filename(ydl, video_info)
+                filename = ydl.prepare_filename(video_info)
                 if not os.path.exists(filename):
                     await ctx.send("Downloading video...")
                     await download_video(ydl, search)
-                search = filename
+                search = BACKUP_DOWNLOAD_FOLDER + "/" + filename
 
             await audio.command_play(ctx, query=search)
 
