@@ -20,7 +20,7 @@ log = logging.getLogger("red.crab-cogs.audioslash")
 YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch|youtu.be/)")
 
 async def download_video(ydl: YoutubeDL, url: str) -> dict:
-    return await asyncio.to_thread(ydl.extract_info, [url])
+    return await asyncio.to_thread(ydl.extract_info, url)
 
 
 class AudioSlash(Cog):
