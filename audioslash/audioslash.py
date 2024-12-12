@@ -88,8 +88,7 @@ class AudioSlash(Cog):
                 ydl = YoutubeDL({'extract_audio': True, 'format': 'bestaudio', 'outtmpl': '%(title)s.mp3'})
                 await ctx.send("Downloading video...")
                 result = await download_video(ydl, search)
-                ydl.prepare_filename(result)
-                search = BACKUP_DOWNLOAD_FOLDER + "/" + result
+                search = BACKUP_DOWNLOAD_FOLDER + "/" + ydl.prepare_filename(result)
 
             await audio.command_play(ctx, query=search)
 
