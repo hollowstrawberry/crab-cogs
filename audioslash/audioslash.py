@@ -17,8 +17,9 @@ from typing import Optional
 
 log = logging.getLogger("red.crab-cogs.audioslash")
 
+BACKUP_MODE = True
 DOWNLOAD_CONFIG = {'extract_audio': True, 'format': 'bestaudio', 'outtmpl': '%(title)s.mp3'}
-BACKUP_DOWNLOAD_FOLDER = "audioslash_backup_downloads"
+DOWNLOAD_FOLDER = "audioslash_backup_downloads"
 YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch|youtu.be/)")
 
 async def extract_info(ydl: YoutubeDL, url: str) -> dict:
@@ -76,6 +77,23 @@ class AudioSlash(Cog):
         if not (audio := await self.get_audio_cog(inter)):
             return
         ctx = await self.get_context(inter, audio)
+
+        if BACKUP_MODE:
+            if not audio.local_folder_current_path:
+                await ctx.send("Connect bot to a voice channel first")
+                return
+            if YOUTUBE_LINK_PATTERN.match(search):
+                (audio.local_folder_current_path / DOWNLOAD_FOLDER).mkdir(parents=True, exist_ok=True)
+                os.chdir(audio.local_folder_current_path / DOWNLOAD_FOLDER)
+                ydl = YoutubeDL(DOWNLOAD_CONFIG)
+                video_info = await extract_info(ydl, search)
+                print(video_info)
+                filename = ydl.prepare_filename(video_info)
+                if not os.path.exists(filename):
+                    await ctx.send("Downloading video...")
+                    await download_video(ydl, search)
+                search = DOWNLOAD_FOLDER + "/" + filename
+
         if when in ("next", "now"):
             if not await self.can_run_command(ctx, "bumpplay"):
                 return
@@ -83,20 +101,6 @@ class AudioSlash(Cog):
         else:
             if not await self.can_run_command(ctx, "play"):
                 return
-            if not audio.local_folder_current_path:
-                await ctx.send("Local folder path not set")
-                return
-            if YOUTUBE_LINK_PATTERN.match(search):
-                (audio.local_folder_current_path / BACKUP_DOWNLOAD_FOLDER).mkdir(parents=True, exist_ok=True)
-                os.chdir(audio.local_folder_current_path / BACKUP_DOWNLOAD_FOLDER)
-                ydl = YoutubeDL(DOWNLOAD_CONFIG)
-                video_info = await extract_info(ydl, search)
-                filename = ydl.prepare_filename(video_info)
-                if not os.path.exists(filename):
-                    await ctx.send("Downloading video...")
-                    await download_video(ydl, search)
-                search = BACKUP_DOWNLOAD_FOLDER + "/" + filename
-
             await audio.command_play(ctx, query=search)
 
     @app_commands.command()
