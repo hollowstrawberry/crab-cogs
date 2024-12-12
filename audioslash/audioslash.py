@@ -17,11 +17,18 @@ from typing import Optional
 
 log = logging.getLogger("red.crab-cogs.audioslash")
 
+DOWNLOAD_CONFIG = {'extract_audio': True, 'format': 'bestaudio', 'outtmpl': '%(title)s.mp3'}
 BACKUP_DOWNLOAD_FOLDER = "audioslash_backup_downloads"
 YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch|youtu.be/)")
 
+async def extract_info(ydl: YoutubeDL, url: str) -> dict:
+    return await asyncio.to_thread(ydl.extract_info, url, False)
+
 async def download_video(ydl: YoutubeDL, url: str) -> dict:
     return await asyncio.to_thread(ydl.extract_info, url)
+
+def extract_filename(ydl: YoutubeDL, info: dict) -> str:
+    return BACKUP_DOWNLOAD_FOLDER + "/" + ydl.prepare_filename(info)
 
 
 class AudioSlash(Cog):
@@ -85,10 +92,13 @@ class AudioSlash(Cog):
             if YOUTUBE_LINK_PATTERN.match(search):
                 (audio.local_folder_current_path / BACKUP_DOWNLOAD_FOLDER).mkdir(parents=True, exist_ok=True)
                 os.chdir(audio.local_folder_current_path / BACKUP_DOWNLOAD_FOLDER)
-                ydl = YoutubeDL({'extract_audio': True, 'format': 'bestaudio', 'outtmpl': '%(title)s.mp3'})
-                await ctx.send("Downloading video...")
-                result = await download_video(ydl, search)
-                search = BACKUP_DOWNLOAD_FOLDER + "/" + ydl.prepare_filename(result)
+                ydl = YoutubeDL(DOWNLOAD_CONFIG)
+                video_info = await extract_info(ydl, search)
+                filename = extract_filename(ydl, video_info)
+                if not os.path.exists(filename):
+                    await ctx.send("Downloading video...")
+                    await download_video(ydl, search)
+                search = filename
 
             await audio.command_play(ctx, query=search)
 
