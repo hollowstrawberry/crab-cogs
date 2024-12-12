@@ -17,6 +17,7 @@ from typing import Optional
 
 log = logging.getLogger("red.crab-cogs.audioslash")
 
+BACKUP_DOWNLOAD_FOLDER = "audioslash_backup_downloads"
 YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch|youtu.be/)")
 
 async def download_video(ydl: YoutubeDL, url: str) -> dict:
@@ -82,12 +83,12 @@ class AudioSlash(Cog):
                 await ctx.send("Local folder path not set")
                 return
             if YOUTUBE_LINK_PATTERN.match(search):
-                os.chdir(audio.local_folder_current_path + "/audioslash_backup_downloads")
+                os.chdir(audio.local_folder_current_path / BACKUP_DOWNLOAD_FOLDER)
                 ydl = YoutubeDL({'extract_audio': True, 'format': 'bestaudio', 'outtmpl': '%(title)s.mp3'})
                 await ctx.send("Downloading video...")
                 result = await download_video(ydl, search)
                 ydl.prepare_filename(result)
-                search = result
+                search = BACKUP_DOWNLOAD_FOLDER + "/" + result
 
             await audio.command_play(ctx, query=search)
 
