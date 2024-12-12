@@ -19,6 +19,9 @@ log = logging.getLogger("red.crab-cogs.audioslash")
 
 YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch|youtu.be/)")
 
+async def download_video(ydl: YoutubeDL, url: str) -> dict:
+    return await asyncio.to_thread(ydl.extract_info, [url])
+
 
 class AudioSlash(Cog):
     """Audio cog commands in the form of slash commands, with YouTube and playlist autocomplete."""
@@ -56,9 +59,6 @@ class AudioSlash(Cog):
             await ctx.send("You do not have permission to do this.", ephemeral=True)
         return can
 
-    async def download_video(ydl: YoutubeDL, url: str) -> dict:
-        return await asyncio.to_thread(ydl.extract_info, [url])
-
     @app_commands.command()
     @app_commands.guild_only
     @app_commands.describe(search="Type here to get suggestions, or send anything to get a best match.",
@@ -85,7 +85,7 @@ class AudioSlash(Cog):
                 os.chdir(audio.local_folder_current_path)
                 ydl = YoutubeDL()
                 await ctx.send("Downloading video...")
-                result = await self.download_video(ydl, search)
+                result = await download_video(ydl, search)
                 ydl.prepare_filename(result)
                 search = result
 
