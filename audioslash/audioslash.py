@@ -20,7 +20,7 @@ log = logging.getLogger("red.crab-cogs.audioslash")
 BACKUP_MODE = True
 DOWNLOAD_CONFIG = {'extract_audio': True, 'format': 'bestaudio', 'outtmpl': '%(title)s.mp3'}
 DOWNLOAD_FOLDER = "audioslash_backup_downloads"
-YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch|youtu.be/)")
+YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch|youtu.be/)([\w\-\_]+)")
 
 async def extract_info(ydl: YoutubeDL, url: str) -> dict:
     return await asyncio.to_thread(ydl.extract_info, url, False)
@@ -82,7 +82,8 @@ class AudioSlash(Cog):
             if not audio.local_folder_current_path:
                 await ctx.send("Connect bot to a voice channel first")
                 return
-            if YOUTUBE_LINK_PATTERN.match(search):
+            if match := YOUTUBE_LINK_PATTERN.match(search):
+                search = match.group(0)
                 (audio.local_folder_current_path / DOWNLOAD_FOLDER).mkdir(parents=True, exist_ok=True)
                 os.chdir(audio.local_folder_current_path / DOWNLOAD_FOLDER)
                 ydl = YoutubeDL(DOWNLOAD_CONFIG)
@@ -95,7 +96,7 @@ class AudioSlash(Cog):
                     await ctx.send("Downloading video...")
                     await download_video(ydl, search)
                 search = DOWNLOAD_FOLDER + "/" + filename
-
+                
         if when in ("next", "now"):
             if not await self.can_run_command(ctx, "bumpplay"):
                 return
