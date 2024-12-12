@@ -81,7 +81,7 @@ class AudioSlash(Cog):
             if not audio.local_folder_current_path:
                 await ctx.send("Local folder path not set")
                 return
-            if YOUTUBE_LINK_PATTERN.matcch(search):
+            if YOUTUBE_LINK_PATTERN.match(search):
                 os.chdir(audio.local_folder_current_path)
                 ydl = YoutubeDL()
                 await ctx.send("Downloading video...")
