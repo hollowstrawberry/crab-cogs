@@ -83,6 +83,7 @@ class AudioSlash(Cog):
                 await ctx.send("Local folder path not set")
                 return
             if YOUTUBE_LINK_PATTERN.match(search):
+                (audio.local_folder_current_path / BACKUP_DOWNLOAD_FOLDER).mkdir(parents=True, exist_ok=True)
                 os.chdir(audio.local_folder_current_path / BACKUP_DOWNLOAD_FOLDER)
                 ydl = YoutubeDL({'extract_audio': True, 'format': 'bestaudio', 'outtmpl': '%(title)s.mp3'})
                 await ctx.send("Downloading video...")
