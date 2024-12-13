@@ -43,7 +43,7 @@ class AudioSlash(Cog):
         super().__init__(*args, **kwargs)
         self.bot = bot
         self.config = Config.get_conf(self, identifier=77241349)
-        self.config.register_guild({"backup_mode": False})
+        self.config.register_guild(**{"backup_mode": False})
 
     async def red_delete_data_for_user(self, **kwargs):
         pass
