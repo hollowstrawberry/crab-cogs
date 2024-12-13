@@ -17,7 +17,7 @@ from typing import Optional
 
 log = logging.getLogger("red.crab-cogs.audioslash")
 
-DOWNLOAD_CONFIG = {'extract_audio': True, 'format': 'bestaudio', 'outtmpl': '%(title).85s.mp3', 'extractor-args': 'youtube:lang=en'}
+DOWNLOAD_CONFIG = {'extract_audio': True, 'format': 'bestaudio', 'outtmpl': '%(title).85s.mp3', 'extractor-args': '"youtube:lang=en"'}
 DOWNLOAD_FOLDER = "backup"
 YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch\?v=|youtu.be/)([\w\-\_]+)")
 
