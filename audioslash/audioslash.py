@@ -18,7 +18,7 @@ from typing import Optional
 log = logging.getLogger("red.crab-cogs.audioslash")
 
 BACKUP_MODE = True
-DOWNLOAD_CONFIG = {'extract_audio': True, 'format': 'bestaudio', 'outtmpl': '%(title)s.mp3'}
+DOWNLOAD_CONFIG = {'extract_audio': True, 'format': 'bestaudio', 'outtmpl': '%(title).30B.mp3'}
 DOWNLOAD_FOLDER = "audioslash_backup_downloads"
 YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch\?v=|youtu.be/)([\w\-\_]+)")
 
