@@ -327,7 +327,7 @@ class AudioSlash(Cog):
         lst = []
         try:
             if not (audio := await self.get_audio_cog(inter)):
-                return lst
+                return lst[:20]
             
             if audio.local_folder_current_path and await self.config.guild(inter.guild).backup_mode():
                 folder = (audio.local_folder_current_path / DOWNLOAD_FOLDER)
@@ -336,18 +336,18 @@ class AudioSlash(Cog):
                 if current:
                     lst += [file for file in files if file.name.lower().startswith(current.lower())]
                     lst += [file for file in files if current.lower() in file.name.lower() and not file.name.lower().startswith(current.lower())]
-                    lst = lst[:10]
                 else:
                     lst += files
 
-            if not current:
-                return lst
+            if not current or len(lst) >= 20:
+                return lst[:20]
             
             search = VideosSearch(current, limit=20)
             results = await search.next()
             lst += [app_commands.Choice(name=format_youtube(res), value=res["link"]) for res in results["result"]]
         except:
             log.exception("Retrieving youtube results")
+            
         return lst[:20]
 
     @playlist_play.autocomplete("playlist")
