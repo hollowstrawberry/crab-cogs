@@ -17,8 +17,8 @@ from typing import Optional
 
 log = logging.getLogger("red.crab-cogs.audioslash")
 
-DOWNLOAD_CONFIG = {'extract_audio': True, 'format': 'bestaudio', 'outtmpl': '%(title).150B.mp3'}
-DOWNLOAD_FOLDER = "audioslash_backup_downloads"
+DOWNLOAD_CONFIG = {'extract_audio': True, 'format': 'bestaudio', 'outtmpl': '%(title).85s.mp3'}
+DOWNLOAD_FOLDER = "backup"
 YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch\?v=|youtu.be/)([\w\-\_]+)")
 
 async def extract_info(ydl: YoutubeDL, url: str) -> dict:
@@ -332,7 +332,7 @@ class AudioSlash(Cog):
             if audio.local_folder_current_path and await self.config.guild(inter.guild).backup_mode():
                 folder = (audio.local_folder_current_path / DOWNLOAD_FOLDER)
                 folder.mkdir(parents=True, exist_ok=True)
-                files = [app_commands.Choice(name=filename, value=f"{DOWNLOAD_FOLDER}/{filename}") for filename in os.listdir(folder)]
+                files = [app_commands.Choice(name=filename, value=f"{DOWNLOAD_FOLDER}/{filename}"[:100]) for filename in os.listdir(folder)]
                 if current:
                     lst += [file for file in files if file.name.lower().startswith(current.lower())]
                     lst += [file for file in files if current.lower() in file.name.lower() and not file.name.lower().startswith(current.lower())]
