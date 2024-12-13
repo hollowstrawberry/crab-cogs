@@ -7,7 +7,7 @@ import asyncio
 import discord
 from copy import copy
 from redbot.core import commands, app_commands
-from redbot.core.bot import Red
+from redbot.core.bot import Red, Config
 from redbot.core.commands import Cog
 from redbot.cogs.audio import Audio
 from redbot.cogs.audio.utils import PlaylistScope
@@ -17,7 +17,6 @@ from typing import Optional
 
 log = logging.getLogger("red.crab-cogs.audioslash")
 
-BACKUP_MODE = True
 DOWNLOAD_CONFIG = {'extract_audio': True, 'format': 'bestaudio', 'outtmpl': '%(title).150B.mp3'}
 DOWNLOAD_FOLDER = "audioslash_backup_downloads"
 YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch\?v=|youtu.be/)([\w\-\_]+)")
@@ -28,6 +27,14 @@ async def extract_info(ydl: YoutubeDL, url: str) -> dict:
 async def download_video(ydl: YoutubeDL, url: str) -> dict:
     return await asyncio.to_thread(ydl.extract_info, url)
 
+def format_youtube(res: dict) -> str:
+    name = f"({res['duration']}) {res['title']}"
+    author = f" — {res['channel']['name']}"
+    if len(name) + len(author) > 100:
+        return name[:97 - len(author)] + "..." + author
+    else:
+        return name + author
+
 
 class AudioSlash(Cog):
     """Audio cog commands in the form of slash commands, with YouTube and playlist autocomplete."""
@@ -35,6 +42,8 @@ class AudioSlash(Cog):
     def __init__(self, bot: Red, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.bot = bot
+        self.config = Config.get_conf(self, identifier=77241349)
+        self.config.register_guild({"backup_mode": False})
 
     async def red_delete_data_for_user(self, **kwargs):
         pass
@@ -78,7 +87,7 @@ class AudioSlash(Cog):
             return
         ctx = await self.get_context(inter, audio)
 
-        if BACKUP_MODE:
+        if await self.config.guild(ctx.guild).backup_mode():
             if not audio.local_folder_current_path:
                 await ctx.send("Connect bot to a voice channel first")
                 return
@@ -312,26 +321,34 @@ class AudioSlash(Cog):
             return
         await audio.command_playlist_delete(ctx, match, scope_data=self.get_scope_data(scope, ctx))
 
-    @staticmethod
-    def format_youtube(res: dict) -> str:
-        name = f"({res['duration']}) {res['title']}"
-        author = f" — {res['channel']['name']}"
-        if len(name) + len(author) > 100:
-            return name[:97 - len(author)] + "..." + author
-        else:
-            return name + author
-
     @play.autocomplete("search")
     @playlist_add.autocomplete("track")
-    async def youtube_autocomplete(self, _: discord.Interaction, current: str):
+    async def youtube_autocomplete(self, inter: discord.Interaction, current: str):
+        lst = []
         try:
+            if not (audio := await self.get_audio_cog(inter)):
+                return lst
+            
+            if audio.local_folder_current_path and await self.config.guild(inter.guild).backup_mode():
+                folder = (audio.local_folder_current_path / DOWNLOAD_FOLDER)
+                folder.mkdir(parents=True, exist_ok=True)
+                files = [app_commands.Choice(name=filename, value=f"{DOWNLOAD_FOLDER}/{filename}") for filename in os.listdir(folder)]
+                if current:
+                    lst += [file for file in files if file.name.lower().startswith(current.lower())]
+                    lst += [file for file in files if current.lower() in file.name.lower() and not file.name.lower().startswith(current.lower())]
+                    lst = lst[:10]
+                else:
+                    lst += files
+
             if not current:
-                return []
+                return lst
+            
             search = VideosSearch(current, limit=20)
             results = await search.next()
-            return [app_commands.Choice(name=self.format_youtube(res), value=res["link"]) for res in results["result"]]
+            lst += [app_commands.Choice(name=format_youtube(res), value=res["link"]) for res in results["result"]]
         except:
             log.exception("Retrieving youtube results")
+        return lst[:20]
 
     @playlist_play.autocomplete("playlist")
     @playlist_add.autocomplete("playlist")
@@ -361,3 +378,13 @@ class AudioSlash(Cog):
             return [app_commands.Choice(name=pl, value=pl) for pl in results][:25]
         except:
             log.exception("Retrieving playlists")
+
+    @commands.command(name="audioslashbackupmode")
+    @commands.is_owner()
+    async def audioslashbackupmode(self, ctx: commands.Context, value: bool | None):
+        """If audio stopped working, enable this to download tracks locally automatically."""
+        if value is None:
+            value = await self.config.guild(ctx.guild).backup_mode()
+        else:
+            await self.config.guild(ctx.guild).backup_mode.set(value)
+        await ctx.reply(f"Backup mode: `{value}`", mention_author=False)
