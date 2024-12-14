@@ -2,7 +2,6 @@ from io import BytesIO
 from re import Match
 from PIL import Image
 from base64 import b64encode
-from typing import TypeVar
 
 
 def sanitize(text: str) -> str:

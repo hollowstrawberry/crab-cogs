@@ -2,7 +2,7 @@ import json
 import logging
 import aiohttp
 import trafilatura
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ElementTree
 from abc import ABC, abstractmethod
 from dataclasses import asdict
 from redbot.core import commands
@@ -39,16 +39,16 @@ class SearchFunctionCall(FunctionCallBase):
                     "query": {
                         "type": "string",
                         "description": "The search query",
-                }},
+                    }},
                 required=["query"],
-    )))
+            )))
 
     async def run(self, arguments: dict) -> str:
         api_key = (await self.ctx.bot.get_shared_api_tokens("serper")).get("api_key")
         if not api_key:
             log.error("Tried to do a google search but serper api_key not found")
             return "An error occured while searching Google."
-        
+
         url = "https://google.serper.dev/search"
         query = arguments["query"]
         log.info(f"{query=}")
@@ -62,7 +62,7 @@ class SearchFunctionCall(FunctionCallBase):
         except:
             log.exception("Failed request to serper.io")
             return "An error occured while searching Google."
-        
+
         content = "[Google Search result] "
 
         if answer_box := data.get("answerBox", {}):
@@ -104,9 +104,9 @@ class ScrapeFunctionCall(FunctionCallBase):
                     "url": {
                         "type": "string",
                         "description": "The link to open",
-                }},
+                    }},
                 required=["url"],
-    )))
+            )))
 
     headers = {
         "Cache-Control": "no-cache",
@@ -122,7 +122,7 @@ class ScrapeFunctionCall(FunctionCallBase):
                 async with session.get(url) as response:
                     response.raise_for_status()
                     content_type = response.headers.get('Content-Type', '').lower()
-                    if not 'text/html' in content_type:
+                    if 'text/html' not in content_type:
                         return f"Contents of {url} is not text/html"
 
                     content = trafilatura.extract(await response.text())
@@ -131,7 +131,7 @@ class ScrapeFunctionCall(FunctionCallBase):
             return f"Failed to open {url}"
 
         return f"[Contents of {url}:]\n{content}"
-    
+
 
 class WolframAlphaFunctionCall(FunctionCallBase):
     schema = ToolCall(
@@ -143,9 +143,9 @@ class WolframAlphaFunctionCall(FunctionCallBase):
                     "query": {
                         "type": "string",
                         "description": "A math operation, currency conversion, or weather question"
-                }},
+                    }},
                 required=["query"],
-    )))
+            )))
 
     async def run(self, arguments: dict) -> str:
         api_key = (await self.ctx.bot.get_shared_api_tokens("wolframalpha")).get("appid")
@@ -166,21 +166,21 @@ class WolframAlphaFunctionCall(FunctionCallBase):
         except:
             log.exception("Asking Wolfram Alpha")
             return "An error occured while asking Wolfram Alpha."
-        
-        root = ET.fromstring(result)
+
+        root = ElementTree.fromstring(result)
         plaintext = []
         for pt in root.findall(".//plaintext"):
             if pt.text:
                 plaintext.append(pt.text.capitalize())
         if not plaintext:
             return f"Wolfram Alpha is unable to answer the question. Try to answer with your own knowledge."
-        content = "\n".join(plaintext[:3]) # lines after the 3rd are often irrelevant in answers such as currency conversion
+        content = "\n".join(plaintext[:3])  # lines after the 3rd are often irrelevant in answers such as currency conversion
 
         if FARENHEIT_PATTERN.search(content):
             content = FARENHEIT_PATTERN.sub(farenheit_to_celsius, content)
 
         return f"[Wolfram Alpha] [Question: {query}] [Answer:] {content}"
-    
+
 
 all_function_calls = FunctionCallBase.__subclasses__()
 log.info(f"{all_function_calls=}")

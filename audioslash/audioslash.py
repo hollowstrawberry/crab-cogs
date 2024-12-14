@@ -9,7 +9,7 @@ from copy import copy
 from redbot.core import commands, app_commands
 from redbot.core.bot import Red, Config
 from redbot.core.commands import Cog
-from redbot.cogs.audio import Audio
+from redbot.cogs.audio.core import Audio
 from redbot.cogs.audio.utils import PlaylistScope
 from redbot.cogs.audio.converters import PlaylistConverter, ScopeParser
 from redbot.cogs.audio.apis.playlist_interface import get_all_playlist
@@ -17,15 +17,20 @@ from typing import Optional
 
 log = logging.getLogger("red.crab-cogs.audioslash")
 
-DOWNLOAD_CONFIG = {'extract_audio': True, 'format': 'bestaudio', 'outtmpl': '%(title).85s.mp3', 'extractor_args': {'youtube': {'lang': ['en']}}}
+DOWNLOAD_CONFIG = {
+    'extract_audio': True,
+    'format': 'bestaudio',
+    'outtmpl': '%(title).85s.mp3',
+    'extractor_args': {'youtube': {'lang': ['en']}}
+}
 DOWNLOAD_FOLDER = "backup"
-YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch\?v=|youtu.be/)([\w\-\_]+)")
+YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch\?v=|youtu.be/)([\w\-]+)")
 
 async def extract_info(ydl: YoutubeDL, url: str) -> dict:
-    return await asyncio.to_thread(ydl.extract_info, url, False)
+    return await asyncio.to_thread(ydl.extract_info, url, False)  # noqa
 
 async def download_video(ydl: YoutubeDL, url: str) -> dict:
-    return await asyncio.to_thread(ydl.extract_info, url)
+    return await asyncio.to_thread(ydl.extract_info, url)  # noqa
 
 def format_youtube(res: dict) -> str:
     name = f"({res['duration']}) {res['title']}"
@@ -44,9 +49,6 @@ class AudioSlash(Cog):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=77241349)
         self.config.register_guild(**{"backup_mode": False})
-
-    async def red_delete_data_for_user(self, **kwargs):
-        pass
 
     async def get_audio_cog(self, inter: discord.Interaction) -> Optional[Audio]:
         cog: Optional[Audio] = self.bot.get_cog("Audio")
@@ -381,7 +383,7 @@ class AudioSlash(Cog):
 
     @commands.command(name="audioslashbackupmode")
     @commands.is_owner()
-    async def audioslashbackupmode(self, ctx: commands.Context, value: bool | None):
+    async def audioslashbackupmode(self, ctx: commands.Context, value: Optional[bool]):
         """If audio stopped working, enable this to download tracks locally automatically."""
         if value is None:
             value = await self.config.guild(ctx.guild).backup_mode()

@@ -58,7 +58,7 @@ class GptMemory(GptMemoryBase):
 
     @commands.Cog.listener()
     async def on_message_without_command(self, message: discord.Message):
-        ctx: commands.Context = await self.bot.get_context(message)
+        ctx: commands.Context = await self.bot.get_context(message)  # noqa
         if not await self.is_valid_trigger(ctx):
             return
         
@@ -70,16 +70,16 @@ class GptMemory(GptMemoryBase):
 
     async def is_valid_trigger(self, ctx: commands.Context) -> bool:
         if self.bot.user not in ctx.message.mentions:
-            return
+            return False
         if ctx.author.bot:
             return False
         
         if await self.config.guild(ctx.guild).channel_mode() == "blacklist" \
                 and ctx.channel.id in await self.config.guild(ctx.guild).channels():
-            return
+            return False
         elif await self.config.guild(ctx.guild).channel_mode() == "whitelist" \
-            and ctx.channel.id not in await self.config.guild(ctx.guild).channels():
-            return
+                and ctx.channel.id not in await self.config.guild(ctx.guild).channels():
+            return False
 
         if await self.bot.cog_disabled_in_guild(self, ctx.guild):
             return False
@@ -96,7 +96,8 @@ class GptMemory(GptMemoryBase):
         return True
 
 
-    async def wait_for_embed(self, ctx: commands.Context) -> commands.Context:
+    @staticmethod
+    async def wait_for_embed(ctx: commands.Context) -> commands.Context:
         for n in range(2):
             if ctx.message.embeds:
                 return ctx
@@ -157,7 +158,7 @@ class GptMemory(GptMemoryBase):
                 emotes=(await self.config.guild(ctx.guild).emotes()) or "[None]",
                 currentdatetime=datetime.now().strftime("%Y-%m-%d %H:%M:%S %Z%z"),
                 memories=recalled_memories,
-        )}
+            )}
         temp_messages = [msg for msg in messages]
         temp_messages.insert(0, system_prompt)
 
@@ -414,7 +415,7 @@ class GptMemory(GptMemoryBase):
         if len(content) == starting_len:
             content += " [Message empty or not supported]"
 
-        mentions = message.mentions + message.role_mentions + message.channel_mentions
+        mentions = message.mentions + message.role_mentions + message.channel_mentions  # noqa
         for mentioned in mentions:
             if mentioned in message.channel_mentions:
                 content = content.replace(mentioned.mention, f'#{mentioned.name}')
