@@ -83,6 +83,17 @@ class Booru(commands.Cog):
         embed.set_footer(text=f"⭐ {result.get('score', 0)}")
         await ctx.send(embed=embed)
 
+    @commands.hybrid_command(aliases=["tag", "tags", "boorutags"])
+    async def boorutag(self, ctx: commands.Context, *, tag_search: str):
+        """Searches for tags on Gelbooru."""
+        tag_search = tag_search.replace(" ", "_").strip()
+        results = await self.tags_autocomplete(None, tag_search)
+        if results:
+            results_str = ", ".join([f"`{choice.name}`" for choice in results])
+            await ctx.send(f"> Matches for `{tag_search}` in order of popularity:\n{results_str}")
+        else:
+            await ctx.send(f"No matches for `{tag_search}`")
+
     @booru.autocomplete("tags")
     async def tags_autocomplete(self, interaction: discord.Interaction, current: str):
         if current is None:
