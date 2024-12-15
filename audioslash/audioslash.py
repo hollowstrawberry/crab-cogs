@@ -7,6 +7,7 @@ import httpx
 import logging
 import asyncio
 import discord
+import functools
 from copy import copy
 from redbot.core import commands, app_commands
 from redbot.core.bot import Red, Config
@@ -43,15 +44,10 @@ def format_youtube(res: dict) -> str:
     else:
         return name + author
 
-class RequestCore:
-    url = None
-    data = None
-    timeout = None
-
-    async def asyncPostRequest(self) -> httpx.Response:
-        async with httpx.AsyncClient() as client:
-            r = await client.post(self.url, headers={"User-Agent": userAgent}, json=self.data, timeout=self.timeout)
-            return r
+async def asyncPostRequest(self) -> httpx.Response:
+    async with httpx.AsyncClient() as client:
+        r = await client.post(self.url, headers={"User-Agent": userAgent}, json=self.data, timeout=self.timeout)
+        return r
 
 
 class AudioSlash(Cog):
@@ -358,7 +354,7 @@ class AudioSlash(Cog):
                 return lst[:20]
             
             search = VideosSearch(current, limit=20)
-            search.asyncPostRequest = RequestCore.asyncPostRequest
+            search.asyncPostRequest = functools.partial(asyncPostRequest, search)
             results = await search.next()
             lst += [app_commands.Choice(name=format_youtube(res), value=res["link"]) for res in results["result"]]
         except:
