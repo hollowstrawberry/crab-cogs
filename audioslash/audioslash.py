@@ -113,7 +113,7 @@ class AudioSlash(Cog):
                 os.chdir(audio.local_folder_current_path / DOWNLOAD_FOLDER)
                 ydl = YoutubeDL(DOWNLOAD_CONFIG)
                 video_info = await extract_info(ydl, search)
-                if video_info["duration"] > MAX_VIDEO_LENGTH:
+                if "duration" not in video_info or video_info["duration"] > MAX_VIDEO_LENGTH:
                     await ctx.send("Video too long!")
                     return
                 filename = ydl.prepare_filename(video_info)
