@@ -83,7 +83,7 @@ class Booru(commands.Cog):
         embed.set_footer(text=f"⭐ {result.get('score', 0)}")
         await ctx.send(embed=embed)
 
-    @commands.hybrid_command(aliases=["tag", "tags", "boorutags"])
+    @commands.hybrid_command(aliases=["boorutags"])
     async def boorutag(self, ctx: commands.Context, *, tag_search: str):
         """Searches for tags on Gelbooru."""
         tag_search = tag_search.replace(" ", "_").strip()
