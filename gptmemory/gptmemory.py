@@ -289,7 +289,7 @@ class GptMemory(GptMemoryBase):
         backread.insert(0, ctx.message)
 
         messages = []
-        processed_images = []
+        processed_image_sources = []
         tokens = 0
         encoding = encoding_for_model(defaults.MODEL_RESPONDER)
 
@@ -301,7 +301,7 @@ class GptMemory(GptMemoryBase):
             except:
                 quote = None
 
-            image_contents = await self.extract_images(backmsg, quote, processed_images)
+            image_contents = await self.extract_images(backmsg, quote, processed_image_sources)
             text_content = await self.parse_discord_message(backmsg, quote=quote)
             if image_contents:
                 image_contents.insert(0, {"type": "text", "text": text_content})
@@ -323,7 +323,7 @@ class GptMemory(GptMemoryBase):
         return list(reversed(messages))
 
 
-    async def extract_images(self, message: discord.Message, quote: discord.Message, processed_images: list[discord.Attachment | str]) -> list[dict]:
+    async def extract_images(self, message: discord.Message, quote: discord.Message, processed_sources: list[discord.Attachment | str]) -> list[dict]:
         if message.id in self.image_cache:
             log.info("Retrieving cached image(s)")
             return self.image_cache[message.id]
@@ -336,9 +336,9 @@ class GptMemory(GptMemoryBase):
             images = [att for att in attachments if att.content_type.startswith('image/')]
 
             for image in images[:defaults.IMAGES_PER_MESSAGE]:
-                if image in processed_images:
+                if image in processed_sources:
                     continue
-                processed_images.append(image)
+                processed_sources.append(image)
                 try:
                     buffer = BytesIO()
                     await image.save(buffer, seek_begin=True)
@@ -372,9 +372,9 @@ class GptMemory(GptMemoryBase):
 
         async with aiohttp.ClientSession() as session:
             for url in image_url[:defaults.IMAGES_PER_MESSAGE]:
-                if url in processed_images:
+                if url in processed_sources:
                     continue
-                processed_images.append(url)
+                processed_sources.append(url)
                 
                 try:
                     async with session.get(url) as response:
