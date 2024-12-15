@@ -2,7 +2,6 @@
 
 import io
 import re
-import json
 import base64
 import logging
 import discord
@@ -20,19 +19,14 @@ re_username = re.compile("^.?[a-zA-Z0-9_]{3,30}$")
 
 class Minecraft(commands.Cog):
     """Manage a Minecraft server from Discord."""
-    __version__ = "3.1.1"
-
-    def format_help_for_context(self, ctx: commands.Context) -> str:
-        # Thanks Sinbad! And Trusty in whose cogs I found this.
-        pre_processed = super().format_help_for_context(ctx)
-        return f"{pre_processed}\n\nVersion: {self.__version__}"
 
     def __init__(self, bot):
+        super().__init__()
         self.config = Config.get_conf(self, identifier=110320200153)
         default_guild = {
             "players": {},
             "host": "localhost",
-            "port":25565,
+            "port": 25565,
             "rcon_port": 25575,
             "password": ""}
         self.config.register_guild(**default_guild)

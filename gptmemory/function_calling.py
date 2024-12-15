@@ -186,4 +186,3 @@ class WolframAlphaFunctionCall(FunctionCallBase):
 
 
 all_function_calls = FunctionCallBase.__subclasses__()
-log.info(f"{all_function_calls=}")
