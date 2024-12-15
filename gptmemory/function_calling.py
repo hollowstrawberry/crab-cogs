@@ -16,6 +16,7 @@ log = logging.getLogger("red.crab-cogs.gptmemory")
 
 class FunctionCallBase(ABC):
     schema: ToolCall = None
+    apis: list[tuple[str, str]] = []
 
     def __init__(self, ctx: commands.Context):
         self.ctx = ctx
@@ -30,6 +31,7 @@ class FunctionCallBase(ABC):
 
 
 class SearchFunctionCall(FunctionCallBase):
+    necessary_api = [("serper", "api_key")]
     schema = ToolCall(
         Function(
             name="search_google",
@@ -134,6 +136,7 @@ class ScrapeFunctionCall(FunctionCallBase):
 
 
 class WolframAlphaFunctionCall(FunctionCallBase):
+    necessary_api = [("wolframalpha", "appid")]
     schema = ToolCall(
         Function(
             name="ask_wolframalpha",
@@ -183,4 +186,3 @@ class WolframAlphaFunctionCall(FunctionCallBase):
 
 
 all_function_calls = FunctionCallBase.__subclasses__()
-log.info(f"{all_function_calls=}")

@@ -29,19 +29,27 @@ class GptMemory(GptMemoryBase):
         super().__init__(bot)
         self.openai_client = None
         self.image_cache = ExpiringDict(max_len=50, max_age_seconds=24*60*60)
-
+        self.available_function_calls = set(all_function_calls)
 
     async def cog_load(self):
+        await self.initialize_function_calls()
         await self.initialize_openai_client()
         all_config = await self.config.all_guilds()
         for guild_id, config in all_config.items():
             self.memory[guild_id] = config["memory"]
 
-
     async def cog_unload(self):
         if self.openai_client:
             await self.openai_client.close()
 
+    async def initialize_function_calls(self):
+        self.available_function_calls = set(all_function_calls)
+        for function in list(self.available_function_calls):
+            for api in function.apis:
+                secret = (await self.bot.get_shared_api_tokens(api[0])).get(api[1])
+                if not secret:
+                    self.available_function_calls.discard(function)
+        log.info(f"{self.available_function_calls=}")
 
     async def initialize_openai_client(self):
         api_key = (await self.bot.get_shared_api_tokens("openai")).get("api_key")
@@ -49,31 +57,29 @@ class GptMemory(GptMemoryBase):
             return
         self.openai_client = AsyncOpenAI(api_key=api_key)
 
-
     @commands.Cog.listener()
     async def on_red_api_tokens_update(self, service_name, _):
+        await self.initialize_function_calls()
         if service_name == "openai":
             await self.initialize_openai_client()
-
 
     @commands.Cog.listener()
     async def on_message_without_command(self, message: discord.Message):
         ctx: commands.Context = await self.bot.get_context(message)  # noqa
         if not await self.is_valid_trigger(ctx):
             return
-        
+
         if URL_PATTERN.search(message.content):
             ctx = await self.wait_for_embed(ctx)
 
-        await self.run_response(ctx) 
-
+        await self.run_response(ctx)
 
     async def is_valid_trigger(self, ctx: commands.Context) -> bool:
         if self.bot.user not in ctx.message.mentions:
             return False
         if ctx.author.bot:
             return False
-        
+
         if await self.config.guild(ctx.guild).channel_mode() == "blacklist" \
                 and ctx.channel.id in await self.config.guild(ctx.guild).channels():
             return False
@@ -87,14 +93,13 @@ class GptMemory(GptMemoryBase):
             return False
         if not await self.bot.allowed_by_whitelist_blacklist(ctx.author):
             return False
-        
+
         if not self.openai_client:
             await self.initialize_openai_client()
         if not self.openai_client:
             return False
-        
-        return True
 
+        return True
 
     @staticmethod
     async def wait_for_embed(ctx: commands.Context) -> commands.Context:
@@ -131,7 +136,7 @@ class GptMemory(GptMemoryBase):
         temp_messages = get_text_contents(messages)
         temp_messages.insert(0, system_prompt)
         response = await self.openai_client.beta.chat.completions.parse(
-            model=defaults.MODEL_RECALLER, 
+            model=defaults.MODEL_RECALLER,
             messages=temp_messages,
             response_format=MemoryRecall,
         )
@@ -148,7 +153,8 @@ class GptMemory(GptMemoryBase):
         Runs an openai completion with the chat history and the contents of memories
         and returns a response message after sending it to the user.
         """
-        tools = [t for t in all_function_calls if t.schema.function.name not in await self.config.guild(ctx.guild).disabled_functions()]
+        tools = [t for t in self.available_function_calls
+                 if t.schema.function.name not in await self.config.guild(ctx.guild).disabled_functions()]
         system_prompt = {
             "role": "system",
             "content": (await self.config.guild(ctx.guild).prompt_responder()).format(
@@ -163,7 +169,7 @@ class GptMemory(GptMemoryBase):
         temp_messages.insert(0, system_prompt)
 
         response = await self.openai_client.chat.completions.create(
-            model=defaults.MODEL_RESPONDER, 
+            model=defaults.MODEL_RESPONDER,
             messages=temp_messages,
             max_tokens=await self.config.guild(ctx.guild).response_tokens(),
             tools=[t.asdict() for t in tools],
@@ -192,7 +198,7 @@ class GptMemory(GptMemoryBase):
                 })
 
             response = await self.openai_client.chat.completions.create(
-                model=defaults.MODEL_RESPONDER, 
+                model=defaults.MODEL_RESPONDER,
                 messages=temp_messages,
                 max_tokens=await self.config.guild(ctx.guild).response_tokens(),
             )
@@ -216,7 +222,7 @@ class GptMemory(GptMemoryBase):
         """
         if not await self.config.guild(ctx.guild).allow_memorizer():
             return
-        
+
         system_prompt = {
             "role": "system",
             "content": (await self.config.guild(ctx.guild).prompt_memorizer()).format(memories, recalled_memories)
@@ -228,7 +234,7 @@ class GptMemory(GptMemoryBase):
         temp_messages.insert(0, system_prompt)
 
         response = await self.openai_client.beta.chat.completions.parse(
-            model=defaults.MODEL_MEMORIZER, 
+            model=defaults.MODEL_MEMORIZER,
             messages=temp_messages,
             response_format=MemoryChangeList,
         )
@@ -238,7 +244,7 @@ class GptMemory(GptMemoryBase):
             return
         if not completion.parsed or not completion.parsed.memory_changes:
             return
-        
+
         memory_changes = []
         async with self.config.guild(ctx.guild).memory() as memory:
             for change in completion.parsed.memory_changes:
@@ -360,11 +366,10 @@ class GptMemory(GptMemoryBase):
 
         if not image_url:
             return image_contents
-        
+
         async with aiohttp.ClientSession() as session:
             for url in image_url[:defaults.IMAGES_PER_MESSAGE]:
                 try:
-                    fp = None
                     async with session.get(url) as response:
                         response.raise_for_status()
                         fp = BytesIO(await response.read())
@@ -380,14 +385,14 @@ class GptMemory(GptMemoryBase):
             self.image_cache[message.id] = [cnt for cnt in image_contents]
 
         return image_contents
-    
+
 
     async def parse_discord_message(self, message: discord.Message, quote: discord.Message = None, recursive=True) -> str:
         content = f"[Username: {sanitize(message.author.name)}]"
         if isinstance(message.author, discord.Member) and message.author.nick:
             content += f" [Alias: {sanitize(message.author.nick)}]"
         starting_len = len(content)
-        
+
         if message.is_system():
             if message.type == discord.MessageType.new_member:
                 content += " [Joined the server]"
@@ -395,7 +400,7 @@ class GptMemory(GptMemoryBase):
                 content += f" {message.system_content}"
         elif message.content:
             content += f" [said:] {message.content}"
-        
+
         for attachment in message.attachments:
             content += f" [Attachment: {attachment.filename}]"
         for sticker in message.stickers:
@@ -405,7 +410,7 @@ class GptMemory(GptMemoryBase):
                 content += f" [Embed Title: {sanitize(embed.title)}]"
             if embed.description:
                 content += f" [Embed Content: {sanitize(embed.description)}]"
-        
+
         if quote and recursive:
             quote_content = (await self.parse_discord_message(quote, recursive=False)).replace("\n", " ")
             if len(quote_content) > defaults.QUOTE_LENGTH:
