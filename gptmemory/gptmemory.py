@@ -80,11 +80,11 @@ class GptMemory(GptMemoryBase):
         if ctx.author.bot:
             return False
 
-        if await self.config.guild(ctx.guild).channel_mode() == "blacklist" \
-                and ctx.channel.id in await self.config.guild(ctx.guild).channels():
+        channel_mode = await self.config.guild(ctx.guild).channel_mode()
+        channel_list = await self.config.guild(ctx.guild).channels()
+        if channel_mode == "blacklist" and ctx.channel.id in channel_list:
             return False
-        elif await self.config.guild(ctx.guild).channel_mode() == "whitelist" \
-                and ctx.channel.id not in await self.config.guild(ctx.guild).channels():
+        elif channel_mode == "whitelist" and ctx.channel.id not in channel_list:
             return False
 
         if await self.bot.cog_disabled_in_guild(self, ctx.guild):
