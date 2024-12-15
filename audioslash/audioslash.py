@@ -47,7 +47,7 @@ def format_youtube(res: dict) -> str:
 
 async def asyncPostRequest(self: RequestCore) -> httpx.Response:  # noqa
     """Monkey-patching for a youtubesearchpython method that stopped working with httpx>=0.28.0"""
-    async with httpx.AsyncClient(mounts=self.proxy) as client:
+    async with httpx.AsyncClient(mounts=self.proxy or None) as client:
         r = await client.post(self.url, headers={"User-Agent": userAgent}, json=self.data, timeout=self.timeout)
         return r
 
