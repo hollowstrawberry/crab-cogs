@@ -340,12 +340,12 @@ class GptMemory(GptMemoryBase):
                     continue
                 processed_sources.append(image)
                 try:
-                    buffer = BytesIO()
-                    await image.save(buffer, seek_begin=True)
-                    fp = process_image(buffer)
-                    del buffer
-                    image_contents.append(make_image_content(fp))
-                    del fp
+                    fp_before = BytesIO()
+                    await image.save(fp_before, seek_begin=True)
+                    fp_after = process_image(fp_before)
+                    del fp_before
+                    image_contents.append(make_image_content(fp_after))
+                    del fp_after
                     log.info(image.filename)
                 except:
                     log.warning("Processing image attachment", exc_info=True)
