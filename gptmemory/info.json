@@ -1,12 +1,12 @@
 {
     "author": ["hollowstrawberry"],
     "min_bot_version": "3.5.0",
-    "description": "OpenAI-powered user with persistent memory.",
+    "description": "OpenAI-powered user with persistent memory. Experimental.",
     "hidden": false,
-    "install_msg": "good luck",
+    "install_msg": "\uD83E\uDD16 The gptmemory cog will let you use your Discord Bot as an artificial user in your server, typically serving as an assistant. It features memories which may be manually set or automatically created by the bot, and recalled according to the context of the conversation. It is also capable of viewing images and using the internet.\nThis cog has most functionality ready, but you are using it at your own risk. **There are no safeguards and no limits.**\nIt uses gpt-4o, and the approach to memory means it will use as much as 3 times as many input tokens as you would expect, so you may face large monetary charges to your OpenAI api project. It also stores text-based \"memories\" which may contain information about users and their conversations. These memories as well as the recent chat logs are sent to OpenAI servers every time the bot user is pinged. As the bot's owner you become wholly responsible for the data of your users and the money that user interactions will consume.\nTo set it up, you'll need to set an openai api_key, and optionally a serper api_key for google searches and a wolframalpha appid for math and weather operations. Do this with the `[p]set api` command",
     "required_cogs": {},
     "requirements": [],
-    "short": "OpenAI-powered user with persistent memory.",
-    "end_user_data_statement": "This cog stores user data as memories for the AI.",
+    "short": "OpenAI-powered user with persistent memory. Experimental.",
+    "end_user_data_statement": "This cog stores text-based \"memories\" which may contain information about users and their conversations, and they may be sent to OpenAI servers for the AI to process.",
     "tags": ["crab", "ai", "gpt", "llm", "chatgpt", "chatbot"]
 }

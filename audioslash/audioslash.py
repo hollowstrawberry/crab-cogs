@@ -31,6 +31,9 @@ DOWNLOAD_FOLDER = "backup"
 YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch\?v=|youtu.be/)([\w\-]+)")
 MAX_VIDEO_LENGTH = 600
 
+MAX_OPTIONS = 20
+MAX_OPTION_SIZE = 100
+
 async def extract_info(ydl: YoutubeDL, url: str) -> dict:
     return await asyncio.to_thread(ydl.extract_info, url, False)  # noqa
 
@@ -40,7 +43,7 @@ async def download_video(ydl: YoutubeDL, url: str) -> dict:
 def format_youtube(res: dict) -> str:
     name = f"({res['duration']}) {res['title']}"
     author = f" — {res['channel']['name']}"
-    if len(name) + len(author) > 100:
+    if len(name) + len(author) > MAX_OPTION_SIZE:
         return name[:97 - len(author)] + "..." + author
     else:
         return name + author
@@ -339,30 +342,30 @@ class AudioSlash(Cog):
     async def youtube_autocomplete(self, inter: discord.Interaction, current: str):
         lst = []
         try:
-            if not (audio := await self.get_audio_cog(inter)):
-                return lst[:20]
-            
-            if audio.local_folder_current_path and await self.config.guild(inter.guild).backup_mode():
+            if await self.config.guild(inter.guild).backup_mode():
+                audio = await self.get_audio_cog(inter)
+                if not audio or not audio.local_folder_current_path:
+                    return lst
                 folder = (audio.local_folder_current_path / DOWNLOAD_FOLDER)
                 folder.mkdir(parents=True, exist_ok=True)
-                files = [app_commands.Choice(name=filename, value=f"{DOWNLOAD_FOLDER}/{filename}"[:100]) for filename in os.listdir(folder)]
+                files = [app_commands.Choice(name=filename, value=f"{DOWNLOAD_FOLDER}/{filename}"[:MAX_OPTION_SIZE]) for filename in os.listdir(folder)]
                 if current:
                     lst += [file for file in files if file.name.lower().startswith(current.lower())]
                     lst += [file for file in files if current.lower() in file.name.lower() and not file.name.lower().startswith(current.lower())]
                 else:
                     lst += files
 
-            if not current or len(lst) >= 20:
-                return lst[:20]
+            if not current or len(lst) >= MAX_OPTIONS:
+                return lst[:MAX_OPTIONS]
             
-            search = VideosSearch(current, limit=20)
+            search = VideosSearch(current, limit=MAX_OPTIONS-len(lst))
             search.asyncPostRequest = functools.partial(asyncPostRequest, search)
             results = await search.next()
             lst += [app_commands.Choice(name=format_youtube(res), value=res["link"]) for res in results["result"]]
         except:
             log.exception("Retrieving youtube results")
 
-        return lst[:20]
+        return lst[:MAX_OPTIONS]
 
     @playlist_play.autocomplete("playlist")
     @playlist_add.autocomplete("playlist")
