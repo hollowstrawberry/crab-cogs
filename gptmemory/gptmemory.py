@@ -27,7 +27,7 @@ class GptMemory(GptMemoryBase):
 
     def __init__(self, bot: Red):
         super().__init__(bot)
-        self.openai_client = None
+        self.openai_client: AsyncOpenAI = None
         self.image_cache = ExpiringDict(max_len=50, max_age_seconds=24*60*60)
         self.available_function_calls = set(all_function_calls)
 
@@ -44,7 +44,7 @@ class GptMemory(GptMemoryBase):
 
     async def initialize_function_calls(self):
         self.available_function_calls = set(all_function_calls)
-        for function in list(self.available_function_calls):
+        for function in all_function_calls:
             for api in function.apis:
                 secret = (await self.bot.get_shared_api_tokens(api[0])).get(api[1])
                 if not secret:
@@ -114,7 +114,7 @@ class GptMemory(GptMemoryBase):
     async def run_response(self, ctx: commands.Context):
         if ctx.guild.id not in self.memory:
             self.memory[ctx.guild.id] = {}
-        memories = ", ".join(self.memory[ctx.guild.id].keys()) or "[None]"
+        memories = ", ".join(self.memory[ctx.guild.id].keys())
 
         async with ctx.channel.typing():
             messages = await self.get_message_history(ctx)
@@ -129,6 +129,9 @@ class GptMemory(GptMemoryBase):
         Runs an openai completion with the chat history and a list of memories from the database
         and returns a parsed string of memories and their contents as chosen by the LLM.
         """
+        if not memories:
+            return
+            
         system_prompt = {
             "role": "system",
             "content": (await self.config.guild(ctx.guild).prompt_recaller()).format(memories)
@@ -286,7 +289,7 @@ class GptMemory(GptMemoryBase):
         backread.insert(0, ctx.message)
 
         messages = []
-        processed_attachments = []
+        processed_images = []
         tokens = 0
         encoding = encoding_for_model(defaults.MODEL_RESPONDER)
 
@@ -298,7 +301,7 @@ class GptMemory(GptMemoryBase):
             except:
                 quote = None
 
-            image_contents = await self.extract_images(backmsg, quote, processed_attachments)
+            image_contents = await self.extract_images(backmsg, quote, processed_images)
             text_content = await self.parse_discord_message(backmsg, quote=quote)
             if image_contents:
                 image_contents.insert(0, {"type": "text", "text": text_content})
@@ -313,14 +316,14 @@ class GptMemory(GptMemoryBase):
                 })
 
             tokens += len(encoding.encode(text_content)) + 255 * len(image_contents)
-            if n > 0 and tokens > await self.config.guild(ctx.guild).response_tokens():
+            if n > 0 and tokens > await self.config.guild(ctx.guild).backread_tokens():
                 break
 
         log.info(f"{len(messages)=} / {tokens=}")
         return list(reversed(messages))
 
 
-    async def extract_images(self, message: discord.Message, quote: discord.Message, processed_attachments: list[discord.Attachment]) -> list[dict]:
+    async def extract_images(self, message: discord.Message, quote: discord.Message, processed_images: list[discord.Attachment | str]) -> list[dict]:
         if message.id in self.image_cache:
             log.info("Retrieving cached image(s)")
             return self.image_cache[message.id]
@@ -333,9 +336,9 @@ class GptMemory(GptMemoryBase):
             images = [att for att in attachments if att.content_type.startswith('image/')]
 
             for image in images[:defaults.IMAGES_PER_MESSAGE]:
-                if image in processed_attachments:
+                if image in processed_images:
                     continue
-                processed_attachments.append(image)
+                processed_images.append(image)
                 try:
                     buffer = BytesIO()
                     await image.save(buffer, seek_begin=True)
@@ -369,6 +372,10 @@ class GptMemory(GptMemoryBase):
 
         async with aiohttp.ClientSession() as session:
             for url in image_url[:defaults.IMAGES_PER_MESSAGE]:
+                if url in processed_images:
+                    continue
+                processed_images.append(url)
+                
                 try:
                     async with session.get(url) as response:
                         response.raise_for_status()
