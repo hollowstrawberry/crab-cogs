@@ -1,17 +1,58 @@
 from youtubesearchpython.__future__ import VideosSearch
+from youtubesearchpython.core.requests import RequestCore
+from youtubesearchpython.core.constants import userAgent
+from yt_dlp import YoutubeDL
+import os
+import re
+import httpx
 import logging
+import asyncio
 import discord
+import functools
 from copy import copy
 from redbot.core import commands, app_commands
-from redbot.core.bot import Red
+from redbot.core.bot import Red, Config
 from redbot.core.commands import Cog
-from redbot.cogs.audio import Audio
+from redbot.cogs.audio.core import Audio
 from redbot.cogs.audio.utils import PlaylistScope
 from redbot.cogs.audio.converters import PlaylistConverter, ScopeParser
 from redbot.cogs.audio.apis.playlist_interface import get_all_playlist
 from typing import Optional
 
 log = logging.getLogger("red.crab-cogs.audioslash")
+
+DOWNLOAD_CONFIG = {
+    'extract_audio': True,
+    'format': 'bestaudio',
+    'outtmpl': '%(title).85s.mp3',
+    'extractor_args': {'youtube': {'lang': ['en']}}
+}
+DOWNLOAD_FOLDER = "backup"
+YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch\?v=|youtu.be/)([\w\-]+)")
+MAX_VIDEO_LENGTH = 600
+
+MAX_OPTIONS = 20
+MAX_OPTION_SIZE = 100
+
+async def extract_info(ydl: YoutubeDL, url: str) -> dict:
+    return await asyncio.to_thread(ydl.extract_info, url, False)  # noqa
+
+async def download_video(ydl: YoutubeDL, url: str) -> dict:
+    return await asyncio.to_thread(ydl.extract_info, url)  # noqa
+
+def format_youtube(res: dict) -> str:
+    name = f"({res['duration']}) {res['title']}"
+    author = f" — {res['channel']['name']}"
+    if len(name) + len(author) > MAX_OPTION_SIZE:
+        return name[:97 - len(author)] + "..." + author
+    else:
+        return name + author
+
+async def asyncPostRequest(self: RequestCore) -> httpx.Response:  # noqa
+    """Monkey-patching for a youtubesearchpython method that stopped working with httpx>=0.28.0"""
+    async with httpx.AsyncClient(mounts=self.proxy or None) as client:
+        r = await client.post(self.url, headers={"User-Agent": userAgent}, json=self.data, timeout=self.timeout)
+        return r
 
 
 class AudioSlash(Cog):
@@ -20,9 +61,8 @@ class AudioSlash(Cog):
     def __init__(self, bot: Red, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.bot = bot
-
-    async def red_delete_data_for_user(self, **kwargs):
-        pass
+        self.config = Config.get_conf(self, identifier=77241349)
+        self.config.register_guild(**{"backup_mode": False})
 
     async def get_audio_cog(self, inter: discord.Interaction) -> Optional[Audio]:
         cog: Optional[Audio] = self.bot.get_cog("Audio")
@@ -62,6 +102,26 @@ class AudioSlash(Cog):
         if not (audio := await self.get_audio_cog(inter)):
             return
         ctx = await self.get_context(inter, audio)
+
+        if await self.config.guild(ctx.guild).backup_mode():
+            if not audio.local_folder_current_path:
+                await ctx.send("Connect bot to a voice channel first")
+                return
+            if match := YOUTUBE_LINK_PATTERN.match(search):
+                search = match.group(0)
+                (audio.local_folder_current_path / DOWNLOAD_FOLDER).mkdir(parents=True, exist_ok=True)
+                os.chdir(audio.local_folder_current_path / DOWNLOAD_FOLDER)
+                ydl = YoutubeDL(DOWNLOAD_CONFIG)
+                video_info = await extract_info(ydl, search)
+                if video_info["duration"] > MAX_VIDEO_LENGTH:
+                    await ctx.send("Video too long!")
+                    return
+                filename = ydl.prepare_filename(video_info)
+                if not os.path.exists(filename):
+                    await ctx.send("Downloading video...")
+                    await download_video(ydl, search)
+                search = DOWNLOAD_FOLDER + "/" + filename
+                
         if when in ("next", "now"):
             if not await self.can_run_command(ctx, "bumpplay"):
                 return
@@ -277,26 +337,35 @@ class AudioSlash(Cog):
             return
         await audio.command_playlist_delete(ctx, match, scope_data=self.get_scope_data(scope, ctx))
 
-    @staticmethod
-    def format_youtube(res: dict) -> str:
-        name = f"({res['duration']}) {res['title']}"
-        author = f" — {res['channel']['name']}"
-        if len(name) + len(author) > 100:
-            return name[:97 - len(author)] + "..." + author
-        else:
-            return name + author
-
     @play.autocomplete("search")
     @playlist_add.autocomplete("track")
-    async def youtube_autocomplete(self, _: discord.Interaction, current: str):
+    async def youtube_autocomplete(self, inter: discord.Interaction, current: str):
+        lst = []
         try:
-            if not current:
-                return []
-            search = VideosSearch(current, limit=20)
+            if await self.config.guild(inter.guild).backup_mode():
+                audio = await self.get_audio_cog(inter)
+                if not audio or not audio.local_folder_current_path:
+                    return lst
+                folder = (audio.local_folder_current_path / DOWNLOAD_FOLDER)
+                folder.mkdir(parents=True, exist_ok=True)
+                files = [app_commands.Choice(name=filename, value=f"{DOWNLOAD_FOLDER}/{filename}"[:MAX_OPTION_SIZE]) for filename in os.listdir(folder)]
+                if current:
+                    lst += [file for file in files if file.name.lower().startswith(current.lower())]
+                    lst += [file for file in files if current.lower() in file.name.lower() and not file.name.lower().startswith(current.lower())]
+                else:
+                    lst += files
+
+            if not current or len(lst) >= MAX_OPTIONS:
+                return lst[:MAX_OPTIONS]
+            
+            search = VideosSearch(current, limit=MAX_OPTIONS-len(lst))
+            search.asyncPostRequest = functools.partial(asyncPostRequest, search)
             results = await search.next()
-            return [app_commands.Choice(name=self.format_youtube(res), value=res["link"]) for res in results["result"]]
+            lst += [app_commands.Choice(name=format_youtube(res), value=res["link"]) for res in results["result"]]
         except:
             log.exception("Retrieving youtube results")
+
+        return lst[:MAX_OPTIONS]
 
     @playlist_play.autocomplete("playlist")
     @playlist_add.autocomplete("playlist")
@@ -326,3 +395,13 @@ class AudioSlash(Cog):
             return [app_commands.Choice(name=pl, value=pl) for pl in results][:25]
         except:
             log.exception("Retrieving playlists")
+
+    @commands.command(name="audioslashbackupmode")
+    @commands.is_owner()
+    async def audioslashbackupmode(self, ctx: commands.Context, value: Optional[bool]):
+        """If audio stopped working, enable this to download tracks locally automatically."""
+        if value is None:
+            value = await self.config.guild(ctx.guild).backup_mode()
+        else:
+            await self.config.guild(ctx.guild).backup_mode.set(value)
+        await ctx.reply(f"Backup mode: `{value}`", mention_author=False)
