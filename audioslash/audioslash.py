@@ -27,6 +27,7 @@ DOWNLOAD_CONFIG = {
 }
 DOWNLOAD_FOLDER = "backup"
 YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch\?v=|youtu.be/)([\w\-]+)")
+MAX_VIDEO_LENGTH = 600
 
 async def extract_info(ydl: YoutubeDL, url: str) -> dict:
     return await asyncio.to_thread(ydl.extract_info, url, False)  # noqa
@@ -42,10 +43,15 @@ def format_youtube(res: dict) -> str:
     else:
         return name + author
 
-async def asyncPostRequest(self) -> httpx.Response:
-    async with httpx.AsyncClient() as client:
-        r = await client.post(self.url, headers={"User-Agent": userAgent}, json=self.data, timeout=self.timeout)
-        return r
+class RequestCore:
+    url = None
+    data = None
+    timeout = None
+
+    async def asyncPostRequest(self) -> httpx.Response:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(self.url, headers={"User-Agent": userAgent}, json=self.data, timeout=self.timeout)
+            return r
 
 
 class AudioSlash(Cog):
@@ -106,7 +112,7 @@ class AudioSlash(Cog):
                 os.chdir(audio.local_folder_current_path / DOWNLOAD_FOLDER)
                 ydl = YoutubeDL(DOWNLOAD_CONFIG)
                 video_info = await extract_info(ydl, search)
-                if video_info["duration"] > 600:
+                if video_info["duration"] > MAX_VIDEO_LENGTH:
                     await ctx.send("Video too long!")
                     return
                 filename = ydl.prepare_filename(video_info)
@@ -352,7 +358,7 @@ class AudioSlash(Cog):
                 return lst[:20]
             
             search = VideosSearch(current, limit=20)
-            search.asyncPostRequest = asyncPostRequest
+            search.asyncPostRequest = RequestCore.asyncPostRequest
             results = await search.next()
             lst += [app_commands.Choice(name=format_youtube(res), value=res["link"]) for res in results["result"]]
         except:
