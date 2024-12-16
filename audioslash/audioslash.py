@@ -1,15 +1,11 @@
-from youtubesearchpython.__future__ import VideosSearch
-from youtubesearchpython.core.requests import RequestCore
-from youtubesearchpython.core.constants import userAgent
-from yt_dlp import YoutubeDL
 import os
 import re
-import httpx
 import logging
 import asyncio
 import discord
-import functools
 from copy import copy
+from typing import Optional
+from yt_dlp import YoutubeDL
 from redbot.core import commands, app_commands
 from redbot.core.bot import Red, Config
 from redbot.core.commands import Cog
@@ -17,15 +13,19 @@ from redbot.cogs.audio.core import Audio
 from redbot.cogs.audio.utils import PlaylistScope
 from redbot.cogs.audio.converters import PlaylistConverter, ScopeParser
 from redbot.cogs.audio.apis.playlist_interface import get_all_playlist
-from typing import Optional
 
 log = logging.getLogger("red.crab-cogs.audioslash")
 
+LANGUAGE = "en"
+EXTRACT_CONFIG = {
+    "extract_flat": True,
+    "extractor_args": {"youtube": {"lang": [LANGUAGE]}}
+}
 DOWNLOAD_CONFIG = {
-    'extract_audio': True,
-    'format': 'bestaudio',
-    'outtmpl': '%(title).85s.mp3',
-    'extractor_args': {'youtube': {'lang': ['en']}}
+    "extract_audio": True,
+    "format": "bestaudio",
+    "outtmpl": "%(title).85s.mp3",
+    "extractor_args": {"youtube": {"lang": [LANGUAGE]}}
 }
 DOWNLOAD_FOLDER = "backup"
 YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch\?v=|youtu.be/)([\w\-]+)")
@@ -41,19 +41,16 @@ async def download_video(ydl: YoutubeDL, url: str) -> dict:
     return await asyncio.to_thread(ydl.extract_info, url)  # noqa
 
 def format_youtube(res: dict) -> str:
-    name = f"({res['duration']}) {res['title']}"
-    author = f" — {res['channel']['name']}"
+    if res.get("duration", None):
+        m, s = divmod(int(res['duration']), 60)
+        name = f"({m:02d}:{s:02d}) {res['title']}"
+    else:
+        name = f"(🔴LIVE) {res['title']}"
+    author = f" — {res['channel']}"
     if len(name) + len(author) > MAX_OPTION_SIZE:
-        return name[:97 - len(author)] + "..." + author
+        return name[:MAX_OPTION_SIZE - len(author) - 3] + "..." + author
     else:
         return name + author
-
-async def asyncPostRequest(self: RequestCore) -> httpx.Response:  # noqa
-    """Monkey-patching for a youtubesearchpython method that stopped working with httpx>=0.28.0"""
-    async with httpx.AsyncClient(mounts=self.proxy or None) as client:
-        r = await client.post(self.url, headers={"User-Agent": userAgent}, json=self.data, timeout=self.timeout)
-        return r
-
 
 class AudioSlash(Cog):
     """Audio cog commands in the form of slash commands, with YouTube and playlist autocomplete."""
@@ -355,13 +352,12 @@ class AudioSlash(Cog):
                 else:
                     lst += files
 
-            if not current or len(lst) >= MAX_OPTIONS:
+            if not current or len(current) < 3 or len(lst) >= MAX_OPTIONS:
                 return lst[:MAX_OPTIONS]
             
-            search = VideosSearch(current, limit=MAX_OPTIONS-len(lst))
-            search.asyncPostRequest = functools.partial(asyncPostRequest, search)
-            results = await search.next()
-            lst += [app_commands.Choice(name=format_youtube(res), value=res["link"]) for res in results["result"]]
+            ydl = YoutubeDL(EXTRACT_CONFIG)
+            results = await extract_info(ydl, f"ytsearch{MAX_OPTIONS-len(lst)}:{current}")
+            lst += [app_commands.Choice(name=format_youtube(res), value=res["url"]) for res in results["entries"]]
         except:
             log.exception("Retrieving youtube results")
 
