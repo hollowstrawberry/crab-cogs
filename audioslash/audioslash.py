@@ -19,13 +19,14 @@ log = logging.getLogger("red.crab-cogs.audioslash")
 LANGUAGE = "en"
 EXTRACT_CONFIG = {
     "extract_flat": True,
-    "extractor_args": {"youtube": {"lang": [LANGUAGE]}}
+    "outtmpl": "%(title).85s.mp3",
+    "extractor_args": {"youtube": {"lang": [LANGUAGE]}},
 }
 DOWNLOAD_CONFIG = {
     "extract_audio": True,
     "format": "bestaudio",
     "outtmpl": "%(title).85s.mp3",
-    "extractor_args": {"youtube": {"lang": [LANGUAGE]}}
+    "extractor_args": {"youtube": {"lang": [LANGUAGE]}},
 }
 DOWNLOAD_FOLDER = "backup"
 YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch\?v=|youtu.be/)([\w\-]+)")
