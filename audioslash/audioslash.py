@@ -123,7 +123,7 @@ class AudioSlash(Cog):
         
                 filename = ydl.prepare_filename(video_info)
                 if not os.path.exists(filename):
-                    await ctx.send(f"Downloading {filename} ...")
+                    await ctx.send(f"Downloading `{filename}` ...")
                     ydl = YoutubeDL(DOWNLOAD_CONFIG)
                     os.chdir(audio.local_folder_current_path / DOWNLOAD_FOLDER)
                     await download_video(ydl, search)
