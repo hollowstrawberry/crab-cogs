@@ -43,7 +43,7 @@ async def download_video(ydl: YoutubeDL, url: str) -> dict:
 def format_youtube(res: dict) -> str:
     if res.get("duration", None):
         m, s = divmod(int(res['duration']), 60)
-        name = f"({m:02d}:{s:02d}) {res['title']}"
+        name = f"({m}:{s:02d}) {res['title']}"
     else:
         name = f"(🔴LIVE) {res['title']}"
     author = f" — {res['channel']}"
