@@ -99,24 +99,34 @@ class AudioSlash(Cog):
         if not (audio := await self.get_audio_cog(inter)):
             return
         ctx = await self.get_context(inter, audio)
+        search = search.strip()
 
         if await self.config.guild(ctx.guild).backup_mode():
             if not audio.local_folder_current_path:
                 await ctx.send("Connect bot to a voice channel first")
                 return
-            if match := YOUTUBE_LINK_PATTERN.match(search):
-                search = match.group(0)
+                
+            if not search.startswith(DOWNLOAD_FOLDER + "/"):
+                if match := YOUTUBE_LINK_PATTERN.match(search):
+                    search = match.group(0)
+                else:
+                    search = "ytsearch1:" + search
+    
                 (audio.local_folder_current_path / DOWNLOAD_FOLDER).mkdir(parents=True, exist_ok=True)
-                os.chdir(audio.local_folder_current_path / DOWNLOAD_FOLDER)
-                ydl = YoutubeDL(DOWNLOAD_CONFIG)
+                ydl = YoutubeDL(EXTRACT_CONFIG)
                 video_info = await extract_info(ydl, search)
+        
                 if "duration" not in video_info or video_info["duration"] > MAX_VIDEO_LENGTH:
                     await ctx.send("Video too long!")
                     return
+        
                 filename = ydl.prepare_filename(video_info)
                 if not os.path.exists(filename):
-                    await ctx.send("Downloading video...")
+                    await ctx.send(f"Downloading {filename} ...")
+                    ydl = YoutubeDL(DOWNLOAD_CONFIG)
+                    os.chdir(audio.local_folder_current_path / DOWNLOAD_FOLDER)
                     await download_video(ydl, search)
+                    
                 search = DOWNLOAD_FOLDER + "/" + filename
                 
         if when in ("next", "now"):
@@ -127,7 +137,7 @@ class AudioSlash(Cog):
             if not await self.can_run_command(ctx, "play"):
                 return
             await audio.command_play(ctx, query=search)
-
+    
     @app_commands.command()
     @app_commands.guild_only
     async def pause(self, inter: discord.Interaction):
