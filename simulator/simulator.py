@@ -1,21 +1,21 @@
-import discord
-import asyncio
-import random
-import re
 import os
+import re
 import sys
-import logging
 import enum
 import json
+import random
+import logging
+import asyncio
+import discord
 import aiosqlite as sql
-from dataclasses import dataclass
-from datetime import datetime, timedelta
 from pathlib import Path
+from datetime import datetime, timedelta
+from typing import Optional, List, Dict, Tuple, Mapping, Set, Deque
+from dataclasses import dataclass
 from discord.ext import tasks
 from redbot.core import commands, Config
 from redbot.core.bot import Red
 from redbot.core.data_manager import cog_data_path
-from typing import *
 
 log = logging.getLogger("red.crab-cogs.simulator")
 
@@ -57,6 +57,7 @@ def getsize(obj_0):
     """Recursively iterate to sum size of object & members.
     https://stackoverflow.com/a/30316760"""
     _seen_ids = set()
+
     def inner(obj):
         obj_id = id(obj)
         if obj_id in _seen_ids:
@@ -75,6 +76,7 @@ def getsize(obj_0):
         if hasattr(obj, '__slots__'):  # can have __slots__ with __dict__
             size += sum(inner(getattr(obj, s)) for s in obj.__slots__ if hasattr(obj, s))
         return size
+
     return inner(obj_0)
 
 
@@ -381,7 +383,7 @@ class Simulator(commands.Cog):
                 return
             try:
                 await message.delete()
-            except:
+            except discord.DiscordException:
                 pass
             if self.role in message.author.roles:
                 self.start_conversation()
@@ -429,7 +431,7 @@ class Simulator(commands.Cog):
                     log.exception("Simulator loop")
                     try:
                         await self.output_channel.send(f'{type(error).__name__}: {error}')
-                    except:
+                    except discord.DiscordException:
                         pass
         else:
             self.seconds = (self.seconds + 1) % 60
@@ -456,7 +458,8 @@ class Simulator(commands.Cog):
 
             # discord entities
             self.guild = self.bot.get_guild(guild_id)
-            if self.guild is None: raise KeyError(self.guild.__name__)
+            if self.guild is None:
+                raise KeyError(self.guild.__name__)
             self.role = self.guild.get_role(role_id)
             self.input_channels = [self.guild.get_channel(i) for i in input_channel_ids]
             self.output_channel = self.guild.get_channel(output_channel_id)
@@ -482,14 +485,14 @@ class Simulator(commands.Cog):
             self.stage = Stage.READY
             return True
 
-        except Exception as error:
+        except Exception as error:  #
             error_msg = f'Failed to set up the simulator - {type(error).__name__}: {error}'
-            log.exception(error_msg)
+            log.exception("Setting up simulator")
             self.simulator_loop.stop()
             self.stage = Stage.NONE
             try:
                 await self.output_channel.send(error_msg)
-            except Exception:
+            except discord.DiscordException:
                 pass
             return False
 
@@ -529,7 +532,7 @@ class Simulator(commands.Cog):
             try:
                 await ctx.message.remove_reaction(EMOJI_LOADING, self.bot.user)
                 await ctx.message.add_reaction(EMOJI_SUCCESS)
-            except Exception:
+            except discord.DiscordException:
                 pass
 
     # Helper Functions

@@ -50,7 +50,6 @@ class VoiceLog(commands.Cog):
 
     @commands.group(invoke_without_command=True)
     @commands.has_permissions(manage_guild=True)
-    @commands.bot_has_permissions(embed_links=True, add_reactions=True)
     @commands.guild_only()
     async def voicelog(self, ctx: commands.Context):
         """Voice Log configuration"""
@@ -61,11 +60,11 @@ class VoiceLog(commands.Cog):
         """Enable voice log for the whole guild."""
         self.allowedguilds.add(ctx.guild.id)
         await self.config.guild(ctx.guild).enabled.set(True)
-        await ctx.react_quietly('✅')
+        await ctx.tick()
 
     @voicelog.command(name="disable")
     async def voicelog_disable(self, ctx: commands.Context):
         """Disable voice log for the whole guild."""
         self.allowedguilds.remove(ctx.guild.id)
         await self.config.guild(ctx.guild).enabled.set(False)
-        await ctx.react_quietly('✅')
+        await ctx.tick()
