@@ -37,6 +37,9 @@ class Minecraft(commands.Cog):
         }
         self.config.register_guild(**default_guild)
 
+    async def initialize(self):
+        pass
+
     async def cog_load(self):
         all_data = await self.config.all_guilds()
         for guild_id, data in all_data.items():
@@ -52,7 +55,6 @@ class Minecraft(commands.Cog):
                     updated = True
             if updated:
                 await self.config.guild_from_id(guild_id).players.set(data["players"])
-
 
     async def cog_unload(self):
         for client in self.clients.values():
