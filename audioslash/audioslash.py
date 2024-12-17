@@ -33,7 +33,7 @@ DOWNLOAD_FOLDER = "backup"
 YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch\?v=|youtu.be/)([\w\-]+)")
 MAX_VIDEO_LENGTH = 600
 
-MAX_OPTIONS = 20
+MAX_OPTIONS = 25
 MAX_OPTION_SIZE = 100
 
 async def extract_info(ydl: YoutubeDL, url: str) -> dict:
