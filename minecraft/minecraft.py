@@ -24,6 +24,7 @@ class Minecraft(commands.Cog):
 
     def __init__(self, bot: Red):
         super().__init__()
+        self.bot = bot
         self.config = Config.get_conf(self, identifier=110320200153)
         default_guild = {
             "players": {},
@@ -34,11 +35,13 @@ class Minecraft(commands.Cog):
             "players_to_delete": [],
         }
         self.config.register_guild(**default_guild)
-        self.config.register_global(notification=0)
-        self.bot = bot
 
-    async def initialize(self):
-        await self.bot.wait_until_red_ready()
+    async def red_delete_data_for_user(self, requester: str, user_id: int):
+        data = await self.config.all_guilds()
+        for guild_id in data:
+            if str(user_id) in data[guild_id]["players"]:
+                del data[guild_id]["players"][str(user_id)]
+                await self.config.guild_from_id(guild_id).players.set(data[guild_id]["players"])
 
     @staticmethod
     async def run_minecraft_command(command: str, host: str, port: int, passw: str) -> Tuple[bool, str]:
