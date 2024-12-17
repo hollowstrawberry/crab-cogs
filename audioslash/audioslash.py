@@ -428,7 +428,7 @@ class AudioSlash(Cog):
         else:
             results = [pl.name for pl in playlists]
 
-        return [app_commands.Choice(name=pl, value=pl) for pl in results][:25]
+        return [app_commands.Choice(name=pl, value=pl) for pl in results][:MAX_OPTIONS]
 
 
     @commands.command(name="audioslashbackupmode", hidden=True)
