@@ -1,15 +1,16 @@
 import os
 import shutil
 import logging
+import asyncio
 import lavalink
 from gtts import gTTS
+from typing import Optional
 from googletrans import Translator
 from discord.ext import tasks
 from redbot.core import commands
 from redbot.core.bot import Red, cog_data_path
 from redbot.core.commands import Cog
 from redbot.cogs.audio import Audio
-from typing import Optional
 
 log = logging.getLogger("red.crab-cogs.tts")
 
@@ -32,11 +33,12 @@ class TextToSpeech(Cog):
         try:
             if os.path.exists(self.tts_storage):
                 shutil.rmtree(self.tts_storage)
-        except:
+        except OSError:
             log.exception("Trying to clear old TTS audio files")
 
     async def cog_unload(self):
         self.clear_old_tts.stop()
+
 
     @commands.hybrid_command()
     @commands.guild_only()
@@ -47,12 +49,12 @@ class TextToSpeech(Cog):
         if audio is None:
             return await ctx.send("Audio cog is not loaded!")
         if not ctx.guild.me.voice:
-            if await ctx.invoke(audio.command_summon):
+            if await ctx.invoke(audio.command_summon):  # noqa, reason: should work despite type hint
                 return  # failed to join voicechat
 
         try:
-            lang = self.translator.detect(text).lang
-            tts = gTTS(text, lang=lang)
+            result = await asyncio.to_thread(self.translator.detect, text)
+            tts = gTTS(text, lang=result.lang)
         except Exception as error:
             if not isinstance(error, ValueError):
                 log.exception("Trying to detect language")
@@ -62,8 +64,8 @@ class TextToSpeech(Cog):
         audio_path = str(self.tts_storage.joinpath(f"{ctx.message.id}.mp3"))
 
         try:
-            tts.save(audio_path)
-        except:
+            await asyncio.to_thread(tts.save, audio_path)
+        except OSError:
             log.exception("Trying to save TTS audio")
             return ctx.send("There was an error saving the voice message. Check the logs for more details.")
 
