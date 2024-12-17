@@ -181,10 +181,13 @@ class Minecraft(commands.Cog):
             embed.add_field(name="Status", value="🟢 Online")
             embed.add_field(name=f"Players ({status.players.online}/{status.players.max})",
                             value="\n" + ", ".join([p.name for p in status.players.sample]) if status.players.online else "*None*")
-            b = io.BytesIO(base64.b64decode(status.icon.removeprefix("data:image/png;base64,")))
-            filename = "server.png"
-            file = discord.File(b, filename=filename)
-            embed.set_thumbnail(url=f"attachment://{filename}")
+            if status.icon:
+                b = io.BytesIO(base64.b64decode(status.icon.removeprefix("data:image/png;base64,")))
+                filename = "server.png"
+                file = discord.File(b, filename=filename)
+                embed.set_thumbnail(url=f"attachment://{filename}")
+            else:
+                file = None
 
         await ctx.send(embed=embed, file=file)
 
