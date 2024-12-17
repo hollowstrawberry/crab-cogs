@@ -107,6 +107,7 @@ class Minecraft(commands.Cog):
             server = await JavaServer.async_lookup(ip)
             status = await server.async_status() if server else None
         except Exception as error:  # python package is unclear as to the errors that may be raised
+            log.info(error)
             if f"{error}" == "Socket did not respond with any information!":
                 return await ctx.send("🟡 The server is asleep! You can join to start it back up.")
             elif f"{error}" == "[Errno 111] Connection refused":
