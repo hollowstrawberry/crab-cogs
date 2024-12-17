@@ -51,7 +51,7 @@ def format_youtube(res: dict) -> str:
     
     author = f" — {res['channel']}"
     if len(author) > MAX_OPTION_SIZE // 2:
-        author = author[:MAX_OPTION_SIZE//2 - 3] + "...'
+        author = author[:MAX_OPTION_SIZE//2 - 3] + "..."
     
     if len(name) + len(author) > MAX_OPTION_SIZE:
         return name[:MAX_OPTION_SIZE - len(author) - 3] + "..." + author
