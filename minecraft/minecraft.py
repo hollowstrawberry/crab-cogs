@@ -4,6 +4,7 @@ import io
 import re
 import base64
 import logging
+
 import discord
 from discord import Embed
 from redbot.core import Config, commands
@@ -36,6 +37,18 @@ class Minecraft(commands.Cog):
     async def initialize(self):
         await self.bot.wait_until_red_ready()
 
+    @staticmethod
+    async def run_minecraft_command(command: str, host: str, port: int, passw: str) -> str:
+        try:
+            async with Client(host, port, passw) as c:
+                resp = await c.send_cmd(command, 10)
+                return resp[0]
+        except RCONConnectionError:
+            return "Couldn't connect to the server"
+        except Exception as error:  # catch everything to be able to give feedback to the user
+            log.exception("Executing command")
+            return f"{type(error).__name__}: {error}"
+
     @commands.Cog.listener()
     async def on_member_remove(self, member):
         """Remove member from whitelist when leaving guild"""
@@ -44,15 +57,17 @@ class Minecraft(commands.Cog):
         port = await self.config.guild(member.guild).rcon_port()
         passw = await self.config.guild(member.guild).password()
         if str(member.id) in p_in_conf:
-            async with Client(host, port, passw) as client:
-                await client.send_cmd(f"whitelist remove {p_in_conf[str(member.id)]['name']}")
+            await self.run_minecraft_command(
+                f"whitelist remove {p_in_conf[str(member.id)]['name']}", host, port, passw)
             del p_in_conf[str(member.id)]
             await self.config.guild(member.guild).players.set(p_in_conf)
+
 
     @commands.group()
     async def minecraft(self, ctx):
         """Minecraft server commands"""
         pass
+
 
     @commands.guildowner()
     @minecraft.command()
@@ -81,6 +96,7 @@ class Minecraft(commands.Cog):
         else:
             await ctx.send("Server credentials saved.")
 
+
     @minecraft.command()
     async def status(self, ctx):
         """Display info about the Minecraft server."""
@@ -90,10 +106,10 @@ class Minecraft(commands.Cog):
         try:
             server = await JavaServer.async_lookup(ip)
             status = await server.async_status() if server else None
-        except Exception as e:
-            if f"{e}" == "Socket did not respond with any information!":
+        except Exception as error:  # python package is unclear as to the errors that may be raised
+            if f"{error}" == "Socket did not respond with any information!":
                 return await ctx.send("🟡 The server is asleep! You can join to start it back up.")
-            return await ctx.send(f"An error occurred. {e}")
+            return await ctx.send(f"An error occurred. {error}")
 
         if not status:
             embed = discord.Embed(title=f"Minecraft Server", color=0xFF0000)
@@ -115,7 +131,9 @@ class Minecraft(commands.Cog):
             filename = "server.png"
             file = discord.File(b, filename=filename)
             embed.set_thumbnail(url=f"attachment://{filename}")
+
         await ctx.send(embed=embed, file=file)
+
 
     @minecraft.command()
     async def join(self, ctx, name: str):
@@ -130,12 +148,9 @@ class Minecraft(commands.Cog):
         passw = await self.config.guild(ctx.guild).password()
         p_in_conf[ctx.author.id] = {"name": name}
         await self.config.guild(ctx.guild).players.set(p_in_conf)
-        async with Client(host, port, passw) as c:
-            resp = await c.send_cmd(f"whitelist add {name}", 30)
-        await ctx.send(resp[0])
-        async with Client(host, port, passw) as c:
-            resp = await c.send_cmd("whitelist reload")
-        await ctx.send(resp[0])
+        await ctx.send(await self.run_minecraft_command(f"whitelist add {name}", host, port, passw))
+        await ctx.send(await self.run_minecraft_command("whitelist reload", host, port, passw))
+
 
     @minecraft.command()
     async def leave(self, ctx):
@@ -144,18 +159,18 @@ class Minecraft(commands.Cog):
         host = await self.config.guild(ctx.guild).host()
         port = await self.config.guild(ctx.guild).rcon_port()
         passw = await self.config.guild(ctx.guild).password()
+
         if str(ctx.author.id) in p_in_conf:
             deleted = p_in_conf[str(ctx.author.id)]
             del p_in_conf[str(ctx.author.id)]
-            async with Client(host, port, passw) as c:
-                resp = await c.send_cmd(f"whitelist remove {deleted}")
             await self.config.guild(ctx.guild).players.set(p_in_conf)
-            await ctx.send(resp[0])
+            resp = await self.run_minecraft_command(f"whitelist remove {deleted}", host, port, passw)
+            await ctx.send(resp)
         else:
             await ctx.send("That Minecraft account is not whitelisted on the server.")
-        async with Client(host, port, passw) as c:
-            resp = await c.send_cmd("whitelist reload")
-        await ctx.send(resp[0])
+
+        await ctx.send(await self.run_minecraft_command("whitelist reload", host, port, passw))
+
 
     @commands.admin()
     @minecraft.command()
@@ -166,12 +181,9 @@ class Minecraft(commands.Cog):
         host = await self.config.guild(ctx.guild).host()
         port = await self.config.guild(ctx.guild).rcon_port()
         passw = await self.config.guild(ctx.guild).password()
-        async with Client(host, port, passw) as c:
-            resp = await c.send_cmd(f"whitelist add {name}", 30)
-        await ctx.send(resp[0])
-        async with Client(host, port, passw) as c:
-            resp = await c.send_cmd("whitelist reload")
-        await ctx.send(resp[0])
+        await ctx.send(await self.run_minecraft_command(f"whitelist add {name}", host, port, passw))
+        await ctx.send(await self.run_minecraft_command("whitelist reload", host, port, passw))
+
 
     @commands.admin()
     @minecraft.command()
@@ -182,12 +194,9 @@ class Minecraft(commands.Cog):
         host = await self.config.guild(ctx.guild).host()
         port = await self.config.guild(ctx.guild).rcon_port()
         passw = await self.config.guild(ctx.guild).password()
-        async with Client(host, port, passw) as c:
-            resp = await c.send_cmd(f"whitelist remove {name}", 30)
-        await ctx.send(resp[0])
-        async with Client(host, port, passw) as c:
-            resp = await c.send_cmd("whitelist reload")
-        await ctx.send(resp[0])
+        await ctx.send(await self.run_minecraft_command(f"whitelist remove {name}", host, port, passw))
+        await ctx.send(await self.run_minecraft_command("whitelist reload", host, port, passw))
+
 
     @commands.admin()
     @minecraft.command()
@@ -196,30 +205,33 @@ class Minecraft(commands.Cog):
         host = await self.config.guild(ctx.guild).host()
         port = await self.config.guild(ctx.guild).rcon_port()
         passw = await self.config.guild(ctx.guild).password()
-        async with Client(host, port, passw) as c:
-            resp = await c.send_cmd("whitelist list")
-        await ctx.send(resp[0] if len(resp[0]) < 1900 else resp[0][:1900] + "...")
+        resp = await ctx.send(await self.run_minecraft_command("whitelist list", host, port, passw))
+        await ctx.send(resp if len(resp) < 1900 else resp[:1900] + "...")
         p_in_config = await self.config.guild(ctx.guild).players()
-        outstr = []
+
         if len(p_in_config) == 0:
-            await ctx.send("Nobody was whitelisted themselves through Discord.")
+            await ctx.send("Nobody has whitelisted themselves through Discord.")
             return
+
+        outstr = []
         for e in p_in_config:
             outstr.append(f"{ctx.guild.get_member(int(e)).mention} | {p_in_config[e]['name']}\n")
+
         pages = list(pagify("\n".join(outstr), page_length=1024))
         rendered = []
         for page in pages:
             emb = Embed(title="Whitelisted through Discord:", description=page, color=0xFFA500)
             rendered.append(emb)
+
         await menu(ctx, rendered, controls=DEFAULT_CONTROLS, timeout=60.0)
+
 
     @commands.guildowner()
     @minecraft.command()
     async def command(self, ctx, *, command):
-        """Run a command on the Minecraft server.\n\n**NO VALIDATION is performed on your inputs.**"""
+        """Run a command on the Minecraft server. No validation is done."""
         host = await self.config.guild(ctx.guild).host()
         port = await self.config.guild(ctx.guild).rcon_port()
         passw = await self.config.guild(ctx.guild).password()
-        async with Client(host, port, passw) as c:
-            resp = await c.send_cmd(command)
-        await ctx.send(resp[0] or "✅")
+        resp = await self.run_minecraft_command(command, host, port, passw)
+        await ctx.send(resp or "✅")
