@@ -48,7 +48,11 @@ def format_youtube(res: dict) -> str:
         name = f"({m}:{s:02d}) {res['title']}"
     else:
         name = f"(🔴LIVE) {res['title']}"
+    
     author = f" — {res['channel']}"
+    if len(author) > MAX_OPTION_SIZE // 2:
+        author = author[:MAX_OPTION_SIZE//2 - 3] + "...'
+    
     if len(name) + len(author) > MAX_OPTION_SIZE:
         return name[:MAX_OPTION_SIZE - len(author) - 3] + "..." + author
     else:
