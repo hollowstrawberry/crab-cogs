@@ -95,6 +95,7 @@ class DallE(commands.Cog):
             log.exception(msg="Trying to generate image with Dall-E", stack_info=True)
         finally:
             self.generating[ctx.user.id] = False
+
         if not result or not result.data or not result.data[0].b64_json:
             return await ctx.followup.send(content=":warning: Sorry, there was a problem trying to generate your image.")
 
