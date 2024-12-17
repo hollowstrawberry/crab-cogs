@@ -75,8 +75,8 @@ class Minecraft(commands.Cog):
             async with self.clients[guild.id] as client:
                 resp = await client.send_cmd(command, 10)
             return True, resp[0]
-        except (RCONConnectionError, TimeoutError):
-            return False, "Couldn't connect to the server."
+        except (RCONConnectionError, TimeoutError) as error:
+            return False, f"Couldn't connect to the server. {error}"
         except IncorrectPasswordError:
             return False, "Incorrect RCON password."
         except Exception as error:  # catch everything to be able to give feedback to the user
