@@ -54,6 +54,7 @@ def format_youtube(res: dict) -> str:
     else:
         return name + author
 
+
 class AudioSlash(Cog):
     """Audio cog commands in the form of slash commands, with YouTube and playlist autocomplete."""
 
