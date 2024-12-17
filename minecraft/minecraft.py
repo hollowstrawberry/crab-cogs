@@ -110,8 +110,9 @@ class Minecraft(commands.Cog):
             if f"{error}" == "Socket did not respond with any information!":
                 return await ctx.send("🟡 The server is asleep! You can join to start it back up.")
             elif f"{error}" == "[Errno 111] Connection refused":
-                return await ctx.send("🔴 Server is offline or not accessible")
-            return await ctx.send(f"An error occurred. {error}")
+                status = None
+            else:
+                return await ctx.send(f"An error occurred. {error}")
 
         if not status:
             embed = discord.Embed(title=f"Minecraft Server", color=0xFF0000)
