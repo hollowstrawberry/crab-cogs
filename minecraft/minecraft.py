@@ -30,7 +30,9 @@ class Minecraft(commands.Cog):
             "host": "localhost",
             "port": 25565,
             "rcon_port": 25575,
-            "password": ""}
+            "password": "",
+            "players_to_delete": [],
+        }
         self.config.register_guild(**default_guild)
         self.config.register_global(notification=0)
         self.bot = bot
@@ -53,15 +55,30 @@ class Minecraft(commands.Cog):
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
         """Remove member from whitelist when leaving guild"""
-        p_in_conf = await self.config.guild(member.guild).players()
+        players = await self.config.guild(member.guild).players()
         host = await self.config.guild(member.guild).host()
         port = await self.config.guild(member.guild).rcon_port()
         passw = await self.config.guild(member.guild).password()
-        if str(member.id) in p_in_conf:
-            await self.run_minecraft_command(
-                f"whitelist remove {p_in_conf[str(member.id)]['name']}", host, port, passw)
-            del p_in_conf[str(member.id)]
-            await self.config.guild(member.guild).players.set(p_in_conf)
+        if str(member.id) in players:
+            success, _ = await self.run_minecraft_command(f"whitelist remove {players[str(member.id)]['name']}", host, port, passw)
+            if not success:
+                async with self.config.guild(member.guild).players_to_delete() as players_to_delete:
+                    players_to_delete.append(dict(**players[str(member.id)]))
+            del players[str(member.id)]
+            await self.config.guild(member.guild).players.set(players)
+
+    async def delete_orphan_players(self, guild: discord.Guild):
+        async with self.config.guild(guild).players_to_delete() as players_to_delete:
+            if players_to_delete:
+                host = await self.config.guild(guild).host()
+                port = await self.config.guild(guild).rcon_port()
+                passw = await self.config.guild(guild).password()
+                for player in list(players_to_delete):
+                    success, _ = await self.run_minecraft_command(f"whitelist remove {player['name']}", host, port, passw)
+                    if not success:
+                        return
+                    players_to_delete.remove(player)
+                await self.run_minecraft_command(f"whitelist reload", host, port, passw)
 
 
     @commands.group()
@@ -158,6 +175,8 @@ class Minecraft(commands.Cog):
         if not success:
             return
 
+        await self.delete_orphan_players(ctx.guild)
+
         players[str(ctx.author.id)] = {"name": name}
         await self.config.guild(ctx.guild).players.set(players)
 
@@ -186,6 +205,8 @@ class Minecraft(commands.Cog):
         if not success:
             return
 
+        await self.delete_orphan_players(ctx.guild)
+
         success, msg = await self.run_minecraft_command("whitelist reload", host, port, passw)
         await ctx.send(msg)
 
@@ -204,6 +225,8 @@ class Minecraft(commands.Cog):
         await ctx.send(msg)
         if not success:
             return
+
+        await self.delete_orphan_players(ctx.guild)
 
         success, msg = await self.run_minecraft_command("whitelist reload", host, port, passw)
         await ctx.send(msg)
@@ -224,6 +247,8 @@ class Minecraft(commands.Cog):
         if not success:
             return
 
+        await self.delete_orphan_players(ctx.guild)
+
         success, msg = await self.run_minecraft_command("whitelist reload", host, port, passw)
         await ctx.send(msg)
 
@@ -236,8 +261,11 @@ class Minecraft(commands.Cog):
         port = await self.config.guild(ctx.guild).rcon_port()
         passw = await self.config.guild(ctx.guild).password()
 
-        _, msg = await self.run_minecraft_command("whitelist list", host, port, passw)
+        success, msg = await self.run_minecraft_command("whitelist list", host, port, passw)
         await ctx.send(msg if len(msg) <= 2000 else msg[:1997] + "...")
+
+        if success:
+            await self.delete_orphan_players(ctx.guild)
 
         players = await self.config.guild(ctx.guild).players()
         if len(players) == 0:
@@ -264,5 +292,7 @@ class Minecraft(commands.Cog):
         host = await self.config.guild(ctx.guild).host()
         port = await self.config.guild(ctx.guild).rcon_port()
         passw = await self.config.guild(ctx.guild).password()
-        _, resp = await self.run_minecraft_command(command, host, port, passw)
+        success, resp = await self.run_minecraft_command(command, host, port, passw)
         await ctx.send(resp or "✅")
+        if success:
+            await self.delete_orphan_players(ctx.guild)
