@@ -239,6 +239,8 @@ class Minecraft(commands.Cog):
         success, msg = await self.run_minecraft_command(ctx.guild, f"whitelist remove {players[str(ctx.author.id)]}")
         await ctx.send(msg)
         if not success:
+            async with self.config.guild(ctx.author.guild).players_to_delete() as players_to_delete:
+                players_to_delete.append(players[str(ctx.author.id)])
             return
 
         await self.delete_orphan_players(ctx.guild)
