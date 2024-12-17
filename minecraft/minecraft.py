@@ -118,7 +118,6 @@ class Minecraft(commands.Cog):
             embed = discord.Embed(title=f"Minecraft Server", color=0xFF0000)
             embed.add_field(name="IP", value=ip)
             embed.add_field(name="Status", value="🔴 Offline")
-            return embed
         else:
             embed = discord.Embed(title=f"Minecraft Server", color=0x00FF00)
             if status.description:
