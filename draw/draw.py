@@ -8,12 +8,12 @@ from typing import Optional
 from redbot.core import commands, app_commands
 
 
-def prepare_image(fp: BytesIO):
+def prepare_image(fp: BytesIO, imread: int):
     fp2 = BytesIO()
     Image.open(fp).convert('RGB').resize((256, 256), Image.Resampling.BICUBIC).save(fp2, "png")
     fp2.seek(0)
     del fp
-    img = cv2.imdecode(np.frombuffer(fp2.read(), np.uint8), cv2.IMREAD_COLOR)
+    img = cv2.imdecode(np.frombuffer(fp2.read(), np.uint8), imread)
     del fp2
     return img
 
@@ -54,7 +54,7 @@ class Draw(commands.Cog):
 
     @staticmethod
     def draw_effect(fp: BytesIO) -> BytesIO:
-        img = prepare_image(fp)
+        img = prepare_image(fp, cv2.IMREAD_GRAYSCALE)
         del fp
         img_blurred = cv2.bitwise_not(cv2.GaussianBlur(cv2.bitwise_not(img), (65, 65), 0))
         img_divided = cv2.divide(img, img_blurred, scale=256)
@@ -70,7 +70,7 @@ class Draw(commands.Cog):
 
     @staticmethod
     def paint_effect(fp: BytesIO) -> BytesIO:
-        img = prepare_image(fp)
+        img = prepare_image(fp, cv2.IMREAD_COLOR)
         del fp
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (8, 8))
         img_morphed = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
