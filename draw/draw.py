@@ -8,6 +8,16 @@ from typing import Optional
 from redbot.core import commands, app_commands
 
 
+def prepare_image(fp: BytesIO):
+    fp2 = BytesIO()
+    Image.open(fp).convert('RGB').resize((256, 256), Image.Resampling.BICUBIC).save(fp2)
+    fp2.seek(0)
+    del fp
+    img = cv2.imdecode(fp2, cv2.IMREAD_COLOR)
+    del fp2
+    return img
+
+
 class Draw(commands.Cog):
     """A couple fun image filters for your friends' avatars. Also includes an avatar context menu."""
 
@@ -42,6 +52,37 @@ class Draw(commands.Cog):
         ctx = await commands.Context.from_interaction(inter)
         await self.avatar(ctx, member)
 
+    @staticmethod
+    def draw_effect(fp: BytesIO) -> BytesIO:
+        img = prepare_image(fp)
+        del fp
+        img_blurred = cv2.bitwise_not(cv2.GaussianBlur(cv2.bitwise_not(img), (65, 65), 0))
+        img_divided = cv2.divide(img, img_blurred, scale=256)
+        del img
+        del img_blurred
+        img_normalized = cv2.normalize(img_divided, None, 20, 255, cv2.NORM_MINMAX)
+        del img_divided
+        is_success, buffer = cv2.imencode(".jpg", img_normalized)
+        del img_normalized
+        result = BytesIO(buffer)  # noqa
+        del buffer
+        return result
+
+    @staticmethod
+    def paint_effect(fp):
+        img = prepare_image(fp)
+        del fp
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (8, 8))
+        img_morphed = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
+        del img
+        img_normalized = cv2.normalize(img_morphed, None, 20, 255, cv2.NORM_MINMAX)
+        del img_morphed
+        is_success, buffer = cv2.imencode(".jpg", img_normalized)
+        del img_normalized
+        result = BytesIO(buffer)  # noqa
+        del buffer
+        return result
+
     @commands.hybrid_command()
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     @commands.bot_has_permissions(attach_files=True)
@@ -49,37 +90,19 @@ class Draw(commands.Cog):
     async def draw(self, ctx: commands.Context, user: Optional[discord.User]):
         """Produces a pencil drawing of you or someone else."""
         user = user or ctx.author
-        await asyncio.to_thread(self._draw, ctx, user)
-
-    async def _draw(self, ctx: commands.Context, user: discord.User):
         await ctx.typing()
-        # load image
-        fp1, fp2 = BytesIO(), BytesIO()
+
+        fp1 = BytesIO()
         await user.display_avatar.save(fp1, seek_begin=True)
-        Image.open(fp1).convert('RGB').resize((256, 256), Image.Resampling.BICUBIC).save(fp2)
-        fp2.seek(0)
+        fp2 = await asyncio.to_thread(self.draw_effect, fp1)
         del fp1
-        img = cv2.imdecode(fp2, cv2.IMREAD_COLOR)
-        del fp2
 
-        # apply filter
-        img_blurred = cv2.bitwise_not(cv2.GaussianBlur(cv2.bitwise_not(img), (65, 65), 0))
-        img_divided = cv2.divide(img, img_blurred, scale=256)
-        del img
-        del img_blurred
-        img_normalized = cv2.normalize(img_divided, None, 20, 255, cv2.NORM_MINMAX)
-        del img_divided
-
-        # save and send
-        is_success, buffer = cv2.imencode(".jpg", img_normalized)
-        del img_normalized
-        fp3 = BytesIO(buffer)  # noqa
         filename = f"draw_{user.id}.jpg"
         embed = discord.Embed(color=await ctx.embed_color())
         whom = "you" if user == ctx.author else "me" if user == self.bot.user else user.display_name
         embed.title = f"Here's a drawing of {whom}!"
         embed.set_image(url=f"attachment://{filename}")
-        await ctx.send(embed=embed, file=discord.File(fp3, filename=filename))
+        await ctx.send(embed=embed, file=discord.File(fp2, filename=filename))
 
     @commands.hybrid_command()
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
@@ -88,33 +111,16 @@ class Draw(commands.Cog):
     async def paint(self, ctx: commands.Context, user: Optional[discord.User]):
         """Produces an oil painting of you or someone else."""
         user = user or ctx.author
-        await asyncio.to_thread(self._paint, ctx, user)
-
-    async def _paint(self, ctx: commands.Context, user: discord.User):
         await ctx.typing()
-        # load image
-        fp1, fp2 = BytesIO(), BytesIO()
+
+        fp1 = BytesIO()
         await user.display_avatar.save(fp1, seek_begin=True)
-        Image.open(fp1).convert('RGB').resize((256, 256), Image.Resampling.BICUBIC).save(fp2)
-        fp2.seek(0)
+        fp2 = await asyncio.to_thread(self.paint_effect, fp1)
         del fp1
-        img = cv2.imdecode(fp2, cv2.IMREAD_COLOR)
-        del fp2
 
-        # apply filter
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (8, 8))
-        img_morphed = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
-        del img
-        img_normalized = cv2.normalize(img_morphed, None, 20, 255, cv2.NORM_MINMAX)
-        del img_morphed
-
-        # save and send
-        is_success, buffer = cv2.imencode(".jpg", img_normalized)
-        del img_normalized
-        fp3 = BytesIO(buffer)  # noqa
         filename = f"paint_{user.id}.jpg"
         embed = discord.Embed(color=await ctx.embed_color())
         whom = "you" if user == ctx.author else "me" if user == self.bot.user else user.display_name
         embed.title = f"Here's a painting of {whom}!"
         embed.set_image(url=f"attachment://{filename}")
-        await ctx.send(embed=embed, file=discord.File(fp3, filename=filename))
+        await ctx.send(embed=embed, file=discord.File(fp2, filename=filename))
