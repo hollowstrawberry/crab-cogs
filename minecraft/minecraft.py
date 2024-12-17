@@ -111,6 +111,7 @@ class Minecraft(commands.Cog):
         except Exception as error:  # python package is unclear as to the errors that may be raised
             if f"{error}" == "Socket did not respond with any information!":
                 return await ctx.send("🟡 The server may be asleep! You can try joining to start it back up.")
+            log.exception(f"Retrieving status for {ip}")
             return await ctx.send(f"An error occurred. {error}")
 
         if not status:
