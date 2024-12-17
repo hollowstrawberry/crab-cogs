@@ -6,6 +6,7 @@ import discord
 from copy import copy
 from typing import Optional
 from yt_dlp import YoutubeDL
+from yt_dlp.utils import YoutubeDLError
 from redbot.core import commands, app_commands
 from redbot.core.bot import Red, Config
 from redbot.core.commands import Cog
@@ -19,13 +20,14 @@ log = logging.getLogger("red.crab-cogs.audioslash")
 LANGUAGE = "en"
 EXTRACT_CONFIG = {
     "extract_flat": True,
-    "extractor_args": {"youtube": {"lang": [LANGUAGE]}}
+    "outtmpl": "%(title).85s.mp3",
+    "extractor_args": {"youtube": {"lang": [LANGUAGE]}},
 }
 DOWNLOAD_CONFIG = {
     "extract_audio": True,
     "format": "bestaudio",
     "outtmpl": "%(title).85s.mp3",
-    "extractor_args": {"youtube": {"lang": [LANGUAGE]}}
+    "extractor_args": {"youtube": {"lang": [LANGUAGE]}},
 }
 DOWNLOAD_FOLDER = "backup"
 YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch\?v=|youtu.be/)([\w\-]+)")
@@ -87,6 +89,7 @@ class AudioSlash(Cog):
             await ctx.send("You do not have permission to do this.", ephemeral=True)
         return can
 
+
     @app_commands.command()
     @app_commands.guild_only
     @app_commands.describe(search="Type here to get suggestions, or send anything to get a best match.",
@@ -99,24 +102,36 @@ class AudioSlash(Cog):
         if not (audio := await self.get_audio_cog(inter)):
             return
         ctx = await self.get_context(inter, audio)
+        search = search.strip()
 
         if await self.config.guild(ctx.guild).backup_mode():
             if not audio.local_folder_current_path:
                 await ctx.send("Connect bot to a voice channel first")
                 return
-            if match := YOUTUBE_LINK_PATTERN.match(search):
-                search = match.group(0)
+                
+            if not search.startswith(DOWNLOAD_FOLDER + "/"):
+                if match := YOUTUBE_LINK_PATTERN.match(search):
+                    search = match.group(0)
+                else:
+                    search = "ytsearch1:" + search
+    
                 (audio.local_folder_current_path / DOWNLOAD_FOLDER).mkdir(parents=True, exist_ok=True)
-                os.chdir(audio.local_folder_current_path / DOWNLOAD_FOLDER)
-                ydl = YoutubeDL(DOWNLOAD_CONFIG)
+                ydl = YoutubeDL(EXTRACT_CONFIG)
                 video_info = await extract_info(ydl, search)
+                if video_info.get("entries", None):
+                    video_info = video_info["entries"][0]
+        
                 if "duration" not in video_info or video_info["duration"] > MAX_VIDEO_LENGTH:
-                    await ctx.send("Video too long!")
+                    await ctx.send("Video too long or invalid!")
                     return
+        
                 filename = ydl.prepare_filename(video_info)
                 if not os.path.exists(filename):
-                    await ctx.send("Downloading video...")
+                    await ctx.send(f"Downloading `{filename}` ...")
+                    ydl = YoutubeDL(DOWNLOAD_CONFIG)
+                    os.chdir(audio.local_folder_current_path / DOWNLOAD_FOLDER)
                     await download_video(ydl, search)
+                    
                 search = DOWNLOAD_FOLDER + "/" + filename
                 
         if when in ("next", "now"):
@@ -127,6 +142,7 @@ class AudioSlash(Cog):
             if not await self.can_run_command(ctx, "play"):
                 return
             await audio.command_play(ctx, query=search)
+
 
     @app_commands.command()
     @app_commands.guild_only
@@ -334,34 +350,46 @@ class AudioSlash(Cog):
             return
         await audio.command_playlist_delete(ctx, match, scope_data=self.get_scope_data(scope, ctx))
 
+
     @play.autocomplete("search")
     @playlist_add.autocomplete("track")
     async def youtube_autocomplete(self, inter: discord.Interaction, current: str):
-        lst = []
         try:
-            if await self.config.guild(inter.guild).backup_mode():
-                audio = await self.get_audio_cog(inter)
-                if not audio or not audio.local_folder_current_path:
-                    return lst
-                folder = (audio.local_folder_current_path / DOWNLOAD_FOLDER)
-                folder.mkdir(parents=True, exist_ok=True)
-                files = [app_commands.Choice(name=filename, value=f"{DOWNLOAD_FOLDER}/{filename}"[:MAX_OPTION_SIZE]) for filename in os.listdir(folder)]
-                if current:
-                    lst += [file for file in files if file.name.lower().startswith(current.lower())]
-                    lst += [file for file in files if current.lower() in file.name.lower() and not file.name.lower().startswith(current.lower())]
-                else:
-                    lst += files
+            return await self._youtube_autocomplete(inter, current)
+        except Exception:  # noqa, reason: user-facing error
+            log.exception("YouTube autocomplete", stack_info=True)
+            return [app_commands.Choice(name="Autocomplete error. Please contact the bot owner.", value=".")]
 
-            if not current or len(current) < 3 or len(lst) >= MAX_OPTIONS:
-                return lst[:MAX_OPTIONS]
-            
+    async def _youtube_autocomplete(self, inter: discord.Interaction, current: str):
+        lst = []
+
+        if await self.config.guild(inter.guild).backup_mode():
+            audio = await self.get_audio_cog(inter)
+            if not audio or not audio.local_folder_current_path:
+                return lst
+            folder = (audio.local_folder_current_path / DOWNLOAD_FOLDER)
+            folder.mkdir(parents=True, exist_ok=True)
+            files = [app_commands.Choice(name=filename, value=f"{DOWNLOAD_FOLDER}/{filename}"[:MAX_OPTION_SIZE]) for
+                     filename in os.listdir(folder)]
+            if current:
+                lst += [file for file in files if file.name.lower().startswith(current.lower())]
+                lst += [file for file in files if
+                        current.lower() in file.name.lower() and not file.name.lower().startswith(current.lower())]
+            else:
+                lst += files
+
+        if not current or len(current) < 3 or len(lst) >= MAX_OPTIONS:
+            return lst[:MAX_OPTIONS]
+
+        try:
             ydl = YoutubeDL(EXTRACT_CONFIG)
-            results = await extract_info(ydl, f"ytsearch{MAX_OPTIONS-len(lst)}:{current}")
+            results = await extract_info(ydl, f"ytsearch{MAX_OPTIONS - len(lst)}:{current}")
             lst += [app_commands.Choice(name=format_youtube(res), value=res["url"]) for res in results["entries"]]
-        except:
-            log.exception("Retrieving youtube results")
+        except YoutubeDLError:
+            log.exception("Retrieving youtube results", stack_info=True)
 
         return lst[:MAX_OPTIONS]
+
 
     @playlist_play.autocomplete("playlist")
     @playlist_add.autocomplete("playlist")
@@ -369,33 +397,42 @@ class AudioSlash(Cog):
     @playlist_info.autocomplete("playlist")
     @playlist_delete.autocomplete("playlist")
     async def playlist_autocomplete(self, inter: discord.Interaction, current: str):
+        try:
+            return await self._playlist_autocomplete(inter, current)
+        except Exception:  # noqa, reason: user-facing error
+            log.exception("Playlist autocomplete")
+            return [app_commands.Choice(name="Autocomplete error. Please contact the bot owner.", value=".")]
+
+    async def _playlist_autocomplete(self, inter: discord.Interaction, current: str):
         audio: Optional[Audio] = self.bot.get_cog("Audio")
         if not audio or not audio.playlist_api:
             return []
-        try:
-            global_matches = await get_all_playlist(
-                PlaylistScope.GLOBAL.value, self.bot, audio.playlist_api, inter.guild, inter.user
-            )
-            guild_matches = await get_all_playlist(
-                PlaylistScope.GUILD.value, self.bot, audio.playlist_api, inter.guild, inter.user
-            )
-            user_matches = await get_all_playlist(
-                PlaylistScope.USER.value, self.bot, audio.playlist_api, inter.guild, inter.user
-            )
-            playlists = [*user_matches, *guild_matches, *global_matches]
-            if current:
-                results = [pl.name for pl in playlists if pl.name.lower().startswith(current.lower())]
-                results += [pl.name for pl in playlists if current.lower() in pl.name.lower() and not pl.name.lower().startswith(current.lower())]
-            else:
-                results = [pl.name for pl in playlists]
-            return [app_commands.Choice(name=pl, value=pl) for pl in results][:25]
-        except:
-            log.exception("Retrieving playlists")
 
-    @commands.command(name="audioslashbackupmode")
+        global_matches = await get_all_playlist(
+            PlaylistScope.GLOBAL.value, self.bot, audio.playlist_api, inter.guild, inter.user
+        )
+        guild_matches = await get_all_playlist(
+            PlaylistScope.GUILD.value, self.bot, audio.playlist_api, inter.guild, inter.user
+        )
+        user_matches = await get_all_playlist(
+            PlaylistScope.USER.value, self.bot, audio.playlist_api, inter.guild, inter.user
+        )
+        playlists = [*user_matches, *guild_matches, *global_matches]
+
+        if current:
+            results = [pl.name for pl in playlists if pl.name.lower().startswith(current.lower())]
+            results += [pl.name for pl in playlists if
+                        current.lower() in pl.name.lower() and not pl.name.lower().startswith(current.lower())]
+        else:
+            results = [pl.name for pl in playlists]
+
+        return [app_commands.Choice(name=pl, value=pl) for pl in results][:25]
+
+
+    @commands.command(name="audioslashbackupmode", hidden=True)
     @commands.is_owner()
     async def audioslashbackupmode(self, ctx: commands.Context, value: Optional[bool]):
-        """If audio stopped working, enable this to download tracks locally automatically."""
+        """Not intended for public use. If audio stopped working, enabling this will download YouTube tracks locally."""
         if value is None:
             value = await self.config.guild(ctx.guild).backup_mode()
         else:

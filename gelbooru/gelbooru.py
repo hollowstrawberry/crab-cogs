@@ -1,12 +1,13 @@
-import discord
-import aiohttp
 import re
+import html
 import random
 import logging
 import urllib.parse
-import html
-from redbot.core import commands, app_commands, Config
+import aiohttp
+import discord
+from typing import Optional, List, Dict
 from expiringdict import ExpiringDict
+from redbot.core import commands, app_commands, Config
 
 log = logging.getLogger("red.crab-cogs.boorucog")
 
@@ -15,8 +16,9 @@ EMBED_ICON = "https://i.imgur.com/FeRu6Pw.png"
 IMAGE_TYPES = (".png", ".jpeg", ".jpg", ".webp", ".gif")
 TAG_BLACKLIST = ["loli", "shota", "guro", "video"]
 HEADERS = {
-    "User-Agent": f"crab-cogs/v1 (https://github.com/hollowstrawberry/crab-cogs);"
+    "User-Agent": "crab-cogs/v1 (https://github.com/hollowstrawberry/crab-cogs);"
 }
+
 
 class Booru(commands.Cog):
     """Searches images on Gelbooru with slash command and tag completion support."""
@@ -24,8 +26,9 @@ class Booru(commands.Cog):
     def __init__(self, bot):
         super().__init__()
         self.bot = bot
-        self.tag_cache = {}  # tag query -> tag results
-        self.image_cache = ExpiringDict(max_len=100, max_age_seconds=24*60*60)  # channel id -> list of sent post ids
+        self.session = aiohttp.ClientSession(headers=HEADERS)
+        self.tag_cache: Dict[str, str] = {}
+        self.image_cache: Dict[int, List[int]] = ExpiringDict(max_len=100, max_age_seconds=24*60*60)
         self.config = Config.get_conf(self, identifier=62667275)
         self.config.register_global(tag_cache={})
 
@@ -41,7 +44,8 @@ class Booru(commands.Cog):
         self.tag_cache = {}
         async with self.config.tag_cache() as tag_cache:
             tag_cache.clear()
-        await ctx.react_quietly("✅")
+        await ctx.tick()
+
 
     @commands.hybrid_command(aliases=["gelbooru"])
     @app_commands.describe(tags="Will suggest tags with autocomplete. Separate tags with spaces.")
@@ -59,15 +63,16 @@ class Booru(commands.Cog):
         if tags.lower() in ["none", "error"]:
             tags = ""
         if not ctx.channel.nsfw:
-            tags = re.sub(" ?rating:[^ ]+", "", tags)
+            tags = re.sub(r"\s?rating:\S+", "", tags)
             tags += " rating:general"
 
         try:
             result = await self.grab_image(tags, ctx)
-        except:
+        except (aiohttp.ClientError, KeyError):
             log.exception("Failed to grab image from Gelbooru")
             await ctx.send("Sorry, there was an error trying to grab an image from Gelbooru. Please try again or contact the bot owner.")
             return
+
         if not result:
             description = "💨 No results..."
             if not ctx.channel.nsfw:
@@ -83,6 +88,7 @@ class Booru(commands.Cog):
         embed.set_footer(text=f"⭐ {result.get('score', 0)}")
         await ctx.send(embed=embed)
 
+
     @commands.hybrid_command(aliases=["boorutags"])
     async def boorutag(self, ctx: commands.Context, *, tag_search: str):
         """Searches for tags on Gelbooru."""
@@ -94,16 +100,19 @@ class Booru(commands.Cog):
         else:
             await ctx.send(f"No matches for `{tag_search}`")
 
+
     @booru.autocomplete("tags")
-    async def tags_autocomplete(self, interaction: discord.Interaction, current: str):
+    async def tags_autocomplete(self, interaction: Optional[discord.Interaction], current: str):
         if current is None:
             current = ""
         if ' ' in current:
             previous, last = [x.strip() for x in current.rsplit(' ', maxsplit=1)]
         else:
             previous, last = "", current.strip()
+
         excluded = last.startswith('-')
         last = last.lstrip('-')
+
         if not last and not excluded:
             # suggestions
             results = []
@@ -115,6 +124,7 @@ class Booru(commands.Cog):
                 results += ["score:>10", "score:>100"]
             if interaction.channel.nsfw and "rating" not in previous:
                 results += ["rating:general", "rating:sensitive", "rating:questionable", "rating:explicit"]
+
         elif "rating" in last.lower():
             if interaction.channel.nsfw:
                 ratings = ["rating:general", "rating:sensitive", "rating:questionable", "rating:explicit"]
@@ -129,6 +139,7 @@ class Booru(commands.Cog):
             else:
                 results = ["rating:general"]
                 excluded = False
+
         elif "score" in last.lower():
             excluded = False
             results = ["score:>10", "score:>100", "score:>1000"]
@@ -136,39 +147,49 @@ class Booru(commands.Cog):
                 if last in results:
                     results.remove(last)
                 results.insert(0, last)
+
         else:
             try:
                 results = await self.grab_tags(last)
-            except:
+            except (aiohttp.ClientError, KeyError):
                 log.exception("Failed to load Gelbooru tags")
                 results = ["Error"]
                 previous = None
+
         if excluded:
             results = [f"-{res}" for res in results]
         if previous:
             results = [f"{previous} {res}" for res in results]
+
         return [discord.app_commands.Choice(name=i, value=i) for i in results]
 
-    async def grab_tags(self, query) -> list[str]:
+
+    async def grab_tags(self, query) -> List[str]:
         if query in self.tag_cache:
             return self.tag_cache[query].split(' ')
+
         query = urllib.parse.quote(query.lower(), safe=' ')
         url = f"https://gelbooru.com/index.php?page=dapi&s=tag&q=index&json=1&sort=desc&order_by=index_count&name_pattern=%25{query}%25"
+
         api = await self.bot.get_shared_api_tokens("gelbooru")
         api_key, user_id = api.get("api_key"), api.get("user_id")
         if api_key and user_id:
             url += f"&api_key={api_key}&user_id={user_id}"
-        async with aiohttp.ClientSession(headers=HEADERS) as session:
-            async with session.get(url) as resp:
-                data = await resp.json()
+
+        async with self.session.get(url) as resp:
+            resp.raise_for_status()
+            data = await resp.json()
+
         if not data or "tag" not in data:
             return []
+
         results = [tag["name"] for tag in data["tag"]][:20]
         results = [html.unescape(tag) for tag in results]
         self.tag_cache[query] = ' '.join(results)
         async with self.config.tag_cache() as tag_cache:
             tag_cache[query] = self.tag_cache[query]
         return results
+
 
     async def grab_image(self, query: str, ctx: commands.Context) -> dict:
         query = urllib.parse.quote(query.lower(), safe=' ')
@@ -177,16 +198,20 @@ class Booru(commands.Cog):
         tags += [f"-{tag}" for tag in TAG_BLACKLIST]
         query = ' '.join(tags)
         url = "https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&limit=1000&tags=" + query.replace(' ', '+')
+
         api = await self.bot.get_shared_api_tokens("gelbooru")
         api_key, user_id = api.get("api_key"), api.get("user_id")
         if api_key and user_id:
             url += f"&api_key={api_key}&user_id={user_id}"
-        async with aiohttp.ClientSession(headers=HEADERS) as session:
-            async with session.get(url) as resp:
-                data = await resp.json()
+
+        async with self.session.get(url) as resp:
+            resp.raise_for_status()
+            data = await resp.json()
+
         if not data or "post" not in data:
             return {}
         images = [img for img in data["post"] if img["file_url"].endswith(IMAGE_TYPES)]
+
         # prevent duplicates
         key = ctx.channel.id
         if key not in self.image_cache:
@@ -195,6 +220,7 @@ class Booru(commands.Cog):
             self.image_cache[key] = self.image_cache[key][-1:]
         if len(images) > 1:
             images = [img for img in images if img["id"] not in self.image_cache[key]]
+
         choice = random.choice(images)
         self.image_cache[key].append(choice["id"])
         return choice

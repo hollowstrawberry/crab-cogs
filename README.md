@@ -86,6 +86,11 @@ A couple fun hybrid commands with image filters for you and your friends' avatar
 
 Connects to this AI anime generation service to to generate images with the latest SDXL technology. Most parameters are available, as well as img2img. Requires a subscription. Connects with ImageScanner and ImageLog.
 
+### 🖼 Dalle
+
+Connects to OpenAI's Dall-E 3 to generate images. Requires an api key and ongoing costs.
+
+
 **⚠️ Usage Warning:** This cog is capable of generating NSFW content. Be mindful.
 
 ### 📎 ImageScanner
@@ -95,23 +100,3 @@ Lets you view basic information about other people's images with a context menu.
 ### 📢 GameAlert
 
 Sends a configured message when a guild member starts playing a specific game or has been playing for some time. The purpose is to alert friends or just to be silly.
-
-### 🧠 Simulator
-
-The "big" cog of this repo, it is limited to 1 server with settings defined by the bot owner.
-
-This used to be more fun before text generation AI became mainstream.
-
-Designates a channel that will send automated messages mimicking your friends through Markov chains. They will have your friends' avatars and nicknames too! Inspired by /r/SubredditSimulator and similar concepts.
-
-🧠 It will learn from new messages sent in configured channels, and only from users with the configured role. It will only support a single guild.
-
-⚙ The bot owner must configure it with `[p]simulator set`, then they may manually feed past messages using `[p]simulator feed [days]`. This takes around 1 minute per 5,000 messages, so be patient! When the feeding is finished or interrupted, it will send the summary in the same channel.
-
-🔄 While the simulator is running, a conversation will occur every so many minutes, during which comments will be sent every so many seconds. Trying to type in the output channel will delete the message and instead trigger a conversation.
-
-👤 A user may permanently exclude themselves from their messages being read and analyzed by using the `[p]dontsimulateme` command. This will also delete all their data.
-
-![demonstration](https://media.discordapp.net/attachments/541768631445618689/1031334469904384100/unknown.png)
-
-**⚠️ Usage Warning:** This cog will store and analyze messages sent by participating users. The bot owner may also make the bot download large amounts of past messages, following Discord ratelimits. It will then store a model in memory whose approximate RAM usage is 60 MB per 100,000 messages analyzed. This data will be stored locally and won't be shared anywhere outside of the target server.

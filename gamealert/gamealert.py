@@ -1,5 +1,6 @@
-import discord
 import logging
+import discord
+from typing import List, Dict
 from datetime import datetime, timezone
 from discord.ext import tasks
 from redbot.core import commands, Config
@@ -20,8 +21,8 @@ class GameAlert(commands.Cog):
         super().__init__()
         self.bot = bot
         self.config = Config.get_conf(self, identifier=6761656165)
-        self.alerts: dict[int, list[dict]] = {}
-        self.alerted: list[int] = []
+        self.alerts: Dict[int, List[Dict]] = {}
+        self.alerted: List[int] = []
         self.config.register_guild(alerts=[])
         self.alert_loop.start()
 
@@ -32,15 +33,12 @@ class GameAlert(commands.Cog):
     def cog_unload(self):
         self.alert_loop.stop()
 
-    async def red_delete_data_for_user(self, requester: str, user_id: int):
-        pass
-
     # Loop
 
     @tasks.loop(seconds=15)
     async def alert_loop(self):
-        for guild in self.bot.guilds:
-            if guild.id not in self.alerts:
+        for guild_id in self.alerts:
+            if not (guild := self.bot.get_guild(guild_id)):
                 continue
             if await self.bot.cog_disabled_in_guild(self, guild):
                 continue
@@ -91,7 +89,7 @@ class GameAlert(commands.Cog):
                 alerts.remove(a)
             alerts.append(alert)
             self.alerts[ctx.guild.id] = list(alerts)
-            await ctx.react_quietly("✅")
+            await ctx.tick()
 
     @gamealert.command()
     @commands.has_permissions(manage_guild=True)
@@ -103,7 +101,7 @@ class GameAlert(commands.Cog):
                 alerts.remove(a)
             self.alerts[ctx.guild.id] = list(alerts)
             if old_alert:
-                await ctx.react_quietly("✅")
+                await ctx.tick()
             else:
                 await ctx.send("No alerts found for that game.")
 

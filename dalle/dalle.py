@@ -3,10 +3,10 @@ import io
 import base64
 import discord
 import logging
+from typing import Optional, Dict
 from datetime import datetime, timedelta
 from redbot.core import commands, app_commands, Config
 from redbot.core.bot import Red
-from typing import Optional
 
 from openai import AsyncOpenAI, APIError, APIStatusError
 from dalle.imageview import ImageView
@@ -17,14 +17,14 @@ SIMPLE_PROMPT = "I NEED to test how the tool works with extremely simple prompts
 
 
 class DallE(commands.Cog):
-    """Generate anime images with NovelAI v3."""
+    """Generate images with OpenAI's Dall-E 3."""
 
     def __init__(self, bot: Red):
         super().__init__()
         self.bot = bot
         self.client: Optional[AsyncOpenAI] = None
-        self.generating: dict[int, bool] = {}
-        self.user_last_img: dict[int, datetime] = {}
+        self.generating: Dict[int, bool] = {}
+        self.user_last_img: Dict[int, datetime] = {}
         self.loading_emoji = ""
         self.config = Config.get_conf(self, identifier=64616665)
         defaults_global = {
@@ -41,9 +41,6 @@ class DallE(commands.Cog):
     async def on_red_api_tokens_update(self, service_name, _):
         if service_name == "openai":
             await self.try_create_client()
-
-    async def red_delete_data_for_user(self, requester: str, user_id: int):
-        pass
 
     async def try_create_client(self):
         api = await self.bot.get_shared_api_tokens("openai")
@@ -94,10 +91,11 @@ class DallE(commands.Cog):
             return await ctx.followup.send(content=f":warning: Failed to generate image: {e.response.json()['error']['message']}")
         except APIError as e:
             return await ctx.followup.send(content=f":warning: Failed to generate image: {e.message}")
-        except Exception:
+        except Exception:  # noqa, reason: user-facing error
             log.exception(msg="Trying to generate image with Dall-E", stack_info=True)
         finally:
             self.generating[ctx.user.id] = False
+
         if not result or not result.data or not result.data[0].b64_json:
             return await ctx.followup.send(content=":warning: Sorry, there was a problem trying to generate your image.")
 
@@ -141,7 +139,7 @@ class DallE(commands.Cog):
         vip = set(await self.config.vip())
         vip.update(uid for uid in user_ids)
         await self.config.vip.set(list(vip))
-        await ctx.react_quietly("✅")
+        await ctx.tick()
 
     @vip.command(name="remove")
     async def vip_remove(self, ctx: commands.Context, *, users: str):
@@ -152,7 +150,7 @@ class DallE(commands.Cog):
         vip = set(await self.config.vip())
         vip.difference_update(uid for uid in user_ids)
         await self.config.vip.set(list(vip))
-        await ctx.react_quietly("✅")
+        await ctx.tick()
 
     @vip.command(name="list")
     async def vip_list(self, ctx: commands.Context):

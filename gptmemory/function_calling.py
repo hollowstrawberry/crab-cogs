@@ -4,6 +4,7 @@ import aiohttp
 import trafilatura
 import xml.etree.ElementTree as ElementTree
 from abc import ABC, abstractmethod
+from typing import List, Tuple
 from dataclasses import asdict
 from redbot.core import commands
 
@@ -16,7 +17,7 @@ log = logging.getLogger("red.crab-cogs.gptmemory")
 
 class FunctionCallBase(ABC):
     schema: ToolCall = None
-    apis: list[tuple[str, str]] = []
+    apis: List[Tuple[str, str]] = []
 
     def __init__(self, ctx: commands.Context):
         self.ctx = ctx
@@ -31,7 +32,7 @@ class FunctionCallBase(ABC):
 
 
 class SearchFunctionCall(FunctionCallBase):
-    necessary_api = [("serper", "api_key")]
+    apis = [("serper", "api_key")]
     schema = ToolCall(
         Function(
             name="search_google",
@@ -61,7 +62,7 @@ class SearchFunctionCall(FunctionCallBase):
                 async with session.post(url, data=payload) as response:
                     response.raise_for_status()
                     data = await response.json()
-        except:
+        except aiohttp.ClientError:
             log.exception("Failed request to serper.io")
             return "An error occured while searching Google."
 
@@ -126,17 +127,16 @@ class ScrapeFunctionCall(FunctionCallBase):
                     content_type = response.headers.get('Content-Type', '').lower()
                     if 'text/html' not in content_type:
                         return f"Contents of {url} is not text/html"
-
                     content = trafilatura.extract(await response.text())
-        except:
-            log.exception(f"Opening {url}")
+        except aiohttp.ClientError:
+            log.warning(f"Opening {url}", exc_info=True)
             return f"Failed to open {url}"
 
         return f"[Contents of {url}:]\n{content}"
 
 
 class WolframAlphaFunctionCall(FunctionCallBase):
-    necessary_api = [("wolframalpha", "appid")]
+    apis = [("wolframalpha", "appid")]
     schema = ToolCall(
         Function(
             name="ask_wolframalpha",
@@ -166,7 +166,7 @@ class WolframAlphaFunctionCall(FunctionCallBase):
                 async with session.get(url, params=payload) as response:
                     response.raise_for_status()
                     result = await response.text()
-        except:
+        except aiohttp.ClientError:
             log.exception("Asking Wolfram Alpha")
             return "An error occured while asking Wolfram Alpha."
 

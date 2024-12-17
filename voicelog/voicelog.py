@@ -16,9 +16,6 @@ class VoiceLog(commands.Cog):
         all_config = await self.config.all_guilds()
         self.allowedguilds = set(guild_id for guild_id, conf in all_config.items() if conf['enabled'])
 
-    async def red_delete_data_for_user(self, requester: str, user_id: int):
-        pass
-
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
         guild = member.guild
@@ -50,7 +47,6 @@ class VoiceLog(commands.Cog):
 
     @commands.group(invoke_without_command=True)
     @commands.has_permissions(manage_guild=True)
-    @commands.bot_has_permissions(embed_links=True, add_reactions=True)
     @commands.guild_only()
     async def voicelog(self, ctx: commands.Context):
         """Voice Log configuration"""
@@ -61,11 +57,11 @@ class VoiceLog(commands.Cog):
         """Enable voice log for the whole guild."""
         self.allowedguilds.add(ctx.guild.id)
         await self.config.guild(ctx.guild).enabled.set(True)
-        await ctx.react_quietly('✅')
+        await ctx.tick()
 
     @voicelog.command(name="disable")
     async def voicelog_disable(self, ctx: commands.Context):
         """Disable voice log for the whole guild."""
         self.allowedguilds.remove(ctx.guild.id)
         await self.config.guild(ctx.guild).enabled.set(False)
-        await ctx.react_quietly('✅')
+        await ctx.tick()

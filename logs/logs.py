@@ -31,6 +31,7 @@ class Logs(commands.Cog):
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         pass
 
+
     @commands.is_owner()
     @commands.group(invoke_without_command=True)
     async def logs(self, ctx: commands.Context, lines: Optional[int]):
@@ -40,6 +41,7 @@ class Logs(commands.Cog):
             channel = ctx.channel if not private else (ctx.author.dm_channel or await ctx.author.create_dm())
             if not lines or lines < 0:
                 lines = 100
+
             pages = []
             if logs_file := get_logs_file():
                 with open(logs_file, 'r', encoding="utf8") as f:
@@ -54,6 +56,7 @@ class Logs(commands.Cog):
                         else:
                             break
                     pages.append(f"```py\n{page.strip()}```")
+
             if not pages:
                 await channel.send("*Empty*")
             elif len(pages) == 1:
@@ -66,8 +69,10 @@ class Logs(commands.Cog):
                 ctx.message.guild = channel.guild
                 ctx: commands.Context = await self.bot.get_context(ctx.message)  # noqa
                 await SimpleMenu(pages, timeout=3600, page_start=len(pages)-1).start(ctx)
+
         except Exception as ex:  # Since logs is an important command, all possible errors should be covered
             await ctx.send(f"{type(ex).__name__}: {ex}")
+
 
     @logs.command(name="file")
     async def logs_file(self, ctx: commands.Context):

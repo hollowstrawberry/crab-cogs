@@ -5,18 +5,18 @@ import base64
 import asyncio
 import discord
 import logging
-from PIL import Image, PngImagePlugin
 from hashlib import md5
 from datetime import datetime, timedelta
+from typing import Optional, Tuple, Coroutine, Dict, List
+from PIL import Image, PngImagePlugin
 from redbot.core import commands, app_commands, Config
 from redbot.core.bot import Red
 from novelai_api import NovelAIError
 from novelai_api.ImagePreset import ImageModel, ImagePreset, ImageSampler, ImageGenerationType, UCPreset
-from typing import Optional, Tuple, Coroutine
 
+import novelai.constants as const
 from novelai.naiapi import NaiAPI
 from novelai.imageview import ImageView, RetryView
-from novelai.constants import *
 
 log = logging.getLogger("red.crab-cogs.novelai")
 
@@ -35,18 +35,18 @@ class NovelAI(commands.Cog):
         super().__init__()
         self.bot = bot
         self.api: Optional[NaiAPI] = None
-        self.queue: list[Tuple[Coroutine, discord.Interaction]] = []
+        self.queue: List[Tuple[Coroutine, discord.Interaction]] = []
         self.queue_task: Optional[asyncio.Task] = None
-        self.generating: dict[int, bool] = {}
-        self.user_last_img: dict[int, datetime] = {}
+        self.generating: Dict[int, bool] = {}
+        self.user_last_img: Dict[int, datetime] = {}
         self.last_generation_datetime: datetime = datetime.min
         self.loading_emoji = ""
         self.config = Config.get_conf(self, identifier=66766566169)
         defaults_user = {
-            "base_prompt": DEFAULT_PROMPT,
-            "base_furry_prompt": DEFAULT_FURRY_PROMPT,
-            "base_negative_prompt": DEFAULT_NEGATIVE_PROMPT,
-            "base_furry_negative_prompt": DEFAULT_FURRY_NEGATIVE_PROMPT,
+            "base_prompt": const.DEFAULT_PROMPT,
+            "base_furry_prompt": const.DEFAULT_FURRY_PROMPT,
+            "base_negative_prompt": const.DEFAULT_NEGATIVE_PROMPT,
+            "base_furry_negative_prompt": const.DEFAULT_FURRY_NEGATIVE_PROMPT,
             "resolution": "832,1216",
             "guidance": 5.0,
             "guidance_rescale": 0.0,
@@ -79,7 +79,7 @@ class NovelAI(commands.Cog):
         self.loading_emoji = await self.config.loading_emoji()
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
-        pass
+        await self.config.user_from_id(user_id).clear()
 
     async def try_create_api(self):
         api = await self.bot.get_shared_api_tokens("novelai")
@@ -101,10 +101,10 @@ class NovelAI(commands.Cog):
                 except discord.errors.NotFound:
                     self.generating[ctx.user.id] = False
                     alive = False
-                except:
+                except Exception:  # noqa, reason: low importance, should fail silently
                     log.exception("Editing message in queue")
             if self.queue:
-                asyncio.create_task(self.edit_queue_messages())
+                asyncio.create_task(self.edit_queue_messages())  # noqa, pending
             if alive:
                 await task
             await asyncio.sleep(2)
@@ -136,9 +136,9 @@ class NovelAI(commands.Cog):
     @app_commands.describe(prompt="Gets added to your base prompt (/novelaidefaults)",
                            negative_prompt="Gets added to your base negative prompt (/novelaidefaults)",
                            seed="Random number that determines image generation.",
-                           **PARAMETER_DESCRIPTIONS,
-                           **PARAMETER_DESCRIPTIONS_VIBE)
-    @app_commands.choices(**PARAMETER_CHOICES)
+                           **const.PARAMETER_DESCRIPTIONS,
+                           **const.PARAMETER_DESCRIPTIONS_VIBE)
+    @app_commands.choices(**const.PARAMETER_CHOICES)
     async def novelai(self,
                       ctx: discord.Interaction,
                       prompt: str,
@@ -219,9 +219,9 @@ class NovelAI(commands.Cog):
                            prompt="Gets added to your base prompt (/novelaidefaults)",
                            negative_prompt="Gets added to your base negative prompt (/novelaidefaults)",
                            seed="Random number that determines image generation.",
-                           **PARAMETER_DESCRIPTIONS_IMG2IMG,
-                           **PARAMETER_DESCRIPTIONS_VIBE)
-    @app_commands.choices(**PARAMETER_CHOICES_IMG2IMG)
+                           **const.PARAMETER_DESCRIPTIONS_IMG2IMG,
+                           **const.PARAMETER_DESCRIPTIONS_VIBE)
+    @app_commands.choices(**const.PARAMETER_CHOICES_IMG2IMG)
     async def novelai_img(self,
                           ctx: discord.Interaction,
                           image: discord.Attachment,
@@ -260,7 +260,7 @@ class NovelAI(commands.Cog):
             if "image" not in reference_image3.content_type or not reference_image3.width or not reference_image3.height or not (reference_image3.size / 1024 / 1024) <= max_image_size:
                 return await ctx.response.send_message(f"reference_image3 must be a valid image and less than {max_image_size} MB.", ephemeral=True)
 
-        width, height = scale_to_size(image.width, image.height, MAX_FREE_IMAGE_SIZE)
+        width, height = scale_to_size(image.width, image.height, const.MAX_FREE_IMAGE_SIZE)
         resolution = f"{round_to_nearest(width, 64)},{round_to_nearest(height, 64)}"
         
         model = model or ImageModel(await self.config.user(ctx.user).model())
@@ -278,14 +278,14 @@ class NovelAI(commands.Cog):
         preset.noise = noise
         fp = io.BytesIO()
         await image.save(fp)
-        if image.width*image.height > MAX_UPLOADED_IMAGE_SIZE:
+        if image.width*image.height > const.MAX_UPLOADED_IMAGE_SIZE:
             try:
-                width, height = scale_to_size(image.width, image.height, MAX_UPLOADED_IMAGE_SIZE)
+                width, height = scale_to_size(image.width, image.height, const.MAX_UPLOADED_IMAGE_SIZE)
                 resized_image = Image.open(fp).resize((width, height), Image.Resampling.LANCZOS)
                 fp = io.BytesIO()
                 resized_image.save(fp, "PNG")
                 fp.seek(0)
-            except:
+            except Image.UnidentifiedImageError:
                 log.exception("Resizing image")
                 return await ctx.followup.send(":warning: Failed to resize image. Please try sending a smaller image.")
         preset.image = base64.b64encode(fp.read()).decode()
@@ -366,16 +366,16 @@ class NovelAI(commands.Cog):
         
         resolution = resolution or await self.config.user(ctx.user).resolution()
 
-        if ctx.guild and not ctx.channel.nsfw and NSFW_TERMS.search(prompt):
+        if ctx.guild and not ctx.channel.nsfw and const.NSFW_TERMS.search(prompt):
             return await ctx.response.send_message(":warning: You may not generate NSFW images in non-NSFW channels.")
 
-        if not ctx.guild and TOS_TERMS.search(prompt):
+        if not ctx.guild and const.TOS_TERMS.search(prompt):
             return await ctx.response.send_message(
                 ":warning: To abide by Discord terms of service, the prompt you chose may not be used in private.\n"
                 "You may use this command in a server, where your generations may be reviewed by a moderator."
             )
 
-        if NSFW_TERMS.search(prompt) and TOS_TERMS.search(prompt):
+        if const.NSFW_TERMS.search(prompt) and const.TOS_TERMS.search(prompt):
             return await ctx.response.send_message(
                 ":warning: To abide by Discord terms of service, the prompt you chose may not be used."
             )
@@ -387,13 +387,13 @@ class NovelAI(commands.Cog):
         preset.n_samples = 1
         try:
             preset.resolution = tuple(int(num) for num in resolution.split(","))
-        except:
+        except (ValueError, TypeError):
             preset.resolution = (1024, 1024)
             
         if model == ImageModel.Furry_v3:
-            preset.uc = negative_prompt or DEFAULT_FURRY_NEGATIVE_PROMPT
+            preset.uc = negative_prompt or const.DEFAULT_FURRY_NEGATIVE_PROMPT
         else:
-            preset.uc = negative_prompt or DEFAULT_NEGATIVE_PROMPT
+            preset.uc = negative_prompt or const.DEFAULT_NEGATIVE_PROMPT
         
         preset.uc_preset = UCPreset.Preset_None
         preset.quality_toggle = False
@@ -425,10 +425,10 @@ class NovelAI(commands.Cog):
         while (seconds := (datetime.now() - self.last_generation_datetime).total_seconds()) < generation_cooldown:
             log.debug(f"Waiting on generation_cooldown... {seconds} seconds remaining.")
             await asyncio.sleep(1)
-        try:
-            try:
+        try:  # callback block
+            try:  # main block
                 for retry in range(4):
-                    try:
+                    try:  # request block
                         async with self.api as wrapper:
                             action = ImageGenerationType.IMG2IMG if preset._settings.get("image", None) else ImageGenerationType.NORMAL
                             self.last_generation_datetime = datetime.now()
@@ -505,13 +505,13 @@ class NovelAI(commands.Cog):
                     await msg.add_reaction("🔎")
         except discord.errors.NotFound:
             pass
-        except:
+        except Exception:  # noqa, reason: unexpected errors should not interrupt the task queue
             log.exception("Fulfilling request")
         finally:
             if callback:
                 try:
                     await callback
-                except:
+                except Exception:  # noqa, reason: callback is not essential, unexpected errors should not interrupt the task queue
                     pass
 
     @app_commands.command(name="novelaidefaults",
@@ -522,8 +522,8 @@ class NovelAI(commands.Cog):
                            base_furry_negative_prompt="Gets added after each negative prompt for furry models. \"none\" to delete, \"default\" to reset.",
                            reference_image_strength="Vibe transfer: How strongly the reference image is used.",
                            reference_image_info_extracted="Vibe transfer: The amount of information to extract.",
-                           **PARAMETER_DESCRIPTIONS)
-    @app_commands.choices(**PARAMETER_CHOICES)
+                           **const.PARAMETER_DESCRIPTIONS)
+    @app_commands.choices(**const.PARAMETER_CHOICES)
     async def novelaidefaults(self,
                               ctx: discord.Interaction,
                               base_prompt: Optional[str],
@@ -546,28 +546,28 @@ class NovelAI(commands.Cog):
             if base_prompt.lower() == "none":
                 base_prompt = None
             elif base_prompt.lower() == "default":
-                base_prompt = DEFAULT_PROMPT
+                base_prompt = const.DEFAULT_PROMPT
             await self.config.user(ctx.user).base_prompt.set(base_prompt)
         if base_negative_prompt is not None:
             base_negative_prompt = base_negative_prompt.strip(" ,")
             if base_negative_prompt.lower() == "none":
                 base_negative_prompt = None
             elif base_negative_prompt.lower() == "default":
-                base_negative_prompt = DEFAULT_NEGATIVE_PROMPT
+                base_negative_prompt = const.DEFAULT_NEGATIVE_PROMPT
             await self.config.user(ctx.user).base_negative_prompt.set(base_negative_prompt)
         if base_furry_prompt is not None:
             base_furry_prompt = base_furry_prompt.strip(" ,")
             if base_furry_prompt.lower() == "none":
                 base_furry_prompt = None
             elif base_furry_prompt.lower() == "default":
-                base_furry_prompt = DEFAULT_FURRY_PROMPT
+                base_furry_prompt = const.DEFAULT_FURRY_PROMPT
             await self.config.user(ctx.user).base_furry_prompt.set(base_furry_prompt)
         if base_furry_negative_prompt is not None:
             base_furry_negative_prompt = base_furry_negative_prompt.strip(" ,")
             if base_furry_negative_prompt.lower() == "none":
                 base_furry_negative_prompt = None
             elif base_furry_negative_prompt.lower() == "default":
-                base_furry_negative_prompt = DEFAULT_FURRY_NEGATIVE_PROMPT
+                base_furry_negative_prompt = const.DEFAULT_FURRY_NEGATIVE_PROMPT
             await self.config.user(ctx.user).base_furry_negative_prompt.set(base_furry_negative_prompt)
         if resolution is not None:
             await self.config.user(ctx.user).resolution.set(resolution)
@@ -599,16 +599,16 @@ class NovelAI(commands.Cog):
         embed.add_field(name="Base negative prompt", value=neg[:1000] + "..." if len(neg) > 1000 else neg, inline=False)
         embed.add_field(name="Base furry prompt", value=furry_prompt[:1000] + "..." if len(furry_prompt) > 1000 else furry_prompt, inline=False)
         embed.add_field(name="Base furry negative prompt", value=furry_neg[:1000] + "..." if len(furry_neg) > 1000 else furry_neg, inline=False)
-        embed.add_field(name="Resolution", value=RESOLUTION_TITLES[await self.config.user(ctx.user).resolution()])
+        embed.add_field(name="Resolution", value=const.RESOLUTION_TITLES[await self.config.user(ctx.user).resolution()])
         embed.add_field(name="Guidance", value=f"{await self.config.user(ctx.user).guidance():.1f}")
         embed.add_field(name="Guidance Rescale", value=f"{await self.config.user(ctx.user).guidance_rescale():.2f}")
-        embed.add_field(name="Sampler", value=SAMPLER_TITLES[await self.config.user(ctx.user).sampler()])
+        embed.add_field(name="Sampler", value=const.SAMPLER_TITLES[await self.config.user(ctx.user).sampler()])
         embed.add_field(name="Sampler Version", value=await self.config.user(ctx.user).sampler_version())
         embed.add_field(name="Noise Schedule", value=await self.config.user(ctx.user).noise_schedule())
         embed.add_field(name="Decrisper", value=f"{await self.config.user(ctx.user).decrisper()}")
         embed.add_field(name="Reference Image Strength", value=f"{await self.config.user(ctx.user).reference_image_strength():.2f}")
         embed.add_field(name="Reference Information Extracted", value=f"{await self.config.user(ctx.user).reference_image_info_extracted():.2f}")
-        embed.add_field(name="Model", value=MODELS[await self.config.user(ctx.user).model()])
+        embed.add_field(name="Model", value=const.MODELS[await self.config.user(ctx.user).model()])
         await ctx.response.send_message(embed=embed, ephemeral=True)
 
     @commands.group()
@@ -619,7 +619,7 @@ class NovelAI(commands.Cog):
     @novelaiset.command()
     @commands.is_owner()
     async def servercooldown(self, ctx: commands.Context, seconds: Optional[int]):
-        """Time in seconds between a user's generation ends and they can start a new one, inside a server."""
+        """Time in seconds between when a user's generation ends and when they can start a new one, inside a server."""
         if seconds is None:
             seconds = await self.config.server_cooldown()
         else:
@@ -639,7 +639,7 @@ class NovelAI(commands.Cog):
     @novelaiset.command()
     @commands.is_owner()
     async def dmcooldown(self, ctx: commands.Context, seconds: Optional[int]):
-        """Time in seconds between a user's generation ends and they can start a new one, in DMs with the bot."""
+        """Time in seconds between when a user's generation ends and when they can start a new one, in DMs with the bot."""
         if seconds is None:
             seconds = await self.config.dm_cooldown()
         else:
@@ -690,7 +690,7 @@ class NovelAI(commands.Cog):
             return
         try:
             await ctx.react_quietly(emoji)
-        except:
+        except (discord.NotFound, discord.Forbidden):
             await ctx.reply("I don't have access to that emoji. I must be in the same server to use it.")
         else:
             self.loading_emoji = str(emoji) + " "
@@ -712,7 +712,7 @@ class NovelAI(commands.Cog):
         vip = set(await self.config.vip())
         vip.update(uid for uid in user_ids)
         await self.config.vip.set(list(vip))
-        await ctx.react_quietly("✅")
+        await ctx.tick()
 
     @vip.command(name="remove")
     async def vip_remove(self, ctx: commands.Context, *, users: str):
@@ -723,7 +723,7 @@ class NovelAI(commands.Cog):
         vip = set(await self.config.vip())
         vip.difference_update(uid for uid in user_ids)
         await self.config.vip.set(list(vip))
-        await ctx.react_quietly("✅")
+        await ctx.tick()
 
     @vip.command(name="list")
     async def vip_list(self, ctx: commands.Context):

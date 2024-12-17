@@ -2,8 +2,8 @@ import io
 import logging
 import discord
 from datetime import datetime
+from typing import Optional, Dict
 from redbot.core import commands, Config
-from typing import Optional
 
 log = logging.getLogger("red.crab-cogs.imagelog")
 
@@ -15,8 +15,8 @@ class ImageLog(commands.Cog):
     def __init__(self, bot):
         super().__init__()
         self.bot = bot
-        self.logchannels: dict[int, int] = {}
-        self.manual_deleted_by: dict[int, int] = {}  # may be used by other cogs
+        self.logchannels: Dict[int, int] = {}
+        self.manual_deleted_by: Dict[int, int] = {}  # may be used by other cogs
         self.config = Config.get_conf(self, identifier=6961676567)
         self.config.register_guild(channel=0, log_moderator_self_deletes=True)
 
@@ -24,14 +24,18 @@ class ImageLog(commands.Cog):
         all_config = await self.config.all_guilds()
         self.logchannels = {guild_id: conf['channel'] for guild_id, conf in all_config.items()}
 
-    async def red_delete_data_for_user(self, requester: str, user_id: int):
-        pass
+    async def is_valid_red_message(self, message: discord.Message) -> bool:
+        return await self.bot.allowed_by_whitelist_blacklist(message.author) \
+               and await self.bot.ignored_channel_or_guild(message) \
+               and not await self.bot.cog_disabled_in_guild(self, message.guild)
+
 
     @commands.Cog.listener()
     async def on_raw_message_delete(self, ctx: discord.RawMessageDeleteEvent):
         message = ctx.cached_message
         if not message or not self.logchannels.get(ctx.guild_id, 0):
             return
+
         guild = message.guild
         channel = message.channel
         log_channel = guild.get_channel(self.logchannels[guild.id])
@@ -40,14 +44,16 @@ class ImageLog(commands.Cog):
             return
         if not await self.is_valid_red_message(message):
             return
+
         for i, attachment in enumerate(attachments):
             embed = discord.Embed(
                 title="Image deleted" + (f" ({i+1}/{len(attachments)})" if len(attachments) > 1 else ""),
-                description=message.content[:1990] if message.content else "",
+                description=message.content if message.content else "",
                 color=message.author.color,
                 timestamp=datetime.now())
             embed.set_author(name=str(message.author), icon_url=str(message.author.display_avatar.url))
             embed.add_field(name=f"Channel", value=channel.mention)
+
             if message.id in self.manual_deleted_by:
                 embed.add_field(name="Deleted by", value=f"<@{self.manual_deleted_by.pop(message.id)}>")
             elif channel.permissions_for(guild.me).view_audit_log:
@@ -63,21 +69,19 @@ class ImageLog(commands.Cog):
                 embed.add_field(name="Probably deleted by", value=deleter.mention)
             else:
                 embed.add_field(name="Missing audit log permission", value="Oops")
+
             img = io.BytesIO()
             try:
                 await attachment.save(img, use_cached=True)
-            except Exception:
-                log.error("Trying to save attachment", exc_info=True)
+            except discord.DiscordException:
+                log.exception("Trying to save attachment")
                 file = None
             else:
                 file = discord.File(img, filename=attachment.filename)
-            embed.set_image(url=f"attachment://{attachment.filename}")
+                embed.set_image(url=f"attachment://{attachment.filename}")
+
             await log_channel.send(embed=embed, file=file)
 
-    async def is_valid_red_message(self, message: discord.Message) -> bool:
-        return await self.bot.allowed_by_whitelist_blacklist(message.author) \
-               and await self.bot.ignored_channel_or_guild(message) \
-               and not await self.bot.cog_disabled_in_guild(self, message.guild)
 
     @commands.group(invoke_without_command=True)
     @commands.has_permissions(manage_guild=True)

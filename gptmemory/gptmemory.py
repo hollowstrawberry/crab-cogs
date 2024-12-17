@@ -6,6 +6,7 @@ import discord
 from io import BytesIO
 from datetime import datetime
 from difflib import get_close_matches
+from typing import Optional, Union, List, Dict
 from expiringdict import ExpiringDict
 from openai import AsyncOpenAI
 from tiktoken import encoding_for_model
@@ -21,13 +22,16 @@ from gptmemory.constants import URL_PATTERN, RESPONSE_CLEANUP_PATTERN, IMAGE_EXT
 
 log = logging.getLogger("red.crab-cogs.gptmemory")
 
+GptImageContent = List[Dict[str, str]]
+GptMessage = Dict[str, Union[str, GptImageContent]]
+
 
 class GptMemory(GptMemoryBase):
     """OpenAI-powered user with persistent memory."""
 
     def __init__(self, bot: Red):
         super().__init__(bot)
-        self.openai_client: AsyncOpenAI = None
+        self.openai_client: Optional[AsyncOpenAI] = None
         self.image_cache = ExpiringDict(max_len=50, max_age_seconds=24*60*60)
         self.available_function_calls = set(all_function_calls)
 
@@ -124,13 +128,13 @@ class GptMemory(GptMemoryBase):
         await self.execute_memorizer(ctx, messages, memories, recalled_memories)
 
 
-    async def execute_recaller(self, ctx: commands.Context, messages: list[dict], memories: str) -> str:
+    async def execute_recaller(self, ctx: commands.Context, messages: List[GptMessage], memories: str) -> str:
         """
         Runs an openai completion with the chat history and a list of memories from the database
         and returns a parsed string of memories and their contents as chosen by the LLM.
         """
         if not memories:
-            return
+            return ""
             
         system_prompt = {
             "role": "system",
@@ -151,7 +155,7 @@ class GptMemory(GptMemoryBase):
         return recalled_memories_str or "[None]"
 
 
-    async def execute_responder(self, ctx: commands.Context, messages: list[dir], recalled_memories: str) -> dict:
+    async def execute_responder(self, ctx: commands.Context, messages: List[GptMessage], recalled_memories: str) -> GptMessage:
         """
         Runs an openai completion with the chat history and the contents of memories
         and returns a response message after sending it to the user.
@@ -185,7 +189,7 @@ class GptMemory(GptMemoryBase):
                     cls = next(t for t in tools if t.schema.function.name == call.function.name)
                     args = json.loads(call.function.arguments)
                     tool_result = await cls(ctx).run(args)
-                except:
+                except Exception:  # noqa, reason: tools should handle specific errors internally, but broad errors should not stop the responder
                     tool_result = "Error"
                     log.exception("Calling tool")
 
@@ -218,7 +222,7 @@ class GptMemory(GptMemoryBase):
         return response_message
 
 
-    async def execute_memorizer(self, ctx: commands.Context, messages: list[dict], memories: str, recalled_memories: str) -> None:
+    async def execute_memorizer(self, ctx: commands.Context, messages: List[GptMessage], memories: str, recalled_memories: str) -> None:
         """
         Runs an openai completion with the chat history, a list of memories, and the contents of some memories,
         and executes database operations as decided by the LLM.
@@ -280,7 +284,7 @@ class GptMemory(GptMemoryBase):
             await ctx.send(f"`Revised memories: {', '.join(memory_changes)}`")
 
 
-    async def get_message_history(self, ctx: commands.Context) -> list[dict]:
+    async def get_message_history(self, ctx: commands.Context) -> List[GptMessage]:
         backread = [message async for message in ctx.channel.history(
             limit=await self.config.guild(ctx.guild).backread_messages(),
             before=ctx.message,
@@ -298,7 +302,7 @@ class GptMemory(GptMemoryBase):
                 quote = backmsg.reference.cached_message or await backmsg.channel.fetch_message(backmsg.reference.message_id)
                 if len(backread) > n+1 and quote == backread[n+1]:
                     quote = None
-            except:
+            except (AttributeError, discord.DiscordException):
                 quote = None
 
             image_contents = await self.extract_images(backmsg, quote, processed_image_sources)
@@ -323,7 +327,7 @@ class GptMemory(GptMemoryBase):
         return list(reversed(messages))
 
 
-    async def extract_images(self, message: discord.Message, quote: discord.Message, processed_sources: list[discord.Attachment | str]) -> list[dict]:
+    async def extract_images(self, message: discord.Message, quote: discord.Message, processed_sources: List[Union[str, discord.Attachment]]) -> GptImageContent:
         if message.id in self.image_cache:
             log.info("Retrieving cached image(s)")
             return self.image_cache[message.id]
@@ -339,16 +343,19 @@ class GptMemory(GptMemoryBase):
                 if image in processed_sources:
                     continue
                 processed_sources.append(image)
+                fp_before = BytesIO()
                 try:
-                    fp_before = BytesIO()
                     await image.save(fp_before, seek_begin=True)
-                    fp_after = process_image(fp_before)
-                    del fp_before
-                    image_contents.append(make_image_content(fp_after))
-                    del fp_after
-                    log.info(image.filename)
-                except:
-                    log.warning("Processing image attachment", exc_info=True)
+                except discord.DiscordException:
+                    log.warning("Processing image attachments", exc_info=True)
+                    break
+                fp_after = process_image(fp_before)
+                del fp_before
+                if not fp_after:
+                    continue
+                image_contents.append(make_image_content(fp_after))
+                del fp_after
+                log.info(image.filename)
 
         if image_contents:
             self.image_cache[message.id] = [cnt for cnt in image_contents]
@@ -379,14 +386,17 @@ class GptMemory(GptMemoryBase):
                 try:
                     async with session.get(url) as response:
                         response.raise_for_status()
-                        fp = BytesIO(await response.read())
-                    processed_image = process_image(fp)
-                    del fp
-                    image_contents.append(make_image_content(processed_image))
-                    del processed_image
-                    log.info(url)
-                except:
+                        fp_before = BytesIO(await response.read())
+                except aiohttp.ClientError:
                     log.warning("Processing image URL", exc_info=True)
+                    continue
+                fp_after = process_image(fp_before)
+                del fp_before
+                if not fp_after:
+                    continue
+                image_contents.append(make_image_content(fp_after))
+                del fp_after
+                log.info(url)
 
         if image_contents:
             self.image_cache[message.id] = [cnt for cnt in image_contents]

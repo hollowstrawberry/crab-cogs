@@ -22,7 +22,7 @@ class ImageView(View):
             with io.StringIO() as f:
                 f.write(self.params)
                 f.seek(0)
-                await ctx.response.send_message(file=discord.File(f, "parameters.yaml"))
+                await ctx.response.send_message(file=discord.File(f, "parameters.yaml"))  # noqa, reason: StringIO works
         await ctx.message.edit(view=None, embed=self.embed)
         self.pressed = True
         self.stop()

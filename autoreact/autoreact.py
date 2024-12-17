@@ -1,12 +1,13 @@
 import re
+
 import discord
 import logging
 from random import random
 from emoji import is_emoji
+from typing import Dict, Optional, Union
 from redbot.core import commands, Config
 from redbot.core.bot import Red
 from redbot.core.utils.views import SimpleMenu
-from typing import Optional, Union
 
 log = logging.getLogger("red.crab-cogs.autoreact")
 
@@ -25,8 +26,8 @@ class Autoreact(commands.Cog):
         super().__init__()
         self.bot = bot
         self.config = Config.get_conf(self, identifier=61757472)
-        self.autoreacts: dict[int, dict[str, re.Pattern]] = {}
-        self.coreact_chance: dict[int, float] = {}
+        self.autoreacts: Dict[int, Dict[str, re.Pattern]] = {}
+        self.coreact_chance: Dict[int, float] = {}
         self.config.register_guild(autoreact_regexes={}, coreact_chance=0.0)
 
     async def cog_load(self):
@@ -34,9 +35,6 @@ class Autoreact(commands.Cog):
         self.autoreacts = {guild_id: {emoji: re.compile(text) for emoji, text in conf['autoreact_regexes'].items()}
                            for guild_id, conf in all_config.items()}
         self.coreact_chance = {guild_id: conf['coreact_chance'] for guild_id, conf in all_config.items()}
-
-    async def red_delete_data_for_user(self, requester: str, user_id: int):
-        pass
 
     # Listeners
 
@@ -98,10 +96,15 @@ class Autoreact(commands.Cog):
         await ctx.send_help()
 
     @autoreact.command()
-    @commands.has_permissions(manage_guild=True)
+    @commands.is_owner()  # due to the possibility of catastrophic backtracking, we can't give regex to anyone but the bot owner
     @commands.bot_has_permissions(add_reactions=True)
     async def add(self, ctx: commands.Context, emoji: Union[discord.Emoji, str], *, pattern: str):
-        """Add a new autoreact using regex. Tip: (?i) in a regex makes it case-insensitive."""
+        """
+        Add a new autoreact using regex. Tip: (?i) in a regex makes it case-insensitive.
+        WARNING: Some regex patterns have the possibility of running infinitely, freezing the entire bot.
+        Please research catastrophic backtracking.
+        """
+        pattern = pattern.strip()
         if isinstance(emoji, str) and not is_emoji(emoji) and not is_regional_indicator(emoji):
             await ctx.send("Sorry, that doesn't seem to be a valid emoji to react with.")
             return
@@ -112,7 +115,7 @@ class Autoreact(commands.Cog):
             await ctx.send("Sorry, the regex may not be longer than 400 characters.")
             return
         if pattern.startswith('`') and pattern.endswith('`'):
-            pattern = pattern.strip('`')
+            pattern = pattern.strip('`').strip()
         try:
             pattern = re.compile(pattern)
         except Exception as error:
@@ -123,7 +126,7 @@ class Autoreact(commands.Cog):
         async with self.config.guild(ctx.guild).autoreact_regexes() as autoreacts:
             autoreacts[emoji] = pattern.pattern
             self.autoreacts[ctx.guild.id][emoji] = pattern
-            await ctx.react_quietly("✅")
+            await ctx.tick()
 
     @autoreact.command()
     @commands.has_permissions(manage_guild=True)
@@ -139,11 +142,12 @@ class Autoreact(commands.Cog):
             removed1 = autoreacts.pop(emoji, None)
             removed2 = self.autoreacts[ctx.guild.id].pop(emoji, None)
             if removed1 or removed2:
-                await ctx.react_quietly("✅")
+                await ctx.tick()
             else:
                 await ctx.send("No autoreacts found for that emoji.")
 
     @autoreact.command()
+    @commands.bot_has_permissions(embed_links=True)
     async def list(self, ctx: commands.Context):
         """Shows all autoreacts."""
         if ctx.guild.id not in self.autoreacts or not self.autoreacts[ctx.guild.id]:
@@ -157,10 +161,7 @@ class Autoreact(commands.Cog):
                 embed.set_footer(text=f"Page {i+1}/{(9+len(autoreacts))//10}")
             embed.description = '\n'.join(batch)
             pages.append(embed)
-        if len(pages) == 1:
-            await ctx.send(embed=pages[0])
-        else:
-            await SimpleMenu(pages, timeout=600).start(ctx)
+        await SimpleMenu(pages, timeout=300).start(ctx)
         
     @commands.group(invoke_without_command=True)
     @commands.has_permissions(manage_guild=True)
