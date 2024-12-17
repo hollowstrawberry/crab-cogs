@@ -106,7 +106,7 @@ class Minecraft(commands.Cog):
         try:
             server = await JavaServer.async_lookup(ip)
             status = await server.async_status() if server else None
-        except ConnectionError:
+        except (ConnectionError, TimeoutError):
             status = None
         except Exception as error:  # python package is unclear as to the errors that may be raised
             if f"{error}" == "Socket did not respond with any information!":
