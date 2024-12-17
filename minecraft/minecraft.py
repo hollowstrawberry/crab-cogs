@@ -106,14 +106,12 @@ class Minecraft(commands.Cog):
         try:
             server = await JavaServer.async_lookup(ip)
             status = await server.async_status() if server else None
+        except ConnectionError:
+            status = None
         except Exception as error:  # python package is unclear as to the errors that may be raised
-            log.info(type(error).__name__)
             if f"{error}" == "Socket did not respond with any information!":
-                return await ctx.send("🟡 The server is asleep! You can join to start it back up.")
-            elif f"{error}" == "[Errno 111] Connection refused":
-                status = None
-            else:
-                return await ctx.send(f"An error occurred. {error}")
+                return await ctx.send("🟡 The server may be asleep! You can try joining to start it back up.")
+            return await ctx.send(f"An error occurred. {error}")
 
         if not status:
             embed = discord.Embed(title=f"Minecraft Server", color=0xFF0000)
