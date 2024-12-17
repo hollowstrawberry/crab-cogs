@@ -1,9 +1,9 @@
 {
     "author": ["hollowstrawberry"],
     "min_bot_version": "3.5.0",
-    "description": "Logs deleted images for moderation purposes.\n⚠️ Usage warning: You may or may not be liable for keeping content that breaks Discord TOS.",
+    "description": "Logs deleted images for moderation purposes.\n⚠️ Usage warning: Content saved by this method is **not** usable for reporting users to Discord. You may also be liable for keeping content that breaks Discord TOS.",
     "hidden": false,
-    "install_msg": "🎐 __**ImageLog**__ ```Cog installed. Instructions:\n1. Load it with [p]load imagelog\n2. Set the log channel with [p]imagelog setchannel```",
+    "install_msg": "🎐 __**ImageLog**__\n:warning: __**Usage warning:**__ Content saved by this method is NOT usable for reporting users to Discord. You may also be liable for keeping content that breaks Discord TOS.\n ```Cog installed. Instructions:\n1. Load it with [p]load imagelog\n2. Set the log channel with [p]imagelog setchannel```",
     "required_cogs": {},
     "requirements": [],
     "short": "Logs deleted images for moderation purposes.",
