@@ -53,7 +53,7 @@ class EmojiSteal(commands.Cog):
     @staticmethod
     def get_emojis(content: str) -> Optional[List[discord.PartialEmoji]]:
         results = re.findall(r"(<(a?):(\w+):(\d{10,20})>)", content)
-        return [discord.PartialEmoji.from_str(*result) for result in results]
+        return [discord.PartialEmoji.from_str(result[0]) for result in results]
     
     @staticmethod
     def available_emoji_slots(guild: discord.Guild, animated: bool) -> int:
