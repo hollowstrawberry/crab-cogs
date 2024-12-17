@@ -10,7 +10,7 @@ from redbot.core import commands, app_commands
 
 def prepare_image(fp: BytesIO):
     fp2 = BytesIO()
-    Image.open(fp).convert('RGB').resize((256, 256), Image.Resampling.BICUBIC).save(fp2)
+    Image.open(fp).convert('RGB').resize((256, 256), Image.Resampling.BICUBIC).save(fp2, ".jpg")
     fp2.seek(0)
     del fp
     img = cv2.imdecode(fp2, cv2.IMREAD_COLOR)
@@ -69,7 +69,7 @@ class Draw(commands.Cog):
         return result
 
     @staticmethod
-    def paint_effect(fp):
+    def paint_effect(fp: BytesIO) -> BytesIO:
         img = prepare_image(fp)
         del fp
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (8, 8))
