@@ -1,7 +1,7 @@
 import cv2
+import numpy as np
 import asyncio
 import discord
-import functools
 from io import BytesIO
 from PIL import Image
 from typing import Optional
@@ -13,7 +13,7 @@ def prepare_image(fp: BytesIO):
     Image.open(fp).convert('RGB').resize((256, 256), Image.Resampling.BICUBIC).save(fp2, "png")
     fp2.seek(0)
     del fp
-    img = cv2.imdecode(fp2, cv2.IMREAD_COLOR)
+    img = cv2.imdecode(np.frombuffer(fp2.read(), np.uint8), cv2.IMREAD_COLOR)
     del fp2
     return img
 
