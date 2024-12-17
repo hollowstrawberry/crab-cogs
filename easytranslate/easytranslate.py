@@ -21,9 +21,10 @@ SOFTWARE.
 """
 
 import re
+import logging
 import functools
-import googletrans
 import discord
+import googletrans
 from redbot.core import commands, app_commands, Config
 from redbot.core.bot import Red
 from typing import Union, List
@@ -35,6 +36,8 @@ LANGUAGE_NOT_FOUND = "`That's not an available language, please try again.`"
 TRANSLATION_FAILED = "`Something went wrong while translating. If this keeps happening, contact the bot owner.`"
 
 CUSTOM_EMOJI = re.compile("<(?P<animated>a?):(?P<name>[a-zA-Z0-9_]{2,32}):(?P<id>[0-9]{18,22})>")  # Thanks R.Danny
+
+log = logging.getLogger("red.crab-cogs.easytranslate")
 
 
 class EasyTranslate(commands.Cog):
@@ -53,7 +56,7 @@ class EasyTranslate(commands.Cog):
         self.bot.tree.remove_command(self.context_menu.name, type=self.context_menu.type)
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
-        pass
+        await self.config.user_from_id(user_id).clear()
 
     @staticmethod
     def convert_language(language: str) -> str:
@@ -103,7 +106,8 @@ class EasyTranslate(commands.Cog):
         try:
             task = functools.partial(self.translator.translate, text=content, dest=language)
             result: Translated = await self.bot.loop.run_in_executor(None, task)
-        except:
+        except Exception:  # noqa, reason: No documentation for possible errors of Translator.translate
+            log.exception("Translator.translate", stack_info=True)
             fail_embed = discord.Embed(description=TRANSLATION_FAILED, color=discord.Color.red())
             if isinstance(ctx, discord.Interaction):
                 return await ctx.response.send_message(embed=fail_embed, ephemeral=True)
@@ -165,5 +169,6 @@ class EasyTranslate(commands.Cog):
             task = functools.partial(self.translator.translate, text=success, dest=language)
             result: Translated = await self.bot.loop.run_in_executor(None, task)
             await ctx.send(result.text, ephemeral=True)
-        except:
+        except Exception:  # noqa, reason: user-facing error and lack of documentation of python package
+            log.exception("Translator.translate", stack_info=True)
             await ctx.send("✅", ephemeral=True)

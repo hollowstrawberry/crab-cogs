@@ -7,6 +7,6 @@
     "required_cogs": {},
     "requirements": ["googletrans-py"],
     "short": "Translate messages using Google Translate for free. Supports context menu commands.",
-    "end_user_data_statement": "This cog does not store any user data.",
+    "end_user_data_statement": "This cog stores the preferred language of a user if they choose one.",
     "tags": ["crab", "useful", "translate", "translation", "slash", "message", "context", "menu"]
 }
