@@ -484,7 +484,7 @@ class NovelAI(commands.Cog):
             image.info["Comment"] = json.dumps(comment)
             pnginfo = PngImagePlugin.PngInfo()
             for key, val in image.info.items():
-                pnginfo.add_text(key, val)
+                pnginfo.add_text(str(key), str(val))
             fp = io.BytesIO()
             image.save(fp, "png", pnginfo=pnginfo)
             fp.seek(0)
