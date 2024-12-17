@@ -1,9 +1,9 @@
 {
     "author": ["hollowstrawberry"],
     "min_bot_version": "3.5.0",
-    "description": "Audio cog commands in the form of slash commands, with YouTube and playlist autocomplete.",
+    "description": "Audio cog commands in the form of slash commands, with YouTube and playlist autocomplete. Uses up ~10 slash commands out of the available 100.",
     "hidden": false,
-    "install_msg": "🎵 __**AudioSlash**__ ```Cog installed. Instructions:\n1. Load it with [p]load audioslash\n2. Enable slash commands with [p]slash enablecog audioslash\n3. Sync slash commands with [p]slash sync\n4. You may need to restart Discord to see the new commands.```",
+    "install_msg": "🎵 __**AudioSlash**__ ```Cog installed. Instructions:\n1. Load it with [p]load audioslash\n2. There are ~10 slash commands in this cog. You may enable them all with [p]slash enablecog audioslash\n3. Sync slash commands with [p]slash sync\n4. You may need to restart Discord to see the new commands.```",
     "required_cogs": {},
     "requirements": [],
     "short": "Audio cog commands in the form of slash commands, with YouTube and playlist autocomplete.",
