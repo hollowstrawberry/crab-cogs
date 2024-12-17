@@ -4,16 +4,9 @@
     "description": "Manage a Minecraft server from Discord.",
     "hidden": false,
     "install_msg": "🟫__**Minecraft**__ ```Cog installed. Instructions:\n1. Load it with [p]load minecraft.\n2. Connect your Minecraft server with your Discord server, see [p]help minecraft setup```",
-    "tags": [
-        "Minecraft",
-        "Whitelist",
-        "Automation"
-    ],
-    "requirements": [
-        "aio-mc-rcon",
-        "mcstatus",
-        "validators"
-    ],
+    "required_cogs": {},
+    "requirements": ["aio-mc-rcon", "mcstatus", "validators"],
     "short": "Manage a Minecraft server from Discord.",
-    "end_user_data_statement": "This cog stores end user data in order to allow it to whitelist players on a minecraft server. It stores minecraft player names(and user IDs) as well as discord user IDs."
+    "end_user_data_statement": "This cog stores end user data in order to allow it to whitelist players on a minecraft server. It stores minecraft player names(and user IDs) as well as discord user IDs.",
+    "tags": ["minecraft", "whitelist", "automation"]
 }
