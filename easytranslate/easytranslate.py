@@ -39,8 +39,6 @@ CUSTOM_EMOJI = re.compile(r"<a?:\w+:\d+>")
 
 log = logging.getLogger("red.crab-cogs.easytranslate")
 
-log = logging.getLogger("red.crab-cogs.easytranslate")
-
 
 class EasyTranslate(commands.Cog):
     """Translate messages using Google Translate for free. Supports context menu commands."""
