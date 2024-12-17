@@ -133,7 +133,7 @@ class Minecraft(commands.Cog):
         await self.config.guild(ctx.guild).port.set(port)
         await self.config.guild(ctx.guild).rcon_port.set(rcon_port)
         await self.config.guild(ctx.guild).password.set(password)
-        self.clients[ctx.guild.id] = Client(host, port, password)
+        self.clients[ctx.guild.id] = Client(host, rcon_port, password)
         try:
             async with self.clients[ctx.guild.id] as client:
                 await client.send_cmd("help")
