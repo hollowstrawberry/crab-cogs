@@ -38,12 +38,14 @@ class Booru(commands.Cog):
     async def cog_load(self):
         self.tag_cache = await self.config.tag_cache()
 
-    async def red_delete_data_for_user(self, requester: str, user_id: int):
-        pass
+    async def cog_unload(self):
+        if self.session:
+            await self.session.close()
 
     @commands.command()
     @commands.is_owner()
     async def boorudeletecache(self, ctx: commands.Context):
+        del self.tag_cache
         self.tag_cache = {}
         async with self.config.tag_cache() as tag_cache:
             tag_cache.clear()
