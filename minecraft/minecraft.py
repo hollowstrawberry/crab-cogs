@@ -51,7 +51,7 @@ class Minecraft(commands.Cog):
                         data["players"][int(user_id)] = player["name"]
                     updated = True
             if updated:
-                await self.config.guild(guild_id).players.set(data["players"])
+                await self.config.guild_from_id(guild_id).players.set(data["players"])
 
 
     async def cog_unload(self):
