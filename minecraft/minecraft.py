@@ -139,13 +139,16 @@ class Minecraft(commands.Cog):
         try:
             async with self.clients[ctx.guild.id] as client:
                 await client.send_cmd("help")
-        except (RCONConnectionError, TimeoutError):
-            await ctx.send("Could not connect to server.")
+        except (RCONConnectionError, TimeoutError) as error:
+            await ctx.send(error or "Could not connect to the server.")
         except IncorrectPasswordError:
             await ctx.send("Incorrect password.")
         except Exception as error:  # catch everything to be able to give feedback to the user
             log.exception("Executing command")
-            await ctx.send(f"{type(error).__name__}: {error}")
+            if f"{error}" == "unpack requires a buffer of 4 bytes":
+                await ctx.send("Could not connect to the server. You may have set the port and rcon port backwards.")
+            else:
+                await ctx.send(f"{type(error).__name__}: {error}")
         else:
             await ctx.send("Server credentials saved.")
 
