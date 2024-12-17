@@ -76,7 +76,7 @@ class Minecraft(commands.Cog):
                 resp = await client.send_cmd(command, 10)
             return True, resp[0]
         except (RCONConnectionError, TimeoutError) as error:
-            return False, f"Couldn't connect to the server. {error}"
+            return False, error or "Couldn't connect to the server."
         except IncorrectPasswordError:
             return False, "Incorrect RCON password."
         except Exception as error:  # catch everything to be able to give feedback to the user
@@ -133,6 +133,8 @@ class Minecraft(commands.Cog):
         await self.config.guild(ctx.guild).port.set(port)
         await self.config.guild(ctx.guild).rcon_port.set(rcon_port)
         await self.config.guild(ctx.guild).password.set(password)
+        if self.clients[ctx.guild.id]:
+            await self.clients[ctx.guild.id].close()
         self.clients[ctx.guild.id] = Client(host, rcon_port, password)
         try:
             async with self.clients[ctx.guild.id] as client:
