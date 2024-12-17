@@ -16,7 +16,8 @@ from aiomcrcon import Client
 from aiomcrcon.errors import IncorrectPasswordError, RCONConnectionError
 
 log = logging.getLogger("red.crab-cogs.minecraft")
-re_username = re.compile("^.?[a-zA-Z0-9_]{3,30}$")
+
+re_username = re.compile(r"^.?\w{3,30}$")
 
 
 class Minecraft(commands.Cog):
@@ -140,7 +141,8 @@ class Minecraft(commands.Cog):
             async with self.clients[ctx.guild.id] as client:
                 await client.send_cmd("help")
         except (RCONConnectionError, TimeoutError) as error:
-            await ctx.send(error or "Could not connect to the server.")
+            await ctx.send((error or "Could not connect to the server.") +
+                           "\nMake sure your server is online and public, and that the IP and ports are correct.")
         except IncorrectPasswordError:
             await ctx.send("Incorrect password.")
         except Exception as error:  # catch everything to be able to give feedback to the user
@@ -312,6 +314,8 @@ class Minecraft(commands.Cog):
     @minecraft.command()
     async def command(self, ctx: commands.Context, *, command: str):
         """Run a command on the Minecraft server. No validation is done."""
+        if len(command) > 1440:
+            return await ctx.send("Command too long!")
         success, resp = await self.run_minecraft_command(ctx.guild, command)
         await ctx.send(resp or "✅")
         if success:
