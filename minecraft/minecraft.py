@@ -246,8 +246,7 @@ class Minecraft(commands.Cog):
 
         outstr = []
         for user_id, player in players.items():
-            member = ctx.guild.get_member(int(user_id))
-            outstr.append(f"{member.mention if member else user_id} | {player['name']}\n")
+            outstr.append(f"<@{user_id}> | {player['name']}\n")
 
         pages = list(pagify("\n".join(outstr), page_length=1024))
         rendered = []
