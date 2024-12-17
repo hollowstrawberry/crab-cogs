@@ -44,7 +44,7 @@ class Minecraft(commands.Cog):
         all_data = await self.config.all_guilds()
         for guild_id, data in all_data.items():
             if data["password"]:
-                self.clients[guild_id] = Client(data["host"], data["port"], data["password"])
+                self.clients[guild_id] = Client(data["host"], data["rcon_port"], data["password"])
             # old version
             updated = False
             for user_id, player in list(data["players"].items()):
