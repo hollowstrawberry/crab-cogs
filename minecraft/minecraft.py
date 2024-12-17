@@ -49,10 +49,9 @@ class Minecraft(commands.Cog):
             # old version
             updated = False
             for user_id, player in list(data["players"].items()):
-                if isinstance(user_id, str) and isinstance(player, dict):
+                if isinstance(player, dict):
                     del data["players"][user_id]
-                    if user_id.isnumeric():
-                        data["players"][int(user_id)] = player["name"]
+                    data["players"][user_id] = player["name"]
                     updated = True
             if updated:
                 await self.config.guild_from_id(guild_id).players.set(data["players"])
@@ -64,8 +63,8 @@ class Minecraft(commands.Cog):
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         all_data = await self.config.all_guilds()
         for guild_id in all_data:
-            if user_id in all_data[guild_id]["players"]:
-                del all_data[guild_id]["players"][user_id]
+            if str(user_id) in all_data[guild_id]["players"]:
+                del all_data[guild_id]["players"][str(user_id)]
                 await self.config.guild_from_id(guild_id).players.set(all_data[guild_id]["players"])
 
 
@@ -89,13 +88,13 @@ class Minecraft(commands.Cog):
     async def on_member_remove(self, member: discord.Member):
         """Remove member from whitelist when leaving guild"""
         players = await self.config.guild(member.guild).players()
-        if member.id in players:
-            success, _ = await self.run_minecraft_command(member.guild, f"whitelist remove {players[member.id]}")
+        if str(member.id) in players:
+            success, _ = await self.run_minecraft_command(member.guild, f"whitelist remove {players[str(member.id)]}")
             if not success:
                 async with self.config.guild(member.guild).players_to_delete() as players_to_delete:
-                    players_to_delete.append(players[member.id])
+                    players_to_delete.append(players[str(member.id)])
             async with self.config.guild(member.guild).players() as cur_players:
-                del cur_players[member.id]
+                del cur_players[str(member.id)]
 
 
     async def delete_orphan_players(self, guild: discord.Guild):
@@ -206,7 +205,7 @@ class Minecraft(commands.Cog):
             return await ctx.send(f"Invalid username.")
 
         players = await self.config.guild(ctx.guild).players()
-        if ctx.author.id in players:
+        if str(ctx.author.id) in players:
             return await ctx.send(f"You are already whitelisted.\nYou can remove yourself with {ctx.clean_prefix}minecraft leave")
 
         success, msg = await self.run_minecraft_command(ctx.guild, f"whitelist add {name}")
@@ -217,7 +216,7 @@ class Minecraft(commands.Cog):
             return
 
         async with self.config.guild(ctx.guild).players() as cur_players:
-            cur_players[ctx.author.id] = name
+            cur_players[str(ctx.author.id)] = name
 
         await self.delete_orphan_players(ctx.guild)
 
@@ -230,14 +229,14 @@ class Minecraft(commands.Cog):
     async def leave(self, ctx: commands.Context):
         """Remove yourself from the whitelist."""
         players = await self.config.guild(ctx.guild).players()
-        log.info(players)
-        if ctx.author.id not in players:
+
+        if str(ctx.author.id) not in players:
             return await ctx.send("You are not registered to the Minecraft server through Discord.")
 
         async with self.config.guild(ctx.guild).players() as cur_players:
-            del cur_players[ctx.author.id]
+            del cur_players[str(ctx.author.id)]
 
-        success, msg = await self.run_minecraft_command(ctx.guild, f"whitelist remove {players[ctx.author.id]}")
+        success, msg = await self.run_minecraft_command(ctx.guild, f"whitelist remove {players[str(ctx.author.id)]}")
         await ctx.send(msg)
         if not success:
             return
