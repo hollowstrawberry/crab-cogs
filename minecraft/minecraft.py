@@ -44,7 +44,7 @@ class Minecraft(commands.Cog):
                 self.clients[guild_id] = Client(data["host"], data["port"], data["password"])
             # old version
             updated = False
-            for user_id, player in data["players"].items():
+            for user_id, player in list(data["players"].items()):
                 if isinstance(user_id, str) and isinstance(player, dict):
                     del data["players"][user_id]
                     if user_id.isnumeric():
