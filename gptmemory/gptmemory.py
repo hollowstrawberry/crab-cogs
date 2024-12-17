@@ -302,7 +302,7 @@ class GptMemory(GptMemoryBase):
                 quote = backmsg.reference.cached_message or await backmsg.channel.fetch_message(backmsg.reference.message_id)
                 if len(backread) > n+1 and quote == backread[n+1]:
                     quote = None
-            except discord.DiscordException:
+            except (AttributeError, discord.DiscordException):
                 quote = None
 
             image_contents = await self.extract_images(backmsg, quote, processed_image_sources)
