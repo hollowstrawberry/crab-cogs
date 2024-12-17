@@ -207,16 +207,20 @@ class Minecraft(commands.Cog):
 
         players = await self.config.guild(ctx.guild).players()
         if ctx.author.id in players:
-            return await ctx.send(f"You are already whitelisted.\nRemove yourself first with {ctx.clean_prefix}minecraft leave")
+            return await ctx.send(f"You are already whitelisted.\nYou can remove yourself with {ctx.clean_prefix}minecraft leave")
 
         success, msg = await self.run_minecraft_command(ctx.guild, f"whitelist add {name}")
-        await ctx.send(msg)
+        if "That player does not exist" in msg:
+            await ctx.send("Unknown player. Please attempt to join the server for it to recognize you.")
+        else:
+            await ctx.send(msg)
         if not success:
             return
 
+
         await self.delete_orphan_players(ctx.guild)
 
-        async with await self.config.guild(ctx.guild).players() as cur_players:
+        async with self.config.guild(ctx.guild).players() as cur_players:
             cur_players[ctx.author.id] = name
 
         success, msg = await self.run_minecraft_command(ctx.guild, "whitelist reload")
@@ -231,7 +235,7 @@ class Minecraft(commands.Cog):
         if ctx.author.id not in players:
             return await ctx.send("You are not registered to the Minecraft server through Discord.")
 
-        async with await self.config.guild(ctx.guild).players() as cur_players:
+        async with self.config.guild(ctx.guild).players() as cur_players:
             del cur_players[ctx.author.id]
 
         success, msg = await self.run_minecraft_command(ctx.guild, f"whitelist remove {players[ctx.author.id]}")
