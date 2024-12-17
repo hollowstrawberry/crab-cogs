@@ -20,7 +20,7 @@ re_username = re.compile("^.?[a-zA-Z0-9_]{3,30}$")
 
 
 class Minecraft(commands.Cog):
-    """Manage a Minecraft server from Discord."""
+    """Manage your Minecraft server from within your Discord server, and check server status and online players without opening the game."""
 
     def __init__(self, bot: Red):
         super().__init__()

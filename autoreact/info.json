@@ -1,12 +1,12 @@
 {
     "author": ["hollowstrawberry"],
     "min_bot_version": "3.5.0",
-    "description": "Lets you configure emojis that will be added to any message containing text matching a regex.",
+    "description": "Make the bot react along with everyone else. The bot owner may set regex patterns that the bot will react to with specific emojis.",
     "hidden": false,
     "install_msg": "⏺ __**Autoreact**__\n:warning: *__WARNING:__** Some regex patterns have the possibility of running infinitely, freezing the entire bot. Please research catastrophic backtracking. Only the bot owner can use regex in this cog.\n```Cog installed. Instructions:\n1. Load it with [p]load autoreact\n2a. Start adding emojis to specific text with [p]autoreact add [emoji] [regex]\n2b. Set a chance for the bot to copy any reactions with [p]coreact chance [percent]```",
     "required_cogs": {},
     "requirements": ["emoji"],
-    "short": "Reacts to specific messages with emojis.",
+    "short": "Make the bot react along with everyone else.",
     "end_user_data_statement": "This cog does not store any user data.",
-    "tags": ["crab", "fun", "emoji", "react", "auto", "reaction"]
+    "tags": ["crab", "fun", "emoji", "react", "reaction", "regex"]
 }

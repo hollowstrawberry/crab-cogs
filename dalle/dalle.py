@@ -118,7 +118,7 @@ class DallE(commands.Cog):
 
     @dalleset.command()
     async def cooldown(self, ctx: commands.Context, seconds: Optional[int]):
-        """Time in seconds between a user's generation ends and they can start a new one."""
+        """Time in seconds between when a user's generation ends and when they can start a new one."""
         if seconds is None:
             seconds = await self.config.cooldown()
         else:
