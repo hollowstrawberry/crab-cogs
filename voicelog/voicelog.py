@@ -16,9 +16,6 @@ class VoiceLog(commands.Cog):
         all_config = await self.config.all_guilds()
         self.allowedguilds = set(guild_id for guild_id, conf in all_config.items() if conf['enabled'])
 
-    async def red_delete_data_for_user(self, requester: str, user_id: int):
-        pass
-
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
         guild = member.guild
