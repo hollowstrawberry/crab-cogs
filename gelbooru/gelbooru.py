@@ -19,6 +19,9 @@ HEADERS = {
     "User-Agent": "crab-cogs/v1 (https://github.com/hollowstrawberry/crab-cogs);"
 }
 
+MAX_OPTIONS = 25
+MAX_OPTION_SIZE = 100
+
 
 class Booru(commands.Cog):
     """Searches images on Gelbooru with slash command and tag completion support."""
@@ -159,6 +162,8 @@ class Booru(commands.Cog):
         if excluded:
             results = [f"-{res}" for res in results]
         if previous:
+            while len(f"{previous} {res}") > MAX_OPTION_SIZE and ' ' in previous:
+                previous = previous.split(' ', maxsplit=1)[1]
             results = [f"{previous} {res}" for res in results]
 
         return [discord.app_commands.Choice(name=i, value=i) for i in results]
@@ -183,7 +188,7 @@ class Booru(commands.Cog):
         if not data or "tag" not in data:
             return []
 
-        results = [tag["name"] for tag in data["tag"]][:20]
+        results = [tag["name"] for tag in data["tag"]][:MAX_OPTIONS]
         results = [html.unescape(tag) for tag in results]
         self.tag_cache[query] = ' '.join(results)
         async with self.config.tag_cache() as tag_cache:
