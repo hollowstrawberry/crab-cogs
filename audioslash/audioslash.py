@@ -241,6 +241,7 @@ class AudioSlash(Cog):
             embed = discord.Embed(title="Setting Unchanged", description="Repeat tracks: " + ("Enabled" if value else "Disabled"))
             await audio.send_embed_msg(ctx, embed=embed)
 
+
     playlist = app_commands.Group(name="playlist", description="Playlist commands", guild_only=True)
 
     playlist_scopes = [app_commands.Choice(name="Personal", value="USERPLAYLIST"),
@@ -259,7 +260,8 @@ class AudioSlash(Cog):
         if not (audio := await self.get_audio_cog(inter)):
             return
         ctx = await self.get_context(inter, audio)
-        match = await PlaylistConverter().convert(ctx, playlist)
+        if not await self.can_run_command(ctx, "playlist play"):
+            return       
         enabled = False
         if shuffle is not None and shuffle != await audio.config.guild(ctx.guild).shuffle():
             dj_enabled = audio._dj_status_cache.setdefault(ctx.guild.id, await audio.config.guild(ctx.guild).dj_enabled())
@@ -267,8 +269,7 @@ class AudioSlash(Cog):
             if not dj_enabled or can_skip and await self.can_run_command(ctx, "shuffle"):
                 await audio.config.guild(ctx.guild).shuffle.set(shuffle)
                 enabled = shuffle
-        if not await self.can_run_command(ctx, "playlist play"):
-            return
+        match = await PlaylistConverter().convert(ctx, playlist)
         await audio.command_playlist_start(ctx, match)
         if enabled:
             await audio.config.guild(ctx.guild).shuffle.set(False)
