@@ -152,7 +152,7 @@ class Minecraft(commands.Cog):
             else:
                 await ctx.send(f"{type(error).__name__}: {error}")
         else:
-            await ctx.send("Server credentials saved.")
+            await ctx.send("✅ Server credentials saved!")
 
 
     @minecraft.command()
