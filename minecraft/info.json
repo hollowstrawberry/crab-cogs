@@ -1,12 +1,12 @@
 {
     "author": [ "hollowstrawberry","Dav", "palmtree5" ],
     "min_bot_version": "3.5.0",
-    "description": "Manage a Minecraft server from within Discord.",
+    "description": "Manage your Minecraft server from within your Discord server, and check server status and online players without opening the game.",
     "hidden": false,
     "install_msg": "🟫__**Minecraft**__ ```Cog installed. Instructions:\n1. Load it with [p]load minecraft.\n2. Connect your Minecraft server to your Discord server, see [p]help minecraft setup```",
     "required_cogs": {},
     "requirements": ["aio-mc-rcon", "mcstatus"],
-    "short": "Manage a Minecraft server from Discord.",
+    "short": "Manage a Minecraft server from within Discord.",
     "end_user_data_statement": "This cog stores Minecraft usernames associated to Discord user IDs.",
     "tags": ["crab", "minecraft", "whitelist", "automation", "game"]
 }
