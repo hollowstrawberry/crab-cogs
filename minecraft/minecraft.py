@@ -99,7 +99,7 @@ class Minecraft(commands.Cog):
 
 
     async def delete_orphan_players(self, guild: discord.Guild):
-        players_to_delete = self.config.guild(guild).players_to_delete()
+        players_to_delete = await self.config.guild(guild).players_to_delete()
         if not players_to_delete:
             return
         for player in players_to_delete:
@@ -142,7 +142,7 @@ class Minecraft(commands.Cog):
                 await client.send_cmd("help")
         except (RCONConnectionError, TimeoutError) as error:
             await ctx.send((error or "Could not connect to the server.") +
-                           "\nMake sure your server is online and public, and that the IP and ports are correct.")
+                           "\nMake sure your server is online and your values are correct, and that the RCON port is open to the public.")
         except IncorrectPasswordError:
             await ctx.send("Incorrect password.")
         except Exception as error:  # catch everything to be able to give feedback to the user
