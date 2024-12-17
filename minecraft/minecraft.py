@@ -16,7 +16,8 @@ from aiomcrcon import Client
 from aiomcrcon.errors import IncorrectPasswordError, RCONConnectionError
 
 log = logging.getLogger("red.crab-cogs.minecraft")
-re_username = re.compile("^.?[a-zA-Z0-9_]{3,30}$")
+
+re_username = re.compile(r"^.?\w{3,30}$")
 
 
 class Minecraft(commands.Cog):
@@ -48,10 +49,9 @@ class Minecraft(commands.Cog):
             # old version
             updated = False
             for user_id, player in list(data["players"].items()):
-                if isinstance(user_id, str) and isinstance(player, dict):
+                if isinstance(player, dict):
                     del data["players"][user_id]
-                    if user_id.isnumeric():
-                        data["players"][int(user_id)] = player["name"]
+                    data["players"][user_id] = player["name"]
                     updated = True
             if updated:
                 await self.config.guild_from_id(guild_id).players.set(data["players"])
@@ -63,8 +63,8 @@ class Minecraft(commands.Cog):
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         all_data = await self.config.all_guilds()
         for guild_id in all_data:
-            if user_id in all_data[guild_id]["players"]:
-                del all_data[guild_id]["players"][user_id]
+            if str(user_id) in all_data[guild_id]["players"]:
+                del all_data[guild_id]["players"][str(user_id)]
                 await self.config.guild_from_id(guild_id).players.set(all_data[guild_id]["players"])
 
 
@@ -88,17 +88,17 @@ class Minecraft(commands.Cog):
     async def on_member_remove(self, member: discord.Member):
         """Remove member from whitelist when leaving guild"""
         players = await self.config.guild(member.guild).players()
-        if member.id in players:
-            success, _ = await self.run_minecraft_command(member.guild, f"whitelist remove {players[member.id]}")
+        if str(member.id) in players:
+            success, _ = await self.run_minecraft_command(member.guild, f"whitelist remove {players[str(member.id)]}")
             if not success:
                 async with self.config.guild(member.guild).players_to_delete() as players_to_delete:
-                    players_to_delete.append(players[member.id])
+                    players_to_delete.append(players[str(member.id)])
             async with self.config.guild(member.guild).players() as cur_players:
-                del cur_players[member.id]
+                del cur_players[str(member.id)]
 
 
     async def delete_orphan_players(self, guild: discord.Guild):
-        players_to_delete = self.config.guild(guild).players_to_delete()
+        players_to_delete = await self.config.guild(guild).players_to_delete()
         if not players_to_delete:
             return
         for player in players_to_delete:
@@ -140,7 +140,8 @@ class Minecraft(commands.Cog):
             async with self.clients[ctx.guild.id] as client:
                 await client.send_cmd("help")
         except (RCONConnectionError, TimeoutError) as error:
-            await ctx.send(error or "Could not connect to the server.")
+            await ctx.send((error or "Could not connect to the server.") +
+                           "\nMake sure your server is online and your values are correct, and that the RCON port is open to the public.")
         except IncorrectPasswordError:
             await ctx.send("Incorrect password.")
         except Exception as error:  # catch everything to be able to give feedback to the user
@@ -150,7 +151,7 @@ class Minecraft(commands.Cog):
             else:
                 await ctx.send(f"{type(error).__name__}: {error}")
         else:
-            await ctx.send("Server credentials saved.")
+            await ctx.send("✅ Server credentials saved!")
 
 
     @minecraft.command()
@@ -204,18 +205,21 @@ class Minecraft(commands.Cog):
             return await ctx.send(f"Invalid username.")
 
         players = await self.config.guild(ctx.guild).players()
-        if ctx.author.id in players:
-            return await ctx.send(f"You are already whitelisted.\nRemove yourself first with {ctx.clean_prefix}minecraft leave")
+        if str(ctx.author.id) in players:
+            return await ctx.send(f"You are already whitelisted.\nYou can remove yourself with {ctx.clean_prefix}minecraft leave")
 
         success, msg = await self.run_minecraft_command(ctx.guild, f"whitelist add {name}")
+        if "That player does not exist" in msg:
+            return await ctx.send("Unknown player. Please attempt to join the server for it to recognize you.")
         await ctx.send(msg)
         if not success:
             return
 
+        async with self.config.guild(ctx.guild).players() as cur_players:
+            cur_players[str(ctx.author.id)] = name
+
         await self.delete_orphan_players(ctx.guild)
 
-        async with await self.config.guild(ctx.guild).players() as cur_players:
-            cur_players[ctx.author.id] = name
 
         success, msg = await self.run_minecraft_command(ctx.guild, "whitelist reload")
         await ctx.send(msg)
@@ -226,15 +230,17 @@ class Minecraft(commands.Cog):
         """Remove yourself from the whitelist."""
         players = await self.config.guild(ctx.guild).players()
 
-        if ctx.author.id not in players:
+        if str(ctx.author.id) not in players:
             return await ctx.send("You are not registered to the Minecraft server through Discord.")
 
-        async with await self.config.guild(ctx.guild).players() as cur_players:
-            del cur_players[ctx.author.id]
+        async with self.config.guild(ctx.guild).players() as cur_players:
+            del cur_players[str(ctx.author.id)]
 
-        success, msg = await self.run_minecraft_command(ctx.guild, f"whitelist remove {players[ctx.author.id]}")
+        success, msg = await self.run_minecraft_command(ctx.guild, f"whitelist remove {players[str(ctx.author.id)]}")
         await ctx.send(msg)
         if not success:
+            async with self.config.guild(ctx.author.guild).players_to_delete() as players_to_delete:
+                players_to_delete.append(players[str(ctx.author.id)])
             return
 
         await self.delete_orphan_players(ctx.guild)
@@ -312,6 +318,8 @@ class Minecraft(commands.Cog):
     @minecraft.command()
     async def command(self, ctx: commands.Context, *, command: str):
         """Run a command on the Minecraft server. No validation is done."""
+        if len(command) > 1440:
+            return await ctx.send("Command too long!")
         success, resp = await self.run_minecraft_command(ctx.guild, command)
         await ctx.send(resp or "✅")
         if success:
