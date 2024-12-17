@@ -44,7 +44,7 @@ class Minecraft(commands.Cog):
         all_data = await self.config.all_guilds()
         for guild_id, data in all_data.items():
             if data["password"]:
-                self.clients[guild_id] = Client(data["host"], data["port"], data["password"])
+                self.clients[guild_id] = Client(data["host"], data["rcon_port"], data["password"])
             # old version
             updated = False
             for user_id, player in list(data["players"].items()):
@@ -75,8 +75,8 @@ class Minecraft(commands.Cog):
             async with self.clients[guild.id] as client:
                 resp = await client.send_cmd(command, 10)
             return True, resp[0]
-        except (RCONConnectionError, TimeoutError):
-            return False, "Couldn't connect to the server."
+        except (RCONConnectionError, TimeoutError) as error:
+            return False, error or "Couldn't connect to the server."
         except IncorrectPasswordError:
             return False, "Incorrect RCON password."
         except Exception as error:  # catch everything to be able to give feedback to the user
@@ -133,17 +133,22 @@ class Minecraft(commands.Cog):
         await self.config.guild(ctx.guild).port.set(port)
         await self.config.guild(ctx.guild).rcon_port.set(rcon_port)
         await self.config.guild(ctx.guild).password.set(password)
-        self.clients[ctx.guild.id] = Client(host, port, password)
+        if self.clients[ctx.guild.id]:
+            await self.clients[ctx.guild.id].close()
+        self.clients[ctx.guild.id] = Client(host, rcon_port, password)
         try:
             async with self.clients[ctx.guild.id] as client:
                 await client.send_cmd("help")
-        except (RCONConnectionError, TimeoutError):
-            await ctx.send("Could not connect to server.")
+        except (RCONConnectionError, TimeoutError) as error:
+            await ctx.send(error or "Could not connect to the server.")
         except IncorrectPasswordError:
             await ctx.send("Incorrect password.")
         except Exception as error:  # catch everything to be able to give feedback to the user
             log.exception("Executing command")
-            await ctx.send(f"{type(error).__name__}: {error}")
+            if f"{error}" == "unpack requires a buffer of 4 bytes":
+                await ctx.send("Could not connect to the server. You may have set the port and rcon port backwards.")
+            else:
+                await ctx.send(f"{type(error).__name__}: {error}")
         else:
             await ctx.send("Server credentials saved.")
 
@@ -181,10 +186,13 @@ class Minecraft(commands.Cog):
             embed.add_field(name="Status", value="🟢 Online")
             embed.add_field(name=f"Players ({status.players.online}/{status.players.max})",
                             value="\n" + ", ".join([p.name for p in status.players.sample]) if status.players.online else "*None*")
-            b = io.BytesIO(base64.b64decode(status.icon.removeprefix("data:image/png;base64,")))
-            filename = "server.png"
-            file = discord.File(b, filename=filename)
-            embed.set_thumbnail(url=f"attachment://{filename}")
+            if status.icon:
+                b = io.BytesIO(base64.b64decode(status.icon.removeprefix("data:image/png;base64,")))
+                filename = "server.png"
+                file = discord.File(b, filename=filename)
+                embed.set_thumbnail(url=f"attachment://{filename}")
+            else:
+                file = None
 
         await ctx.send(embed=embed, file=file)
 
