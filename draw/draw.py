@@ -49,9 +49,7 @@ class Draw(commands.Cog):
     async def draw(self, ctx: commands.Context, user: Optional[discord.User]):
         """Produces a pencil drawing of you or someone else."""
         user = user or ctx.author
-        loop = asyncio.get_running_loop()
-        func = functools.partial(self._draw, ctx, user)
-        await loop.run_in_executor(loop, func)
+        await asyncio.to_thread(self._draw, ctx, user)
 
     async def _draw(self, ctx: commands.Context, user: discord.User):
         await ctx.typing()
@@ -90,9 +88,7 @@ class Draw(commands.Cog):
     async def paint(self, ctx: commands.Context, user: Optional[discord.User]):
         """Produces an oil painting of you or someone else."""
         user = user or ctx.author
-        loop = asyncio.get_running_loop()
-        func = functools.partial(self._paint, ctx, user)
-        await loop.run_in_executor(loop, func)
+        await asyncio.to_thread(self._paint, ctx, user)
 
     async def _paint(self, ctx: commands.Context, user: discord.User):
         await ctx.typing()
