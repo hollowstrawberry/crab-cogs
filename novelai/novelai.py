@@ -104,7 +104,7 @@ class NovelAI(commands.Cog):
                 except Exception:  # noqa, reason: low importance, should fail silently
                     log.exception("Editing message in queue")
             if self.queue:
-                asyncio.create_task(self.edit_queue_messages())  # noqa, pending
+                _ = asyncio.create_task(self.edit_queue_messages())
             if alive:
                 await task
             await asyncio.sleep(2)
@@ -484,7 +484,7 @@ class NovelAI(commands.Cog):
             image.info["Comment"] = json.dumps(comment)
             pnginfo = PngImagePlugin.PngInfo()
             for key, val in image.info.items():
-                pnginfo.add_text(key, val)
+                pnginfo.add_text(str(key), str(val))
             fp = io.BytesIO()
             image.save(fp, "png", pnginfo=pnginfo)
             fp.seek(0)
