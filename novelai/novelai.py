@@ -104,7 +104,7 @@ class NovelAI(commands.Cog):
                 except Exception:  # noqa, reason: low importance, should fail silently
                     log.exception("Editing message in queue")
             if self.queue:
-                asyncio.create_task(self.edit_queue_messages())  # noqa, pending
+                _ = asyncio.create_task(self.edit_queue_messages())
             if alive:
                 await task
             await asyncio.sleep(2)
