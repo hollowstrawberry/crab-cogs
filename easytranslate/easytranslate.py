@@ -19,10 +19,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-
 import re
 import logging
-import functools
+import asyncio
 import discord
 import googletrans
 from redbot.core import commands, app_commands, Config
@@ -104,8 +103,7 @@ class EasyTranslate(commands.Cog):
                 content += '\n' + embed.description
         content = self.convert_input(content)
         try:
-            task = functools.partial(self.translator.translate, text=content, dest=language)
-            result: Translated = await self.bot.loop.run_in_executor(None, task)
+            result: Translated = await asyncio.to_thread(self.translator.translate, content, language, "auto")
         except Exception:  # noqa, reason: No documentation for possible errors of Translator.translate
             log.exception("Translator.translate", stack_info=True)
             fail_embed = discord.Embed(description=TRANSLATION_FAILED, color=discord.Color.red())
@@ -166,8 +164,7 @@ class EasyTranslate(commands.Cog):
         # Success message in target language
         try:
             success = f"✅ When you translate a message, its language will be {language}"
-            task = functools.partial(self.translator.translate, text=success, dest=language)
-            result: Translated = await self.bot.loop.run_in_executor(None, task)
+            result: Translated = await asyncio.to_thread(self.translator.translate, success, language, "auto")
             await ctx.send(result.text, ephemeral=True)
         except Exception:  # noqa, reason: user-facing error and lack of documentation of python package
             log.exception("Translator.translate", stack_info=True)
