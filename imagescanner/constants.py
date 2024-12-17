@@ -7,7 +7,7 @@ IMAGE_TYPES = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
 VIEW_TIMEOUT = 5*60
 
 # language=RegExp
-LOOKAHEAD_PATTERN = rf'(?=(?:[^"]*"[^"]*")*[^"]*$)'  # ensures the characters surrounding the lookahead are not inside quotes
+LOOKAHEAD_PATTERN = r'(?=(?:[^"]*"[^"]*")*[^"]*$)'  # ensures the characters surrounding the lookahead are not inside quotes
 PARAM_REGEX = re.compile(rf" ?([^:]+): (.+?),{LOOKAHEAD_PATTERN}")
 PARAM_GROUP_REGEX = re.compile(rf", [^:]+: {{.+?{LOOKAHEAD_PATTERN}}}")
 HASHES_GROUP_REGEX = re.compile(rf", Hashes: ({{.+?{LOOKAHEAD_PATTERN}}})")
@@ -29,5 +29,5 @@ NAIV3_PARAMS = {
 }
 
 HEADERS = {
-    "User-Agent": f"crab-cogs/v1 (https://github.com/hollowstrawberry/crab-cogs);"
+    "User-Agent": "crab-cogs/v1 (https://github.com/hollowstrawberry/crab-cogs);"
 }

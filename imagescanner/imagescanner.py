@@ -5,13 +5,15 @@ import asyncio
 import aiohttp
 import discord
 from hashlib import md5
-from redbot.core import commands, app_commands, Config
+from typing import Optional, Any, Dict, Tuple
 from expiringdict import ExpiringDict
-from typing import Optional
+from redbot.core import commands, app_commands, Config
 
 import imagescanner.utils as utils
 from imagescanner.imageview import ImageView
 from imagescanner.constants import log, IMAGE_TYPES, HASHES_GROUP_REGEX, HEADERS
+
+ImageCache = ExpiringDict[int, Tuple[Dict[int, str], Dict[int, bytes]]]
 
 
 class ImageScanner(commands.Cog):
@@ -26,9 +28,9 @@ class ImageScanner(commands.Cog):
         self.attach_images = True
         self.use_civitai = True
         self.civitai_emoji = ""
-        self.model_cache = {}
-        self.model_not_found_cache = ExpiringDict(max_len=100, max_age_seconds=24*60*60)
-        self.image_cache: Optional[ExpiringDict] = None
+        self.model_cache: Dict[str, Tuple[Any, Any]] = {}
+        self.model_not_found_cache: Dict[str, bool] = ExpiringDict(max_len=100, max_age_seconds=24*60*60)
+        self.image_cache: Optional[ImageCache] = None
         self.image_cache_size = 100
         self.always_scan_generated_images = False
         defaults = {
@@ -42,7 +44,7 @@ class ImageScanner(commands.Cog):
             "always_scan_generated_images": self.always_scan_generated_images
         }
         self.config.register_global(**defaults)
-        self.context_menu = app_commands.ContextMenu(name='Image Info', callback=self.scanimage)
+        self.context_menu = app_commands.ContextMenu(name="Image Info", callback=self.scanimage)
         self.bot.tree.add_command(self.context_menu)
 
     async def cog_load(self):
@@ -60,13 +62,15 @@ class ImageScanner(commands.Cog):
         self.bot.tree.remove_command(self.context_menu.name, type=self.context_menu.type)
         self.image_cache.clear()
 
-    async def red_delete_data_for_user(self, requester: str, user_id: int):
-        pass
-
     async def is_valid_red_message(self, message: discord.Message) -> bool:
         return await self.bot.allowed_by_whitelist_blacklist(message.author) \
                and await self.bot.ignored_channel_or_guild(message) \
                and not await self.bot.cog_disabled_in_guild(self, message.guild)
+
+    @staticmethod
+    def convert_novelai_info(img_info: dict):  # used by novelai cog
+        return utils.convert_novelai_info(img_info)
+
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -81,16 +85,20 @@ class ImageScanner(commands.Cog):
             return
         if not await self.is_valid_red_message(message):
             return
-        metadata, image_bytes = {}, {}
+
+        metadata: Dict[int, str] = {}
+        image_bytes: [Dict[int, bytes]] = {}
         tasks = [utils.read_attachment_metadata(i, attachment, metadata, image_bytes)
                  for i, attachment in enumerate(attachments)]
         await asyncio.gather(*tasks)
+
         if metadata:
             if self.image_cache_size > 0:
                 self.image_cache[message.id] = (metadata, image_bytes)
             await message.add_reaction('🔎')
         else:
             self.image_cache[message.id] = ({}, {})
+
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, ctx: discord.RawReactionActionEvent):
@@ -99,17 +107,21 @@ class ImageScanner(commands.Cog):
             return
         if ctx.channel_id not in self.scan_channels and not self.always_scan_generated_images:
             return
+
         channel = self.bot.get_channel(ctx.channel_id)
         message: discord.Message = await channel.fetch_message(ctx.message_id)
         if not message or message.author.bot and message.author.id != self.bot.user.id:
             return
         if ctx.channel_id not in self.scan_channels and message.author.id != self.bot.user.id:
             return
+
         attachments = [a for a in message.attachments if a.filename.lower().endswith(IMAGE_TYPES)]
         if not attachments:
             return
+
         if not await self.is_valid_red_message(message):
             return
+
         if message.id in self.image_cache:
             metadata, image_bytes = self.image_cache[message.id]
         else:
@@ -117,6 +129,7 @@ class ImageScanner(commands.Cog):
             tasks = [utils.read_attachment_metadata(i, attachment, metadata, image_bytes)
                      for i, attachment in enumerate(attachments)]
             await asyncio.gather(*tasks)
+
         if not metadata:
             embed = utils.get_embed({}, message.author)
             embed.description = f"{message.jump_url}\nThis post contains no image generation data."
@@ -126,12 +139,14 @@ class ImageScanner(commands.Cog):
             except discord.Forbidden:
                 log.info(f"User {ctx.member.id} does not accept DMs")
             return
+
         for i, data in sorted(metadata.items()):
             params = utils.get_params_from_string(data)
             embed = utils.get_embed(params, message.author)
             embed.description = message.jump_url if self.civitai_emoji else f":arrow_right: {message.jump_url}"
             if len(metadata) > 1:
                 embed.title += f" ({i+1}/{len(metadata)})"
+
             if self.use_civitai:
                 desc_ext = []
                 if "Model hash" in params:
@@ -149,7 +164,7 @@ class ImageScanner(commands.Cog):
                 if m := HASHES_GROUP_REGEX.search(data):
                     try:
                         hashes = json.loads(m.group(1))
-                    except:
+                    except json.JSONDecodeError:
                         log.exception("Trying to parse Civitai hashes")
                     else:
                         hashes["model"] = None
@@ -162,6 +177,7 @@ class ImageScanner(commands.Cog):
                 if desc_ext:
                     embed.description += f"\n{self.civitai_emoji} " if self.civitai_emoji else "\n🔗 **Civitai:** "
                     embed.description += ", ".join(desc_ext)
+
             view = ImageView(data, embed)
             if self.attach_images and i in image_bytes:
                 img = io.BytesIO(image_bytes[i])
@@ -182,9 +198,6 @@ class ImageScanner(commands.Cog):
                 except discord.Forbidden:
                     log.info(f"User {ctx.member.id} does not accept DMs")
 
-    @staticmethod
-    def convert_novelai_info(img_info: dict):  # used by novelai cog
-        return utils.convert_novelai_info(img_info)
 
     # context menu set in __init__
     async def scanimage(self, ctx: discord.Interaction, message: discord.Message):
@@ -212,7 +225,8 @@ class ImageScanner(commands.Cog):
             with io.StringIO() as f:
                 f.write(response)
                 f.seek(0)
-                await ctx.response.send_message(file=discord.File(f, "parameters.yaml"), ephemeral=True)
+                await ctx.response.send_message(file=discord.File(f, "parameters.yaml"), ephemeral=True)  # noqa, reason, StringIO works
+
 
     async def grab_civitai_model_link(self, short_hash: str) -> Optional[str]:
         if not short_hash:
@@ -226,10 +240,12 @@ class ImageScanner(commands.Cog):
             try:
                 async with aiohttp.ClientSession(headers=HEADERS) as session:
                     async with session.get(url) as resp:
+                        resp.raise_for_status()
                         data = await resp.json()
-            except:
+            except aiohttp.ClientError:
                 log.exception("Trying to grab model from Civitai")
                 return None
+
             if not data or "modelId" not in data:
                 self.model_not_found_cache[short_hash] = True
                 return None
@@ -237,7 +253,9 @@ class ImageScanner(commands.Cog):
             self.model_cache[short_hash] = model_id
             async with self.config.model_cache_v2() as model_cache:
                 model_cache[short_hash] = model_id
+
         return f"https://civitai.com/models/{model_id[0]}?modelVersionId={model_id[1]}"
+
 
     # Config commands
 
@@ -255,7 +273,7 @@ class ImageScanner(commands.Cog):
             return
         self.scan_limit = newlimit * 1024**2
         await self.config.scan_limit.set(self.scan_limit)
-        await ctx.react_quietly("✅")
+        await ctx.tick()
 
     @scanset.group(name="channel", invoke_without_command=True)
     async def scanset_channel(self, ctx: commands.Context):
@@ -270,7 +288,7 @@ class ImageScanner(commands.Cog):
             return await ctx.reply("Please enter one or more valid channels.")
         self.scan_channels.update(ch for ch in channel_ids)
         await self.config.channels.set(list(self.scan_channels))
-        await ctx.react_quietly("✅")
+        await ctx.tick()
 
     @scanset_channel.command(name="remove")
     async def scanset_channel_remove(self, ctx: commands.Context, *, channels: str):
@@ -280,7 +298,7 @@ class ImageScanner(commands.Cog):
             return await ctx.reply("Please enter one or more valid channels.")
         self.scan_channels.difference_update(ch for ch in channel_ids)
         await self.config.channels.set(list(self.scan_channels))
-        await ctx.react_quietly("✅")
+        await ctx.tick()
 
     @scanset_channel.command(name="list")
     async def scanset_channel_list(self, ctx: commands.Context):
@@ -317,7 +335,7 @@ class ImageScanner(commands.Cog):
             return
         try:
             await ctx.react_quietly(emoji)
-        except:
+        except (discord.NotFound, discord.Forbidden):
             await ctx.reply("I don't have access to that emoji. I must be in the same server to use it.")
         else:
             self.civitai_emoji = str(emoji)
