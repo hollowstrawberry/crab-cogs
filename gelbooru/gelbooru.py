@@ -19,6 +19,9 @@ HEADERS = {
     "User-Agent": "crab-cogs/v1 (https://github.com/hollowstrawberry/crab-cogs);"
 }
 
+MAX_OPTIONS = 25
+MAX_OPTION_SIZE = 100
+
 
 class Booru(commands.Cog):
     """Searches images on Gelbooru with slash command and tag completion support."""
@@ -35,12 +38,14 @@ class Booru(commands.Cog):
     async def cog_load(self):
         self.tag_cache = await self.config.tag_cache()
 
-    async def red_delete_data_for_user(self, requester: str, user_id: int):
-        pass
+    async def cog_unload(self):
+        if self.session:
+            await self.session.close()
 
     @commands.command()
     @commands.is_owner()
     async def boorudeletecache(self, ctx: commands.Context):
+        del self.tag_cache
         self.tag_cache = {}
         async with self.config.tag_cache() as tag_cache:
             tag_cache.clear()
@@ -159,6 +164,8 @@ class Booru(commands.Cog):
         if excluded:
             results = [f"-{res}" for res in results]
         if previous:
+            while len(f"{previous} {res}") > MAX_OPTION_SIZE and ' ' in previous:
+                previous = previous.split(' ', maxsplit=1)[1]
             results = [f"{previous} {res}" for res in results]
 
         return [discord.app_commands.Choice(name=i, value=i) for i in results]
@@ -183,7 +190,7 @@ class Booru(commands.Cog):
         if not data or "tag" not in data:
             return []
 
-        results = [tag["name"] for tag in data["tag"]][:20]
+        results = [tag["name"] for tag in data["tag"]][:MAX_OPTIONS]
         results = [html.unescape(tag) for tag in results]
         self.tag_cache[query] = ' '.join(results)
         async with self.config.tag_cache() as tag_cache:

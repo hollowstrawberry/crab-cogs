@@ -35,7 +35,9 @@ MISSING_MESSAGE = "`Nothing to translate.`"
 LANGUAGE_NOT_FOUND = "`That's not an available language, please try again.`"
 TRANSLATION_FAILED = "`Something went wrong while translating. If this keeps happening, contact the bot owner.`"
 
-CUSTOM_EMOJI = re.compile("<(?P<animated>a?):(?P<name>[a-zA-Z0-9_]{2,32}):(?P<id>[0-9]{18,22})>")  # Thanks R.Danny
+CUSTOM_EMOJI = re.compile(r"<a?:\w+:\d+>")
+
+log = logging.getLogger("red.crab-cogs.easytranslate")
 
 log = logging.getLogger("red.crab-cogs.easytranslate")
 

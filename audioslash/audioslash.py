@@ -33,7 +33,7 @@ DOWNLOAD_FOLDER = "backup"
 YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch\?v=|youtu.be/)([\w\-]+)")
 MAX_VIDEO_LENGTH = 600
 
-MAX_OPTIONS = 20
+MAX_OPTIONS = 25
 MAX_OPTION_SIZE = 100
 
 async def extract_info(ydl: YoutubeDL, url: str) -> dict:
@@ -57,6 +57,7 @@ def format_youtube(res: dict) -> str:
         return name[:MAX_OPTION_SIZE - len(author) - 3] + "..." + author
     else:
         return name + author
+
 
 class AudioSlash(Cog):
     """Audio cog commands in the form of slash commands, with YouTube and playlist autocomplete."""
@@ -244,6 +245,7 @@ class AudioSlash(Cog):
             embed = discord.Embed(title="Setting Unchanged", description="Repeat tracks: " + ("Enabled" if value else "Disabled"))
             await audio.send_embed_msg(ctx, embed=embed)
 
+
     playlist = app_commands.Group(name="playlist", description="Playlist commands", guild_only=True)
 
     playlist_scopes = [app_commands.Choice(name="Personal", value="USERPLAYLIST"),
@@ -262,7 +264,8 @@ class AudioSlash(Cog):
         if not (audio := await self.get_audio_cog(inter)):
             return
         ctx = await self.get_context(inter, audio)
-        match = await PlaylistConverter().convert(ctx, playlist)
+        if not await self.can_run_command(ctx, "playlist play"):
+            return       
         enabled = False
         if shuffle is not None and shuffle != await audio.config.guild(ctx.guild).shuffle():
             dj_enabled = audio._dj_status_cache.setdefault(ctx.guild.id, await audio.config.guild(ctx.guild).dj_enabled())
@@ -270,8 +273,7 @@ class AudioSlash(Cog):
             if not dj_enabled or can_skip and await self.can_run_command(ctx, "shuffle"):
                 await audio.config.guild(ctx.guild).shuffle.set(shuffle)
                 enabled = shuffle
-        if not await self.can_run_command(ctx, "playlist play"):
-            return
+        match = await PlaylistConverter().convert(ctx, playlist)
         await audio.command_playlist_start(ctx, match)
         if enabled:
             await audio.config.guild(ctx.guild).shuffle.set(False)
@@ -430,7 +432,7 @@ class AudioSlash(Cog):
         else:
             results = [pl.name for pl in playlists]
 
-        return [app_commands.Choice(name=pl, value=pl) for pl in results][:25]
+        return [app_commands.Choice(name=pl, value=pl) for pl in results][:MAX_OPTIONS]
 
 
     @commands.command(name="audioslashbackupmode", hidden=True)
