@@ -21,7 +21,7 @@ class ImageView(View):
 
     async def message_edit_callback(self, ctx: discord.Interaction):
         if not self.is_finished() and not self.deleted:
-            ctx.message.edit(view=self)
+            await ctx.message.edit(view=self)
 
     @discord.ui.button(emoji="🌱", style=discord.ButtonStyle.grey)
     async def seed(self, ctx: discord.Interaction, _: discord.Button):
