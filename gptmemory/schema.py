@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, List
 from pydantic import BaseModel
 from dataclasses import dataclass, field
 
@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 # Structured Outputs
 
 class MemoryRecall(BaseModel):
-    memory_names: list[str]
+    memory_names: List[str]
 
 class MemoryChange(BaseModel):
     action_type: Literal["create", "adjust", "append", "delete"]
@@ -14,7 +14,7 @@ class MemoryChange(BaseModel):
     memory_content: str
 
 class MemoryChangeList(BaseModel):
-    memory_changes: list[MemoryChange]
+    memory_changes: List[MemoryChange]
 
 
 # Function calling

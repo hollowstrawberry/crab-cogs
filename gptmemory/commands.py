@@ -1,5 +1,5 @@
 import discord
-from typing import Literal, Optional
+from typing import Literal, Optional, Dict
 from difflib import get_close_matches
 from redbot.core import commands, Config
 from redbot.core.bot import Red
@@ -28,7 +28,7 @@ class GptMemoryBase(commands.Cog):
             "disabled_functions": defaults.DISABLED_FUNCTIONS,
             "emotes": "",
         })
-        self.memory: dict[int, dict[str, str]] = {}
+        self.memory: Dict[int, Dict[str, str]] = {}
 
     @commands.command(name="memory", aliases=["memories"], invoke_without_subcommand=True)
     async def command_memory(self, ctx: commands.Context, *, name: Optional[str]):
@@ -55,7 +55,7 @@ class GptMemoryBase(commands.Cog):
             async with self.config.guild(ctx.guild).memory() as memory:
                 del memory[name]
             del self.memory[ctx.guild.id][name]
-            await ctx.send("✅")
+            await ctx.tick()
         else:
             await ctx.send("A memory by that name doesn't exist.")
         
@@ -68,7 +68,7 @@ class GptMemoryBase(commands.Cog):
         if ctx.guild.id not in self.memory:
             self.memory[ctx.guild.id] = {}
         self.memory[ctx.guild.id][name] = content
-        await ctx.send("✅")
+        await ctx.tick()
 
     @commands.group(name="gptmemory", aliases=["memoryconfig"])
     @commands.is_owner()

@@ -1,7 +1,8 @@
 from io import BytesIO
 from re import Match
-from PIL import Image
 from base64 import b64encode
+from typing import Optional, List
+from PIL import Image, UnidentifiedImageError
 
 
 def sanitize(text: str) -> str:
@@ -23,8 +24,11 @@ def make_image_content(fp: BytesIO) -> dict:
         }
     }
 
-def process_image(buffer: BytesIO) -> BytesIO:
-    image = Image.open(buffer)
+def process_image(buffer: BytesIO) -> Optional[BytesIO]:
+    try:
+        image = Image.open(buffer)
+    except UnidentifiedImageError:
+        return None
     width, height = image.size
     image_resolution = width * height
     target_resolution = 1024*1024
@@ -36,7 +40,7 @@ def process_image(buffer: BytesIO) -> BytesIO:
     fp.seek(0)
     return fp
 
-def get_text_contents(messages: list[dict]):
+def get_text_contents(messages: List[dict]):
     temp_messages = []
     for msg in messages:
         if isinstance(msg["content"], str):
