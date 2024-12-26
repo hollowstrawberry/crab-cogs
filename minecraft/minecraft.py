@@ -133,7 +133,7 @@ class Minecraft(commands.Cog):
         await self.config.guild(ctx.guild).port.set(port)
         await self.config.guild(ctx.guild).rcon_port.set(rcon_port)
         await self.config.guild(ctx.guild).password.set(password)
-        if self.clients[ctx.guild.id]:
+        if self.clients.get(ctx.guild.id, None):
             await self.clients[ctx.guild.id].close()
         self.clients[ctx.guild.id] = Client(host, rcon_port, password)
         try:
