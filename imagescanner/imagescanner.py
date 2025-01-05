@@ -81,7 +81,7 @@ class ImageScanner(commands.Cog):
         channel_perms = message.channel.permissions_for(message.guild.me)
         if not channel_perms.add_reactions:
             return
-        attachments = [a for a in message.attachments if a.filename.lower().endswith(SUPPORTED_FORMATS) and a.size < self.scan_limit]
+        attachments = [a for a in message.attachments if a.filename.lower().endswith(tuple(SUPPORTED_FORMATS)) and a.size < self.scan_limit]
         if not attachments:
             return
         if not await self.is_valid_red_message(message):
