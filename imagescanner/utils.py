@@ -24,8 +24,10 @@ def get_params_from_string(param_str: str) -> OrderedDict[str, Any]:
         output_dict["Negative Prompt"] = negative_prompt
 
     params = match.group("Params")
+    log.info(f"{params=}")
     params = PARAM_GROUP_REGEX.sub("", params)
     param_list = PARAM_REGEX.findall(params)
+    log.info(f"{param_list=}")
     is_novelai = False
     for key, value in param_list:
         if key == "Source" and value == "NovelAI":
