@@ -9,7 +9,7 @@ from imagescanner.constants import VIEW_TIMEOUT
 class ImageView(View):
     def __init__(self, params: str, embed: discord.Embed):
         super().__init__(timeout=VIEW_TIMEOUT)
-        self.params = params
+        self.params = params.strip(", \n")
         self.embed = embed
         self.pressed = False
         self.message: Optional[discord.Message] = None
