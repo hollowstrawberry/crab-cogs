@@ -67,10 +67,10 @@ def convert_metadata(metadata: ImageDataReader) -> Optional[str]:
     if metadata.status.name == "COMFYUI_ERROR":
         return "ComfyUI Data: Too complex to display"
     elif metadata.status.name == "READ_SUCCESS":
-        if metadata.format == "A1111" and metadata.negative:
+        if "A1111" in metadata._tool:
             return metadata.raw
         else:
-            return f"{metadata.positive}\nNegative prompt: {metadata.negative or 'None'}\nSource: {metadata.format}, {metadata.setting}"
+            return f"{metadata.positive}\nNegative prompt: {metadata.negative or 'None'}\nSource: {metadata._tool}, {metadata.setting}"
     else:
         return None
 
