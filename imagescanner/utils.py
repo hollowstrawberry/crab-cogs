@@ -67,7 +67,7 @@ def convert_novelai_info(img_info: Dict[str, Any]) -> str:
 
 def convert_metadata(metadata: ImageDataReader) -> Optional[str]:
     if metadata.status.name == "COMFYUI_ERROR":
-        return "(Unknown)\nNegative prompt: (Unknown)\nComfyUI Data: Too complex to display"
+        return f"Source: {metadata._tool}, Metadata: Too complex to display"
     elif metadata.status.name == "READ_SUCCESS":
         if "A1111" in metadata._tool:
             return metadata.raw
