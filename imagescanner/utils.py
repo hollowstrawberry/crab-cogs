@@ -30,13 +30,14 @@ def get_params_from_string(param_str: str) -> OrderedDict[str, Any]:
     for key, value in param_list:
         if key == "Source" and value == "NovelAI":
             is_novelai = True
-        if is_novelai and key in NAIV3_PARAMS:
-            key = NAIV3_PARAMS[key]
+        if is_novelai:
+            if key == "prompt":
+                continue
+            elif key in NAIV3_PARAMS:
+                key = NAIV3_PARAMS[key]
         if len(output_dict) >= 25 or key in output_dict:
             continue
         if any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
-            continue
-        if value == prompt or value == negative_prompt:
             continue
         if len(key) > 255:
             key = key[:252] + "..."
@@ -71,7 +72,14 @@ def convert_metadata(metadata: ImageDataReader) -> Optional[str]:
         if "A1111" in metadata._tool:
             return metadata.raw
         else:
-            return f"{metadata.positive}\nNegative prompt: {metadata.negative or 'None'}\nSource: {metadata._tool}, {metadata.setting}"
+            positive = metadata.positive or metadata.positive_sdxl or "(None)"
+            negative = metadata.negative or metadata.negative_sdxl or "(None)"
+            fixed_setting = metadata.setting
+            if positive and len(positive.strip()) > 10:
+                fixed_setting = fixed_setting.replace(positive, "(Prompt)")
+            if negative and len(negative.strip()) > 10:
+                fixed_setting = fixed_setting.replace(negative, "(Negative Prompt)")
+            return f"{positive}\nNegative prompt: {negative}\nSource: {metadata._tool}, {fixed_setting}"
     else:
         return None
 
