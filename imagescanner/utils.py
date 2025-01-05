@@ -31,7 +31,7 @@ def get_params_from_string(param_str: str) -> OrderedDict[str, Any]:
         if key == "Source" and value == "NovelAI":
             is_novelai = True
         if is_novelai and key in NAIV3_PARAMS:
-            key = NAIV3_PARAMS["key"]
+            key = NAIV3_PARAMS[key]
         if len(output_dict) >= 25 or key in output_dict:
             continue
         if any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
