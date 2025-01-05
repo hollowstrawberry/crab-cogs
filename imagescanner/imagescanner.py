@@ -8,6 +8,7 @@ from hashlib import md5
 from typing import Optional, Any, Dict, Tuple
 from expiringdict import ExpiringDict
 from redbot.core import commands, app_commands, Config
+from sd_prompt_reader.constants import SUPPORTED_FORMATS
 
 import imagescanner.utils as utils
 from imagescanner.imageview import ImageView
@@ -80,7 +81,7 @@ class ImageScanner(commands.Cog):
         channel_perms = message.channel.permissions_for(message.guild.me)
         if not channel_perms.add_reactions:
             return
-        attachments = [a for a in message.attachments if a.filename.lower().endswith((".png", ".jpeg", ".jpg")) and a.size < self.scan_limit]
+        attachments = [a for a in message.attachments if a.filename.lower().endswith(SUPPORTED_FORMATS) and a.size < self.scan_limit]
         if not attachments:
             return
         if not await self.is_valid_red_message(message):
@@ -214,6 +215,7 @@ class ImageScanner(commands.Cog):
                      for i, attachment in enumerate(attachments)]
             await asyncio.gather(*tasks)
         if not metadata:
+            metadata = {}  # Don't overwrite the cache in an edge case
             for i, att in enumerate(attachments):
                 size_kb, size_mb = round(att.size / 1024), round(att.size / 1024**2, 2)
                 metadata[i] = f"Filename: {att.filename}, Dimensions: {att.width}x{att.height}, " \
