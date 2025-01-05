@@ -24,10 +24,8 @@ def get_params_from_string(param_str: str) -> OrderedDict[str, Any]:
         output_dict["Negative Prompt"] = negative_prompt
 
     params = match.group("Params")
-    log.info(f"{params=}")
     params = PARAM_GROUP_REGEX.sub("", params)
     param_list = PARAM_REGEX.findall(params)
-    log.info(f"{param_list=}")
     is_novelai = False
     for key, value in param_list:
         if key == "Source" and value == "NovelAI":
@@ -72,7 +70,7 @@ def convert_metadata(metadata: ImageDataReader) -> Optional[str]:
         return f"Source: {metadata._tool}, Metadata: \"Workflow too complex\""
     elif metadata.status.name == "READ_SUCCESS":
         if "A1111" in metadata._tool:
-            return metadata.raw
+            return metadata.raw + ","
         else:
             positive = metadata.positive or metadata.positive_sdxl or "(None)"
             negative = metadata.negative or metadata.negative_sdxl or "(None)"
@@ -81,7 +79,7 @@ def convert_metadata(metadata: ImageDataReader) -> Optional[str]:
                 fixed_setting = fixed_setting.replace(positive, "(Prompt)")
             if negative and len(negative.strip()) > 10:
                 fixed_setting = fixed_setting.replace(negative, "(Negative Prompt)")
-            return f"{positive}\nNegative prompt: {negative}\nSource: {metadata._tool}, {fixed_setting}"
+            return f"{positive}\nNegative prompt: {negative}\nSource: {metadata._tool}, {fixed_setting},"
     else:
         return None
 
