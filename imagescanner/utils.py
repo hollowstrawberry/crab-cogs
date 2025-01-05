@@ -2,35 +2,44 @@ import json
 import discord
 from io import BytesIO
 from PIL import Image
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from collections import OrderedDict
+from sd_prompt_reader.constants import SUPPORTED_FORMATS
+from sd_prompt_reader.image_data_reader import ImageDataReader
 
-from imagescanner.constants import log, NAIV3_PARAMS, PARAM_REGEX, PARAM_GROUP_REGEX, PARAMS_BLACKLIST
+from imagescanner.constants import log, NAIV3_PARAMS, PARAM_REGEX, PARAM_GROUP_REGEX, PARAMS_BLACKLIST, METADATA_REGEX
 
 
 def get_params_from_string(param_str: str) -> OrderedDict[str, Any]:
     output_dict = OrderedDict()
-    if "NovelAI3 Parameters: " in param_str:
-        prompts, params = param_str.rsplit("NovelAI3 Parameters: ", 1)
-        output_dict["NovelAI3 Prompt"], output_dict["Negative Prompt"] = prompts.rsplit("Negative prompt: ", 1)
-        param_dict = json.loads(params)
-        for key, new_key in NAIV3_PARAMS.items():
-            if key in param_dict:
-                output_dict[new_key] = str(param_dict[key])
-    else:
-        prompts, params = param_str.rsplit("Steps: ", 1)
-        try:
-            output_dict["Prompt"], output_dict["Negative Prompt"] = prompts.rsplit("Negative prompt: ", 1)
-        except ValueError:
-            output_dict["Prompt"] = prompts
 
-        params = f"Steps: {params},"
-        params = PARAM_GROUP_REGEX.sub("", params)
-        param_list = PARAM_REGEX.findall(params)
-        for key, value in param_list:
-            if len(output_dict) > 24 or any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
-                continue
-            output_dict[key] = value
+    match = METADATA_REGEX.match(param_str)
+    if not match:
+        output_dict["Metadata"] = "Invalid"
+        return output_dict
+
+    if prompt := match.group("Prompt"):
+        output_dict["Prompt"] = prompt
+    if negative_prompt := match.group("NegativePrompt"):
+        output_dict["Negative Prompt"] = negative_prompt
+
+    params = match.group("Params")
+    params = PARAM_GROUP_REGEX.sub("", params)
+    param_list = PARAM_REGEX.findall(params)
+    is_novelai = False
+    for key, value in param_list:
+        if key == "Source" and value == "NovelAI":
+            is_novelai = True
+        if is_novelai and key in NAIV3_PARAMS:
+            key = NAIV3_PARAMS["key"]
+        value = value.strip()
+        if len(output_dict) >= 25:
+            continue
+        if any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
+            continue
+        if value == prompt.strip() or value == negative_prompt.strip():
+            continue
+        output_dict[key] = value
 
     for key in output_dict:
         if len(output_dict[key]) > 1000:
@@ -54,24 +63,31 @@ def convert_novelai_info(img_info: Dict[str, Any]) -> str:
     return f"{prompt}\n{negative_prompt}\nNovelAI3 Parameters: {json.dumps(info)}"
 
 
+def convert_metadata(metadata: ImageDataReader) -> Optional[str]:
+    if metadata.status.name == "COMFYUI_ERROR":
+        return "ComfyUI Data: Too complex to display"
+    elif metadata.status.name == "READ_SUCCESS":
+        if metadata.format == "A1111" and metadata.negative:
+            return metadata.raw
+        else:
+            return f"{metadata.positive}\nNegative prompt: {metadata.negative or 'None'}\nSource: {metadata.format}, {metadata.setting}"
+    else:
+        return None
+
+
 async def read_attachment_metadata(i: int, attachment: discord.Attachment, metadata: Dict[int, str], image_bytes: Dict[int, bytes]) -> None:
+    if not any(attachment.filename.endswith(ext) for ext in SUPPORTED_FORMATS):
+        return
     try:
         image_data = await attachment.read()
-        with Image.open(BytesIO(image_data)) as img:
-            try:
-                if attachment.filename.endswith(".png"):
-                    info = img.info['parameters']
-                else:  # jpeg jank
-                    info = img._getexif().get(37510).decode('utf8')[7:]
-                if info and "Steps" in info:
-                    metadata[i] = info
-                    image_bytes[i] = image_data
-            except (KeyError, ValueError, IndexError, UnicodeDecodeError):  # novelai
-                if "Title" in img.info and img.info["Title"] == "AI generated image":
-                    metadata[i] = convert_novelai_info(img.info)
-                    image_bytes[i] = image_data
+        image_metadata = ImageDataReader(BytesIO(image_data))
     except (discord.DiscordException, Image.UnidentifiedImageError):
-        log.exception("Downloading attachment")
+        log.exception("Processing attachment")
+        return
+    metadata_str = convert_metadata(image_metadata)
+    if metadata_str:
+        image_bytes[i] = image_data
+        metadata[i] = metadata_str
 
 
 def remove_field(embed: discord.Embed, field_name: str):
