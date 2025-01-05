@@ -66,7 +66,6 @@ def convert_novelai_info(img_info: Dict[str, Any]) -> str:
 
 
 def convert_metadata(metadata: ImageDataReader) -> Optional[str]:
-    log.info(f"{metadata._tool=}")
     if metadata.status.name == "COMFYUI_ERROR":
         return f"Source: {metadata._tool}, Metadata: Workflow too complex,"
     elif metadata.status.name == "READ_SUCCESS":

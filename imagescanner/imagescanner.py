@@ -215,6 +215,7 @@ class ImageScanner(commands.Cog):
                      for i, attachment in enumerate(attachments)]
             await asyncio.gather(*tasks)
         if not metadata:
+            metadata = {}  # Don't overwrite the cache in an edge case
             for i, att in enumerate(attachments):
                 size_kb, size_mb = round(att.size / 1024), round(att.size / 1024**2, 2)
                 metadata[i] = f"Filename: {att.filename}, Dimensions: {att.width}x{att.height}, " \
