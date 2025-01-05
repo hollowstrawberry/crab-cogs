@@ -38,6 +38,8 @@ def get_params_from_string(param_str: str) -> OrderedDict[str, Any]:
             continue
         if value == prompt or value == negative_prompt:
             continue
+        if len(key) > 255:
+            key = key[:252] + "..."
         output_dict[key] = value
 
     for key in output_dict:
