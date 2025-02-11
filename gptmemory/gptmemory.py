@@ -214,11 +214,12 @@ class GptMemory(GptMemoryBase):
         log.info(f"{completion=}")
 
         first_reply = True
+        limit = 2000
         reply_content = RESPONSE_CLEANUP_PATTERN.sub("", completion)[:DISCORD_MESSAGE_LENGTH]
         while len(reply_content) > 0:
-            chunk = reply_content[:4000]
-            if len(reply_content) > 4000:
-                reply_content = reply_content[4000:]
+            chunk = reply_content[:limit]
+            if len(reply_content) > limit:
+                reply_content = reply_content[limit:]
             else:
                 reply_content = ""
             if first_reply:
