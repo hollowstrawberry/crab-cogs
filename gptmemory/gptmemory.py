@@ -213,11 +213,23 @@ class GptMemory(GptMemoryBase):
         completion = response.choices[0].message.content
         log.info(f"{completion=}")
 
+        first_reply = True
         reply_content = RESPONSE_CLEANUP_PATTERN.sub("", completion)[:DISCORD_MESSAGE_LENGTH]
-        discord_reply = await ctx.reply(reply_content, mention_author=False)
+        while len(reply_content) > 0:
+            chunk = reply_content[:4000]
+            if len(reply_content) > 4000:
+                reply_content = reply_content[4000:]
+            else:
+                reply_content = ""
+            if first_reply:
+                first_reply = False
+                await ctx.reply(chunk, mention_author=False)
+            else:
+                await ctx.send_message(chunk)
+            
         response_message = {
             "role": "assistant",
-            "content": await self.parse_discord_message(discord_reply)
+            "content": reply_content
         }
         return response_message
 
