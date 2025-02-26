@@ -89,7 +89,13 @@ async def read_attachment_metadata(i: int, attachment: discord.Attachment, metad
         return
     try:
         image_data = await attachment.read()
-        image_metadata = ImageDataReader(BytesIO(image_data))
+        b = BytesIO(image_data)
+        img = Image.open(b)
+        if (img.mode == "RGBA"):  # in rare cases, when ImageDataReader reads an RGBA image, it gets stuck in an infinite loop
+            return
+        del img
+        b.seek(0)
+        image_metadata = ImageDataReader(b)
     except (discord.DiscordException, Image.UnidentifiedImageError):
         log.exception("Processing attachment")
         return
