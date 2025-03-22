@@ -1,7 +1,7 @@
 import json
 import discord
 from io import BytesIO
-from PIL import Image
+from PIL import Image, PngImagePlugin
 from typing import Any, Dict, Optional
 from collections import OrderedDict
 from sd_prompt_reader.constants import SUPPORTED_FORMATS
@@ -92,7 +92,7 @@ async def read_attachment_metadata(i: int, attachment: discord.Attachment, metad
         b = BytesIO(image_data)
         img = Image.open(b)
         if (img.mode == "RGBA"):  # in rare cases, when ImageDataReader reads an RGBA image, it gets stuck in an infinite loop
-            return
+            b = remove_transparency(img)
         del img
         b.seek(0)
         image_metadata = ImageDataReader(b)
@@ -104,6 +104,16 @@ async def read_attachment_metadata(i: int, attachment: discord.Attachment, metad
         image_bytes[i] = image_data
         metadata[i] = metadata_str
 
+def remove_transparency(img: Image):
+    info = img.info.copy()
+    new = Image.new("RGB", img.size, (0, 0, 0))
+    new.paste(img, mask=img.split()[-1])
+    pnginfo = PngImagePlugin.PngInfo()
+    for key, value in info.items():
+        pnginfo.add_text(key, str(value))
+    b = BytesIO()
+    img.save(b, format="PNG", pnginfo=pnginfo)
+    return b
 
 def remove_field(embed: discord.Embed, field_name: str):
     for i, field in enumerate(embed.fields):
