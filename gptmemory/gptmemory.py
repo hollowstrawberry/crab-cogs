@@ -377,9 +377,9 @@ class GptMemory(GptMemoryBase):
         # URLs
         image_url = []
 
-        if message.embeds and message.embeds[0].image:
+        if message.embeds and message.embeds[0].image and message.embeds[0].image.url:
             image_url.append(message.embeds[0].image.url)
-        if message.embeds and message.embeds[0].thumbnail:
+        if message.embeds and message.embeds[0].thumbnail and message.embeds[0].thumbnail.url:
             image_url.append(message.embeds[0].thumbnail.url)
 
         matches = URL_PATTERN.findall(message.content)
