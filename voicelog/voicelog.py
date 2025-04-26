@@ -57,11 +57,11 @@ class VoiceLog(commands.Cog):
         """Enable voice log for the whole guild."""
         self.allowedguilds.add(ctx.guild.id)
         await self.config.guild(ctx.guild).enabled.set(True)
-        await ctx.tick()
+        await ctx.tick("Voice Log enabled")
 
     @voicelog.command(name="disable")
     async def voicelog_disable(self, ctx: commands.Context):
         """Disable voice log for the whole guild."""
         self.allowedguilds.remove(ctx.guild.id)
         await self.config.guild(ctx.guild).enabled.set(False)
-        await ctx.tick()
+        await ctx.tick("Voice Log disabled")

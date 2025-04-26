@@ -126,7 +126,7 @@ class Autoreact(commands.Cog):
         async with self.config.guild(ctx.guild).autoreact_regexes() as autoreacts:
             autoreacts[emoji] = pattern.pattern
             self.autoreacts[ctx.guild.id][emoji] = pattern
-            await ctx.tick()
+            await ctx.tick("Regex added")
 
     @autoreact.command()
     @commands.has_permissions(manage_guild=True)
@@ -142,7 +142,7 @@ class Autoreact(commands.Cog):
             removed1 = autoreacts.pop(emoji, None)
             removed2 = self.autoreacts[ctx.guild.id].pop(emoji, None)
             if removed1 or removed2:
-                await ctx.tick()
+                await ctx.tick("Regex removed")
             else:
                 await ctx.send("No autoreacts found for that emoji.")
 

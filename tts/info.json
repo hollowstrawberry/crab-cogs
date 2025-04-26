@@ -1,6 +1,7 @@
 {
     "author": ["hollowstrawberry"],
     "min_bot_version": "3.5.0",
+    "min_python_version": [3,9,0],
     "description": "Plays text to speech in voice chat. Overrides music.",
     "hidden": false,
     "install_msg": "🗣 __**TTS**__ ```Cog installed. Instructions:\n1. Load it with [p]load tts\n2. Make sure the Audio cog is also enabled.\n3a. Optionally, enable the slash command with [p]slash enable tts\n  3b. Sync slash commands with [p]slash sync\n  3c. You may need to restart Discord to see the new command.```",
