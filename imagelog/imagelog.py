@@ -31,7 +31,7 @@ class SetChannelConfirmation(View):
         await self.cog.config.guild(ctx.guild).channel.set(ctx.channel.id)
         
         if self.message:
-            await self.message.edit(view=None, embed=self.embed)
+            await self.message.edit(view=None)
         await ctx.response.send_message(f"Set image log channel to {ctx.channel.mention}")
 
     @discord.ui.button(label='Cancel', style=discord.ButtonStyle.red)
@@ -45,12 +45,12 @@ class SetChannelConfirmation(View):
         self.pressed = True
 
         if self.message:
-            await self.message.edit(view=None, embed=self.embed)
+            await self.message.edit(view=None)
         await ctx.response.send_message("Operation cancelled")
 
     async def on_timeout(self) -> None:
         if self.message and not self.pressed:
-            await self.message.edit(view=None, embed=self.embed)
+            await self.message.edit(view=None)
 
 
 
