@@ -90,4 +90,4 @@ class Randomness(commands.Cog):
         else:
             emojistr = ' '.join(emojis)
         await self.config.donuts.set(emojistr)
-        await ctx.tick()
+        await ctx.tick("Emojis set")
