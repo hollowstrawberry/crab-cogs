@@ -1,6 +1,7 @@
 import io
 import logging
 import discord
+from discord.ui import View
 from datetime import datetime
 from typing import Optional, Dict
 from redbot.core import commands, Config
@@ -8,6 +9,25 @@ from redbot.core import commands, Config
 log = logging.getLogger("red.crab-cogs.imagelog")
 
 IMAGE_TYPES = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
+
+
+class SetChannelConfirmation(View):
+    def __init__(self, cog: "ImageLog"):
+        super().__init__(timeout=60)
+        self.cog = cog
+
+    @discord.ui.button(emoji="✅", label='Accept', style=discord.ButtonStyle.green)
+    async def accept(self, ctx: discord.Interaction, _: discord.Button):
+        self.cog.logchannels[ctx.guild.id] = ctx.channel.id
+        await self.cog.config.guild(ctx.guild).channel.set(ctx.channel.id)
+        await ctx.response.send_message(f"Set image log channel to {ctx.channel.mention}")
+        await self.on_timeout()
+
+    @discord.ui.button(emoji="❌", label='Cancel', style=discord.ButtonStyle.red)
+    async def cancel(self, ctx: discord.Interaction, _: discord.Button):
+        await ctx.response.send_message("Operation cancelled")
+        await self.on_timeout()
+
 
 class ImageLog(commands.Cog):
     """Logs deleted images for moderation purposes."""
@@ -102,9 +122,9 @@ class ImageLog(commands.Cog):
             await self.config.guild(ctx.guild).channel.set(0)
             await ctx.reply("Removed image log channel.")
         else:
-            self.logchannels[ctx.guild.id] = ctx.channel.id
-            await self.config.guild(ctx.guild).channel.set(ctx.channel.id)
-            await ctx.reply(f"Set image log channel to {ctx.channel.mention}. Use this command again to remove it.")
+            msg = ":warning: Content saved this way is **not** usable for reporting users to Discord. You may also be liable for keeping content that breaks Discord TOS.\nAre you sure you want to enable image logging?"
+            view = SetChannelConfirmation(self)
+            await ctx.reply(msg, view=view)
 
     @imagelog.command(name="log_moderator_self_deletes")
     async def imagelog_modselfdeletes(self, ctx: commands.Context, value: Optional[bool]):
