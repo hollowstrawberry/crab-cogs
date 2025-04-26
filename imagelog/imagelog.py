@@ -1,6 +1,7 @@
 import io
 import logging
 import discord
+from discord.ui import View
 from datetime import datetime
 from typing import Optional, Dict
 from redbot.core import commands, Config
@@ -8,6 +9,50 @@ from redbot.core import commands, Config
 log = logging.getLogger("red.crab-cogs.imagelog")
 
 IMAGE_TYPES = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
+
+
+class SetChannelConfirmation(View):
+    def __init__(self, cog: "ImageLog"):
+        super().__init__(timeout=60)
+        self.cog = cog
+        self.pressed = False
+        self.message: Optional[discord.Message] = None
+
+    @discord.ui.button(label='Accept', style=discord.ButtonStyle.green)
+    async def accept(self, ctx: discord.Interaction, _: discord.Button):
+        if not ctx.user.resolved_permissions.manage_guild:
+            await ctx.response.send_message("You must have the Manage Guild permission to interact with this message", ephemeral=True)
+            return
+        if self.pressed:
+            return
+        
+        self.pressed = True
+        self.cog.logchannels[ctx.guild.id] = ctx.channel.id
+        await self.cog.config.guild(ctx.guild).channel.set(ctx.channel.id)
+        
+        if self.message:
+            await self.message.edit(view=None)
+        await ctx.response.send_message(f"Set image log channel to {ctx.channel.mention}")
+
+    @discord.ui.button(label='Cancel', style=discord.ButtonStyle.red)
+    async def cancel(self, ctx: discord.Interaction, _: discord.Button):
+        if not ctx.user.resolved_permissions.manage_guild:
+            await ctx.response.send_message("You must have the Manage Guild permission to interact with this message", ephemeral=True)
+            return
+        if self.pressed:
+            return
+        
+        self.pressed = True
+
+        if self.message:
+            await self.message.edit(view=None)
+        await ctx.response.send_message("Operation cancelled")
+
+    async def on_timeout(self) -> None:
+        if self.message and not self.pressed:
+            await self.message.edit(view=None)
+
+
 
 class ImageLog(commands.Cog):
     """Logs deleted images for moderation purposes."""
@@ -102,9 +147,10 @@ class ImageLog(commands.Cog):
             await self.config.guild(ctx.guild).channel.set(0)
             await ctx.reply("Removed image log channel.")
         else:
-            self.logchannels[ctx.guild.id] = ctx.channel.id
-            await self.config.guild(ctx.guild).channel.set(ctx.channel.id)
-            await ctx.reply(f"Set image log channel to {ctx.channel.mention}. Use this command again to remove it.")
+            content = ":warning: Content saved this way is **not** usable for reporting users to Discord. You may also be liable for keeping content that breaks Discord TOS.\nAre you sure you want to enable image logging?"
+            view = SetChannelConfirmation(self)
+            message = await ctx.reply(content, view=view)
+            view.message = message
 
     @imagelog.command(name="log_moderator_self_deletes")
     async def imagelog_modselfdeletes(self, ctx: commands.Context, value: Optional[bool]):
