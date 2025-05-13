@@ -110,7 +110,7 @@ class AudioSlash(Cog):
         search = search.strip()
 
         if await self.config.guild(ctx.guild).backup_mode():
-            await inter.response.pong()
+            await inter.response.defer()
             
             if not audio.local_folder_current_path:
                 if not inter.guild.voice_client:
