@@ -110,9 +110,13 @@ class AudioSlash(Cog):
         search = search.strip()
 
         if await self.config.guild(ctx.guild).backup_mode():
+            await inter.response.pong()
+            
             if not audio.local_folder_current_path:
-                await ctx.send("Connect bot to a voice channel first")
-                return
+                if not inter.guild.voice_client:
+                    await audio.command_summon(ctx)
+                if not inter.guild.voice_client:
+                    return
                 
             if not search.startswith(DOWNLOAD_FOLDER + "/"):
                 if match := YOUTUBE_LINK_PATTERN.match(search):
