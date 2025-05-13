@@ -31,7 +31,7 @@ DOWNLOAD_CONFIG = {
 }
 DOWNLOAD_FOLDER = "backup"
 YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch\?v=|youtu.be/)([\w\-]+)")
-MAX_VIDEO_LENGTH = 600
+MAX_VIDEO_LENGTH = 1000
 
 MAX_OPTIONS = 25
 MAX_OPTION_SIZE = 100
@@ -85,6 +85,7 @@ class AudioSlash(Cog):
         fake_message = copy(ctx.message)
         fake_message.content = prefix + command_name
         command = ctx.bot.get_command(command_name)
+        ctx.command = command  # Automatically bind the correct command object to the parent context
         fake_context: commands.Context = await ctx.bot.get_context(fake_message)  # noqa
         try:
             can = await command.can_run(fake_context, check_all_parents=True, change_permission_state=False)
@@ -110,9 +111,13 @@ class AudioSlash(Cog):
         search = search.strip()
 
         if await self.config.guild(ctx.guild).backup_mode():
+            await inter.response.defer()
+            
             if not audio.local_folder_current_path:
-                await ctx.send("Connect bot to a voice channel first")
-                return
+                if not inter.guild.voice_client:
+                    await audio.command_summon(ctx)
+                if not inter.guild.voice_client:
+                    return
                 
             if not search.startswith(DOWNLOAD_FOLDER + "/"):
                 if match := YOUTUBE_LINK_PATTERN.match(search):
@@ -371,18 +376,17 @@ class AudioSlash(Cog):
 
         if await self.config.guild(inter.guild).backup_mode():
             audio = await self.get_audio_cog(inter)
-            if not audio or not audio.local_folder_current_path:
-                return lst
-            folder = (audio.local_folder_current_path / DOWNLOAD_FOLDER)
-            folder.mkdir(parents=True, exist_ok=True)
-            files = [app_commands.Choice(name=filename, value=f"{DOWNLOAD_FOLDER}/{filename}"[:MAX_OPTION_SIZE]) for
-                     filename in os.listdir(folder)]
-            if current:
-                lst += [file for file in files if file.name.lower().startswith(current.lower())]
-                lst += [file for file in files if
-                        current.lower() in file.name.lower() and not file.name.lower().startswith(current.lower())]
-            else:
-                lst += files
+            if audio and audio.local_folder_current_path:
+                folder = (audio.local_folder_current_path / DOWNLOAD_FOLDER)
+                folder.mkdir(parents=True, exist_ok=True)
+                files = [app_commands.Choice(name=filename, value=f"{DOWNLOAD_FOLDER}/{filename}"[:MAX_OPTION_SIZE]) for
+                        filename in os.listdir(folder)]
+                if current:
+                    lst += [file for file in files if file.name.lower().startswith(current.lower())]
+                    lst += [file for file in files if
+                            current.lower() in file.name.lower() and not file.name.lower().startswith(current.lower())]
+                else:
+                    lst += files
 
         if not current or len(current) < 3 or len(lst) >= MAX_OPTIONS:
             return lst[:MAX_OPTIONS]
