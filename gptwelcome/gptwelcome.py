@@ -17,7 +17,7 @@ class GptWelcome(commands.Cog):
         self.config = Config.get_conf(self, identifier=1947582011)
         self.config.register_guild(**{
             "enabled": False,
-            "prompt": "You are in a Discord server and are tasked with welcoming new users. When welcoming a user, give them a personalized message according to their username, and direct them to the rules channnel.",
+            "prompt": "You are in a Discord server and are tasked with welcoming new users. When welcoming a user, give them a personalized message, mentioning something unique about their username, and direct them to the rules channnel.",
         })
 
     async def cog_load(self):
@@ -77,24 +77,26 @@ class GptWelcome(commands.Cog):
 
 
     @commands.group(name="gptwelcome", aliases=["aiwelcome", "llmwelcome"])
-    @commands.is_owner()
     async def gptwelcome(self, _: commands.Context):
         """Base command for configuring the GPT Welcome cog."""
         pass
 
     @gptwelcome.command("enable")
+    @commands.is_owner()
     async def gptwelcome_enable(self, ctx: commands.Context):
         """Enables GPT Welcome for this server."""
         await self.config.guild(ctx.guild).enabled.set(True)
         await ctx.tick(message="Enabled")
 
     @gptwelcome.command("disable")
+    @commands.is_owner()
     async def gptwelcome_disable(self, ctx: commands.Context):
         """Disable GPT Welcome for this server."""
         await self.config.guild(ctx.guild).enabled.set(False)
         await ctx.tick(message="Disabled")
 
     @gptwelcome.command(name="prompt")
+    @commands.has_permissions(manage_guild=True)
     async def gptwelcome_prompt(self, ctx: commands.Context, *, prompt: str):
         """Gives you the current prompt or sets a new prompt for the GPT welcomer."""
         if not prompt or not prompt.strip():
@@ -105,6 +107,7 @@ class GptWelcome(commands.Cog):
             await ctx.reply(f"`new welcomer prompt`\n>>> {prompt.strip()}", mention_author=False)
 
     @gptwelcome.command(name="test")
+    @commands.has_permissions(manage_messages=True)
     async def gptwelcome_test(self, ctx: commands.Context):
         """Simulates you joining the server"""
         if not await self.config.guild(ctx.guild).enabled():
