@@ -87,13 +87,13 @@ class GptWelcome(commands.Cog):
     async def gptwelcome_enable(self, ctx: commands.Context):
         """Enables GPT Welcome for this server."""
         await self.config.guild(ctx.guild).enabled.set(True)
-        await ctx.tick("Enabled")
+        await ctx.tick(message="Enabled")
 
     @gptwelcome.command("disable")
     async def gptwelcome_disable(self, ctx: commands.Context):
         """Disable GPT Welcome for this server."""
         await self.config.guild(ctx.guild).enabled.set(False)
-        await ctx.tick("Disabled")
+        await ctx.tick(message="Disabled")
 
     @gptwelcome.command(name="prompt")
     async def gptwelcome_prompt(self, ctx: commands.Context, *, prompt: str):
