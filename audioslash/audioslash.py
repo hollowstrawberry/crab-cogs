@@ -285,7 +285,7 @@ class AudioSlash(Cog):
 
     @playlist.command(name="create")
     @app_commands.describe(name="The name of the new playlist. Cannot contain spaces.",
-                           make_from_queue="This will fill the playlist with the current queue.",
+                           type="Do you want to save the current queue as a playlist?",
                            scope="Who this playlist will belong to. You need permissions for Server and Global.")
     @app_commands.choices(scope=playlist_scopes,
                           type=[app_commands.Choice(name="Empty playlist", value="empty"),
