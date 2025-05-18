@@ -1,10 +1,12 @@
+from base64 import b64encode
 import discord
+from io import BytesIO
 from typing import Optional
 from redbot.core import commands, Config
 from redbot.core.bot import Red
 
 from openai import AsyncOpenAI
-from tiktoken import encoding_for_model
+from PIL import Image, UnidentifiedImageError
 
 MODEL = "gpt-4o"
 
@@ -17,7 +19,8 @@ class GptWelcome(commands.Cog):
         self.config = Config.get_conf(self, identifier=1947582011)
         self.config.register_guild(**{
             "enabled": False,
-            "prompt": "You are in a Discord server and are tasked with welcoming new users. When welcoming a user, give them a personalized message, mentioning something unique about their username, and direct them to the rules channnel.",
+            "prompt": "You are in a Discord server and are tasked with welcoming new users. "
+                      "When welcoming a user, give them a personalized message, mentioning something unique about their avatar or their username",
         })
 
     async def cog_load(self):
@@ -63,18 +66,56 @@ class GptWelcome(commands.Cog):
         if not prompt:
             return
         
-        messages = [
-            { "role": "system", "content": prompt },
-            { "role": "user", "content": f"The following user has joined the server: {ctx.author.name}" },
-        ]
+        messages =  [{ "role": "system", "content": prompt }]
+        whojoined = f"The following user has joined the server: {ctx.author.display_name}"
+
+        # Attach the user's avatar
+        fp_before = BytesIO()
+        try:
+            await ctx.author.display_avatar.save(fp_before)
+        except (discord.DiscordException, TypeError):
+            messages.append({ "role": "user", "content": whojoined })
+        else:
+            fp_after = self.process_image(fp_before)
+            del fp_before
+            if fp_after:
+                messages.append({
+                    "type": "user",
+                    "content": {
+                        {
+                            "type": "text",
+                            "text": whojoined
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/png;base64,{b64encode(fp_after.read()).decode()}"
+                            }
+                        }}
+                })
+
         response = await self.openai_client.beta.chat.completions.parse(
             model=MODEL,
             messages=messages
         )
         completion = response.choices[0].message.content
-        
         await ctx.reply(content=completion, mention_author=True)
 
+    def process_image(buffer: BytesIO) -> Optional[BytesIO]:
+        try:
+            image = Image.open(buffer)
+        except UnidentifiedImageError:
+            return None
+        width, height = image.size
+        image_resolution = width * height
+        target_resolution = 512*512
+        if image_resolution > target_resolution:
+            scale_factor = (target_resolution / image_resolution) ** 0.5
+            image = image.resize((int(width * scale_factor), int(height * scale_factor)), Image.Resampling.LANCZOS)
+        fp = BytesIO()
+        image.save(fp, "PNG")
+        fp.seek(0)
+        return fp
 
     @commands.group(name="gptwelcome", aliases=["aiwelcome", "llmwelcome"])
     async def gptwelcome(self, _: commands.Context):
