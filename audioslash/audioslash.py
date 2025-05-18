@@ -114,12 +114,9 @@ class AudioSlash(Cog):
             await inter.response.defer()
             
             if not audio.local_folder_current_path:
-                if not inter.guild.voice_client:
-                    await audio.command_summon(ctx)
-                    await asyncio.sleep(1)
-                    audio = await self.get_audio_cog(inter)
-                    ctx = await self.get_context(inter, audio)
-                if not inter.guild.voice_client:
+                await audio.localtracks_folder_exists(ctx)
+                if not audio.local_folder_current_path:
+                    await ctx.reply("Can't find local tracks folder, try again")
                     return
                 
             if not search.startswith(DOWNLOAD_FOLDER + "/"):
