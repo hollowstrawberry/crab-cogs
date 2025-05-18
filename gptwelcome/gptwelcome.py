@@ -81,7 +81,7 @@ class GptWelcome(commands.Cog):
             if fp_after:
                 messages.append({
                     "type": "user",
-                    "content": {
+                    "content": [
                         {
                             "type": "text",
                             "text": whojoined
@@ -91,7 +91,8 @@ class GptWelcome(commands.Cog):
                             "image_url": {
                                 "url": f"data:image/png;base64,{b64encode(fp_after.read()).decode()}"
                             }
-                        }}
+                        }
+                    ]
                 })
 
         response = await self.openai_client.beta.chat.completions.parse(
