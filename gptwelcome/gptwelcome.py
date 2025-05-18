@@ -1,5 +1,5 @@
 import discord
-from typing import Literal, Optional, Dict
+from typing import Optional
 from redbot.core import commands, Config
 from redbot.core.bot import Red
 
@@ -35,7 +35,6 @@ class GptWelcome(commands.Cog):
 
     @commands.Cog.listener()
     async def on_red_api_tokens_update(self, service_name, _):
-        await self.initialize_function_calls()
         if service_name == "openai":
             await self.initialize_openai_client()
 
@@ -72,7 +71,7 @@ class GptWelcome(commands.Cog):
             model=MODEL,
             messages=messages
         )
-        completion = response.choices[0].message
+        completion = response.choices[0].message.content
         
         await ctx.reply(content=completion, mention_author=True)
 
