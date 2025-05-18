@@ -116,6 +116,9 @@ class AudioSlash(Cog):
             if not audio.local_folder_current_path:
                 if not inter.guild.voice_client:
                     await audio.command_summon(ctx)
+                    await asyncio.sleep(1)
+                    audio = await self.get_audio_cog(inter)
+                    ctx = await self.get_context(inter, audio)
                 if not inter.guild.voice_client:
                     return
                 
