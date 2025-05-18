@@ -90,7 +90,7 @@ class GptWelcome(commands.Cog):
         await ctx.tick("Enabled")
 
     @gptwelcome.command("disable")
-    async def gptwelcome_enable(self, ctx: commands.Context):
+    async def gptwelcome_disable(self, ctx: commands.Context):
         """Disable GPT Welcome for this server."""
         await self.config.guild(ctx.guild).enabled.set(False)
         await ctx.tick("Disabled")
