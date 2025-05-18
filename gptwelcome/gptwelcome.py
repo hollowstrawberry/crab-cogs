@@ -132,7 +132,7 @@ class GptWelcome(commands.Cog):
         await ctx.tick(message="Enabled")
 
     @gptwelcome.command("disable")
-    @commands.is_owner()
+    @commands.has_permissions(manage_guild=True)
     async def gptwelcome_disable(self, ctx: commands.Context):
         """Disable GPT Welcome for this server."""
         await self.config.guild(ctx.guild).enabled.set(False)
@@ -150,7 +150,6 @@ class GptWelcome(commands.Cog):
             await ctx.reply(f"`new welcomer prompt`\n>>> {prompt.strip()}", mention_author=False)
 
     @gptwelcome.command(name="test")
-    @commands.has_permissions(manage_messages=True)
     async def gptwelcome_test(self, ctx: commands.Context):
         """Simulates you joining the server"""
         if not await self.config.guild(ctx.guild).enabled():
@@ -158,5 +157,11 @@ class GptWelcome(commands.Cog):
             return
         if not await self.config.guild(ctx.guild).prompt():
             await ctx.reply("Prompt not set.")
+            return
+        if not ctx.guild.system_channel:
+            await ctx.reply("Your server doesn't have a configured `System Messages Channel` set. The bot needs to use those welcome messages to ping the user who joined.")
+            return
+        if not ctx.guild.system_channel.permissions_for(ctx.bot).send_messages:
+            await ctx.reply(f"The bot doesn't have permission to send messages in the {ctx.guild.system_channel.mention} channel, which is where your server is configured to send welcome messages.")
             return
         await self.welcome_user(ctx)
