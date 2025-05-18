@@ -313,8 +313,9 @@ class GptMemory(GptMemoryBase):
         for n, backmsg in enumerate(backread):
             try:
                 quote = backmsg.reference.cached_message or await backmsg.channel.fetch_message(backmsg.reference.message_id)
-                if len(backread) > n+1 and quote == backread[n+1]:
-                    quote = None
+                # This will prevent chaining message quotes that are already consecutive
+                # if len(backread) > n+1 and quote == backread[n+1]:
+                #    quote = None
             except (AttributeError, discord.DiscordException):
                 quote = None
 
