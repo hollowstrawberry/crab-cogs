@@ -101,6 +101,7 @@ class GptWelcome(commands.Cog):
         completion = response.choices[0].message.content
         await ctx.reply(content=completion, mention_author=True)
 
+    @staticmethod
     def process_image(buffer: BytesIO) -> Optional[BytesIO]:
         try:
             image = Image.open(buffer)
