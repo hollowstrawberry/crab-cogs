@@ -80,7 +80,7 @@ class GptWelcome(commands.Cog):
             del fp_before
             if fp_after:
                 messages.append({
-                    "type": "user",
+                    "role": "user",
                     "content": [
                         {
                             "type": "text",
