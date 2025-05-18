@@ -70,30 +70,27 @@ class GptWelcome(commands.Cog):
         whojoined = f"The following user has joined the server: {ctx.author.display_name}"
 
         # Attach the user's avatar
-        fp_before = BytesIO()
+        fp = BytesIO()
         try:
-            await ctx.author.display_avatar.save(fp_before)
+            await ctx.author.display_avatar.with_format("png").with_size(512).save(fp)
         except (discord.DiscordException, TypeError):
             messages.append({ "role": "user", "content": whojoined })
         else:
-            fp_after = self.process_image(fp_before)
-            del fp_before
-            if fp_after:
-                messages.append({
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": whojoined
-                        },
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/png;base64,{b64encode(fp_after.read()).decode()}"
-                            }
+            messages.append({
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": whojoined
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/png;base64,{b64encode(fp.read()).decode()}"
                         }
-                    ]
-                })
+                    }
+                ]
+            })
 
         response = await self.openai_client.beta.chat.completions.parse(
             model=MODEL,
@@ -101,23 +98,6 @@ class GptWelcome(commands.Cog):
         )
         completion = response.choices[0].message.content
         await ctx.reply(content=completion, mention_author=True)
-
-    @staticmethod
-    def process_image(buffer: BytesIO) -> Optional[BytesIO]:
-        try:
-            image = Image.open(buffer)
-        except UnidentifiedImageError:
-            return None
-        width, height = image.size
-        image_resolution = width * height
-        target_resolution = 512*512
-        if image_resolution > target_resolution:
-            scale_factor = (target_resolution / image_resolution) ** 0.5
-            image = image.resize((int(width * scale_factor), int(height * scale_factor)), Image.Resampling.LANCZOS)
-        fp = BytesIO()
-        image.save(fp, "PNG")
-        fp.seek(0)
-        return fp
 
     @commands.group(name="gptwelcome", aliases=["aiwelcome", "llmwelcome"])
     async def gptwelcome(self, _: commands.Context):
