@@ -161,7 +161,7 @@ class GptWelcome(commands.Cog):
         if not ctx.guild.system_channel:
             await ctx.reply("Your server doesn't have a configured `System Messages Channel` set. The bot needs to use those welcome messages to ping the user who joined.")
             return
-        if not ctx.guild.system_channel.permissions_for(ctx.bot).send_messages:
+        if not ctx.guild.system_channel.permissions_for(ctx.guild.me).send_messages:
             await ctx.reply(f"The bot doesn't have permission to send messages in the {ctx.guild.system_channel.mention} channel, which is where your server is configured to send welcome messages.")
             return
         await self.welcome_user(ctx)
