@@ -143,7 +143,7 @@ class AudioPlayer(Cog):
                 message = await channel.send(embed=embed, view=view)
                 self.last_player[guild_id] = message.id
 
-    @commands.group(name="audioplayerset")
+    @commands.group(name="audioplayer")
     @commands.admin()
     async def command_audioplayer(self, _: commands.Context):
         """Configuration commands for AudioPlayer"""
