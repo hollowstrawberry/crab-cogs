@@ -127,6 +127,7 @@ class AudioPlayer(Cog):
             embed.color = await self.bot.get_embed_color(channel)
             icon = "⏸️" if player.paused else "▶️"
             track_name = await audio.get_track_description(player.current, audio.local_folder_current_path)
+            log.info(track_name)
             title_match = re.match(r"\[(.*)\]\((.*)\)", track_name.strip())
             if title_match:
                 embed.title = f"{icon} {title_match.group(1)}"
