@@ -114,9 +114,9 @@ class AudioSlash(Cog):
             await inter.response.defer()
             
             if not audio.local_folder_current_path:
-                if not inter.guild.voice_client:
-                    await audio.command_summon(ctx)
-                if not inter.guild.voice_client:
+                await audio.localtracks_folder_exists(ctx)
+                if not audio.local_folder_current_path:
+                    await ctx.reply("Can't find local tracks folder, try again")
                     return
                 
             if not search.startswith(DOWNLOAD_FOLDER + "/"):
@@ -285,16 +285,18 @@ class AudioSlash(Cog):
 
     @playlist.command(name="create")
     @app_commands.describe(name="The name of the new playlist. Cannot contain spaces.",
-                           make_from_queue="This will fill the playlist with the current queue.",
+                           type="Do you want to save the current queue as a playlist?",
                            scope="Who this playlist will belong to. You need permissions for Server and Global.")
-    @app_commands.choices(scope=playlist_scopes)
-    async def playlist_create(self, inter: discord.Interaction, name: str, make_from_queue: Optional[bool], scope: Optional[str]):
+    @app_commands.choices(scope=playlist_scopes,
+                          type=[app_commands.Choice(name="Empty playlist", value="empty"),
+                                app_commands.Choice(name="Current queue", value="queue")])
+    async def playlist_create(self, inter: discord.Interaction, name: str, type: str, scope: Optional[str]):
         """Creates a new playlist."""
         if not (audio := await self.get_audio_cog(inter)):
             return
         name = name.replace(" ", "-")
         ctx = await self.get_context(inter, audio)
-        if make_from_queue:
+        if type == "queue":
             if not await self.can_run_command(ctx, "playlist queue"):
                 return
             await audio.command_playlist_queue(ctx, name, scope_data=self.get_scope_data(scope, ctx))
