@@ -7,13 +7,10 @@ from typing import Optional
 
 from discord.ui import View
 from discord.ext import tasks
-from redbot.core import commands, app_commands
+from redbot.core import commands
 from redbot.core.bot import Red, Config
 from redbot.core.commands import Cog
 from redbot.cogs.audio.core import Audio
-from redbot.cogs.audio.utils import PlaylistScope
-from redbot.cogs.audio.converters import PlaylistConverter, ScopeParser
-from redbot.cogs.audio.apis.playlist_interface import get_all_playlist
 
 log = logging.getLogger("red.crab-cogs.audioplayer")
 
@@ -146,7 +143,7 @@ class AudioPlayer(Cog):
                 message = await channel.send(embed=embed, view=view)
                 self.last_player[guild_id] = message.id
 
-    @commands.group(name="audioplayer")
+    @commands.group(name="audioplayerset")
     @commands.admin()
     async def command_audioplayer(self, _: commands.Context):
         """Configuration commands for AudioPlayer"""
