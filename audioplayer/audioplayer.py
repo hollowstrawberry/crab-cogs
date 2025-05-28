@@ -150,7 +150,7 @@ class AudioPlayer(Cog):
         pass
 
     @command_audioplayer.command(name="channel")
-    async def command_audioplayer(self, ctx: commands.Context, channel: Optional[discord.TextChannel]):
+    async def command_audioplayer_channel(self, ctx: commands.Context, channel: Optional[discord.TextChannel]):
         """Sets the channel being used for AudioPlayer. Passing no arguments clears the channel, disabling the cog in this server."""
         if self.last_player.get(ctx.guild.id):
             player_channel = ctx.guild.get_channel(self.channel.get(ctx.guild.id, 0))
