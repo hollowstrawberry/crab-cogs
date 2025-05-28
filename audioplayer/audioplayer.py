@@ -136,7 +136,9 @@ class AudioPlayer(Cog):
                 embed.description += f"\n-# Requested by {player.current.requester}"
             if player.queue:
                 total_length = sum(track.length for track in player.queue)
-                embed.description += f"{len(player.queue)} tracks in queue ({total_length // 60_000} minutes)"
+                embed.description += f"\n{len(player.queue)} more in queue ({total_length // 60_000} minutes)"
+            else:
+                embed.description += f"\nNo more in queue"
             if player.current.thumbnail:
                 embed.set_thumbnail(url=player.current.thumbnail)
             view = PlayerView(self)
