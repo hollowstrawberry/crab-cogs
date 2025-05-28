@@ -1,0 +1,12 @@
+{
+    "author": ["hollowstrawberry"],
+    "min_bot_version": "3.5.0",
+    "description": "Uses AI to give a unique welcome message for each new user, according to their username and avatar.",
+    "hidden": true,
+    "install_msg": "🖼 __**GPT Welcome**__\n:warning: **Important:** Utilizes the OpenAI API, which will cost you a fraction of a penny every time it is used.\n```Cog installed. Instructions:\n1. Load it with [p]load gptwelcome\n2. Add your OpenAI API key with [p]set api openai api_key,INSERT_API_KEY\n3. To enable in the current server, the bot owner must use [p]gptwelcome enable\n4. Admins can check and customize the prompt with [p]gptwelcome prompt\n5. Test it with [p]gptwelcome test```",
+    "required_cogs": {},
+    "requirements": ["openai"],
+    "short": "Uses AI to give a unique welcome message for each new user.",
+    "end_user_data_statement": "This cog sends to OpenAI the name and avatar of new users joining the server.",
+    "tags": ["crab", "ai", "gpt", "llm", "chatgpt", "chatbot", "welcome", "openai"]
+}
