@@ -1,5 +1,6 @@
 from builtins import anext
 import time
+import types
 import logging
 import discord
 import lavalink
@@ -17,7 +18,7 @@ log = logging.getLogger("red.crab-cogs.audioplayer")
 
 PLAYER_WIDTH = 15
 LINE_SYMBOL = "⎯"
-MARKER_SYMBOL = "🔘"
+MARKER_SYMBOL = "💠"
 
 
 class PlayerView(View):
@@ -33,7 +34,7 @@ class PlayerView(View):
         if not await self.can_run_command(ctx, "pause"):
             return
         await audio.command_pause(ctx)
-        await inter.response.pong()
+        await inter.response.send_message("⏯️", ephemeral=True)
 
     @discord.ui.button(emoji="⏩", style=discord.ButtonStyle.grey)
     async def skip(self, inter: discord.Interaction, _):
@@ -42,7 +43,7 @@ class PlayerView(View):
         if not await self.can_run_command(ctx, "skip"):
             return
         await audio.command_skip(ctx)
-        await inter.response.pong()
+        await inter.response.send_message("⏩", ephemeral=True)
 
     async def get_context(self, inter: discord.Interaction, cog: Audio, command_name: str) -> commands.Context:
         prefix = await self.cog.bot.get_prefix(self.message)
@@ -50,7 +51,11 @@ class PlayerView(View):
         fake_message = copy(self.message)
         fake_message.content = prefix + command_name
         fake_message.author = inter.user
-        return await self.cog.bot.get_context(fake_message)  # noqa
+        ctx: commands.Context = await self.cog.bot.get_context(fake_message)  # noqa
+        async def send(self, *args, **kwargs):
+            pass
+        ctx.send = types.MethodType(send, ctx)  # prevent pause/skip buttons from sending a message
+        return ctx
 
     async def can_run_command(self, ctx: commands.Context, command_name: str) -> bool:
         command = ctx.bot.get_command(command_name)
@@ -124,7 +129,7 @@ class AudioPlayer(Cog):
             embed.title = f"{icon} {track_name}"
             embed.description = ""
             if player.current.requester:
-                embed.description += f"\n-# Requested by {player.current.requester}\n"
+                embed.description += f"\n-# Requested by {player.current.requester}\n\n"
             if not player.current.is_stream and player.current.length and player.current.length != 0:
                 ratio = player.position / player.current.length
                 pos = round(player.position / 1000)
@@ -144,9 +149,9 @@ class AudioPlayer(Cog):
                 if total_length // 3600:
                     formatted_time += f"{total_length // 3600}:"
                 formatted_time += f"{total_length//60%60:02}:{total_length%60:02}"
-                embed.description += f"\n{len(player.queue)} more in queue ({formatted_time})"
+                embed.description += f"\n\n{len(player.queue)} more in queue ({formatted_time})"
             else:
-                embed.description += f"\nNo more in queue"
+                embed.description += f"\n\nNo more in queue"
             if player.current.thumbnail:
                 embed.set_thumbnail(url=player.current.thumbnail)
             view = PlayerView(self)
