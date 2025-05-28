@@ -1,3 +1,4 @@
+from builtins import anext
 import time
 import logging
 import discord
@@ -127,7 +128,7 @@ class AudioPlayer(Cog):
                 embed.description = f"`{player.position//60:02}:{player.position%60:02}{line}LIVE`"
             view = PlayerView(self)
             # Update the player message
-            last_message = await channel.history(limit=1)
+            last_message = await anext(channel.history(limit=1))
             if last_message.id == self.last_player.get(guild_id, 0):
                 message = await channel.fetch_message(last_message.id)
                 if message:
