@@ -16,32 +16,16 @@ from redbot.cogs.audio.core import Audio
 
 log = logging.getLogger("red.crab-cogs.audioplayer")
 
-PLAYER_WIDTH = 21
+PLAYER_WIDTH = 15
 LINE_SYMBOL = "⎯"
 MARKER_SYMBOL = "🔘"
 
 
-class InteractionProxy:
-    def __init__(self, original: discord.Interaction, command_name: str):
-        self._original = original
-        self._command_name = command_name
-
-    def __getattr__(self, name):
-        if name == "command":
-            return app_commands.command(name=self._command_name)
-        return getattr(self._original, name)
-
-    def __setattr__(self, name, value):
-        if name in ("_original", "_command_name"):
-            super().__setattr__(name, value)
-        else:
-            setattr(self._original, name, value)
-
-
 class PlayerView(View):
-    def __init__(self, cog: "AudioPlayer"):
+    def __init__(self, cog: "AudioPlayer", message: discord.Message):
         super().__init__(timeout=60)
         self.cog = cog
+        self.message = message
 
     @discord.ui.button(emoji="⏯️", style=discord.ButtonStyle.grey)
     async def pause(self, inter: discord.Interaction, _):
@@ -60,22 +44,18 @@ class PlayerView(View):
         await audio.command_pause(ctx)
 
     async def get_context(self, inter: discord.Interaction, cog: Audio, command_name: str) -> commands.Context:
-        # we monkeypatch it as the ctx expects a valid command but we'll override that command later regardless
-        inter = InteractionProxy(inter, command_name)
-        ctx: commands.Context = await self.cog.bot.get_context(inter)  # noqa
+        prefix = await self.cog.bot.get_prefix(self.message)
+        fake_message = copy(self.message)
+        fake_message.content = prefix + command_name
+        fake_message.author = inter.user
+        ctx: commands.Context = await self.cog.bot.get_context(fake_message)  # noqa
         ctx.command.cog = cog
         return ctx
 
     async def can_run_command(self, ctx: commands.Context, command_name: str) -> bool:
-        prefix = await self.cog.bot.get_prefix(ctx.message)
-        prefix = prefix[0] if isinstance(prefix, list) else prefix
-        fake_message = copy(ctx.message)
-        fake_message.content = prefix + command_name
         command = ctx.bot.get_command(command_name)
-        ctx.command = command  # Automatically bind the correct command object to the parent context
-        fake_context: commands.Context = await ctx.bot.get_context(fake_message)  # noqa
         try:
-            can = await command.can_run(fake_context, check_all_parents=True, change_permission_state=False)
+            can = await command.can_run(ctx, check_all_parents=True, change_permission_state=False)
         except commands.CommandError:
             can = False
         if not can:
