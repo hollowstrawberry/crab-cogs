@@ -712,7 +712,7 @@ class NovelAI(commands.Cog):
         vip = set(await self.config.vip())
         vip.update(uid for uid in user_ids)
         await self.config.vip.set(list(vip))
-        await ctx.tick("VIP user(s) added")
+        await ctx.tick(message="VIP user(s) added")
 
     @vip.command(name="remove")
     async def vip_remove(self, ctx: commands.Context, *, users: str):
@@ -723,7 +723,7 @@ class NovelAI(commands.Cog):
         vip = set(await self.config.vip())
         vip.difference_update(uid for uid in user_ids)
         await self.config.vip.set(list(vip))
-        await ctx.tick("VIP user(s) removed")
+        await ctx.tick(message="VIP user(s) removed")
 
     @vip.command(name="list")
     async def vip_list(self, ctx: commands.Context):

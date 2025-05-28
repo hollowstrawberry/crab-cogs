@@ -275,7 +275,7 @@ class ImageScanner(commands.Cog):
             return
         self.scan_limit = newlimit * 1024**2
         await self.config.scan_limit.set(self.scan_limit)
-        await ctx.tick("Max size set")
+        await ctx.tick(message="Max size set")
 
     @scanset.group(name="channel", invoke_without_command=True)
     async def scanset_channel(self, ctx: commands.Context):
@@ -290,7 +290,7 @@ class ImageScanner(commands.Cog):
             return await ctx.reply("Please enter one or more valid channels.")
         self.scan_channels.update(ch for ch in channel_ids)
         await self.config.channels.set(list(self.scan_channels))
-        await ctx.tick("Channel(s) added")
+        await ctx.tick(message="Channel(s) added")
 
     @scanset_channel.command(name="remove")
     async def scanset_channel_remove(self, ctx: commands.Context, *, channels: str):
@@ -300,7 +300,7 @@ class ImageScanner(commands.Cog):
             return await ctx.reply("Please enter one or more valid channels.")
         self.scan_channels.difference_update(ch for ch in channel_ids)
         await self.config.channels.set(list(self.scan_channels))
-        await ctx.tick("Channel(s) removed")
+        await ctx.tick(message="Channel(s) removed")
 
     @scanset_channel.command(name="list")
     async def scanset_channel_list(self, ctx: commands.Context):
