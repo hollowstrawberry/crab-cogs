@@ -145,7 +145,7 @@ class GptWelcome(commands.Cog):
 
     @gptwelcome.command(name="prompt")
     @commands.has_permissions(manage_guild=True)
-    async def gptwelcome_prompt(self, ctx: commands.Context, *, prompt: str):
+    async def gptwelcome_prompt(self, ctx: commands.Context, *, prompt: Optional[str]):
         """Gives you the current prompt or sets a new prompt for the AI welcomer. Use "reset" to reset."""
         if not prompt or not prompt.strip():
             prompt = await self.config.guild(ctx.guild).prompt()
