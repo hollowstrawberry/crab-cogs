@@ -13,14 +13,14 @@ class PlayerView(View):
         self.cog = cog
         self.message: Optional[discord.Message] = None
 
-    @discord.ui.button(emoji="↩️", style=discord.ButtonStyle.grey)
+    @discord.ui.button(emoji=":hash:", style=discord.ButtonStyle.grey)
     async def seek(self, inter: discord.Interaction, _):
         audio: Optional[Audio] = self.cog.bot.get_cog("Audio")
-        ctx = await self.get_context(inter, audio, "seek")
-        if not await self.can_run_command(ctx, "seek"):
+        ctx = await self.get_context(inter, audio, "queue")
+        if not await self.can_run_command(ctx, "queue"):
             await inter.response("You're not allowed to perform this action.")
             return
-        await audio.command_seek(ctx, -1_000_000)
+        await audio.command_queue(ctx)
 
     @discord.ui.button(emoji="⏪", style=discord.ButtonStyle.grey)
     async def previous(self, inter: discord.Interaction, _):
