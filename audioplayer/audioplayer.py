@@ -122,19 +122,20 @@ class AudioPlayer(Cog):
             icon = "⏸️" if player.paused else "▶️"
             track_name = await audio.get_track_description(player.current, audio.local_folder_current_path)
             embed.title = f"{icon} {track_name}"
+            embed.description = ""
+            if player.current.requester:
+                embed.description += f"\n-# Requested by {player.current.requester}\n"
             if not player.current.is_stream and player.current.length and player.current.length != 0:
                 ratio = player.position / player.current.length
                 pos = round(player.position / 1000)
                 length = round(player.current.length / 1000)
                 line = (round(PLAYER_WIDTH * ratio) * LINE_SYMBOL) + MARKER_SYMBOL + ((PLAYER_WIDTH - 1 - round(PLAYER_WIDTH * ratio)) * LINE_SYMBOL)
-                embed.description = f"`{pos//60:02}:{pos%60:02}{line}{length//60:02}:{length%60:02}`"
+                embed.description += f"`{pos//60:02}:{pos%60:02}{line}{length//60:02}:{length%60:02}`"
             else:
                 pos = round(player.position / 1000)
                 length = 0
                 line = ((PLAYER_WIDTH // 2) * LINE_SYMBOL) + MARKER_SYMBOL + ((PLAYER_WIDTH // 2) * LINE_SYMBOL)
-                embed.description = f"`{pos//60:02}:{pos%60:02}{line}unknown`"
-            if player.current.requester:
-                embed.description += f"\n-# Requested by {player.current.requester}"
+                embed.description += f"`{pos//60:02}:{pos%60:02}{line}unknown`"
             if player.queue:
                 total_length = round(sum(track.length or 180000 for track in player.queue) / 1000)
                 if length > 0:
