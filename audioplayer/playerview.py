@@ -21,6 +21,7 @@ class PlayerView(View):
             await inter.response("You're not allowed to perform this action.")
             return
         await audio.command_queue(ctx)
+        await self.cog.update_player(ctx.guild, ctx.channel, audio)
 
     @discord.ui.button(emoji="⏪", style=discord.ButtonStyle.grey)
     async def previous(self, inter: discord.Interaction, _):
@@ -30,6 +31,7 @@ class PlayerView(View):
             await inter.response("You're not allowed to perform this action.")
             return
         await audio.command_prev(ctx)
+        await self.cog.update_player(ctx.guild, ctx.channel, audio)
 
     @discord.ui.button(emoji="⏸️", style=discord.ButtonStyle.grey)
     async def pause(self, inter: discord.Interaction, _):
@@ -39,6 +41,7 @@ class PlayerView(View):
             await inter.response("You're not allowed to perform this action.")
             return
         await audio.command_pause(ctx)
+        await self.cog.update_player(ctx.guild, ctx.channel, audio)
 
     @discord.ui.button(emoji="⏩", style=discord.ButtonStyle.grey)
     async def skip(self, inter: discord.Interaction, _):
@@ -48,6 +51,7 @@ class PlayerView(View):
             await inter.response("You're not allowed to perform this action.")
             return
         await audio.command_skip(ctx)
+        await self.cog.update_player(ctx.guild, ctx.channel, audio)
 
     @discord.ui.button(emoji="⏹️", style=discord.ButtonStyle.grey)
     async def stop(self, inter: discord.Interaction, _):
@@ -57,6 +61,7 @@ class PlayerView(View):
             await inter.response("You're not allowed to perform this action.")
             return
         await audio.command_stop(ctx)
+        await self.cog.update_player(ctx.guild, ctx.channel, audio)
 
     async def get_context(self, inter: discord.Interaction, cog: Audio, command_name: str) -> commands.Context:
         prefix = await self.cog.bot.get_prefix(self.message)
