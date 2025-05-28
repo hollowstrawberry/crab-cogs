@@ -17,7 +17,7 @@ from redbot.cogs.audio.core import Audio
 
 log = logging.getLogger("red.crab-cogs.audioplayer")
 
-PLAYER_WIDTH = 15
+PLAYER_WIDTH = 21
 LINE_SYMBOL = "⎯"
 MARKER_SYMBOL = "💠"
 
