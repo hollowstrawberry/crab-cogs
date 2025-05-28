@@ -117,16 +117,15 @@ class AudioPlayer(Cog):
             embed = discord.Embed()
             embed.color = await self.bot.get_embed_color(channel)
             embed.title = player.current.title
-            embed.set_author(name="Paused" if player.paused else "Playing",
-                             icon_url="https://discord.com/assets/9a72e30b860ad150.svg")
+            embed.set_author(name="⏸️ Paused" if player.paused else "▶️ Playing")
             if not player.current.is_stream and player.current.length and player.current.length != 0:
                 ratio = player.position / player.current.length
-                pos = player.position / 1000
-                length = player.current.length / 1000
+                pos = round(player.position / 1000)
+                length = round(player.current.length / 1000)
                 line = (round(PLAYER_WIDTH * ratio) * LINE_SYMBOL) + MARKER_SYMBOL + ((PLAYER_WIDTH - 1 - round(PLAYER_WIDTH * ratio)) * LINE_SYMBOL)
                 embed.description = f"`{pos//60:02}:{pos%60:02}{line}{length//60:02}:{length%60:02}`"
             else:
-                pos = player.position / 1000
+                pos = round(player.position / 1000)
                 line = ((PLAYER_WIDTH // 2) * LINE_SYMBOL) + MARKER_SYMBOL + ((PLAYER_WIDTH // 2) * LINE_SYMBOL)
                 embed.description = f"`{pos//60:02}:{pos%60:02}{line}LIVE`"
             view = PlayerView(self)
