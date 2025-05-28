@@ -80,8 +80,8 @@ class PlayerView(View):
         fake_message.content = prefix + command_name
         fake_message.author = inter.user
         ctx: commands.Context = await self.cog.bot.get_context(fake_message)  # noqa
-        async def send(self, content: str, *args, **kwargs):
-            inter.response.send_message(content, ephemeral=True)
+        async def send(self, content: Optional[str], embed: Optional[discord.Embed], *args, **kwargs):
+            inter.response.send_message(content=content, embed=embed, ephemeral=True)
         ctx.send = types.MethodType(send, ctx)  # prevent pause/skip buttons from sending a message
         return ctx
 
