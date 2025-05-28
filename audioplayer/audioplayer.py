@@ -42,7 +42,7 @@ class PlayerView(View):
         await audio.command_pause(ctx)
 
     async def get_context(self, inter: discord.Interaction, cog: Audio) -> commands.Context:
-        ctx: commands.Context = await self.bot.get_context(inter)  # noqa
+        ctx: commands.Context = await self.cog.bot.get_context(inter)  # noqa
         ctx.command.cog = cog
         return ctx
 
@@ -121,11 +121,13 @@ class AudioPlayer(Cog):
                              icon_url="https://discord.com/assets/9a72e30b860ad150.svg")
             if not player.current.is_stream and player.current.length and player.current.length != 0:
                 ratio = player.position / player.current.length
+                pos = player.position / 1000
+                length = player.current.length / 1000
                 line = (round(PLAYER_WIDTH * ratio) * LINE_SYMBOL) + MARKER_SYMBOL + ((PLAYER_WIDTH - 1 - round(PLAYER_WIDTH * ratio)) * LINE_SYMBOL)
-                embed.description = f"`{player.position//60:02}:{player.position%60:02}{line}{player.current.length//60:02}:{player.current.length%60:02}`"
+                embed.description = f"`{pos//60:02}:{pos%60:02}{line}{length//60:02}:{length%60:02}`"
             else:
                 line = ((PLAYER_WIDTH // 2) * LINE_SYMBOL) + MARKER_SYMBOL + ((PLAYER_WIDTH // 2) * LINE_SYMBOL)
-                embed.description = f"`{player.position//60:02}:{player.position%60:02}{line}LIVE`"
+                embed.description = f"`{pos//60:02}:{pos%60:02}{line}LIVE`"
             view = PlayerView(self)
             # Update the player message
             last_message = await anext(channel.history(limit=1))
