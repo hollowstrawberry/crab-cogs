@@ -21,26 +21,26 @@ class PlayerView(View):
         audio: Optional[Audio] = self.cog.bot.get_cog("Audio")
         ctx = await self.get_context(inter, audio, "queue")
         if not await self.can_run_command(ctx, "queue"):
-            await inter.response("You're not allowed to perform this action.")
+            await inter.response.send_message("You're not allowed to perform this action.")
             return
         try:
             await audio.command_queue(ctx)
         except Exception as error: # user-facing error
             log.error("queue button", exc_info=True)
-            await inter.response("Oops! Try again.")
+            await inter.response.send_message("Oops! Try again.")
 
     @discord.ui.button(emoji="⏪", style=discord.ButtonStyle.grey)
     async def previous(self, inter: discord.Interaction, _):
         audio: Optional[Audio] = self.cog.bot.get_cog("Audio")
         ctx = await self.get_context(inter, audio, "prev")
         if not await self.can_run_command(ctx, "prev"):
-            await inter.response("You're not allowed to perform this action.")
+            await inter.response.send_message("You're not allowed to perform this action.")
             return
         try:
             await audio.command_prev(ctx)
         except Exception as error: # user-facing error
             log.error("previous button", exc_info=True)
-            await inter.response("Oops! Try again.")
+            await inter.response.send_message("Oops! Try again.")
         await self.cog.update_player(ctx.guild, ctx.channel, audio)
 
     @discord.ui.button(emoji="⏸️", style=discord.ButtonStyle.grey)
@@ -48,13 +48,13 @@ class PlayerView(View):
         audio: Optional[Audio] = self.cog.bot.get_cog("Audio")
         ctx = await self.get_context(inter, audio, "pause")
         if not await self.can_run_command(ctx, "pause"):
-            await inter.response("You're not allowed to perform this action.")
+            await inter.response.send_message("You're not allowed to perform this action.")
             return
         try:
             await audio.command_pause(ctx)
         except Exception as error: # user-facing error
             log.error("pause button", exc_info=True)
-            await inter.response("Oops! Try again.")
+            await inter.response.send_message("Oops! Try again.")
         await self.cog.update_player(ctx.guild, ctx.channel, audio)
 
     @discord.ui.button(emoji="⏩", style=discord.ButtonStyle.grey)
@@ -62,13 +62,13 @@ class PlayerView(View):
         audio: Optional[Audio] = self.cog.bot.get_cog("Audio")
         ctx = await self.get_context(inter, audio, "skip")
         if not await self.can_run_command(ctx, "skip"):
-            await inter.response("You're not allowed to perform this action.")
+            await inter.response.send_message("You're not allowed to perform this action.")
             return
         try:
             await audio.command_skip(ctx)
         except Exception as error: # user-facing error
             log.error("skip button", exc_info=True)
-            await inter.response("Oops! Try again.")
+            await inter.response.send_message("Oops! Try again.")
         await self.cog.update_player(ctx.guild, ctx.channel, audio)
 
     @discord.ui.button(emoji="⏹️", style=discord.ButtonStyle.grey)
@@ -76,13 +76,13 @@ class PlayerView(View):
         audio: Optional[Audio] = self.cog.bot.get_cog("Audio")
         ctx = await self.get_context(inter, audio, "stop")
         if not await self.can_run_command(ctx, "stop"):
-            await inter.response("You're not allowed to perform this action.")
+            await inter.response.send_message("You're not allowed to perform this action.")
             return
         try:
             await audio.command_stop(ctx)
         except Exception as error: # user-facing error
             log.error("stop button", exc_info=True)
-            await inter.response("Oops! Try again.")
+            await inter.response.send_message("Oops! Try again.")
         await self.cog.update_player(ctx.guild, ctx.channel, audio)
 
     async def get_context(self, inter: discord.Interaction, cog: Audio, command_name: str) -> commands.Context:
