@@ -33,6 +33,7 @@ class PlayerView(View):
         if not await self.can_run_command(ctx, "pause"):
             return
         await audio.command_pause(ctx)
+        await inter.response.pong()
 
     @discord.ui.button(emoji="⏩", style=discord.ButtonStyle.grey)
     async def skip(self, inter: discord.Interaction, _):
@@ -41,6 +42,7 @@ class PlayerView(View):
         if not await self.can_run_command(ctx, "skip"):
             return
         await audio.command_skip(ctx)
+        await inter.response.pong()
 
     async def get_context(self, inter: discord.Interaction, cog: Audio, command_name: str) -> commands.Context:
         prefix = await self.cog.bot.get_prefix(self.message)
