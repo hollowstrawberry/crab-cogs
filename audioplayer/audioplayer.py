@@ -8,7 +8,7 @@ from typing import Optional
 
 from discord.ui import View
 from discord.ext import tasks
-from redbot.core import commands
+from redbot.core import commands, app_commands
 from redbot.core.bot import Red, Config
 from redbot.core.commands import Cog
 from redbot.cogs.audio.core import Audio
@@ -28,7 +28,7 @@ class PlayerView(View):
     @discord.ui.button(emoji="⏯️", style=discord.ButtonStyle.grey)
     async def pause(self, inter: discord.Interaction, _):
         audio: Optional[Audio] = self.cog.bot.get_cog("Audio")
-        ctx = await self.get_context(inter, audio)
+        ctx = await self.get_context(inter, audio, "pause")
         if not await self.can_run_command(ctx, "pause"):
             return
         await audio.command_pause(ctx)
@@ -36,12 +36,13 @@ class PlayerView(View):
     @discord.ui.button(emoji="⏩", style=discord.ButtonStyle.grey)
     async def skip(self, inter: discord.Interaction, _):
         audio: Optional[Audio] = self.cog.bot.get_cog("Audio")
-        ctx = await self.get_context(inter, audio)
+        ctx = await self.get_context(inter, audio, "skip")
         if not await self.can_run_command(ctx, "skip"):
             return
         await audio.command_pause(ctx)
 
-    async def get_context(self, inter: discord.Interaction, cog: Audio) -> commands.Context:
+    async def get_context(self, inter: discord.Interaction, cog: Audio, command_name: str) -> commands.Context:
+        inter.command = app_commands.command(name=command_name)
         ctx: commands.Context = await self.cog.bot.get_context(inter)  # noqa
         ctx.command.cog = cog
         return ctx
@@ -106,7 +107,7 @@ class AudioPlayer(Cog):
             if int(time.time()) % self.interval.get(guild_id, 5) != 0:
                 continue
             player = lavalink.get_player(guild_id)
-            if not player or not player.is_playing or not player.current:
+            if not player or not player.current:
                 if self.last_player.get(guild_id):
                     message = await channel.fetch_message(self.last_player[guild_id])
                     if message:
