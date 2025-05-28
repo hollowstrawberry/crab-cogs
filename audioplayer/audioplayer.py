@@ -42,7 +42,12 @@ class PlayerView(View):
         await audio.command_pause(ctx)
 
     async def get_context(self, inter: discord.Interaction, cog: Audio, command_name: str) -> commands.Context:
-        inter.command = app_commands.command(name=command_name)
+        # we monkeypatch it as the ctx expects a valid command but we'll override that command later regardless
+        class PatchedType(inter.__class__):
+            @property
+            def command(self):
+                return app_commands.command(name=command_name)
+        inter.__class__ = PatchedType
         ctx: commands.Context = await self.cog.bot.get_context(inter)  # noqa
         ctx.command.cog = cog
         return ctx
