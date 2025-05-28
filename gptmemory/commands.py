@@ -5,6 +5,7 @@ from redbot.core import commands, Config
 from redbot.core.bot import Red
 
 import gptmemory.defaults as defaults
+import gptmemory.constants as constants
 
 
 class GptMemoryBase(commands.Cog):
@@ -16,6 +17,9 @@ class GptMemoryBase(commands.Cog):
             "channel_mode": "whitelist",
             "channels": [],
             "memory": {},
+            "model_recaller": defaults.MODEL_RECALLER,
+            "model_responder": defaults.MODEL_RESPONDER,
+            "model_memorizer": defaults.MODEL_MEMORIZER,
             "prompt_recaller": defaults.PROMPT_RECALLER,
             "prompt_responder": defaults.PROMPT_RESPONDER,
             "prompt_memorizer": defaults.PROMPT_MEMORIZER,
@@ -97,6 +101,29 @@ class GptMemoryBase(commands.Cog):
         pass
 
     PromptTypes = Literal["recaller", "responder", "memorizer"]
+
+    @memoryconfig.command("model")
+    @commands.is_owner()
+    async def gptmemory_model(self, ctx: commands.Context, module: PromptTypes, model: Optional[str]):
+        """Views or changes the OpenAI model being used for the recaller, responder, or memorizer."""
+        if module == "recaller":
+            model = await self.config.guild(ctx.guild).model_recaller()
+            model_setter = self.config.guild(ctx.guild).model_recaller
+        elif module == "responder":
+            model = await self.config.guild(ctx.guild).model_responder()
+            model_setter = self.config.guild(ctx.guild).model_responder
+        elif module == "memorizer":
+            model = await self.config.guild(ctx.guild).model_memorizer()
+            model_setter = self.config.guild(ctx.guild).model_memorizer
+
+        if not model or not model.strip():
+            await ctx.reply(f"Current model for the {module} is {model}")
+        elif model.strip().lower() not in constants.VISION_MODELS:
+            await self.reply("Invalid model!\nValid models are " + ",".join([f"`{m}`" for m in constants.VISION_MODELS]))
+        else:
+            await model_setter.set(model.strip().lower())
+            await ctx.tick(message="Model changed")
+
 
     @memoryconfig_prompt.command(name="show", aliases=["view"])
     async def memoryconfig_prompt_show(self, ctx: commands.Context, module: PromptTypes):

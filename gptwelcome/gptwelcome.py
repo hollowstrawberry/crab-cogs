@@ -6,9 +6,20 @@ from redbot.core import commands, Config
 from redbot.core.bot import Red
 
 from openai import AsyncOpenAI
-from PIL import Image, UnidentifiedImageError
 
-MODEL = "gpt-4o"
+VISION_MODELS = [
+    "gpt-4o",
+    "gpt-4o-mini",
+    "gpt-4.1",
+    "gpt-4.1-mini",
+    "gpt-4.1-nano",
+]
+DEFAULT_MODEL = "gpt-4.1-mini"
+DEFAULT_PROMPT = """
+You are in a Discord server and are tasked with welcoming new users.
+When welcoming a user, give them a personalized message, mentioning something unique about the contents of their avatar or about their username.
+Never say things like "I'm sorry" or "I can't assist with that". Instead, if something would break your content guidelines, pretend it's not there.
+""".strip()
 
 
 class GptWelcome(commands.Cog):
@@ -19,8 +30,8 @@ class GptWelcome(commands.Cog):
         self.config = Config.get_conf(self, identifier=1947582011)
         self.config.register_guild(**{
             "enabled": False,
-            "prompt": "You are in a Discord server and are tasked with welcoming new users. "
-                      "When welcoming a user, give them a personalized message, mentioning something unique about their avatar or their username",
+            "prompt": DEFAULT_PROMPT,
+            "model": VISION_MODELS[0],
         })
 
     async def cog_load(self):
@@ -92,8 +103,9 @@ class GptWelcome(commands.Cog):
                 ]
             })
 
+        model = await self.config.guild(ctx.guild).model()
         response = await self.openai_client.beta.chat.completions.parse(
-            model=MODEL,
+            model=model,
             messages=messages
         )
         completion = response.choices[0].message.content
@@ -118,13 +130,29 @@ class GptWelcome(commands.Cog):
         await self.config.guild(ctx.guild).enabled.set(False)
         await ctx.tick(message="Disabled")
 
+    @gptwelcome.command("model")
+    @commands.is_owner()
+    async def gptwelcome_model(self, ctx: commands.Context, model: Optional[str]):
+        """Views or changes the OpenAI model being used for welcoming."""
+        if not model or not model.strip():
+            model = await self.config.guild(ctx.guild).model()
+            await ctx.reply(f"Current model for the welcomer is {model}")
+        elif model.strip().lower() not in VISION_MODELS:
+            await self.reply("Invalid model!\nValid models are " + ",".join([f"`{m}`" for m in VISION_MODELS]))
+        else:
+            await self.config.guild(ctx.guild).model.set(model.strip().lower())
+            await ctx.tick(message="Model changed")
+
     @gptwelcome.command(name="prompt")
     @commands.has_permissions(manage_guild=True)
     async def gptwelcome_prompt(self, ctx: commands.Context, *, prompt: str):
-        """Gives you the current prompt or sets a new prompt for the GPT welcomer."""
+        """Gives you the current prompt or sets a new prompt for the AI welcomer. Use "reset" to reset."""
         if not prompt or not prompt.strip():
             prompt = await self.config.guild(ctx.guild).prompt()
             await ctx.reply(f"`current welcomer prompt`\n>>> {prompt or '*None*'}", mention_author=False)
+        elif prompt.strip().lower() in ["default", "reset"]:
+            await self.config.guild(ctx.guild).prompt.set(DEFAULT_PROMPT)
+            await ctx.reply(f"`new welcomer prompt`\n>>> {prompt.strip()}", mention_author=False)
         else:
             await self.config.guild(ctx.guild).prompt.set(prompt.strip())
             await ctx.reply(f"`new welcomer prompt`\n>>> {prompt.strip()}", mention_author=False)
