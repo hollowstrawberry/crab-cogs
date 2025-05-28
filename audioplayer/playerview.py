@@ -1,3 +1,4 @@
+import logging
 import discord
 import types
 from copy import copy
@@ -5,6 +6,8 @@ from typing import Optional
 from discord.ui import View
 from redbot.core import commands
 from redbot.cogs.audio.core import Audio
+
+log = logging.getLogger("red.crab-cogs.audioplayer")
 
 
 class PlayerView(View):
@@ -20,7 +23,11 @@ class PlayerView(View):
         if not await self.can_run_command(ctx, "queue"):
             await inter.response("You're not allowed to perform this action.")
             return
-        await audio.command_queue(ctx)
+        try:
+            await audio.command_queue(ctx)
+        except Exception as error: # user-facing error
+            log.error("queue button", exc_info=True)
+            await inter.response("Oops! Try again.")
 
     @discord.ui.button(emoji="⏪", style=discord.ButtonStyle.grey)
     async def previous(self, inter: discord.Interaction, _):
@@ -29,7 +36,11 @@ class PlayerView(View):
         if not await self.can_run_command(ctx, "prev"):
             await inter.response("You're not allowed to perform this action.")
             return
-        await audio.command_prev(ctx)
+        try:
+            await audio.command_prev(ctx)
+        except Exception as error: # user-facing error
+            log.error("previous button", exc_info=True)
+            await inter.response("Oops! Try again.")
         await self.cog.update_player(ctx.guild, ctx.channel, audio)
 
     @discord.ui.button(emoji="⏸️", style=discord.ButtonStyle.grey)
@@ -39,7 +50,11 @@ class PlayerView(View):
         if not await self.can_run_command(ctx, "pause"):
             await inter.response("You're not allowed to perform this action.")
             return
-        await audio.command_pause(ctx)
+        try:
+            await audio.command_pause(ctx)
+        except Exception as error: # user-facing error
+            log.error("pause button", exc_info=True)
+            await inter.response("Oops! Try again.")
         await self.cog.update_player(ctx.guild, ctx.channel, audio)
 
     @discord.ui.button(emoji="⏩", style=discord.ButtonStyle.grey)
@@ -49,7 +64,11 @@ class PlayerView(View):
         if not await self.can_run_command(ctx, "skip"):
             await inter.response("You're not allowed to perform this action.")
             return
-        await audio.command_skip(ctx)
+        try:
+            await audio.command_skip(ctx)
+        except Exception as error: # user-facing error
+            log.error("skip button", exc_info=True)
+            await inter.response("Oops! Try again.")
         await self.cog.update_player(ctx.guild, ctx.channel, audio)
 
     @discord.ui.button(emoji="⏹️", style=discord.ButtonStyle.grey)
@@ -59,7 +78,11 @@ class PlayerView(View):
         if not await self.can_run_command(ctx, "stop"):
             await inter.response("You're not allowed to perform this action.")
             return
-        await audio.command_stop(ctx)
+        try:
+            await audio.command_stop(ctx)
+        except Exception as error: # user-facing error
+            log.error("stop button", exc_info=True)
+            await inter.response("Oops! Try again.")
         await self.cog.update_player(ctx.guild, ctx.channel, audio)
 
     async def get_context(self, inter: discord.Interaction, cog: Audio, command_name: str) -> commands.Context:

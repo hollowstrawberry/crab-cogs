@@ -60,6 +60,7 @@ class AudioPlayer(Cog):
             try:
                 await self.update_player(guild, channel, audio)
             except Exception: # dont kill the task
+                log.error("player loop", exc_info=True)
                 continue
 
     async def update_player(self, guild: discord.Guild, channel: discord.TextChannel, audio: Audio):
@@ -74,6 +75,7 @@ class AudioPlayer(Cog):
                     await message.delete()
                 del self.last_player[guild.id]
             return
+        
         # Format the player message
         embed = discord.Embed()
         embed.color = await self.bot.get_embed_color(channel)
@@ -113,6 +115,7 @@ class AudioPlayer(Cog):
         if player.current.thumbnail:
             embed.set_thumbnail(url=player.current.thumbnail)
         view = PlayerView(self)
+
         # Update the player message
         last_message = await anext(channel.history(limit=1))
         if last_message.id == self.last_player.get(guild.id, 0):
