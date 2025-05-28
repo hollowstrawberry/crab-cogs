@@ -80,7 +80,7 @@ class AudioPlayer(Cog):
         self.interval: dict[int, int] = {}
         self.config.register_guild(**{
             "channel": 0,
-            "interval": 5,
+            "interval": 3,
         })
 
     async def cog_load(self):
