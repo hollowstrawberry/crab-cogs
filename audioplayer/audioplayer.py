@@ -1,4 +1,4 @@
-from builtins import anext
+import re
 import time
 import types
 import logging
@@ -6,6 +6,7 @@ import discord
 import lavalink
 from copy import copy
 from typing import Optional
+from builtins import anext
 
 from discord.ui import View
 from discord.ext import tasks
@@ -126,7 +127,12 @@ class AudioPlayer(Cog):
             embed.color = await self.bot.get_embed_color(channel)
             icon = "⏸️" if player.paused else "▶️"
             track_name = await audio.get_track_description(player.current, audio.local_folder_current_path)
-            embed.title = f"{icon} {track_name}"
+            title_match = re.match(r"^\[(.*)\]\((.*)\)$", track_name)
+            if title_match:
+                embed.title = f"{icon} {title_match.group(1)}"
+                embed.url = title_match.group(2)
+            else:
+                embed.title = f"{icon} {track_name}"
             embed.description = ""
             if player.current.requester:
                 embed.description += f"\n-# Requested by {player.current.requester}\n\n"
