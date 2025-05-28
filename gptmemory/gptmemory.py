@@ -355,7 +355,7 @@ class GptMemory(GptMemoryBase):
         # Attachments
         if message.attachments or quote and quote.attachments:
             attachments = (message.attachments or []) + (quote.attachments if quote and quote.attachments else [])
-            images = [att for att in attachments if att.content_type.startswith('image/')]
+            images = [att for att in attachments if att.content_type and att.content_type.startswith('image/')]
 
             for image in images[:defaults.IMAGES_PER_MESSAGE]:
                 if image in processed_sources:
