@@ -1,5 +1,6 @@
 from builtins import anext
 import time
+import types
 import logging
 import discord
 import lavalink
@@ -43,11 +44,9 @@ class PlayerView(View):
 
     async def get_context(self, inter: discord.Interaction, cog: Audio, command_name: str) -> commands.Context:
         # we monkeypatch it as the ctx expects a valid command but we'll override that command later regardless
-        class PatchedType(inter.__class__):
-            @property
-            def command(self):
-                return app_commands.command(name=command_name)
-        inter.__class__ = PatchedType
+        def fixed_command(self):
+            return app_commands.command(name=command_name)
+        inter.command = types.MethodType(fixed_command, inter)
         ctx: commands.Context = await self.cog.bot.get_context(inter)  # noqa
         ctx.command.cog = cog
         return ctx
