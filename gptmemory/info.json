@@ -8,5 +8,5 @@
     "requirements": ["openai", "tiktoken", "expiringdict", "trafilatura"],
     "short": "OpenAI-powered user with persistent memory. Experimental.",
     "end_user_data_statement": "This cog sends the recent chat history to OpenAI servers for the AI to process. It may also store text-based memories containing information about users and past conversations. It is not meant for public use.",
-    "tags": ["crab", "ai", "gpt", "llm", "chatgpt", "chatbot"]
+    "tags": ["crab", "ai", "gpt", "llm", "chatgpt", "chatbot", "openai"]
 }

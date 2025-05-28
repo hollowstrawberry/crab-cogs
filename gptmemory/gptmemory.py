@@ -142,8 +142,9 @@ class GptMemory(GptMemoryBase):
         }
         temp_messages = get_text_contents(messages)
         temp_messages.insert(0, system_prompt)
+        model = await self.config.guild(ctx.guild).model_recaller()
         response = await self.openai_client.beta.chat.completions.parse(
-            model=defaults.MODEL_RECALLER,
+            model=model,
             messages=temp_messages,
             response_format=MemoryRecall,
         )
@@ -175,8 +176,9 @@ class GptMemory(GptMemoryBase):
         temp_messages = [msg for msg in messages]
         temp_messages.insert(0, system_prompt)
 
+        model = await self.config.guild(ctx.guild).model_responder()
         response = await self.openai_client.chat.completions.create(
-            model=defaults.MODEL_RESPONDER,
+            model=model,
             messages=temp_messages,
             max_tokens=await self.config.guild(ctx.guild).response_tokens(),
             tools=[t.asdict() for t in tools],
@@ -204,8 +206,9 @@ class GptMemory(GptMemoryBase):
                     "tool_call_id": call.id,
                 })
 
+            model = await self.config.guild(ctx.guild).model_responder()
             response = await self.openai_client.chat.completions.create(
-                model=defaults.MODEL_RESPONDER,
+                model=model,
                 messages=temp_messages,
                 max_tokens=await self.config.guild(ctx.guild).response_tokens(),
             )
@@ -253,8 +256,9 @@ class GptMemory(GptMemoryBase):
             temp_messages = temp_messages[-num_backread:]
         temp_messages.insert(0, system_prompt)
 
+        model = await self.config.guild(ctx.guild).model_memorizer()
         response = await self.openai_client.beta.chat.completions.parse(
-            model=defaults.MODEL_MEMORIZER,
+            model=model,
             messages=temp_messages,
             response_format=MemoryChangeList,
         )
@@ -308,13 +312,14 @@ class GptMemory(GptMemoryBase):
         messages = []
         processed_image_sources = []
         tokens = 0
-        encoding = encoding_for_model(defaults.MODEL_RESPONDER)
+        encoding = encoding_for_model("gpt-4o")  # same for gpt-4.1 and their variants
 
         for n, backmsg in enumerate(backread):
             try:
                 quote = backmsg.reference.cached_message or await backmsg.channel.fetch_message(backmsg.reference.message_id)
-                if len(backread) > n+1 and quote == backread[n+1]:
-                    quote = None
+                # This will prevent chaining message quotes that are already consecutive
+                # if len(backread) > n+1 and quote == backread[n+1]:
+                #    quote = None
             except (AttributeError, discord.DiscordException):
                 quote = None
 
