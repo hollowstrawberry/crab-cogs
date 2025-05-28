@@ -59,7 +59,7 @@ class AudioPlayer(Cog):
                 continue
             try:
                 await self.update_player(guild, channel, audio)
-            except Exception # dont kill the task
+            except Exception: # dont kill the task
                 continue
 
     async def update_player(self, guild: discord.Guild, channel: discord.TextChannel, audio: Audio):
