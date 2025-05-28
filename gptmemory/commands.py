@@ -59,7 +59,7 @@ class GptMemoryBase(commands.Cog):
             async with self.config.guild(ctx.guild).memory() as memory:
                 del memory[name]
             del self.memory[ctx.guild.id][name]
-            await ctx.tick("Memory deleted")
+            await ctx.tick(message="Memory deleted")
         else:
             await ctx.send("A memory by that name doesn't exist.")
         
@@ -72,7 +72,7 @@ class GptMemoryBase(commands.Cog):
         if ctx.guild.id not in self.memory:
             self.memory[ctx.guild.id] = {}
         self.memory[ctx.guild.id][name] = content
-        await ctx.tick("Memory set")
+        await ctx.tick(message="Memory set")
 
     @commands.group(name="gptmemory", aliases=["memoryconfig"])
     @commands.is_owner()

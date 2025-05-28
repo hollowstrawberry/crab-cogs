@@ -49,7 +49,7 @@ class Booru(commands.Cog):
         self.tag_cache = {}
         async with self.config.tag_cache() as tag_cache:
             tag_cache.clear()
-        await ctx.tick("Booru cache deleted")
+        await ctx.tick(message="Booru cache deleted")
 
 
     @commands.hybrid_command(aliases=["gelbooru"])

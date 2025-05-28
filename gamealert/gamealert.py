@@ -89,7 +89,7 @@ class GameAlert(commands.Cog):
                 alerts.remove(a)
             alerts.append(alert)
             self.alerts[ctx.guild.id] = list(alerts)
-            await ctx.tick("Game alert added")
+            await ctx.tick(message="Game alert added")
 
     @gamealert.command()
     @commands.has_permissions(manage_guild=True)
@@ -101,7 +101,7 @@ class GameAlert(commands.Cog):
                 alerts.remove(a)
             self.alerts[ctx.guild.id] = list(alerts)
             if old_alert:
-                await ctx.tick("Game alert removed")
+                await ctx.tick(message="Game alert removed")
             else:
                 await ctx.send("No alerts found for that game.")
 
