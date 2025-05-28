@@ -45,6 +45,7 @@ class PlayerView(View):
 
     async def get_context(self, inter: discord.Interaction, cog: Audio, command_name: str) -> commands.Context:
         prefix = await self.cog.bot.get_prefix(self.message)
+        prefix = prefix[0] if isinstance(prefix, list) else prefix
         fake_message = copy(self.message)
         fake_message.content = prefix + command_name
         fake_message.author = inter.user
