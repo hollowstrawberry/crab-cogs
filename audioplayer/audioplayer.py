@@ -25,7 +25,7 @@ class PlayerView(View):
         super().__init__(timeout=60)
         self.cog = cog
 
-    @discord.ui.button(emoji="⏯️", style=discord.ButtonStyle.blurple)
+    @discord.ui.button(emoji="⏯️", style=discord.ButtonStyle.grey)
     async def pause(self, inter: discord.Interaction, _):
         audio: Optional[Audio] = self.cog.bot.get_cog("Audio")
         ctx = await self.get_context(inter, audio)
@@ -126,6 +126,7 @@ class AudioPlayer(Cog):
                 line = (round(PLAYER_WIDTH * ratio) * LINE_SYMBOL) + MARKER_SYMBOL + ((PLAYER_WIDTH - 1 - round(PLAYER_WIDTH * ratio)) * LINE_SYMBOL)
                 embed.description = f"`{pos//60:02}:{pos%60:02}{line}{length//60:02}:{length%60:02}`"
             else:
+                pos = player.position / 1000
                 line = ((PLAYER_WIDTH // 2) * LINE_SYMBOL) + MARKER_SYMBOL + ((PLAYER_WIDTH // 2) * LINE_SYMBOL)
                 embed.description = f"`{pos//60:02}:{pos%60:02}{line}LIVE`"
             view = PlayerView(self)
