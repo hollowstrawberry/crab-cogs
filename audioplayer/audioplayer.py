@@ -24,15 +24,15 @@ MARKER_SYMBOL = "🔘"
 class InteractionProxy:
     def __init__(self, original: discord.Interaction, command_name: str):
         self._original = original
-        self.command_name = command_name
+        self._command_name = command_name
 
     def __getattr__(self, name):
         if name == "command":
-            return app_commands.command(name=self.command_name)
+            return app_commands.command(name=self._command_name)
         return getattr(self._original, name)
 
     def __setattr__(self, name, value):
-        if name == "_original":
+        if name in ("_original", "_command_name"):
             super().__setattr__(name, value)
         else:
             setattr(self._original, name, value)
@@ -137,7 +137,8 @@ class AudioPlayer(Cog):
             embed = discord.Embed()
             embed.color = await self.bot.get_embed_color(channel)
             icon = "⏸️" if player.paused else "▶️"
-            embed.title = f"{icon} {player.current.title or player.current.track_identifier}"
+            track_name = await audio.get_track_description(player.current, audio.local_folder_current_path)
+            embed.title = f"{icon} {track_name}"
             if not player.current.is_stream and player.current.length and player.current.length != 0:
                 ratio = player.position / player.current.length
                 pos = round(player.position / 1000)
