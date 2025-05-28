@@ -81,7 +81,7 @@ class PlayerView(View):
         fake_message.author = inter.user
         ctx: commands.Context = await self.cog.bot.get_context(fake_message)  # noqa
         async def send(self, *args, **kwargs):
-            inter.response.send_message(content=kwargs.get("content"), embed=kwargs.get("embed"), ephemeral=True)
+            await inter.response.send_message(content=kwargs.get("content"), embed=kwargs.get("embed"), ephemeral=True)
         ctx.send = types.MethodType(send, ctx)  # prevent pause/skip buttons from sending a message
         return ctx
 
@@ -154,7 +154,6 @@ class AudioPlayer(Cog):
             embed.color = await self.bot.get_embed_color(channel)
             icon = "⏸️" if player.paused else "▶️"
             track_name = await audio.get_track_description(player.current, audio.local_folder_current_path)
-            log.info(track_name)
             title_match = re.match(r"^\[(.*)\]\((.*)\)$", track_name.strip(" *"))
             if title_match:
                 embed.title = f"{icon} {title_match.group(1)}"
