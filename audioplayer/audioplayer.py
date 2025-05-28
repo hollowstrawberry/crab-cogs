@@ -94,7 +94,6 @@ class AudioPlayer(Cog):
         audio: Optional[Audio] = self.bot.get_cog("Audio")
         if not audio:
             return
-        audio.command_now
         for guild_id, channel_id in self.channel.items():
             guild = self.bot.get_guild(guild_id)
             if not guild:
@@ -104,6 +103,7 @@ class AudioPlayer(Cog):
                 continue
             if int(time.time()) % self.interval.get(guild_id, 5) != 0:
                 continue
+            log.info("player update")
             player = lavalink.get_player(guild_id)
             if not player or not player.is_playing or not player.current:
                 if self.last_player.get(guild_id):
