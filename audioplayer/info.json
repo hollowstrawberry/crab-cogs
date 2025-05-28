@@ -1,0 +1,13 @@
+{
+    "author": ["hollowstrawberry"],
+    "min_bot_version": "3.5.0",
+    "min_python_version": [3,9,0],
+    "description": "Live player for the current song from the audio cog",
+    "hidden": true,
+    "install_msg": "🎵 __**AudioPlayer**__ ```Cog installed. Instructions:\n1. Load it with [p]load audioplayer\n2.```",
+    "required_cogs": {},
+    "requirements": [],
+    "short": "Live player for the current song from the audio cog",
+    "end_user_data_statement": "This cog does not store user data.",
+    "tags": ["crab", "voice", "audio", "music", "player"]
+}
