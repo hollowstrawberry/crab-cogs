@@ -78,7 +78,8 @@ class AudioPlayer(Cog):
         })
 
     async def cog_load(self):
-        for guild_id, config in await self.config.all_guilds():
+        all_config = await self.config.all_guilds()
+        for guild_id, config in all_config.items():
             if config["channel"] != 0:
                 self.channel[guild_id] = config["channel"]
                 self.interval[guild_id] = config["interval"]
@@ -103,7 +104,6 @@ class AudioPlayer(Cog):
                 continue
             if int(time.time()) % self.interval.get(guild_id, 5) != 0:
                 continue
-            log.info("player update")
             player = lavalink.get_player(guild_id)
             if not player or not player.is_playing or not player.current:
                 if self.last_player.get(guild_id):
@@ -161,6 +161,7 @@ class AudioPlayer(Cog):
                 del self.last_player[ctx.guild.id]
         if not channel:
             channel_id = await self.config.guild(ctx.guild).channel()
+            self.channel[ctx.guild.id] = channel.id
             await self.config.guild(ctx.guild).channel.set(0)
             if channel_id == 0:
                 await ctx.reply("AudioPlayer is not set to any channel. The player will not appear in this server.")
@@ -168,6 +169,7 @@ class AudioPlayer(Cog):
                 await ctx.reply("AudioPlayer channel cleared. The player will not appear in this server.")
         else:
             await self.config.guild(ctx.guild).channel.set(channel.id)
+            self.channel[ctx.guild.id] = channel.id
             await ctx.reply(f"The player will appear in {channel.mention} while audio is playing.")
         audio: Optional[Audio] = self.bot.get_cog("Audio")
         if not audio:
