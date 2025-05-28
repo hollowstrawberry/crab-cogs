@@ -132,6 +132,13 @@ class AudioPlayer(Cog):
                 pos = round(player.position / 1000)
                 line = ((PLAYER_WIDTH // 2) * LINE_SYMBOL) + MARKER_SYMBOL + ((PLAYER_WIDTH // 2) * LINE_SYMBOL)
                 embed.description = f"`{pos//60:02}:{pos%60:02}{line}unknown`"
+            if player.current.requester:
+                embed.description += f"\n-#Requested by {player.current.requested}"
+            if player.queue:
+                total_length = sum(track.length for track in player.queue)
+                embed.description += f"{len(player.queue)} tracks in queue ({total_length // 60_000} minutes)"
+            if player.current.thumbnail:
+                embed.set_thumbnail(url=player.current.thumbnail)
             view = PlayerView(self)
             # Update the player message
             last_message = await anext(channel.history(limit=1))
