@@ -21,6 +21,23 @@ LINE_SYMBOL = "⎯"
 MARKER_SYMBOL = "🔘"
 
 
+class InteractionProxy:
+    def __init__(self, original: discord.Interaction, command_name: str):
+        self._original = original
+        self.command_name = command_name
+
+    def __getattr__(self, name):
+        if name == "command":
+            return app_commands.command(name=self.command_name)
+        return getattr(self._original, name)
+
+    def __setattr__(self, name, value):
+        if name == "_original":
+            super().__setattr__(name, value)
+        else:
+            setattr(self._original, name, value)
+
+
 class PlayerView(View):
     def __init__(self, cog: "AudioPlayer"):
         super().__init__(timeout=60)
@@ -44,9 +61,7 @@ class PlayerView(View):
 
     async def get_context(self, inter: discord.Interaction, cog: Audio, command_name: str) -> commands.Context:
         # we monkeypatch it as the ctx expects a valid command but we'll override that command later regardless
-        def fixed_command(self):
-            return app_commands.command(name=command_name)
-        inter.command = types.MethodType(fixed_command, inter)
+        inter = InteractionProxy(inter, command_name)
         ctx: commands.Context = await self.cog.bot.get_context(inter)  # noqa
         ctx.command.cog = cog
         return ctx
@@ -121,8 +136,8 @@ class AudioPlayer(Cog):
             # Format the player message
             embed = discord.Embed()
             embed.color = await self.bot.get_embed_color(channel)
-            embed.title = player.current.title
-            embed.set_author(name="⏸️ Paused" if player.paused else "▶️ Playing")
+            icon = "⏸️" if player.paused else "▶️"
+            embed.title = f"{icon} {player.current.title or player.current.track_identifier}"
             if not player.current.is_stream and player.current.length and player.current.length != 0:
                 ratio = player.position / player.current.length
                 pos = round(player.position / 1000)
@@ -132,7 +147,7 @@ class AudioPlayer(Cog):
             else:
                 pos = round(player.position / 1000)
                 line = ((PLAYER_WIDTH // 2) * LINE_SYMBOL) + MARKER_SYMBOL + ((PLAYER_WIDTH // 2) * LINE_SYMBOL)
-                embed.description = f"`{pos//60:02}:{pos%60:02}{line}LIVE`"
+                embed.description = f"`{pos//60:02}:{pos%60:02}{line}unknown`"
             view = PlayerView(self)
             # Update the player message
             last_message = await anext(channel.history(limit=1))
