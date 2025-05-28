@@ -13,7 +13,7 @@ class PlayerView(View):
         self.cog = cog
         self.message: Optional[discord.Message] = None
 
-    @discord.ui.button(emoji=":hash:", style=discord.ButtonStyle.grey)
+    @discord.ui.button(emoji="🔽", style=discord.ButtonStyle.grey)
     async def seek(self, inter: discord.Interaction, _):
         audio: Optional[Audio] = self.cog.bot.get_cog("Audio")
         ctx = await self.get_context(inter, audio, "queue")
