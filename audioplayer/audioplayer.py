@@ -133,6 +133,7 @@ class AudioPlayer(Cog):
             if last_message.id == self.last_player.get(guild_id, 0):
                 message = await channel.fetch_message(last_message.id)
                 if message:
+                    view.message = message
                     await message.edit(embed=embed, view=view)
                 else:
                     message = await channel.send(embed=embed, view=view)
