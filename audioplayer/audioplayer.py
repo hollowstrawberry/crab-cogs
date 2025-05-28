@@ -22,10 +22,10 @@ MARKER_SYMBOL = "🔘"
 
 
 class PlayerView(View):
-    def __init__(self, cog: "AudioPlayer", message: discord.Message):
+    def __init__(self, cog: "AudioPlayer"):
         super().__init__(timeout=60)
         self.cog = cog
-        self.message = message
+        self.message: Optional[discord.Message] = None
 
     @discord.ui.button(emoji="⏯️", style=discord.ButtonStyle.grey)
     async def pause(self, inter: discord.Interaction, _):
@@ -48,9 +48,7 @@ class PlayerView(View):
         fake_message = copy(self.message)
         fake_message.content = prefix + command_name
         fake_message.author = inter.user
-        ctx: commands.Context = await self.cog.bot.get_context(fake_message)  # noqa
-        ctx.command.cog = cog
-        return ctx
+        return await self.cog.bot.get_context(fake_message)  # noqa
 
     async def can_run_command(self, ctx: commands.Context, command_name: str) -> bool:
         command = ctx.bot.get_command(command_name)
@@ -139,6 +137,7 @@ class AudioPlayer(Cog):
                 else:
                     message = await channel.send(embed=embed, view=view)
                     self.last_player[guild_id] = message.id
+                    view.message = message
             else:
                 if self.last_player.get(guild_id, 0):
                     old_message = await channel.fetch_message(self.last_player[guild_id])
@@ -146,6 +145,7 @@ class AudioPlayer(Cog):
                         await old_message.delete()
                 message = await channel.send(embed=embed, view=view)
                 self.last_player[guild_id] = message.id
+                view.message = message
 
     @commands.group(name="audioplayer")
     @commands.admin()
