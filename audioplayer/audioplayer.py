@@ -136,7 +136,7 @@ class AudioPlayer(Cog):
             if player.current.requester:
                 embed.description += f"\n-# Requested by {player.current.requester}"
             if player.queue:
-                total_length = sum(track.length or 180000 for track in player.queue) / 1000
+                total_length = round(sum(track.length or 180000 for track in player.queue) / 1000)
                 if length > 0:
                     total_length += length - pos
                 formatted_time = ""
