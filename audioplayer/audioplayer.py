@@ -1,19 +1,18 @@
 import re
 import time
-import types
 import logging
 import discord
 import lavalink
-from copy import copy
 from typing import Optional
 from builtins import anext
 
-from discord.ui import View
 from discord.ext import tasks
 from redbot.core import commands
 from redbot.core.bot import Red, Config
 from redbot.core.commands import Cog
 from redbot.cogs.audio.core import Audio
+
+from audioplayer.playerview import PlayerView
 
 log = logging.getLogger("red.crab-cogs.audioplayer")
 
@@ -22,82 +21,8 @@ LINE_SYMBOL = "⎯"
 MARKER_SYMBOL = "💠"
 
 
-class PlayerView(View):
-    def __init__(self, cog: "AudioPlayer"):
-        super().__init__(timeout=60)
-        self.cog = cog
-        self.message: Optional[discord.Message] = None
-
-    @discord.ui.button(emoji="↩️", style=discord.ButtonStyle.grey)
-    async def seek(self, inter: discord.Interaction, _):
-        audio: Optional[Audio] = self.cog.bot.get_cog("Audio")
-        ctx = await self.get_context(inter, audio, "seek")
-        if not await self.can_run_command(ctx, "seek"):
-            await inter.response("You're not allowed to perform this action.")
-            return
-        await audio.command_seek(ctx, -1_000_000)
-
-    @discord.ui.button(emoji="⏪", style=discord.ButtonStyle.grey)
-    async def previous(self, inter: discord.Interaction, _):
-        audio: Optional[Audio] = self.cog.bot.get_cog("Audio")
-        ctx = await self.get_context(inter, audio, "prev")
-        if not await self.can_run_command(ctx, "prev"):
-            await inter.response("You're not allowed to perform this action.")
-            return
-        await audio.command_prev(ctx)
-
-    @discord.ui.button(emoji="⏸️", style=discord.ButtonStyle.grey)
-    async def pause(self, inter: discord.Interaction, _):
-        audio: Optional[Audio] = self.cog.bot.get_cog("Audio")
-        ctx = await self.get_context(inter, audio, "pause")
-        if not await self.can_run_command(ctx, "pause"):
-            await inter.response("You're not allowed to perform this action.")
-            return
-        await audio.command_pause(ctx)
-
-    @discord.ui.button(emoji="⏩", style=discord.ButtonStyle.grey)
-    async def skip(self, inter: discord.Interaction, _):
-        audio: Optional[Audio] = self.cog.bot.get_cog("Audio")
-        ctx = await self.get_context(inter, audio, "skip")
-        if not await self.can_run_command(ctx, "skip"):
-            await inter.response("You're not allowed to perform this action.")
-            return
-        await audio.command_skip(ctx)
-
-    @discord.ui.button(emoji="⏹️", style=discord.ButtonStyle.grey)
-    async def stop(self, inter: discord.Interaction, _):
-        audio: Optional[Audio] = self.cog.bot.get_cog("Audio")
-        ctx = await self.get_context(inter, audio, "stop")
-        if not await self.can_run_command(ctx, "stop"):
-            await inter.response("You're not allowed to perform this action.")
-            return
-        await audio.command_stop(ctx)
-
-    async def get_context(self, inter: discord.Interaction, cog: Audio, command_name: str) -> commands.Context:
-        prefix = await self.cog.bot.get_prefix(self.message)
-        prefix = prefix[0] if isinstance(prefix, list) else prefix
-        fake_message = copy(self.message)
-        fake_message.content = prefix + command_name
-        fake_message.author = inter.user
-        ctx: commands.Context = await self.cog.bot.get_context(fake_message)  # noqa
-        async def send(self, *args, **kwargs):
-            await inter.response.send_message(content=kwargs.get("content"), embed=kwargs.get("embed"), ephemeral=True)
-        ctx.send = types.MethodType(send, ctx)  # prevent pause/skip buttons from sending a message
-        return ctx
-
-    async def can_run_command(self, ctx: commands.Context, command_name: str) -> bool:
-        command = ctx.bot.get_command(command_name)
-        try:
-            can = await command.can_run(ctx, check_all_parents=True, change_permission_state=False)
-        except commands.CommandError:
-            can = False
-        if not can:
-            await ctx.send("You do not have permission to do this.", ephemeral=True)
-        return can
-
-
 class AudioPlayer(Cog):
-    """Live player for the current song from the audio cog."""
+    """Live player interface for the audio cog."""
 
     def __init__(self, bot: Red, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -105,10 +30,11 @@ class AudioPlayer(Cog):
         self.config = Config.get_conf(self, identifier=772413491)
         self.channel: dict[int, int] = {}
         self.last_player: dict[int, int] = {}
-        self.interval: dict[int, int] = {}
         self.config.register_guild(**{
             "channel": 0,
-            "interval": 3,
+        })
+        self.config.register_global(**{
+            "interval": 5,
         })
 
     async def cog_load(self):
@@ -116,7 +42,6 @@ class AudioPlayer(Cog):
         for guild_id, config in all_config.items():
             if config["channel"] != 0:
                 self.channel[guild_id] = config["channel"]
-                self.interval[guild_id] = config["interval"]
         self.player_loop.start()
 
     async def cog_unload(self):
@@ -136,7 +61,8 @@ class AudioPlayer(Cog):
             channel = guild.get_channel(channel_id)
             if not channel:
                 continue
-            if int(time.time()) % self.interval.get(guild_id, 5) != 0:
+            interval = await self.config.interval()
+            if int(time.time()) % interval != 0:
                 continue
             try:
                 player = lavalink.get_player(guild_id)
@@ -209,12 +135,12 @@ class AudioPlayer(Cog):
                 view.message = message
 
     @commands.group(name="audioplayer")
-    @commands.admin()
     async def command_audioplayer(self, _: commands.Context):
         """Configuration commands for AudioPlayer"""
         pass
 
     @command_audioplayer.command(name="channel")
+    @commands.admin()
     async def command_audioplayer_channel(self, ctx: commands.Context, channel: Optional[discord.TextChannel]):
         """Sets the channel being used for AudioPlayer. Passing no arguments clears the channel, disabling the cog in this server."""
         if self.last_player.get(ctx.guild.id):
@@ -239,3 +165,16 @@ class AudioPlayer(Cog):
         audio: Optional[Audio] = self.bot.get_cog("Audio")
         if not audio:
             await ctx.send("Warning: Audio cog is not enabled, contact the bot owner for more information.")
+
+    @command_audioplayer.command(name="interval")
+    @commands.is_owner()
+    async def command_audioplayer_interval(self, ctx: commands.Context, interval: Optional[int]):
+        """Changes how often the live player is updated bot-wide. Range: 2-10"""
+        if interval is None:
+            interval = await self.config.interval()
+            await ctx.reply(f"The current player refresh rate bot-wide is {interval} seconds")
+        elif interval < 2 or interval > 10:
+            await ctx.reply("Valid values range from 2 to 10")
+        else:
+            await self.config.interval.set(interval)
+            await ctx.reply(f"The new player refresh rate bot-wide is {interval} seconds")
