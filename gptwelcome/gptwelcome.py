@@ -138,7 +138,7 @@ class GptWelcome(commands.Cog):
             model = await self.config.guild(ctx.guild).model()
             await ctx.reply(f"Current model for the welcomer is {model}")
         elif model.strip().lower() not in VISION_MODELS:
-            await self.reply("Invalid model!\nValid models are " + ",".join([f"`{m}`" for m in VISION_MODELS]))
+            await ctx.reply("Invalid model!\nValid models are " + ",".join([f"`{m}`" for m in VISION_MODELS]))
         else:
             await self.config.guild(ctx.guild).model.set(model.strip().lower())
             await ctx.tick(message="Model changed")

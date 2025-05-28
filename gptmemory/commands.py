@@ -119,7 +119,7 @@ class GptMemoryBase(commands.Cog):
         if not model or not model.strip():
             await ctx.reply(f"Current model for the {module} is {model_value}")
         elif model.strip().lower() not in constants.VISION_MODELS:
-            await self.reply("Invalid model!\nValid models are " + ",".join([f"`{m}`" for m in constants.VISION_MODELS]))
+            await ctx.reply("Invalid model!\nValid models are " + ",".join([f"`{m}`" for m in constants.VISION_MODELS]))
         else:
             await model_setter.set(model.strip().lower())
             await ctx.tick(message="Model changed")
