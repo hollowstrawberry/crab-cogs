@@ -41,7 +41,8 @@ class PlayerView(View):
         except Exception as error: # user-facing error
             log.error("previous button", exc_info=True)
             await inter.response.send_message("Oops! Try again.")
-        await self.cog.update_player(ctx.guild, ctx.channel, audio)
+        else:
+            await self.cog.update_player(ctx.guild, ctx.channel, audio)
 
     @discord.ui.button(emoji="⏸️", style=discord.ButtonStyle.grey)
     async def pause(self, inter: discord.Interaction, _):
@@ -55,7 +56,8 @@ class PlayerView(View):
         except Exception as error: # user-facing error
             log.error("pause button", exc_info=True)
             await inter.response.send_message("Oops! Try again.")
-        await self.cog.update_player(ctx.guild, ctx.channel, audio)
+        else:
+            await self.cog.update_player(ctx.guild, ctx.channel, audio)
 
     @discord.ui.button(emoji="⏩", style=discord.ButtonStyle.grey)
     async def skip(self, inter: discord.Interaction, _):
@@ -69,7 +71,8 @@ class PlayerView(View):
         except Exception as error: # user-facing error
             log.error("skip button", exc_info=True)
             await inter.response.send_message("Oops! Try again.")
-        await self.cog.update_player(ctx.guild, ctx.channel, audio)
+        else:
+            await self.cog.update_player(ctx.guild, ctx.channel, audio)
 
     @discord.ui.button(emoji="⏹️", style=discord.ButtonStyle.grey)
     async def stop(self, inter: discord.Interaction, _):
@@ -83,7 +86,8 @@ class PlayerView(View):
         except Exception as error: # user-facing error
             log.error("stop button", exc_info=True)
             await inter.response.send_message("Oops! Try again.")
-        await self.cog.update_player(ctx.guild, ctx.channel, audio)
+        else:
+            await self.cog.update_player(ctx.guild, ctx.channel, audio)
 
     async def get_context(self, inter: discord.Interaction, cog: Audio, command_name: str) -> commands.Context:
         prefix = await self.cog.bot.get_prefix(self.message)
