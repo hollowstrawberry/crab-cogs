@@ -312,7 +312,7 @@ class GptMemory(GptMemoryBase):
         messages = []
         processed_image_sources = []
         tokens = 0
-        encoding = encoding_for_model(defaults.MODEL_RESPONDER)
+        encoding = encoding_for_model("gpt-4o")  # same for gpt-4.1 and their variants
 
         for n, backmsg in enumerate(backread):
             try:
