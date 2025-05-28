@@ -29,7 +29,7 @@ class PlayerView(View):
         self.message: Optional[discord.Message] = None
 
     @discord.ui.button(emoji="↩️", style=discord.ButtonStyle.grey)
-    async def previous(self, inter: discord.Interaction, _):
+    async def seek(self, inter: discord.Interaction, _):
         audio: Optional[Audio] = self.cog.bot.get_cog("Audio")
         ctx = await self.get_context(inter, audio, "seek")
         if not await self.can_run_command(ctx, "seek"):
@@ -65,7 +65,7 @@ class PlayerView(View):
         await audio.command_skip(ctx)
 
     @discord.ui.button(emoji="⏹️", style=discord.ButtonStyle.grey)
-    async def pause(self, inter: discord.Interaction, _):
+    async def stop(self, inter: discord.Interaction, _):
         audio: Optional[Audio] = self.cog.bot.get_cog("Audio")
         ctx = await self.get_context(inter, audio, "stop")
         if not await self.can_run_command(ctx, "stop"):
