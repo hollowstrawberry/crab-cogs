@@ -130,13 +130,20 @@ class AudioPlayer(Cog):
                 embed.description = f"`{pos//60:02}:{pos%60:02}{line}{length//60:02}:{length%60:02}`"
             else:
                 pos = round(player.position / 1000)
+                length = 0
                 line = ((PLAYER_WIDTH // 2) * LINE_SYMBOL) + MARKER_SYMBOL + ((PLAYER_WIDTH // 2) * LINE_SYMBOL)
                 embed.description = f"`{pos//60:02}:{pos%60:02}{line}unknown`"
             if player.current.requester:
                 embed.description += f"\n-# Requested by {player.current.requester}"
             if player.queue:
-                total_length = sum(track.length for track in player.queue)
-                embed.description += f"\n{len(player.queue)} more in queue ({total_length // 60_000} minutes)"
+                total_length = sum(track.length or 180000 for track in player.queue) / 1000
+                if length > 0:
+                    total_length += length - pos
+                formatted_time = ""
+                if total_length // 3600:
+                    formatted_time += f"{total_length // 3600}:"
+                formatted_time += f"{total_length//60%60:02}:{total_length%60:02}"
+                embed.description += f"\n{len(player.queue)} more in queue ({formatted_time})"
             else:
                 embed.description += f"\nNo more in queue"
             if player.current.thumbnail:
