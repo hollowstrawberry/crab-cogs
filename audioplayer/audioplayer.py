@@ -59,7 +59,7 @@ class AudioPlayer(Cog):
                 continue
             await self.update_player(guild, channel, audio)
 
-    async def update_player(self, guild: discord.Guild, channel: discord.Channel, player: lavalink.Player, audio: Audio):
+    async def update_player(self, guild: discord.Guild, channel: discord.TextChannel, player: lavalink.Player, audio: Audio):
         try:
             player = lavalink.get_player(guild.id)
         except lavalink.errors.PlayerNotFound:
