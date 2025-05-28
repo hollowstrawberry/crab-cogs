@@ -31,7 +31,7 @@ class GptWelcome(commands.Cog):
         self.config.register_guild(**{
             "enabled": False,
             "prompt": DEFAULT_PROMPT,
-            "model": VISION_MODELS[0],
+            "model": DEFAULT_MODEL,
         })
 
     async def cog_load(self):
