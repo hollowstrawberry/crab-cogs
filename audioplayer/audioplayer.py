@@ -28,23 +28,50 @@ class PlayerView(View):
         self.cog = cog
         self.message: Optional[discord.Message] = None
 
-    @discord.ui.button(emoji="⏯️", style=discord.ButtonStyle.grey)
+    @discord.ui.button(emoji="↩️", style=discord.ButtonStyle.grey)
+    async def previous(self, inter: discord.Interaction, _):
+        audio: Optional[Audio] = self.cog.bot.get_cog("Audio")
+        ctx = await self.get_context(inter, audio, "seek")
+        if not await self.can_run_command(ctx, "seek"):
+            await inter.response("You're not allowed to perform this action.")
+            return
+        await audio.command_seek(ctx, -1_000_000)
+
+    @discord.ui.button(emoji="⏪", style=discord.ButtonStyle.grey)
+    async def previous(self, inter: discord.Interaction, _):
+        audio: Optional[Audio] = self.cog.bot.get_cog("Audio")
+        ctx = await self.get_context(inter, audio, "prev")
+        if not await self.can_run_command(ctx, "prev"):
+            await inter.response("You're not allowed to perform this action.")
+            return
+        await audio.command_prev(ctx)
+
+    @discord.ui.button(emoji="⏸️", style=discord.ButtonStyle.grey)
     async def pause(self, inter: discord.Interaction, _):
         audio: Optional[Audio] = self.cog.bot.get_cog("Audio")
         ctx = await self.get_context(inter, audio, "pause")
         if not await self.can_run_command(ctx, "pause"):
+            await inter.response("You're not allowed to perform this action.")
             return
         await audio.command_pause(ctx)
-        await inter.response.send_message("⏯️", ephemeral=True)
 
     @discord.ui.button(emoji="⏩", style=discord.ButtonStyle.grey)
     async def skip(self, inter: discord.Interaction, _):
         audio: Optional[Audio] = self.cog.bot.get_cog("Audio")
         ctx = await self.get_context(inter, audio, "skip")
         if not await self.can_run_command(ctx, "skip"):
+            await inter.response("You're not allowed to perform this action.")
             return
         await audio.command_skip(ctx)
-        await inter.response.send_message("⏩", ephemeral=True)
+
+    @discord.ui.button(emoji="⏹️", style=discord.ButtonStyle.grey)
+    async def pause(self, inter: discord.Interaction, _):
+        audio: Optional[Audio] = self.cog.bot.get_cog("Audio")
+        ctx = await self.get_context(inter, audio, "stop")
+        if not await self.can_run_command(ctx, "stop"):
+            await inter.response("You're not allowed to perform this action.")
+            return
+        await audio.command_stop(ctx)
 
     async def get_context(self, inter: discord.Interaction, cog: Audio, command_name: str) -> commands.Context:
         prefix = await self.cog.bot.get_prefix(self.message)
@@ -53,8 +80,8 @@ class PlayerView(View):
         fake_message.content = prefix + command_name
         fake_message.author = inter.user
         ctx: commands.Context = await self.cog.bot.get_context(fake_message)  # noqa
-        async def send(self, *args, **kwargs):
-            pass
+        async def send(self, content: str, *args, **kwargs):
+            inter.response.send_message(content, ephemeral=True)
         ctx.send = types.MethodType(send, ctx)  # prevent pause/skip buttons from sending a message
         return ctx
 
