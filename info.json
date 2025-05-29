@@ -1,6 +1,6 @@
 {
 	"author" : ["hollowstrawberry"],
-	"install_msg" : "\uD83E\uDD80 `Thank you for installing my cogs. If you have any questions contact me on github.`",
+	"install_msg" : "\uD83E\uDD80 Thank you for installing my cogs. If you need support you can ask me on GitHub or in my server: https://discord.com/invite/hGHnfda",
 	"name" : "crab-cogs",
 	"short" : "crab-cogs",
 	"description" : "Fun/useful/curious cogs originally created for a friend group called Crab."
