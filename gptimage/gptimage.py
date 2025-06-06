@@ -53,10 +53,8 @@ class GptImage(commands.Cog):
         if api_key:
             self.client = AsyncOpenAI(api_key=api_key)
 
-    @app_commands.command(name="imagine",
-                          description="Generate AI images with OpenAI")
-    @app_commands.describe(prompt="Your prompt will get adjusted by OpenAI.",
-                           prompt_style="OpenAI will always edit your prompt before generating.")
+    @app_commands.command(name="imagine", description="Generate AI images with OpenAI")
+    @app_commands.describe(prompt="What you want to make.")
     @app_commands.guild_only()
     async def imagine_app(self, ctx: discord.Interaction, prompt: str):
         await self.imagine(ctx, prompt)
