@@ -4,21 +4,12 @@ from discord.ui import View
 
 
 class ImageView(View):
-    def __init__(self, cog, message: discord.Message, prompt: str, revised_prompt: str):
+    def __init__(self, cog, message: discord.Message, prompt: str):
         super().__init__(timeout=600)
         self.cog = cog
         self.prompt = prompt
-        self.revised_prompt = revised_prompt
         self.message = message
         self.deleted = False
-
-        if prompt == revised_prompt:
-            del self.info
-
-    @discord.ui.button(emoji="ℹ", style=discord.ButtonStyle.grey)
-    async def info(self, ctx: discord.Interaction, _):
-        content = f"OpenAI has revised the prompt as follows:\n>>> {self.revised_prompt}"
-        await ctx.response.send_message(content, ephemeral=True)
 
     @discord.ui.button(emoji="♻", style=discord.ButtonStyle.grey) # type: ignore
     async def recycle(self, ctx: discord.Interaction, btn: discord.Button):

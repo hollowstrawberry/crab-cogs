@@ -107,7 +107,7 @@ class GptImage(commands.Cog):
         file = discord.File(fp=image_data, filename=filename)
         content = f"Reroll requested by {ctx.user.mention}" if ctx.type == discord.InteractionType.component else ""
         message = await ctx.original_response()
-        view = ImageView(self, message, prompt, result.data[0].revised_prompt or prompt)
+        view = ImageView(self, message, prompt)
         await ctx.followup.send(content=content, view=view, file=file, allowed_mentions=discord.AllowedMentions.none())
 
     @commands.group() # type: ignore
