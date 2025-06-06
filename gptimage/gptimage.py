@@ -90,7 +90,6 @@ class GptImage(commands.Cog):
                 size="1024x1024",
                 quality=await self.config.quality(),
                 n=1,
-                response_format="b64_json"
             )
         except APIStatusError as e:
             return await ctx.followup.send(content=f":warning: Failed to generate image: {e.response.json()['error']['message']}")
@@ -130,7 +129,7 @@ class GptImage(commands.Cog):
             if model.lower() not in MODELS:
                 await ctx.reply("Model must be one of: " + ",".join([f'`{m}`' for m in MODELS]))
             await self.config.model.set(model)
-        await ctx.reply(f"The /imagine command will use the ${model} model.")
+        await ctx.reply(f"The /imagine command will use the {model} model.")
 
     @gptimage.command()
     async def quality(self, ctx: commands.Context, quality: Optional[str]):
@@ -142,7 +141,7 @@ class GptImage(commands.Cog):
             if quality not in MODELS:
                 await ctx.reply("Model must be one of: " + ",".join([f'`{m}`' for m in QUALITY]))
             await self.config.model.set(quality)
-        await ctx.reply(f"The /imagine command will use ${quality} model.")
+        await ctx.reply(f"The /imagine command will use {quality} model.")
 
     @gptimage.command()
     async def cooldown(self, ctx: commands.Context, seconds: Optional[int]):
