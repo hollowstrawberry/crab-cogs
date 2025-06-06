@@ -13,8 +13,7 @@ class ImageView(View):
 
     @discord.ui.button(emoji="♻", style=discord.ButtonStyle.grey) # type: ignore
     async def recycle(self, ctx: discord.Interaction, btn: discord.Button):
-        if not ctx.message:
-            return
+        assert ctx.message
         btn.disabled = True
         await ctx.message.edit(view=self)
         await self.cog.imagine(ctx=ctx, prompt=self.prompt)
@@ -24,8 +23,7 @@ class ImageView(View):
 
     @discord.ui.button(emoji="❌", style=discord.ButtonStyle.grey)
     async def delete(self, ctx: discord.Interaction, _):
-        if not ctx.message or not ctx.channel or not isinstance(ctx.user, discord.Member):
-            return
+        assert ctx.message and ctx.channel and isinstance(ctx.user, discord.Member)
         if ctx.message.interaction:
             original_user_id = ctx.message.interaction.user.id
         elif m := re.search(r"([0-9]+)", ctx.message.content):

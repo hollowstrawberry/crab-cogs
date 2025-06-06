@@ -63,6 +63,7 @@ class GptImage(commands.Cog):
         await self.imagine(ctx, prompt)
 
     async def imagine(self, ctx: discord.Interaction, prompt: str):
+        assert isinstance(ctx.channel, discord.TextChannel)
         if not self.client:
             return await ctx.response.send_message("OpenAI key not set.", ephemeral=True)
         prompt = prompt.strip()
@@ -86,15 +87,15 @@ class GptImage(commands.Cog):
             model = await self.config.model()
             quality = NotGiven() if model == "dall-e-2" else await self.config.quality()
             response_format = NotGiven() if model == "gpt-image-1" else "b64_json"
-            moderation = NotGiven() if model != "gpt-image-1" else "low"
+            moderation = NotGiven() if model != "gpt-image-1" or not ctx.channel.is_nsfw() else "low"
             result = await self.client.images.generate(
                 n=1,
+                size="1024x1024",
                 prompt=prompt,
                 model=model,
-                size="1024x1024",
                 quality=quality,
                 response_format=response_format,
-                moderation="low"
+                moderation=moderation
             )
         except APIStatusError as e:
             return await ctx.followup.send(content=f":warning: Failed to generate image: {e.response.json()['error']['message']}")
