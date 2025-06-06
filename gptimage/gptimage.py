@@ -158,9 +158,9 @@ class GptImage(commands.Cog):
         await ctx.send_help()
 
     @vip.command(name="add")
-    async def vip_add(self, ctx: commands.Context, users: List[discord.Member]):
+    async def vip_add(self, ctx: commands.Context, *, users: str):
         """Add a list of users to the VIP list."""
-        user_ids = [u.id for u in users]
+        user_ids = [int(uid) for uid in re.findall(r"([0-9]+)", users)]
         if not user_ids:
             return await ctx.reply("Please enter one or more valid users.")
         vip = set(await self.config.vip())
@@ -169,9 +169,9 @@ class GptImage(commands.Cog):
         await ctx.tick(message="VIP user(s) added")
 
     @vip.command(name="remove")
-    async def vip_remove(self, ctx: commands.Context, *, users: List[discord.Member]):
+    async def vip_remove(self, ctx: commands.Context, *, users: str):
         """Remove a list of users from the VIP list."""
-        user_ids = [u.id for u in users]
+        user_ids = [int(uid) for uid in re.findall(r"([0-9]+)", users)]
         if not user_ids:
             return await ctx.reply("Please enter one or more valid users.")
         vip = set(await self.config.vip())
