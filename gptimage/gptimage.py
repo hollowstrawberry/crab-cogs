@@ -15,8 +15,10 @@ log = logging.getLogger("red.crab-cogs.gptimage")
 
 SIMPLE_PROMPT = "I NEED to test how the tool works with extremely simple prompts. DO NOT add any detail, just use it AS-IS: "
 
-MODELS = ["dall-e-2", "dall-e-3", "gpt-image-1"]
-QUALITY = ["standard", "low", "medium", "high"]
+MODELS = { # model name -> quality name list
+    "dall-e-3": ["standard", "hd"],
+    "gpt-image-1": ["low", "medium", "high"]
+}
 
 
 class GptImage(commands.Cog):
@@ -122,9 +124,14 @@ class GptImage(commands.Cog):
         if model is None:
             model = await self.config.model()
         else:
-            if model.lower() not in MODELS:
-                await ctx.reply("Model must be one of: " + ",".join([f'`{m}`' for m in MODELS]))
+            model = model.lower().strip()
+            if model not in MODELS.keys():
+                await ctx.reply("Model must be one of: " + ",".join([f'`{m}`' for m in MODELS.keys()]))
+                return
             await self.config.model.set(model)
+            quality = await self.config.quality()
+            if quality not in MODELS[model]:
+                await self.config.quality.set(MODELS[model][0])
         await ctx.reply(f"The /imagine command will use the {model} model.")
 
     @gptimage.command()
@@ -134,10 +141,12 @@ class GptImage(commands.Cog):
             quality = await self.config.quality()
         else:
             quality = quality.lower().strip()
-            if quality not in MODELS:
-                await ctx.reply("Model must be one of: " + ",".join([f'`{m}`' for m in QUALITY]))
+            qualities = MODELS.get(await self.config.model(), [])
+            if quality not in qualities:
+                await ctx.reply("Quality must be one of: " + ",".join([f'`{m}`' for m in (qualities)]))
+                return
             await self.config.model.set(quality)
-        await ctx.reply(f"The /imagine command will use {quality} model.")
+        await ctx.reply(f"The /imagine command will use {quality} quality.")
 
     @gptimage.command()
     async def cooldown(self, ctx: commands.Context, seconds: Optional[int]):
