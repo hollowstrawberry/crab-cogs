@@ -4,14 +4,16 @@ from discord.ui import View
 
 
 class ImageView(View):
-    def __init__(self, cog, message: discord.Message, prompt: str, revised_prompt: str, add_detail: bool):
+    def __init__(self, cog, message: discord.Message, prompt: str, revised_prompt: str):
         super().__init__(timeout=600)
         self.cog = cog
         self.prompt = prompt
         self.revised_prompt = revised_prompt
-        self.add_detail = add_detail
         self.message = message
         self.deleted = False
+
+        if prompt == revised_prompt:
+            del self.info
 
     @discord.ui.button(emoji="ℹ", style=discord.ButtonStyle.grey)
     async def info(self, ctx: discord.Interaction, _):
@@ -24,9 +26,7 @@ class ImageView(View):
             return
         btn.disabled = True
         await ctx.message.edit(view=self)
-        await self.cog.imagine(ctx=ctx,
-                               prompt=self.prompt,
-                               add_detail=self.add_detail)
+        await self.cog.imagine(ctx=ctx, prompt=self.prompt)
         if not self.deleted and not self.is_finished():
             btn.disabled = False
             await ctx.message.edit(view=self)

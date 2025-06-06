@@ -57,13 +57,11 @@ class GptImage(commands.Cog):
                           description="Generate AI images with OpenAI")
     @app_commands.describe(prompt="Your prompt will get adjusted by OpenAI.",
                            prompt_style="OpenAI will always edit your prompt before generating.")
-    @app_commands.choices(prompt_style=[app_commands.Choice(name="Add detail", value="detail"),
-                                        app_commands.Choice(name="Don't add detail", value="nodetail")])
     @app_commands.guild_only()
-    async def imagine_app(self, ctx: discord.Interaction, prompt: str, prompt_style: str = "detail"):
-        await self.imagine(ctx, prompt, prompt_style == "detail")
+    async def imagine_app(self, ctx: discord.Interaction, prompt: str):
+        await self.imagine(ctx, prompt)
 
-    async def imagine(self, ctx: discord.Interaction, prompt: str, add_detail: bool):
+    async def imagine(self, ctx: discord.Interaction, prompt: str):
         if not self.client:
             return await ctx.response.send_message("OpenAI key not set.", ephemeral=True)
         prompt = prompt.strip()
@@ -85,7 +83,7 @@ class GptImage(commands.Cog):
         try:
             self.generating[ctx.user.id] = True
             result = await self.client.images.generate(
-                prompt=SIMPLE_PROMPT+prompt if not add_detail else prompt,
+                prompt=prompt,
                 model=await self.config.model(),
                 size="1024x1024",
                 quality=await self.config.quality(),
@@ -111,7 +109,7 @@ class GptImage(commands.Cog):
         file = discord.File(fp=image_data, filename=filename)
         content = f"Reroll requested by {ctx.user.mention}" if ctx.type == discord.InteractionType.component else ""
         message = await ctx.original_response()
-        view = ImageView(self, message, prompt, result.data[0].revised_prompt or prompt, add_detail)
+        view = ImageView(self, message, prompt, result.data[0].revised_prompt or prompt)
         await ctx.followup.send(content=content, view=view, file=file, allowed_mentions=discord.AllowedMentions.none())
 
     @commands.group() # type: ignore
