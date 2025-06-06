@@ -3,12 +3,12 @@ import io
 import base64
 import discord
 import logging
-from typing import List, Optional, Dict
+from typing import Optional, Dict
 from datetime import datetime, timedelta
 from redbot.core import commands, app_commands, Config
 from redbot.core.bot import Red
 
-from openai import AsyncOpenAI, APIError, APIStatusError
+from openai import AsyncOpenAI, APIError, APIStatusError, NotGiven
 from gptimage.imageview import ImageView
 
 log = logging.getLogger("red.crab-cogs.gptimage")
@@ -84,8 +84,8 @@ class GptImage(commands.Cog):
         try:
             self.generating[ctx.user.id] = True
             model = await self.config.model()
-            quality = None if model == "dall-e-2" else await self.config.quality()
-            response_format = None if model == "gpt-image-1" else "b64_json"
+            quality = NotGiven() if model == "dall-e-2" else await self.config.quality()
+            response_format = NotGiven() if model == "gpt-image-1" else "b64_json"
 
             result = await self.client.images.generate(
                 n=1,
