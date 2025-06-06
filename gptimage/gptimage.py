@@ -86,14 +86,15 @@ class GptImage(commands.Cog):
             model = await self.config.model()
             quality = NotGiven() if model == "dall-e-2" else await self.config.quality()
             response_format = NotGiven() if model == "gpt-image-1" else "b64_json"
-
+            moderation = NotGiven() if model != "gpt-image-1" else "low"
             result = await self.client.images.generate(
                 n=1,
                 prompt=prompt,
                 model=model,
                 size="1024x1024",
                 quality=quality,
-                response_format=response_format
+                response_format=response_format,
+                moderation="low"
             )
         except APIStatusError as e:
             return await ctx.followup.send(content=f":warning: Failed to generate image: {e.response.json()['error']['message']}")
