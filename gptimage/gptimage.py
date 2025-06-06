@@ -16,6 +16,7 @@ log = logging.getLogger("red.crab-cogs.gptimage")
 SIMPLE_PROMPT = "I NEED to test how the tool works with extremely simple prompts. DO NOT add any detail, just use it AS-IS: "
 
 MODELS = { # model name -> quality name list
+    "dall-e-2": [],
     "dall-e-3": ["standard", "hd"],
     "gpt-image-1": ["low", "medium", "high"]
 }
@@ -82,12 +83,17 @@ class GptImage(commands.Cog):
         result = None
         try:
             self.generating[ctx.user.id] = True
+            model = await self.config.model()
+            quality = None if model == "dall-e-2" else await self.config.quality()
+            response_format = None if model == "gpt-image-1" else "b64_json"
+
             result = await self.client.images.generate(
-                prompt=prompt,
-                model=await self.config.model(),
-                size="1024x1024",
-                quality=await self.config.quality(),
                 n=1,
+                prompt=prompt,
+                model=model,
+                size="1024x1024",
+                quality=quality,
+                response_format=response_format
             )
         except APIStatusError as e:
             return await ctx.followup.send(content=f":warning: Failed to generate image: {e.response.json()['error']['message']}")
@@ -131,7 +137,7 @@ class GptImage(commands.Cog):
             await self.config.model.set(model)
             quality = await self.config.quality()
             if quality not in MODELS[model]:
-                await self.config.quality.set(MODELS[model][0])
+                await self.config.quality.set(MODELS[model][0] if len(MODELS[model]) else None)
         await ctx.reply(f"The /imagine command will use the {model} model.")
 
     @gptimage.command()
@@ -140,10 +146,14 @@ class GptImage(commands.Cog):
         if quality is None:
             quality = await self.config.quality()
         else:
+            model = await self.config.model()
             quality = quality.lower().strip()
-            qualities = MODELS.get(await self.config.model(), [])
+            qualities = MODELS.get(model, [])
             if quality not in qualities:
-                await ctx.reply("Quality must be one of: " + ",".join([f'`{m}`' for m in (qualities)]))
+                if not qualities:
+                    await ctx.reply(f"The {model} model does not support qualities")
+                else:
+                    await ctx.reply("Quality must be one of: " + ",".join([f'`{m}`' for m in (qualities)]))
                 return
             await self.config.quality.set(quality)
         await ctx.reply(f"The /imagine command will use {quality} quality.")
