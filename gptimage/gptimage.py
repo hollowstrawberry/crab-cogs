@@ -145,7 +145,7 @@ class GptImage(commands.Cog):
             if quality not in qualities:
                 await ctx.reply("Quality must be one of: " + ",".join([f'`{m}`' for m in (qualities)]))
                 return
-            await self.config.model.set(quality)
+            await self.config.quality.set(quality)
         await ctx.reply(f"The /imagine command will use {quality} quality.")
 
     @gptimage.command()
