@@ -325,10 +325,10 @@ class ImageScanner(commands.Cog):
                 log.exception("Trying to grab model from Arc en Ciel")
                 return None
 
-            if not data or not data.data or "id" not in data.data[0]:
+            if not data or not data.get("data") or "id" not in data["data"][0]:
                 self.model_not_found_cache_arcenciel[short_hash] = True
                 return None
-            id = data.data[0].id
+            id = data["data"][0].id
             self.model_cache_arcenciel[short_hash] = id
             async with self.config.model_cache_arcenciel() as model_cache:
                 model_cache[short_hash] = id
