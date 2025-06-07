@@ -13,7 +13,7 @@ from sd_prompt_reader.constants import SUPPORTED_FORMATS
 
 import imagescanner.utils as utils
 from imagescanner.imageview import ImageView
-from imagescanner.constants import log, IMAGE_TYPES, HASHES_GROUP_REGEX, HEADERS
+from imagescanner.constants import log, IMAGE_TYPES, HEADERS, PARAM_REGEX
 
 ImageCache = Dict[int, Tuple[Dict[int, str], Dict[int, bytes]]]
 
@@ -171,26 +171,15 @@ class ImageScanner(commands.Cog):
                     if link:
                         desc_ext.append(f"[Model:{params['Model']}]({link})" if "Model" in params else f"[Model]({link})")
                         utils.remove_field(embed, "Model hash")
-                #  vae hashes seem to be bugged in automatic1111 webui
-                utils.remove_field(embed, "VAE hash")
-                # if "VAE hash" in params:
-                #     link = await self.grab_civitai_model_link(params["VAE hash"])
-                #     if link:
-                #         desc_ext.append(f"[VAE:{params['VAE']}]({link})" if "VAE" in params else f"[VAE]({link})")
-                #         self.remove_field(embed, "VAE hash")
-                if m := HASHES_GROUP_REGEX.search(data):
-                    try:
-                        hashes = json.loads(m.group(1))
-                    except json.JSONDecodeError:
-                        log.exception("Trying to parse Civitai hashes")
-                    else:
-                        hashes["model"] = None
-                        hashes["vae"] = None
-                        links = {name: await self.grab_civitai_model_link(short_hash)
-                                 for name, short_hash in hashes.items()}
-                        for name, link in links.items():
-                            if link:
-                                desc_ext.append(f"[{name}]({link})")
+                utils.remove_field(embed, "VAE hash") #  vae hashes seem to be bugged in automatic1111 webui
+                if params.get("Lora hashes"):
+                    hashes = PARAM_REGEX.findall(params["Lora hashes"])
+                    log.info(hashes)
+                    links = {name: await self.grab_civitai_model_link(short_hash)
+                                for name, short_hash in hashes}
+                    for name, link in links.items():
+                        if link:
+                            desc_ext.append(f"[{name}]({link})")
                 if desc_ext:
                     embed.description += f"\n{self.civitai_emoji} " if self.civitai_emoji else "\n🔗 **Civitai:** "
                     embed.description += ", ".join(desc_ext)
@@ -202,28 +191,17 @@ class ImageScanner(commands.Cog):
                     if link:
                         desc_ext.append(f"[Model:{params['Model']}]({link})" if "Model" in params else f"[Model]({link})")
                         utils.remove_field(embed, "Model hash")
-                #  vae hashes seem to be bugged in automatic1111 webui
-                utils.remove_field(embed, "VAE hash")
-                # if "VAE hash" in params:
-                #     link = await self.grab_arcenciel_model_link(params["VAE hash"])
-                #     if link:
-                #         desc_ext.append(f"[VAE:{params['VAE']}]({link})" if "VAE" in params else f"[VAE]({link})")
-                #         self.remove_field(embed, "VAE hash")
-                if m := HASHES_GROUP_REGEX.search(data):
-                    try:
-                        hashes = json.loads(m.group(1))
-                    except json.JSONDecodeError:
-                        log.exception("Trying to parse arcenciel hashes")
-                    else:
-                        hashes["model"] = None
-                        hashes["vae"] = None
-                        links = {name: await self.grab_arcenciel_model_link(short_hash)
-                                 for name, short_hash in hashes.items()}
-                        for name, link in links.items():
-                            if link:
-                                desc_ext.append(f"[{name}]({link})")
+                utils.remove_field(embed, "VAE hash") #  vae hashes seem to be bugged in automatic1111 webui
+                if params.get("Lora hashes"):
+                    hashes = PARAM_REGEX.findall(params["Lora hashes"])
+                    log.info(hashes)
+                    links = {name: await self.grab_arcenciel_model_link(short_hash)
+                                for name, short_hash in hashes}
+                    for name, link in links.items():
+                        if link:
+                            desc_ext.append(f"[{name}]({link})")
                 if desc_ext:
-                    embed.description += f"\n{self.arcenciel_emoji} " if self.arcenciel_emoji else "\n🔗 **Arc en Ciel:** "
+                    embed.description += f"\n{self.arcenciel_emoji} " if self.arcenciel_emoji else "\n🔗 **AEC:** "
                     embed.description += ", ".join(desc_ext)
 
             view = ImageView(data, embed)
