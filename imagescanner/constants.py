@@ -10,7 +10,7 @@ METADATA_REGEX = re.compile(rf"(?:(?P<Prompt>[\S\s]+?)\n)?(?:Negative prompt: ?(
 LOOKAHEAD_PATTERN = r'(?=(?:[^"]*"[^"]*")*[^"]*$)'  # ensures the characters surrounding the lookahead are not inside quotes
 PARAM_REGEX = re.compile(rf" ?([^:]+): (.+?),{LOOKAHEAD_PATTERN}")
 PARAM_GROUP_REGEX = re.compile(rf", [^:]+: {{.+?{LOOKAHEAD_PATTERN}}}")
-HASHES_GROUP_REGEX = re.compile(rf", (Hashes|Lora hashes): ({{.+?{LOOKAHEAD_PATTERN}}})")
+HASHES_GROUP_REGEX = re.compile(rf", (?:Hashes|Lora hashes): ({{.+?{LOOKAHEAD_PATTERN}}})")
 
 PARAMS_BLACKLIST = [
     "Template", "hashes", "Version",
