@@ -10,10 +10,9 @@ METADATA_REGEX = re.compile(rf"(?:(?P<Prompt>[\S\s]+?)\n)?(?:Negative prompt: ?(
 LOOKAHEAD_PATTERN = r'(?=(?:[^"]*"[^"]*")*[^"]*$)'  # ensures the characters surrounding the lookahead are not inside quotes
 PARAM_REGEX = re.compile(rf" ?([^:]+): (.+?),{LOOKAHEAD_PATTERN}")
 PARAM_GROUP_REGEX = re.compile(rf", [^:]+: {{.+?{LOOKAHEAD_PATTERN}}}")
-HASHES_GROUP_REGEX = re.compile(rf", Hashes: ({{.+?{LOOKAHEAD_PATTERN}}})")
 
 PARAMS_BLACKLIST = [
-    "Template", "hashes", "Version",
+    "Template", "Version",
     "ADetailer confidence", "ADetailer mask", "ADetailer dilate", "ADetailer denoising",
     "ADetailer inpaint", "ADetailer version", "ADetailer prompt", "ADetailer use", "ADetailer checkpoint",
     "RP Divide", "RP Ma", "RP Prompt", "RP Calc", "RP Ratio", "RP Base", "RP Use", "RP LoRA", "RP Options", "RP Flip", "RP threshold",

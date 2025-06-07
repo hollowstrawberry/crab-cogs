@@ -1,7 +1,9 @@
 import json
+import PIL.Image
 import discord
 from io import BytesIO
-from PIL import Image, PngImagePlugin
+from PIL.Image import Image
+from PIL import PngImagePlugin
 from typing import Any, Dict, Optional
 from collections import OrderedDict
 from sd_prompt_reader.constants import SUPPORTED_FORMATS
@@ -10,7 +12,7 @@ from sd_prompt_reader.image_data_reader import ImageDataReader
 from imagescanner.constants import log, NAIV3_PARAMS, PARAM_REGEX, PARAM_GROUP_REGEX, PARAMS_BLACKLIST, METADATA_REGEX
 
 
-def get_params_from_string(param_str: str) -> OrderedDict[str, Any]:
+def get_params_from_string(param_str: str) -> "OrderedDict[str, Any]":
     output_dict = OrderedDict()
 
     match = METADATA_REGEX.match(param_str)
@@ -53,6 +55,8 @@ def get_params_from_string(param_str: str) -> OrderedDict[str, Any]:
 def get_embed(embed_dict: Dict[str, Any], author: discord.Member) -> discord.Embed:
     embed = discord.Embed(title="Here's your image!", color=author.color)
     for key, value in embed_dict.items():
+        if "hashes" in key:
+            continue
         embed.add_field(name=key, value=value, inline='Prompt' not in key)
     embed.set_footer(text=f'Posted by {author}', icon_url=author.display_avatar.url)
     return embed
@@ -72,8 +76,8 @@ def convert_metadata(metadata: ImageDataReader) -> Optional[str]:
         if "A1111" in metadata._tool:
             return metadata.raw + ","
         else:
-            positive = metadata.positive or metadata.positive_sdxl or "(None)"
-            negative = metadata.negative or metadata.negative_sdxl or "(None)"
+            positive = metadata.positive or str(metadata.positive_sdxl) or "(None)"
+            negative = metadata.negative or str(metadata.negative_sdxl) or "(None)"
             fixed_setting = metadata.setting
             if positive and len(positive.strip()) > 10:
                 fixed_setting = fixed_setting.replace(positive, "(Prompt)")
@@ -90,13 +94,13 @@ async def read_attachment_metadata(i: int, attachment: discord.Attachment, metad
     try:
         image_data = await attachment.read()
         b = BytesIO(image_data)
-        img = Image.open(b)
+        img = PIL.Image.open(b)
         if (img.mode == "RGBA"):  # in rare cases, when ImageDataReader reads an RGBA image, it gets stuck in an infinite loop
             b = remove_transparency(img)
         del img
         b.seek(0)
         image_metadata = ImageDataReader(b)
-    except (discord.DiscordException, Image.UnidentifiedImageError):
+    except (discord.DiscordException, PIL.Image.UnidentifiedImageError):
         log.exception("Processing attachment")
         return
     metadata_str = convert_metadata(image_metadata)
@@ -106,7 +110,7 @@ async def read_attachment_metadata(i: int, attachment: discord.Attachment, metad
 
 def remove_transparency(img: Image):
     info = img.info.copy()
-    new = Image.new("RGB", img.size, (0, 0, 0))
+    new = PIL.Image.new("RGB", img.size, (0, 0, 0))
     new.paste(img, mask=img.split()[-1])
     pnginfo = PngImagePlugin.PngInfo()
     for key, value in info.items():
