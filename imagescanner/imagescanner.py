@@ -202,7 +202,7 @@ class ImageScanner(commands.Cog):
                             desc_ext.append(f"[{name}]({link})")
                 if desc_ext:
                     embed.description += f"\n{self.arcenciel_emoji} " if self.arcenciel_emoji else "\n🔗 **AEC:** "
-                    embed.description += ", ".join(desc_ext)
+                    embed.description += " • ".join(desc_ext)
 
             view = ImageView(data, embed)
             if self.attach_images and i in image_bytes:
