@@ -11,6 +11,7 @@ from openai import AsyncOpenAI, APIError, APIStatusError
 log = logging.getLogger("red.crab-cogs.gpthink")
 
 MODELS = ["o3-mini", "o4-mini", "o3"]
+EMPTY = "ᅠ"
 
 
 class GptThinkModal(discord.ui.Modal):
@@ -67,7 +68,7 @@ class GptThinkModal(discord.ui.Modal):
         if result.usage and result.usage.total_tokens:
             embed.add_field(name="Tokens used", value=result.usage.total_tokens)
 
-        await inter.followup.send(result.output_text[:4000], embed=embed)
+        await inter.followup.send(f"{result.output_text[:3998]}\n{EMPTY}", embed=embed)
 
 
 class GptThink(commands.Cog):
