@@ -1,0 +1,12 @@
+{
+    "author": ["hollowstrawberry"],
+    "min_bot_version": "3.5.0",
+    "description": "Use OpenAI's reasoning models",
+    "hidden": false,
+    "install_msg": "🖼 __**GPT tHINK**__\n:warning: **Important:** OpenAI's models cost money every time they are used. Please check <https://openai.com/api/pricing/> and use this cog with care.\n```Cog installed. Instructions:\n1. Load it with [p]load gpthink\n2. Add your OpenAI API key with [p]set api openai api_key,INSERT_API_KEY\n3. Enable slash commands with [p]slash enablecog gpthink\n4. Sync slash commands with [p]slash sync\n5. You may need to restart Discord to see the new commands.\n5. Use /think```",
+    "required_cogs": {},
+    "requirements": ["openai"],
+    "short": "Use OpenAI's reasoning models",
+    "end_user_data_statement": "This cog does not store user data.",
+    "tags": ["crab", "ai", "generation", "text", "llm", "openai", "think", "reasoning"]
+}
