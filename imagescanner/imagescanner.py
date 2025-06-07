@@ -182,7 +182,7 @@ class ImageScanner(commands.Cog):
                             desc_ext.append(f"[{name}]({link})")
                 if desc_ext:
                     embed.description += f"\n{self.civitai_emoji} " if self.civitai_emoji else "\n🔗 **Civitai:** "
-                    embed.description += ", ".join(desc_ext)
+                    embed.description += " • ".join(desc_ext)
 
             if self.use_arcenciel:
                 desc_ext = []
