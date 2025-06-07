@@ -174,7 +174,6 @@ class ImageScanner(commands.Cog):
                 utils.remove_field(embed, "VAE hash") #  vae hashes seem to be bugged in automatic1111 webui
                 if params.get("Lora hashes"):
                     hashes = PARAM_REGEX.findall(params["Lora hashes"])
-                    log.info(hashes)
                     links = {name: await self.grab_civitai_model_link(short_hash)
                                 for name, short_hash in hashes}
                     for name, link in links.items():

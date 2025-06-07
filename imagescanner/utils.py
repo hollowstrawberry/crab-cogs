@@ -28,6 +28,7 @@ def get_params_from_string(param_str: str) -> "OrderedDict[str, Any]":
     params = match.group("Params")
     params = PARAM_GROUP_REGEX.sub("", params)
     param_list = PARAM_REGEX.findall(params)
+    log.info(param_list)
     is_novelai = False
     for key, value in param_list:
         if key == "Source" and value == "NovelAI":
