@@ -55,6 +55,8 @@ def get_params_from_string(param_str: str) -> "OrderedDict[str, Any]":
 def get_embed(embed_dict: Dict[str, Any], author: discord.Member) -> discord.Embed:
     embed = discord.Embed(title="Here's your image!", color=author.color)
     for key, value in embed_dict.items():
+        if "hashes" in key:
+            continue
         embed.add_field(name=key, value=value, inline='Prompt' not in key)
     embed.set_footer(text=f'Posted by {author}', icon_url=author.display_avatar.url)
     return embed

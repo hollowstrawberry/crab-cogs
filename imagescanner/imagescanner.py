@@ -169,7 +169,7 @@ class ImageScanner(commands.Cog):
                 if "Model hash" in params:
                     link = await self.grab_civitai_model_link(params["Model hash"])
                     if link:
-                        desc_ext.append(f"[Model:{params['Model']}]({link})" if "Model" in params else f"[Model]({link})")
+                        desc_ext.append(f"[{params['Model']}]({link})" if "Model" in params else f"[Model]({link})")
                         utils.remove_field(embed, "Model hash")
                 utils.remove_field(embed, "VAE hash") #  vae hashes seem to be bugged in automatic1111 webui
                 if params.get("Lora hashes"):
@@ -189,7 +189,7 @@ class ImageScanner(commands.Cog):
                 if "Model hash" in params:
                     link = await self.grab_arcenciel_model_link(params["Model hash"])
                     if link:
-                        desc_ext.append(f"[Model:{params['Model']}]({link})" if "Model" in params else f"[Model]({link})")
+                        desc_ext.append(f"[{params['Model']}]({link})" if "Model" in params else f"[Model]({link})")
                         utils.remove_field(embed, "Model hash")
                 utils.remove_field(embed, "VAE hash") #  vae hashes seem to be bugged in automatic1111 webui
                 if params.get("Lora hashes"):
