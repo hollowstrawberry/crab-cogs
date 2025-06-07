@@ -14,18 +14,19 @@ class ImageView(View):
         self.pressed = False
         self.message: Optional[discord.Message] = None
 
-    @discord.ui.button(emoji="🔧", label='View Full Parameters', style=discord.ButtonStyle.grey)
+    @discord.ui.button(emoji="🔧", label='View Full Parameters', style=discord.ButtonStyle.grey) # type: ignore
     async def view_full_parameters(self, ctx: discord.Interaction, _: discord.Button):
+        self.pressed = True
+        self.stop()
         if len(self.params) < 1980:
             await ctx.response.send_message(f"```yaml\n{self.params}```")
         else:
             with io.StringIO() as f:
                 f.write(self.params)
                 f.seek(0)
-                await ctx.response.send_message(file=discord.File(f, "parameters.yaml"))  # noqa, reason: StringIO works
-        await ctx.message.edit(view=None, embed=self.embed)
-        self.pressed = True
-        self.stop()
+                await ctx.response.send_message(file=discord.File(f, "parameters.yaml"))  # type: ignore
+        if ctx.message:
+            await ctx.message.edit(view=None, embed=self.embed)
 
     async def on_timeout(self) -> None:
         if self.message and not self.pressed:

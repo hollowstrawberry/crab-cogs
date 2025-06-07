@@ -8,19 +8,20 @@ from hashlib import md5
 from typing import Optional, Any, Dict, Tuple
 from expiringdict import ExpiringDict
 from redbot.core import commands, app_commands, Config
+from redbot.core.bot import Red
 from sd_prompt_reader.constants import SUPPORTED_FORMATS
 
 import imagescanner.utils as utils
 from imagescanner.imageview import ImageView
 from imagescanner.constants import log, IMAGE_TYPES, HASHES_GROUP_REGEX, HEADERS
 
-ImageCache = ExpiringDict[int, Tuple[Dict[int, str], Dict[int, bytes]]]
+ImageCache = Dict[int, Tuple[Dict[int, str], Dict[int, bytes]]]
 
 
 class ImageScanner(commands.Cog):
     """Scans images for AI parameters and other metadata."""
 
-    def __init__(self, bot):
+    def __init__(self, bot: Red):
         super().__init__()
         self.bot = bot
         self.config = Config.get_conf(self, identifier=7072707469)
@@ -29,8 +30,12 @@ class ImageScanner(commands.Cog):
         self.attach_images = True
         self.use_civitai = True
         self.civitai_emoji = ""
-        self.model_cache: Dict[str, Tuple[Any, Any]] = {}
-        self.model_not_found_cache: Dict[str, bool] = ExpiringDict(max_len=100, max_age_seconds=24*60*60)
+        self.use_arcenciel = True
+        self.arcenciel_emoji = ""
+        self.model_cache_civitai: Dict[str, Tuple[Any, Any]] = {}
+        self.model_cache_arcenciel: Dict[str, int] = {}
+        self.model_not_found_cache_civitai: Dict[str, bool] = ExpiringDict(max_len=100, max_age_seconds=24*60*60)
+        self.model_not_found_cache_arcenciel: Dict[str, bool] = ExpiringDict(max_len=100, max_age_seconds=24*60*60)
         self.image_cache: Optional[ImageCache] = None
         self.image_cache_size = 100
         self.always_scan_generated_images = False
@@ -40,7 +45,10 @@ class ImageScanner(commands.Cog):
             "attach_images": self.attach_images,
             "use_civitai": self.use_civitai,
             "civitai_emoji": self.civitai_emoji,
+            "use_arcenciel": self.use_arcenciel,
+            "arcenciel_emoji": self.arcenciel_emoji,
             "model_cache_v2": {},
+            "model_cache_arcenciel": {},
             "image_cache_size": self.image_cache_size,
             "always_scan_generated_images": self.always_scan_generated_images
         }
@@ -54,14 +62,18 @@ class ImageScanner(commands.Cog):
         self.attach_images = await self.config.attach_images()
         self.use_civitai = await self.config.use_civitai()
         self.civitai_emoji = await self.config.civitai_emoji()
-        self.model_cache = await self.config.model_cache_v2()
+        self.use_arcenciel = await self.config.use_arcenciel()
+        self.arcenciel_emoji = await self.config.arcenciel_emoji()
+        self.model_cache_civitai = await self.config.model_cache_v2()
+        self.model_cache_arcenciel = await self.config.model_cache_arcenciel()
         self.image_cache_size = await self.config.image_cache_size()
         self.image_cache = ExpiringDict(max_len=self.image_cache_size, max_age_seconds=24*60*60)
         self.always_scan_generated_images = await self.config.always_scan_generated_images()
 
     async def cog_unload(self):
         self.bot.tree.remove_command(self.context_menu.name, type=self.context_menu.type)
-        self.image_cache.clear()
+        if self.image_cache:
+            self.image_cache.clear()
 
     async def is_valid_red_message(self, message: discord.Message) -> bool:
         return await self.bot.allowed_by_whitelist_blacklist(message.author) \
@@ -76,6 +88,7 @@ class ImageScanner(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         """Scan images for AI metadata in allowed channels"""
+        assert self.image_cache is not None
         if not message.guild or message.author.bot or message.channel.id not in self.scan_channels:
             return
         channel_perms = message.channel.permissions_for(message.guild.me)
@@ -88,7 +101,7 @@ class ImageScanner(commands.Cog):
             return
 
         metadata: Dict[int, str] = {}
-        image_bytes: [Dict[int, bytes]] = {}
+        image_bytes: Dict[int, bytes] = {}
         tasks = [utils.read_attachment_metadata(i, attachment, metadata, image_bytes)
                  for i, attachment in enumerate(attachments)]
         await asyncio.gather(*tasks)
@@ -104,13 +117,16 @@ class ImageScanner(commands.Cog):
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, ctx: discord.RawReactionActionEvent):
         """Send image metadata in reacted post to user DMs"""
+        assert self.bot.user and self.image_cache is not None
         if ctx.emoji.name != '🔎' or not ctx.member or ctx.member.bot:
             return
         if ctx.channel_id not in self.scan_channels and not self.always_scan_generated_images:
             return
 
         channel = self.bot.get_channel(ctx.channel_id)
+        assert isinstance(channel, discord.TextChannel)
         message: discord.Message = await channel.fetch_message(ctx.message_id)
+        assert isinstance(message.author, discord.Member)
         if not message or message.author.bot and message.author.id != self.bot.user.id:
             return
         if ctx.channel_id not in self.scan_channels and message.author.id != self.bot.user.id:
@@ -146,7 +162,7 @@ class ImageScanner(commands.Cog):
             embed = utils.get_embed(params, message.author)
             embed.description = message.jump_url if self.civitai_emoji else f":arrow_right: {message.jump_url}"
             if len(metadata) > 1:
-                embed.title += f" ({i+1}/{len(metadata)})"
+                embed.title = (embed.title or "") + f" ({i+1}/{len(metadata)})"
 
             if self.use_civitai:
                 desc_ext = []
@@ -179,6 +195,37 @@ class ImageScanner(commands.Cog):
                     embed.description += f"\n{self.civitai_emoji} " if self.civitai_emoji else "\n🔗 **Civitai:** "
                     embed.description += ", ".join(desc_ext)
 
+            if self.use_arcenciel:
+                desc_ext = []
+                if "Model hash" in params:
+                    link = await self.grab_arcenciel_model_link(params["Model hash"])
+                    if link:
+                        desc_ext.append(f"[Model:{params['Model']}]({link})" if "Model" in params else f"[Model]({link})")
+                        utils.remove_field(embed, "Model hash")
+                #  vae hashes seem to be bugged in automatic1111 webui
+                utils.remove_field(embed, "VAE hash")
+                # if "VAE hash" in params:
+                #     link = await self.grab_arcenciel_model_link(params["VAE hash"])
+                #     if link:
+                #         desc_ext.append(f"[VAE:{params['VAE']}]({link})" if "VAE" in params else f"[VAE]({link})")
+                #         self.remove_field(embed, "VAE hash")
+                if m := HASHES_GROUP_REGEX.search(data):
+                    try:
+                        hashes = json.loads(m.group(1))
+                    except json.JSONDecodeError:
+                        log.exception("Trying to parse arcenciel hashes")
+                    else:
+                        hashes["model"] = None
+                        hashes["vae"] = None
+                        links = {name: await self.grab_arcenciel_model_link(short_hash)
+                                 for name, short_hash in hashes.items()}
+                        for name, link in links.items():
+                            if link:
+                                desc_ext.append(f"[{name}]({link})")
+                if desc_ext:
+                    embed.description += f"\n{self.arcenciel_emoji} " if self.arcenciel_emoji else "\n🔗 **Arc en Ciel:** "
+                    embed.description += ", ".join(desc_ext)
+
             view = ImageView(data, embed)
             if self.attach_images and i in image_bytes:
                 img = io.BytesIO(image_bytes[i])
@@ -203,6 +250,7 @@ class ImageScanner(commands.Cog):
     # context menu set in __init__
     async def scanimage(self, ctx: discord.Interaction, message: discord.Message):
         """Get image metadata"""
+        assert self.image_cache
         attachments = [a for a in message.attachments if a.filename.lower().endswith(IMAGE_TYPES)]
         if not attachments:
             await ctx.response.send_message("This post contains no images.", ephemeral=True)
@@ -224,18 +272,18 @@ class ImageScanner(commands.Cog):
         if len(response) < 1980:
             await ctx.response.send_message(f"```yaml\n{response}```", ephemeral=True)
         else:
-            with io.StringIO() as f:
-                f.write(response)
-                f.seek(0)
-                await ctx.response.send_message(file=discord.File(f, "parameters.yaml"), ephemeral=True)  # noqa, reason, StringIO works
+            with io.StringIO() as fp:
+                fp.write(response)
+                fp.seek(0)
+                await ctx.response.send_message(file=discord.File(fp, "parameters.yaml"), ephemeral=True)  # type: ignore
 
 
     async def grab_civitai_model_link(self, short_hash: str) -> Optional[str]:
         if not short_hash:
             return None
-        elif short_hash in self.model_cache:
-            model_id = self.model_cache[short_hash]
-        elif short_hash in self.model_not_found_cache:
+        elif short_hash in self.model_cache_civitai:
+            model_id = self.model_cache_civitai[short_hash]
+        elif short_hash in self.model_not_found_cache_civitai:
             return None
         else:
             url = f"https://civitai.com/api/v1/model-versions/by-hash/{short_hash}"
@@ -249,19 +297,48 @@ class ImageScanner(commands.Cog):
                 return None
 
             if not data or "modelId" not in data:
-                self.model_not_found_cache[short_hash] = True
+                self.model_not_found_cache_civitai[short_hash] = True
                 return None
             model_id = (data['modelId'], data['id'])
-            self.model_cache[short_hash] = model_id
+            self.model_cache_civitai[short_hash] = model_id
             async with self.config.model_cache_v2() as model_cache:
                 model_cache[short_hash] = model_id
 
         return f"https://civitai.com/models/{model_id[0]}?modelVersionId={model_id[1]}"
 
 
+    async def grab_arcenciel_model_link(self, short_hash: str) -> Optional[str]:
+        if not short_hash:
+            return None
+        elif short_hash in self.model_cache_arcenciel:
+            id = self.model_cache_arcenciel[short_hash]
+        elif short_hash in self.model_not_found_cache_arcenciel:
+            return None
+        else:
+            url = f"https://arcenciel.io/api/models/search?search={short_hash}&hashOnly=true"
+            try:
+                async with aiohttp.ClientSession(headers=HEADERS) as session:
+                    async with session.get(url) as resp:
+                        resp.raise_for_status()
+                        data = await resp.json()
+            except aiohttp.ClientError:
+                log.exception("Trying to grab model from Arc en Ciel")
+                return None
+
+            if not data or not data.data or "id" not in data.data[0]:
+                self.model_not_found_cache_arcenciel[short_hash] = True
+                return None
+            id = data.data[0].id
+            self.model_cache_arcenciel[short_hash] = id
+            async with self.config.model_cache_arcenciel() as model_cache:
+                model_cache[short_hash] = id
+
+        return f"https://arcenciel.io/models/{id}"
+
+
     # Config commands
 
-    @commands.group(invoke_without_command=True)
+    @commands.group(invoke_without_command=True) # type: ignore
     @commands.is_owner()
     async def scanset(self, ctx: commands.Context):
         """Owner command to manage image scanner settings."""
@@ -327,6 +404,16 @@ class ImageScanner(commands.Cog):
         else:
             await ctx.reply("Images sent in DMs will no longer search for models on Civitai.")
 
+    @scanset.command(name="arcenciel")
+    async def scanset_arcenciel(self, ctx: commands.Context):
+        """Toggles whether images should look for models on Arc en Ciel."""
+        self.use_arcenciel = not self.use_arcenciel
+        await self.config.use_arcenciel.set(self.use_arcenciel)
+        if self.use_arcenciel:
+            await ctx.reply("Images sent in DMs will now try to find models on Arc en Ciel.")
+        else:
+            await ctx.reply("Images sent in DMs will no longer search for models on Arc en Ciel.")
+
     @scanset.command(name="civitaiemoji")
     async def scanset_civitaiemoji(self, ctx: commands.Context, emoji: Optional[discord.Emoji]):
         """Add your own Civitai custom emoji with this command."""
@@ -343,6 +430,23 @@ class ImageScanner(commands.Cog):
             self.civitai_emoji = str(emoji)
             await self.config.civitai_emoji.set(str(emoji))
             await ctx.reply(f"{emoji} will now appear when Civitai links are shown to users.")
+
+    @scanset.command(name="arcencielemoji")
+    async def scanset_arcencielemoji(self, ctx: commands.Context, emoji: Optional[discord.Emoji]):
+        """Add your own arcenciel custom emoji with this command."""
+        if emoji is None:
+            self.arcenciel_emoji = ""
+            await self.config.arcenciel_emoji.set("")
+            await ctx.reply(f"No emoji will appear when arcenciel links are shown to users, only \"Arc en Ciel\".")
+            return
+        try:
+            await ctx.react_quietly(emoji)
+        except (discord.NotFound, discord.Forbidden):
+            await ctx.reply("I don't have access to that emoji. I must be in the same server to use it.")
+        else:
+            self.arcenciel_emoji = str(emoji)
+            await self.config.arcenciel_emoji.set(str(emoji))
+            await ctx.reply(f"{emoji} will now appear when arcenciel links are shown to users.")
 
     @scanset.command(name="cache")
     async def scanset_cache(self, ctx: commands.Context, size: Optional[int]):
