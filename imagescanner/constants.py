@@ -12,7 +12,7 @@ PARAM_REGEX = re.compile(rf" ?([^:]+): (.+?),{LOOKAHEAD_PATTERN}")
 PARAM_GROUP_REGEX = re.compile(rf", [^:]+: {{.+?{LOOKAHEAD_PATTERN}}}")
 
 PARAMS_BLACKLIST = [
-    "Template", "hashes", "Version",
+    "Template", "Version",
     "ADetailer confidence", "ADetailer mask", "ADetailer dilate", "ADetailer denoising",
     "ADetailer inpaint", "ADetailer version", "ADetailer prompt", "ADetailer use", "ADetailer checkpoint",
     "RP Divide", "RP Ma", "RP Prompt", "RP Calc", "RP Ratio", "RP Base", "RP Use", "RP LoRA", "RP Options", "RP Flip", "RP threshold",
