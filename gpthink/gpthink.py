@@ -56,13 +56,15 @@ class GptThinkModal(discord.ui.Modal):
 
         self.cog.user_last_prompt[inter.user.id] = datetime.now()
         
-        if result.reasoning and result.reasoning.summary:
-            embed = discord.Embed(
-                title="Reasoning",
-                description=result.reasoning.summary[:4000],
-                color=await self.cog.bot.get_embed_color(inter.channel),
-            )
-        else:
+        embed = discord.Embed(
+            title="Reasoning",
+            color=await self.cog.bot.get_embed_color(inter.channel),
+        )
+        if result.reasoning:
+            embed.description = result.reasoning.generate_summary, # type: ignore
+        if result.usage and result.usage.total_tokens:
+            embed.add_field(name="Tokens used", value=result.usage.total_tokens)
+        if result:
             embed = discord.utils.MISSING
 
         await inter.followup.send(result.output_text[:4000], embed=embed)
