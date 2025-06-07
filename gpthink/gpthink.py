@@ -64,8 +64,6 @@ class GptThinkModal(discord.ui.Modal):
             embed.description = result.reasoning.generate_summary, # type: ignore
         if result.usage and result.usage.total_tokens:
             embed.add_field(name="Tokens used", value=result.usage.total_tokens)
-        if result:
-            embed = discord.utils.MISSING
 
         await inter.followup.send(result.output_text[:4000], embed=embed)
 
