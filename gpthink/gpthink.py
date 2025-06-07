@@ -61,7 +61,7 @@ class GptThinkModal(discord.ui.Modal):
             color=await self.cog.bot.get_embed_color(inter.channel),
         )
         if result.reasoning:
-            embed.description = result.reasoning.generate_summary, # type: ignore
+            embed.description = result.reasoning.generate_summary[:4000], # type: ignore
         if result.usage and result.usage.total_tokens:
             embed.add_field(name="Tokens used", value=result.usage.total_tokens)
 
