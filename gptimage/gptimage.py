@@ -8,16 +8,22 @@ from datetime import datetime, timedelta
 from redbot.core import commands, app_commands, Config
 from redbot.core.bot import Red
 
-from openai import AsyncOpenAI, APIError, APIStatusError
-from dalle.imageview import ImageView
+from openai import AsyncOpenAI, APIError, APIStatusError, NotGiven
+from gptimage.imageview import ImageView
 
-log = logging.getLogger("red.crab-cogs.dalle")
+log = logging.getLogger("red.crab-cogs.gptimage")
 
 SIMPLE_PROMPT = "I NEED to test how the tool works with extremely simple prompts. DO NOT add any detail, just use it AS-IS: "
 
+MODELS = { # model name -> quality name list
+    "dall-e-2": [],
+    "dall-e-3": ["standard", "hd"],
+    "gpt-image-1": ["low", "medium", "high"]
+}
 
-class DallE(commands.Cog):
-    """Generate images with OpenAI's Dall-E 3."""
+
+class GptImage(commands.Cog):
+    """Generate images with OpenAI"""
 
     def __init__(self, bot: Red):
         super().__init__()
@@ -30,6 +36,8 @@ class DallE(commands.Cog):
         defaults_global = {
             "vip": [],
             "cooldown": 0,
+            "model": "gpt-image-1",
+            "quality": "low",
         }
         self.config.register_global(**defaults_global)
 
@@ -48,17 +56,14 @@ class DallE(commands.Cog):
         if api_key:
             self.client = AsyncOpenAI(api_key=api_key)
 
-    @app_commands.command(name="imagine",
-                          description="Generate AI images with Dall-E 3.")
-    @app_commands.describe(prompt="Your prompt will get adjusted by OpenAI.",
-                           prompt_style="Dall-E will always edit your prompt before generating.")
-    @app_commands.choices(prompt_style=[app_commands.Choice(name="Add detail", value="detail"),
-                                        app_commands.Choice(name="Don't add detail", value="nodetail")])
+    @app_commands.command(name="imagine", description="Generate AI images with OpenAI")
+    @app_commands.describe(prompt="What you want to make.")
     @app_commands.guild_only()
-    async def imagine_app(self, ctx: discord.Interaction, prompt: str, prompt_style: str = "detail"):
-        await self.imagine(ctx, prompt, prompt_style == "detail")
+    async def imagine_app(self, ctx: discord.Interaction, prompt: str):
+        await self.imagine(ctx, prompt)
 
-    async def imagine(self, ctx: discord.Interaction, prompt: str, add_detail: bool):
+    async def imagine(self, ctx: discord.Interaction, prompt: str):
+        assert isinstance(ctx.channel, discord.TextChannel)
         if not self.client:
             return await ctx.response.send_message("OpenAI key not set.", ephemeral=True)
         prompt = prompt.strip()
@@ -79,20 +84,25 @@ class DallE(commands.Cog):
         result = None
         try:
             self.generating[ctx.user.id] = True
+            model = await self.config.model()
+            quality = NotGiven() if model == "dall-e-2" else await self.config.quality()
+            response_format = NotGiven() if model == "gpt-image-1" else "b64_json"
+            moderation = NotGiven() if model != "gpt-image-1" or not ctx.channel.is_nsfw() else "low"
             result = await self.client.images.generate(
-                prompt=SIMPLE_PROMPT+prompt if not add_detail else prompt,
-                model="dall-e-3",
-                size="1024x1024",
-                quality="standard",
                 n=1,
-                response_format="b64_json"
+                size="1024x1024",
+                prompt=prompt,
+                model=model,
+                quality=quality,
+                response_format=response_format,
+                moderation=moderation
             )
         except APIStatusError as e:
             return await ctx.followup.send(content=f":warning: Failed to generate image: {e.response.json()['error']['message']}")
         except APIError as e:
             return await ctx.followup.send(content=f":warning: Failed to generate image: {e.message}")
         except Exception:  # noqa, reason: user-facing error
-            log.exception(msg="Trying to generate image with Dall-E", stack_info=True)
+            log.exception(msg="Trying to generate image with OpenAI", stack_info=True)
         finally:
             self.generating[ctx.user.id] = False
 
@@ -103,29 +113,63 @@ class DallE(commands.Cog):
         
         image_data = io.BytesIO(base64.b64decode(result.data[0].b64_json))
         timestamp = f"{datetime.utcnow().timestamp():.6f}"
-        filename = f"dalle3_{timestamp.replace('.', '_')}.png"
+        filename = f"gptimage_{timestamp.replace('.', '_')}.png"
         file = discord.File(fp=image_data, filename=filename)
         content = f"Reroll requested by {ctx.user.mention}" if ctx.type == discord.InteractionType.component else ""
         message = await ctx.original_response()
-        view = ImageView(self, message, prompt, result.data[0].revised_prompt, add_detail)
+        view = ImageView(self, message, prompt)
         await ctx.followup.send(content=content, view=view, file=file, allowed_mentions=discord.AllowedMentions.none())
 
-    @commands.group()
+    @commands.group() # type: ignore
     @commands.is_owner()
-    async def dalleset(self, _):
+    async def gptimage(self, _):
         """Configure /imagine bot-wide."""
         pass
 
-    @dalleset.command()
+    @gptimage.command()
+    async def model(self, ctx: commands.Context, model: Optional[str]):
+        """The OpenAI image generation model to be used. Careful of costs, see https://openai.com/api/pricing/"""
+        if model is None:
+            model = await self.config.model()
+        else:
+            model = model.lower().strip()
+            if model not in MODELS.keys():
+                await ctx.reply("Model must be one of: " + ",".join([f'`{m}`' for m in MODELS.keys()]))
+                return
+            await self.config.model.set(model)
+            quality = await self.config.quality()
+            if quality not in MODELS[model]:
+                await self.config.quality.set(MODELS[model][0] if len(MODELS[model]) else None)
+        await ctx.reply(f"The /imagine command will use the {model} model.")
+
+    @gptimage.command()
+    async def quality(self, ctx: commands.Context, quality: Optional[str]):
+        """The quality to be used with the image generation model. Careful of costs, see https://openai.com/api/pricing/"""
+        if quality is None:
+            quality = await self.config.quality()
+        else:
+            model = await self.config.model()
+            quality = quality.lower().strip()
+            qualities = MODELS.get(model, [])
+            if quality not in qualities:
+                if not qualities:
+                    await ctx.reply(f"The {model} model does not support qualities")
+                else:
+                    await ctx.reply("Quality must be one of: " + ",".join([f'`{m}`' for m in (qualities)]))
+                return
+            await self.config.quality.set(quality)
+        await ctx.reply(f"The /imagine command will use {quality} quality.")
+
+    @gptimage.command()
     async def cooldown(self, ctx: commands.Context, seconds: Optional[int]):
         """Time in seconds between when a user's generation ends and when they can start a new one."""
         if seconds is None:
             seconds = await self.config.cooldown()
         else:
             await self.config.cooldown.set(max(0, seconds))
-        await ctx.reply(f"Users will need to wait {max(0, seconds)} seconds between generations.")
+        await ctx.reply(f"Users will need to wait {max(0, seconds or 0)} seconds between generations.")
 
-    @dalleset.group(name="vip", invoke_without_command=True)
+    @gptimage.group(name="vip", invoke_without_command=True)
     async def vip(self, ctx: commands.Context):
         """Manage the VIP list which skips the cooldown."""
         await ctx.send_help()
