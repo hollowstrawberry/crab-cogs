@@ -12,7 +12,7 @@ log = logging.getLogger("red.crab-cogs.gpthink")
 
 MODELS = ["o3-mini", "o4-mini", "o3"]
 EMPTY = "ᅠ"
-FENCE_RE = re.compile(r"^```(\w)*$")
+FENCE_RE = re.compile(r"^```(\w*)\s*$")
 MAX_MESSAGE_LENGTH = 1950
 
 
