@@ -113,7 +113,7 @@ class GptThinkModal(discord.ui.Modal):
         if not result or not result.output_text:
             return await inter.followup.send(content=":warning: Sorry, there was a problem processing your prompt.")
 
-        self.cog.user_last_prompt[inter.user.id] = datetime.utcnow()
+        self.cog.user_last_prompt[inter.user.id] = datetime.now()
         
         embed = discord.Embed(
             title="Reasoning",
@@ -181,7 +181,7 @@ class GptThink(commands.Cog):
                 content = "Your current request must finish generating before you can make a new one."
                 return await inter.response.send_message(content, ephemeral=True)
             if inter.user.id in self.user_last_prompt and \
-                    (datetime.utcnow() - self.user_last_prompt[inter.user.id]).total_seconds() < cooldown:
+                    (datetime.now() - self.user_last_prompt[inter.user.id]).total_seconds() < cooldown:
                 eta = self.user_last_prompt[inter.user.id] + timedelta(seconds=cooldown)
                 content = f"You may use this command again {discord.utils.format_dt(eta, 'R')}."
                 return await inter.response.send_message(content, ephemeral=True)
