@@ -12,8 +12,8 @@ log = logging.getLogger("red.crab-cogs.gpthink")
 
 MODELS = ["o3-mini", "o4-mini", "o3"]
 EMPTY = "ᅠ"
-FENCE_RE = re.compile(r"^```(\w)\s$")
-MAX_MESSAGE_LENGTH = 1998
+FENCE_RE = re.compile(r"^```(\w)*\s*$")
+MAX_MESSAGE_LENGTH = 1950
 
 class GptThinkModal(discord.ui.Modal):
     prompt = discord.ui.TextInput(label="Prompt", custom_id="prompt", style=discord.TextStyle.long)
@@ -86,7 +86,7 @@ class GptThinkModal(discord.ui.Modal):
         def flush_chunk(closing=False):
             nonlocal current, in_code, code_lang
             if closing and in_code:
-                current += "```"  # close open fence
+                current += "```\n"  # close open fence
             if current:
                 chunks.append(current)
             # start new
@@ -119,11 +119,9 @@ class GptThinkModal(discord.ui.Modal):
             is_last = (idx == len(chunks) - 1)
             if is_last:
                 chunk += f"\n{EMPTY}"
-            else:
-                embed = discord.utils.MISSING
             await inter.followup.send(
                 content=chunk,
-                embed=embed,
+                embed=embed if is_last else discord.utils.MISSING,
                 allowed_mentions=discord.AllowedMentions.none()
             )
 
