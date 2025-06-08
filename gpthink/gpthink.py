@@ -44,7 +44,12 @@ class GptThinkModal(discord.ui.Modal):
                 ]
             )
         except APIStatusError as e:
-            return await inter.followup.send(content=f":warning: Failed to process prompt: {e.response.json()['error']['message']}")
+            try:
+                data = e.response.json()
+            except ValueError:
+                data = {}
+            msg = data.get("error",{}).get("message") or str(e)
+            return await inter.followup.send(f":warning: Failed to process prompt: {msg}", ephemeral=True)
         except APIError as e:
             return await inter.followup.send(content=f":warning: Failed to process prompt: {e.message}")
         except Exception:  # noqa, reason: user-facing error
@@ -55,7 +60,7 @@ class GptThinkModal(discord.ui.Modal):
         if not result or not result.output_text:
             return await inter.followup.send(content=":warning: Sorry, there was a problem processing your prompt.")
 
-        self.cog.user_last_prompt[inter.user.id] = datetime.now()
+        self.cog.user_last_prompt[inter.user.id] = datetime.utcnow()
         
         embed = discord.Embed(
             title="Reasoning",
@@ -64,11 +69,28 @@ class GptThinkModal(discord.ui.Modal):
         log.info(result)
         summary = [o.summary[0].text for o in result.output if o.type == "reasoning" and o.summary]
         if summary:
-            embed.description = summary[0][:4000]
+            embed.description = summary[0][:3950]
         if result.usage and result.usage.total_tokens:
             embed.add_field(name="Tokens used", value=result.usage.total_tokens)
 
-        await inter.followup.send(f"{result.output_text[:3998]}\n{EMPTY}", embed=embed)
+        first_reply = True
+        current_block = False
+        response = result.output_text
+        while len(response) > 0:
+            chunk = response[:1990]
+            response = response[1990:]
+            if chunk.count("```") % 2 == 1:
+                if current_block:
+                    chunk = "```" + chunk
+                else:
+                    chunk += "```"
+                current_block = not current_block
+            last_reply = len(response) == 0
+            if first_reply:
+                first_reply = False
+                await inter.followup.send(chunk, embed=embed if last_reply else discord.utils.MISSING, allowed_mentions=discord.AllowedMentions.none())
+            else:
+                await inter.channel.send(chunk, embed=embed if last_reply else discord.utils.MISSING, allowed_mentions=discord.AllowedMentions.none())
 
 
 class GptThink(commands.Cog):
@@ -123,7 +145,7 @@ class GptThink(commands.Cog):
                 content = "Your current request must finish generating before you can make a new one."
                 return await inter.response.send_message(content, ephemeral=True)
             if inter.user.id in self.user_last_prompt and \
-                    (datetime.now() - self.user_last_prompt[inter.user.id]).total_seconds() < cooldown:
+                    (datetime.utcnow() - self.user_last_prompt[inter.user.id]).total_seconds() < cooldown:
                 eta = self.user_last_prompt[inter.user.id] + timedelta(seconds=cooldown)
                 content = f"You may use this command again {discord.utils.format_dt(eta, 'R')}."
                 return await inter.response.send_message(content, ephemeral=True)
