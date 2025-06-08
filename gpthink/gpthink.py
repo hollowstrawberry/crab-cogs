@@ -31,29 +31,30 @@ async def chunk_and_send(inter: discord.Interaction, full_text: str, embed: disc
     in_code = False
     code_lang = ""
 
-    def flush_chunk(closing=False):
+    def flush_chunk():
         nonlocal current, in_code, code_lang
-        if closing and in_code:
+        if in_code:
             current += "```\n"  # close open fence
         if current:
             chunks.append(current)
         # start new
         current = ""
-        if closing and in_code:
+        if in_code:
+            # re-open fence with language
             current += f"```{code_lang}\n"
-
+    
     for line in lines:
         if m := FENCE_RE.match(line):
-            if not in_code:
+            if m.group(1):
                 in_code = True
                 code_lang = m.group(1)
             else:
-                in_code = False
+                in_code = not in_code
         if len(current) + len(line) > MAX_MESSAGE_LENGTH:
-            flush_chunk(closing=True)
+            flush_chunk()
         current += line
 
-    flush_chunk(closing=True)
+    flush_chunk()
 
     for idx, chunk in enumerate(chunks):
         is_last = (idx == len(chunks) - 1)
