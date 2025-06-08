@@ -12,7 +12,7 @@ log = logging.getLogger("red.crab-cogs.gpthink")
 
 MODELS = ["o3-mini", "o4-mini", "o3"]
 EMPTY = "ᅠ"
-FENCE_RE = re.compile(r"^```(\w*)\s*$")
+CODE_REGEX = re.compile(r"^```(\w*)\s*$")
 MAX_MESSAGE_LENGTH = 1950
 
 
@@ -44,7 +44,7 @@ async def chunk_and_send(inter: discord.Interaction, full_text: str, embed: disc
             current += f"```{code_lang}\n"
     
     for line in lines:
-        if m := FENCE_RE.match(line):
+        if m := CODE_REGEX.match(line):
             if m.group(1):
                 in_code = True
                 code_lang = m.group(1)
@@ -119,7 +119,7 @@ class GptThinkModal(discord.ui.Modal):
             title="Reasoning",
             color=await self.cog.bot.get_embed_color(inter.channel),
         )
-
+        log.info(result)
         summary = [o.summary[0].text for o in result.output if o.type == "reasoning" and o.summary]
         if summary:
             embed.description = summary[0][:3950]
