@@ -12,8 +12,59 @@ log = logging.getLogger("red.crab-cogs.gpthink")
 
 MODELS = ["o3-mini", "o4-mini", "o3"]
 EMPTY = "ᅠ"
-FENCE_RE = re.compile(r"^```(\w)*\s*$")
+FENCE_RE = re.compile(r"^```(\w)*$")
 MAX_MESSAGE_LENGTH = 1950
+
+
+async def chunk_and_send(inter: discord.Interaction, full_text: str, embed: discord.Embed):
+    base_lines = full_text.splitlines(keepends=True)
+    lines = []
+    for base_line in base_lines:
+        while len(base_line) > MAX_MESSAGE_LENGTH:
+            lines.append(base_line)
+            base_line = base_line[:MAX_MESSAGE_LENGTH]
+        else:
+            lines.append(base_line)
+
+    chunks = []
+    current = ""
+    in_code = False
+    code_lang = ""
+
+    def flush_chunk(closing=False):
+        nonlocal current, in_code, code_lang
+        if closing and in_code:
+            current += "```\n"  # close open fence
+        if current:
+            chunks.append(current)
+        # start new
+        current = ""
+        if closing and in_code:
+            current += f"```{code_lang}\n"
+
+    for line in lines:
+        if m := FENCE_RE.match(line):
+            if not in_code:
+                in_code = True
+                code_lang = m.group(1)
+            else:
+                in_code = False
+        if len(current) + len(line) > MAX_MESSAGE_LENGTH:
+            flush_chunk(closing=True)
+        current += line
+
+    flush_chunk(closing=True)
+
+    for idx, chunk in enumerate(chunks):
+        is_last = (idx == len(chunks) - 1)
+        if is_last:
+            chunk += f"\n{EMPTY}"
+        await inter.followup.send(
+            content=chunk,
+            embed=embed if is_last else discord.utils.MISSING,
+            allowed_mentions=discord.AllowedMentions.none()
+        )
+
 
 class GptThinkModal(discord.ui.Modal):
     prompt = discord.ui.TextInput(label="Prompt", custom_id="prompt", style=discord.TextStyle.long)
@@ -74,56 +125,7 @@ class GptThinkModal(discord.ui.Modal):
         if result.usage and result.usage.total_tokens:
             embed.add_field(name="Tokens used", value=result.usage.total_tokens)
         
-        await self.chunk_and_send(inter, result.output_text, embed)
-
-    async def chunk_and_send(self, inter: discord.Interaction, full_text: str, embed: discord.Embed):
-        lines = full_text.splitlines(keepends=True)
-        chunks = []
-        current = ""
-        in_code = False
-        code_lang = ""
-
-        def flush_chunk(closing=False):
-            nonlocal current, in_code, code_lang
-            if closing and in_code:
-                current += "```\n"  # close open fence
-            if current:
-                chunks.append(current)
-            # start new
-            current = ""
-            if closing and in_code:
-                # re-open fence with language
-                current += f"```{code_lang}\n"
-
-        for line in lines:
-            m = FENCE_RE.match(line)
-            if m:
-                # toggle code state
-                if not in_code:
-                    in_code = True
-                    code_lang = m.group(1)  # may be "```"
-                else:
-                    in_code = False
-                    # code_lang stays for thenext* possible reopening
-            # if adding this line would overflow, flush & reopen if needed
-            if len(current) + len(line) > MAX_MESSAGE_LENGTH:
-                flush_chunk(closing=True)
-            current += line
-
-        # final flush
-        flush_chunk(closing=True)
-
-        # now send all the chunks
-        first = True
-        for idx, chunk in enumerate(chunks):
-            is_last = (idx == len(chunks) - 1)
-            if is_last:
-                chunk += f"\n{EMPTY}"
-            await inter.followup.send(
-                content=chunk,
-                embed=embed if is_last else discord.utils.MISSING,
-                allowed_mentions=discord.AllowedMentions.none()
-            )
+        await chunk_and_send(inter, result.output_text, embed)
 
 
 class GptThink(commands.Cog):
