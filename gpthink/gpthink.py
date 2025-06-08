@@ -119,7 +119,7 @@ class GptThinkModal(discord.ui.Modal):
             title="Reasoning",
             color=await self.cog.bot.get_embed_color(inter.channel),
         )
-        log.info(result)
+
         summary = [o.summary[0].text for o in result.output if o.type == "reasoning" and o.summary]
         if summary:
             embed.description = summary[0][:3950]
