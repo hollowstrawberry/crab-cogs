@@ -52,7 +52,7 @@ Developer cog that opens an interactive view of your bot's console output within
 
 ### 🗣 TTS
 
-PLays text to speech in voice chat, intended as an accessibility feature. Detects the language automatically. The voice cannot be changed for now. Unfortunately will override music if it is playing.
+Plays text to speech in voice chat, intended as an accessibility feature. Detects the language automatically. The voice cannot be changed for now. Unfortunately will override music if it is playing.
 
 ### 🟫 Minecraft
 
@@ -94,15 +94,15 @@ Another feature is for the bot owner to set regex patterns that will cause the b
 
 Sends a configured message when a guild member starts playing a specific game or has been playing for some time. The purpose is to alert friends or just to be silly.
 
+### 🖼 GPTimage
+
+Connects to OpenAI's Dall-E 3 and newer models to generate images. Requires an api key and ongoing monetary cost. Configurable cooldown per user, with an option to add VIP users that skip the cooldown.
+
 ### 🖼 NovelAI
 
-Connects to this AI anime generation service to to generate images with the latest SDXL technology. Most parameters are available, as well as img2img. Requires a subscription. Connects with ImageScanner and ImageLog.
+Connects to this AI anime generation service  to generate images with novelai3. Most parameters are available, as well as img2img. Requires a subscription. Connects with ImageScanner and ImageLog.
 
 **⚠️ Usage Warning:** This cog is capable of generating NSFW content. Be mindful.
-
-### 🖼 Dalle
-
-Connects to OpenAI's Dall-E 3 to generate images. Requires an api key and ongoing monetary cost.
 
 ### 📎 ImageScanner
 
