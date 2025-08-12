@@ -178,8 +178,8 @@ class Minecraft(commands.Cog):
             file = None
         else:
             embed = discord.Embed(title=f"Minecraft Server", color=0x00FF00)
-            if status.motd:
-                embed.add_field(name="Description", value=status.motd.to_plain(), inline=False)
+            if status.description:
+                embed.add_field(name="Description", value=status.description, inline=False)
             embed.add_field(name="IP", value=ip)
             embed.add_field(name="Version", value=status.version.name)
             embed.add_field(name="Status", value="🟢 Online")
