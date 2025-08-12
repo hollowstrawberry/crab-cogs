@@ -178,14 +178,16 @@ class Minecraft(commands.Cog):
             file = None
         else:
             embed = discord.Embed(title=f"Minecraft Server", color=0x00FF00)
-            if status.motd:
+            if hasattr(status, "motd") and status.motd:
                 embed.add_field(name="Description", value=status.motd.to_plain(), inline=False)
             embed.add_field(name="IP", value=ip)
-            embed.add_field(name="Version", value=status.version.name)
+            if hasattr(status, "version") and status.version:
+                embed.add_field(name="Version", value=status.version.name)
             embed.add_field(name="Status", value="🟢 Online")
-            embed.add_field(name=f"Players ({status.players.online}/{status.players.max})",
-                            value="\n" + ", ".join([p.name for p in status.players.sample]) if status.players.online else "*None*")
-            if status.icon:
+            if hasattr(status, "players") and status.players:
+                embed.add_field(name=f"Players ({status.players.online}/{status.players.max})",
+                                value="\n" + ", ".join([p.name for p in status.players.sample]) if status.players.online else "*None*")
+            if hasattr(status, "icon") and status.icon:
                 b = io.BytesIO(base64.b64decode(status.icon.removeprefix("data:image/png;base64,")))
                 filename = "server.png"
                 file = discord.File(b, filename=filename)
