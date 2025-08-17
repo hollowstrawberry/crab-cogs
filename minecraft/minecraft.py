@@ -140,7 +140,7 @@ class Minecraft(commands.Cog):
             async with self.clients[ctx.guild.id] as client:
                 await client.send_cmd("help")
         except (RCONConnectionError, TimeoutError) as error:
-            await ctx.send((error or "Could not connect to the server.") +
+            await ctx.send((str(error) or "Could not connect to the server.") +
                            "\nMake sure your server is online and your values are correct, and that the RCON port is open to the public.")
         except IncorrectPasswordError:
             await ctx.send("Incorrect password.")
