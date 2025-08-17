@@ -92,7 +92,10 @@ class ImageScanner(commands.Cog):
             return {}
         metadata, image_bytes = {}, {}
         await utils.read_attachment_metadata(0, message.attachments[0], metadata, image_bytes)
-        return utils.get_params_from_string(metadata[0])
+        if metadata:
+            return utils.get_params_from_string(metadata[0])
+        else:
+            return {}
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
