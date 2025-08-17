@@ -83,7 +83,17 @@ class ImageScanner(commands.Cog):
     @staticmethod
     def convert_novelai_info(img_info: dict):  # used by novelai cog
         return utils.convert_novelai_info(img_info)
-
+    
+    async def grab_metadata_dict(self, message: discord.Message): # used by gptmemory from holo-cogs
+        assert self.image_cache is not None
+        if message.id in self.image_cache:
+            metadata, image_bytes = self.image_cache[message.id]
+        elif not message.attachments:
+            return {}
+        else:
+            metadata, image_bytes = {}, {}
+            await utils.read_attachment_metadata(0, message.attachments[0], metadata, image_bytes)
+        return utils.get_params_from_string(metadata[0])
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
