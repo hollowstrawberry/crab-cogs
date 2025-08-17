@@ -90,9 +90,8 @@ class ImageScanner(commands.Cog):
             metadata, image_bytes = self.image_cache[message.id]
         elif not message.attachments:
             return {}
-        else:
-            metadata, image_bytes = {}, {}
-            await utils.read_attachment_metadata(0, message.attachments[0], metadata, image_bytes)
+        metadata, image_bytes = {}, {}
+        await utils.read_attachment_metadata(0, message.attachments[0], metadata, image_bytes)
         return utils.get_params_from_string(metadata[0])
 
     @commands.Cog.listener()
