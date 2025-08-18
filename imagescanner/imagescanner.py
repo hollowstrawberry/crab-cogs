@@ -83,7 +83,26 @@ class ImageScanner(commands.Cog):
     @staticmethod
     def convert_novelai_info(img_info: dict):  # used by novelai cog
         return utils.convert_novelai_info(img_info)
+    
+    async def grab_metadata_dict(self, message: discord.Message): # used by gptmemory from holo-cogs
+        assert self.image_cache is not None
+        
+        if message.id in self.image_cache:
+            metadata, image_bytes = self.image_cache[message.id]
+        elif not message.attachments:
+            return {}
+        else:
+            metadata, image_bytes = {}, {}
+            tasks = [utils.read_attachment_metadata(i, attachment, metadata, image_bytes)
+                    for i, attachment in enumerate(message.attachments)]
+            await asyncio.gather(*tasks)
+            if metadata and self.image_cache_size > 0:
+                self.image_cache[message.id] = (metadata, image_bytes)
 
+        if metadata:
+            return utils.get_params_from_string(metadata[0])
+        else:
+            return {}
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -146,6 +165,8 @@ class ImageScanner(commands.Cog):
             tasks = [utils.read_attachment_metadata(i, attachment, metadata, image_bytes)
                      for i, attachment in enumerate(attachments)]
             await asyncio.gather(*tasks)
+            if self.image_cache_size > 0:
+                self.image_cache[message.id] = (metadata, image_bytes)
 
         if not metadata:
             embed = utils.get_embed({}, message.author)
