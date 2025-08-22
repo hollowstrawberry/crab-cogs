@@ -230,7 +230,7 @@ class ImageScanner(commands.Cog):
 
         for i, data in sorted(metadata.items()):
             embed = await self.prepare_embed(message, data, i)
-            view = ImageView(data, embed)
+            view = ImageView(data, embed, ephemeral=False)
             if self.attach_images and i in image_bytes:
                 img = io.BytesIO(image_bytes[i])
                 filename = md5(image_bytes[i]).hexdigest() + ".png"
@@ -277,7 +277,7 @@ class ImageScanner(commands.Cog):
         if len(metadata) == 1: # send interactive embed
             for i, data in metadata.items():
                 embed = await self.prepare_embed(message, data, i)
-                view = ImageView(data, embed)
+                view = ImageView(data, embed, ephemeral=True)
                 msg = await ctx.response.send_message(embed=embed, view=view, ephemeral=True)
                 view.message = msg
         else: # send raw metadata
