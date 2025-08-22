@@ -15,7 +15,7 @@ class ImageView(View):
         self.ephemeral = ephemeral
         self.message: Optional[discord.Message] = None
 
-    @discord.ui.button(emoji="🔧", label='View Full Parameters', style=discord.ButtonStyle.grey) # type: ignore
+    @discord.ui.button(emoji="🔧", label='View Full Parameters', style=discord.ButtonStyle.blurple) # type: ignore
     async def view_full_parameters(self, ctx: discord.Interaction, _: discord.Button):
         self.pressed = True
         self.stop()
