@@ -103,6 +103,56 @@ class ImageScanner(commands.Cog):
             return utils.get_params_from_string(metadata[0])
         else:
             return {}
+        
+    async def prepare_embed(self, message: discord.Message, metadata: str, i: int) -> discord.Embed:
+        assert isinstance(message.author, discord.Member)
+        params = utils.get_params_from_string(metadata)
+        embed = utils.get_embed(params, message.author)
+        embed.description = message.jump_url if self.civitai_emoji else f":arrow_right: {message.jump_url}"
+        if i > 0:
+            embed.title = (embed.title or "") + f" ({i+1}/{len(metadata)})"
+
+        if self.use_civitai:
+            desc_ext = []
+            if "Model hash" in params:
+                link = await self.grab_civitai_model_link(params["Model hash"])
+                if link:
+                    desc_ext.append(f"[{params['Model']}]({link})" if "Model" in params else f"[Model]({link})")
+                    utils.remove_field(embed, "Model hash")
+            utils.remove_field(embed, "VAE hash") #  vae hashes seem to be bugged in automatic1111 webui
+            if params.get("Lora hashes"):
+                hashes = PARAM_REGEX.findall(params["Lora hashes"].strip('"')+",") # trailing comma for the regex
+                log.info(hashes)
+                links = {name: await self.grab_civitai_model_link(short_hash)
+                            for name, short_hash in hashes}
+                for name, link in links.items():
+                    if link:
+                        desc_ext.append(f"[{name}]({link})")
+            if desc_ext:
+                embed.description += f"\n{self.civitai_emoji} " if self.civitai_emoji else "\n🔗 **Civitai:** "
+                embed.description += " • ".join(desc_ext)
+
+        if self.use_arcenciel:
+            desc_ext = []
+            if "Model hash" in params:
+                link = await self.grab_arcenciel_model_link(params["Model hash"])
+                if link:
+                    desc_ext.append(f"[{params['Model']}]({link})" if "Model" in params else f"[Model]({link})")
+                    utils.remove_field(embed, "Model hash")
+            utils.remove_field(embed, "VAE hash") #  vae hashes seem to be bugged in automatic1111 webui
+            if params.get("Lora hashes"):
+                hashes = PARAM_REGEX.findall(params["Lora hashes"].strip('"')+",") # trailing comma for the regex
+                log.info(hashes)
+                links = {name: await self.grab_arcenciel_model_link(short_hash)
+                            for name, short_hash in hashes}
+                for name, link in links.items():
+                    if link:
+                        desc_ext.append(f"[{name}]({link})")
+            if desc_ext:
+                embed.description += f"\n{self.arcenciel_emoji} " if self.arcenciel_emoji else "\n🔗 **AEC:** "
+                embed.description += " • ".join(desc_ext)
+
+        return embed
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -179,53 +229,8 @@ class ImageScanner(commands.Cog):
             return
 
         for i, data in sorted(metadata.items()):
-            params = utils.get_params_from_string(data)
-            embed = utils.get_embed(params, message.author)
-            embed.description = message.jump_url if self.civitai_emoji else f":arrow_right: {message.jump_url}"
-            if len(metadata) > 1:
-                embed.title = (embed.title or "") + f" ({i+1}/{len(metadata)})"
-
-            if self.use_civitai:
-                desc_ext = []
-                if "Model hash" in params:
-                    link = await self.grab_civitai_model_link(params["Model hash"])
-                    if link:
-                        desc_ext.append(f"[{params['Model']}]({link})" if "Model" in params else f"[Model]({link})")
-                        utils.remove_field(embed, "Model hash")
-                utils.remove_field(embed, "VAE hash") #  vae hashes seem to be bugged in automatic1111 webui
-                if params.get("Lora hashes"):
-                    hashes = PARAM_REGEX.findall(params["Lora hashes"].strip('"')+",") # trailing comma for the regex
-                    log.info(hashes)
-                    links = {name: await self.grab_civitai_model_link(short_hash)
-                                for name, short_hash in hashes}
-                    for name, link in links.items():
-                        if link:
-                            desc_ext.append(f"[{name}]({link})")
-                if desc_ext:
-                    embed.description += f"\n{self.civitai_emoji} " if self.civitai_emoji else "\n🔗 **Civitai:** "
-                    embed.description += " • ".join(desc_ext)
-
-            if self.use_arcenciel:
-                desc_ext = []
-                if "Model hash" in params:
-                    link = await self.grab_arcenciel_model_link(params["Model hash"])
-                    if link:
-                        desc_ext.append(f"[{params['Model']}]({link})" if "Model" in params else f"[Model]({link})")
-                        utils.remove_field(embed, "Model hash")
-                utils.remove_field(embed, "VAE hash") #  vae hashes seem to be bugged in automatic1111 webui
-                if params.get("Lora hashes"):
-                    hashes = PARAM_REGEX.findall(params["Lora hashes"].strip('"')+",") # trailing comma for the regex
-                    log.info(hashes)
-                    links = {name: await self.grab_arcenciel_model_link(short_hash)
-                                for name, short_hash in hashes}
-                    for name, link in links.items():
-                        if link:
-                            desc_ext.append(f"[{name}]({link})")
-                if desc_ext:
-                    embed.description += f"\n{self.arcenciel_emoji} " if self.arcenciel_emoji else "\n🔗 **AEC:** "
-                    embed.description += " • ".join(desc_ext)
-
-            view = ImageView(data, embed)
+            embed = await self.prepare_embed(message, data, i)
+            view = ImageView(data, embed, ephemeral=False)
             if self.attach_images and i in image_bytes:
                 img = io.BytesIO(image_bytes[i])
                 filename = md5(image_bytes[i]).hexdigest() + ".png"
@@ -261,20 +266,29 @@ class ImageScanner(commands.Cog):
             tasks = [utils.read_attachment_metadata(i, attachment, metadata, image_bytes)
                      for i, attachment in enumerate(attachments)]
             await asyncio.gather(*tasks)
+
         if not metadata:
             metadata = {}  # Don't overwrite the cache in an edge case
             for i, att in enumerate(attachments):
                 size_kb, size_mb = round(att.size / 1024), round(att.size / 1024**2, 2)
                 metadata[i] = f"Filename: {att.filename}, Dimensions: {att.width}x{att.height}, " \
                               f"Filesize: " + (f"{size_mb} MB" if size_mb >= 1.0 else f"{size_kb} KB")
-        response = "\n\n".join([data for i, data in sorted(metadata.items())]).strip(", \n")
-        if len(response) < 1980:
-            await ctx.response.send_message(f"```yaml\n{response}```", ephemeral=True)
-        else:
-            with io.StringIO() as fp:
-                fp.write(response)
-                fp.seek(0)
-                await ctx.response.send_message(file=discord.File(fp, "parameters.yaml"), ephemeral=True)  # type: ignore
+
+        if len(metadata) == 1: # send interactive embed
+            for i, data in metadata.items():
+                embed = await self.prepare_embed(message, data, i)
+                view = ImageView(data, embed, ephemeral=True)
+                msg = await ctx.response.send_message(embed=embed, view=view, ephemeral=True)
+                view.message = msg
+        else: # send raw metadata
+            response = "\n\n".join([data for i, data in sorted(metadata.items())]).strip(", \n")
+            if len(response) < 1980:
+                await ctx.response.send_message(f"```yaml\n{response}```", ephemeral=True)
+            else:
+                with io.StringIO() as fp:
+                    fp.write(response)
+                    fp.seek(0)
+                    await ctx.response.send_message(file=discord.File(fp, "parameters.yaml"), ephemeral=True)  # type: ignore
 
 
     async def grab_civitai_model_link(self, short_hash: str) -> Optional[str]:
