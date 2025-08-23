@@ -100,7 +100,7 @@ async def read_attachment_metadata(i: int, attachment: discord.Attachment, metad
         del img
         b.seek(0)
         image_metadata = ImageDataReader(b)
-    except (discord.DiscordException, PIL.Image.UnidentifiedImageError):
+    except Exception: # previously (discord.DiscordException, PIL.Image.UnidentifiedImageError, PIL.Image.DecompressionBombError, SyntaxError)
         log.exception("Processing attachment")
         return
     metadata_str = convert_metadata(image_metadata)
