@@ -27,8 +27,14 @@ class ImageView(View):
                 f.seek(0)
                 await ctx.response.send_message(file=discord.File(f, "parameters.yaml"), ephemeral=self.ephemeral)  # type: ignore
         if ctx.message:
-            await ctx.message.edit(view=None, embed=self.embed)
+            try:
+                await ctx.message.edit(view=None, embed=self.embed)
+            except discord.NotFound:
+                pass
 
     async def on_timeout(self) -> None:
         if self.message and not self.pressed:
-            await self.message.edit(view=None, embed=self.embed)
+            try:
+                await self.message.edit(view=None, embed=self.embed)
+            except discord.NotFound:
+                pass
