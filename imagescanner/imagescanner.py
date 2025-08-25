@@ -277,9 +277,8 @@ class ImageScanner(commands.Cog):
         if len(metadata) == 1: # send interactive embed
             for i, data in metadata.items():
                 embed = await self.prepare_embed(message, data, i)
-                view = ImageView(data, embed, ephemeral=True)
-                msg = await ctx.response.send_message(embed=embed, view=view, ephemeral=True)
-                view.message = msg
+                view = ImageView(data, embed, ephemeral=True, edit_func=ctx.response.edit_message)
+                await ctx.response.send_message(embed=embed, view=view, ephemeral=True)
         else: # send raw metadata
             response = "\n\n".join([data for i, data in sorted(metadata.items())]).strip(", \n")
             if len(response) < 1980:

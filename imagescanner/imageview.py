@@ -1,19 +1,20 @@
 import io
 import discord
 from discord.ui import View
-from typing import Optional
+from typing import Callable, Optional
 
 from imagescanner.constants import VIEW_TIMEOUT
 
 
 class ImageView(View):
-    def __init__(self, params: str, embed: discord.Embed, ephemeral: bool):
+    def __init__(self, params: str, embed: discord.Embed, ephemeral: bool, edit_func: Callable = None):
         super().__init__(timeout=VIEW_TIMEOUT)
         self.params = params.strip(", \n")
         self.embed = embed
         self.pressed = False
         self.ephemeral = ephemeral
         self.message: Optional[discord.Message] = None
+        self.edit_func = edit_func
 
     @discord.ui.button(emoji="🔧", label='View Full Parameters', style=discord.ButtonStyle.blurple) # type: ignore
     async def view_full_parameters(self, ctx: discord.Interaction, _: discord.Button):
@@ -28,7 +29,11 @@ class ImageView(View):
                 await ctx.response.send_message(file=discord.File(f, "parameters.yaml"), ephemeral=self.ephemeral)  # type: ignore
         if ctx.message:
             await ctx.message.edit(view=None, embed=self.embed)
+        elif self.edit_func:
+            await self.edit_func(view=None, embed=self.embed)
 
     async def on_timeout(self) -> None:
         if self.message and not self.pressed:
             await self.message.edit(view=None, embed=self.embed)
+        elif self.edit_func:
+            await self.edit_func(view=None, embed=self.embed)
