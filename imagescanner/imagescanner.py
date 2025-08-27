@@ -305,7 +305,7 @@ class ImageScanner(commands.Cog):
                         resp.raise_for_status()
                         data = await resp.json()
             except aiohttp.ClientError as error:
-                log.warning("Trying to grab model from Civitai", error.__qualname__)
+                log.warning("Trying to grab model from Civitai", error)
                 return None
 
             if not data or "modelId" not in data:
@@ -334,7 +334,7 @@ class ImageScanner(commands.Cog):
                         resp.raise_for_status()
                         data = await resp.json()
             except aiohttp.ClientError as error:
-                log.warning("Trying to grab model from Civitai", error.__qualname__)
+                log.warning("Trying to grab model from Civitai", error)
                 return None
 
             if not data or not data.get("data") or "id" not in data["data"][0]:
