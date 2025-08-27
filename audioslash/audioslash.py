@@ -31,7 +31,7 @@ DOWNLOAD_CONFIG = {
 }
 DOWNLOAD_FOLDER = "backup"
 YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch\?v=|youtu.be/)([\w\-]+)")
-MAX_VIDEO_LENGTH = 1000
+MAX_VIDEO_LENGTH = 2000
 
 MAX_OPTIONS = 25
 MAX_OPTION_SIZE = 100
