@@ -15,6 +15,7 @@ PARAMS_BLACKLIST = [
     "Template", "Version",
     "ADetailer confidence", "ADetailer mask", "ADetailer dilate", "ADetailer denoising",
     "ADetailer inpaint", "ADetailer version", "ADetailer prompt", "ADetailer use", "ADetailer checkpoint",
+    "ADetailer sampler", "ADetailer scheduler",
     "RP Divide", "RP Ma", "RP Prompt", "RP Calc", "RP Ratio", "RP Base", "RP Use", "RP LoRA", "RP Options", "RP Flip", "RP threshold",
     "FreeU Stages", "FreeU Schedule",
     "Mimic", "Separate Feature Channels", "Scaling Startpoint", "Variability Measure",  # Dynamic thresholding
