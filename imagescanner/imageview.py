@@ -32,8 +32,9 @@ class ImageView(View):
             self.add_item(self.button_right)
 
     async def view_full_parameters(self, interaction: discord.Interaction):
-        self.pressed = True
-        self.stop()
+        if len(self.embeds) == 1:
+            self.pressed = True
+            self.stop()
         if len(self.params) < 1980:
             await interaction.response.send_message(f"```yaml\n{self.params}```", ephemeral=self.ephemeral)
         else:

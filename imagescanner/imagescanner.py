@@ -279,8 +279,8 @@ class ImageScanner(commands.Cog):
                 metadata[i] = f"Filename: {att.filename}, Dimensions: {att.width}x{att.height}, " \
                               f"Filesize: " + (f"{size_mb} MB" if size_mb >= 1.0 else f"{size_kb} KB")
 
-        metadata_sorted = sorted(metadata.items(), key=lambda m: m[0])
         embeds = []
+        metadata_sorted = sorted(metadata.items(), key=lambda m: m[0])
         for i, data in metadata_sorted:
             embed = await self.prepare_embed(message, data, i, len(metadata))
             embed.set_thumbnail(url=attachments[i].url or attachments[i].proxy_url or None)
