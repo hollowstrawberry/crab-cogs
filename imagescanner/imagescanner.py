@@ -105,13 +105,13 @@ class ImageScanner(commands.Cog):
             return {}
         
 
-    async def prepare_embed(self, message: discord.Message, metadata: str, i: int) -> discord.Embed:
+    async def prepare_embed(self, message: discord.Message, metadata: str, i: int, total=1) -> discord.Embed:
         assert isinstance(message.author, discord.Member)
         params = utils.get_params_from_string(metadata)
         embed = utils.get_embed(params, message.author)
         embed.description = message.jump_url if self.civitai_emoji else f":arrow_right: {message.jump_url}"
         if i > 0:
-            embed.title = (embed.title or "") + f" ({i+1}/{len(metadata)})"
+            embed.title = (embed.title or "") + (f" ({i+1}/{total})" if total > 1 else "")
 
         if self.use_civitai:
             desc_ext = []
@@ -231,7 +231,7 @@ class ImageScanner(commands.Cog):
             return
 
         for i, data in sorted(metadata.items()):
-            embed = await self.prepare_embed(message, data, i)
+            embed = await self.prepare_embed(message, data, i, len(metadata))
             view = ImageView(data, [embed], ephemeral=False)
             if self.attach_images and i in image_bytes:
                 img = io.BytesIO(image_bytes[i])
@@ -279,9 +279,10 @@ class ImageScanner(commands.Cog):
                 metadata[i] = f"Filename: {att.filename}, Dimensions: {att.width}x{att.height}, " \
                               f"Filesize: " + (f"{size_mb} MB" if size_mb >= 1.0 else f"{size_kb} KB")
 
+        metadata_sorted = sorted(metadata.items(), key=lambda m: m[0])
         embeds = []
-        for i, data in metadata.items():
-            embed = await self.prepare_embed(message, data, i)
+        for i, data in metadata_sorted:
+            embed = await self.prepare_embed(message, data, i, len(metadata))
             embed.set_thumbnail(url=attachments[i].url or attachments[i].proxy_url or None)
             embeds.append(embed)
         params = "\n\n".join(metadata.values())
