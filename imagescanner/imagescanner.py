@@ -231,7 +231,7 @@ class ImageScanner(commands.Cog):
             return
 
         for i, data in sorted(metadata.items()):
-            embed = await self.prepare_embed(message, data, i, len(metadata))
+            embed = await self.prepare_embed(message, data, i, len(attachments))
             view = ImageView(data, [embed], ephemeral=False)
             if self.attach_images and i in image_bytes:
                 img = io.BytesIO(image_bytes[i])
@@ -282,7 +282,7 @@ class ImageScanner(commands.Cog):
         embeds = []
         metadata_sorted = sorted(metadata.items(), key=lambda m: m[0])
         for i, data in metadata_sorted:
-            embed = await self.prepare_embed(message, data, i, len(metadata))
+            embed = await self.prepare_embed(message, data, i, len(attachments))
             embed.set_thumbnail(url=attachments[i].url or attachments[i].proxy_url or None)
             embeds.append(embed)
         params = "\n\n".join(metadata.values())
