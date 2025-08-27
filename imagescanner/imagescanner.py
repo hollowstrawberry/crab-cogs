@@ -53,7 +53,7 @@ class ImageScanner(commands.Cog):
             "always_scan_generated_images": self.always_scan_generated_images
         }
         self.config.register_global(**defaults)
-        self.context_menu = app_commands.ContextMenu(name="Image Info", callback=self.scanimage)
+        self.context_menu = app_commands.ContextMenu(name="Image Info", callback=self.scanimage_app)
         self.bot.tree.add_command(self.context_menu)
 
     async def cog_load(self):
@@ -104,13 +104,14 @@ class ImageScanner(commands.Cog):
         else:
             return {}
         
-    async def prepare_embed(self, message: discord.Message, metadata: str, i: int) -> discord.Embed:
+
+    async def prepare_embed(self, message: discord.Message, metadata: str, i: int, total=1) -> discord.Embed:
         assert isinstance(message.author, discord.Member)
         params = utils.get_params_from_string(metadata)
         embed = utils.get_embed(params, message.author)
         embed.description = message.jump_url if self.civitai_emoji else f":arrow_right: {message.jump_url}"
-        if i > 0:
-            embed.title = (embed.title or "") + f" ({i+1}/{len(metadata)})"
+        if total > 1:
+            embed.title = f"{embed.title or ''} ({i+1}/{total})"
 
         if self.use_civitai:
             desc_ext = []
@@ -153,6 +154,7 @@ class ImageScanner(commands.Cog):
                 embed.description += " • ".join(desc_ext)
 
         return embed
+
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -229,8 +231,8 @@ class ImageScanner(commands.Cog):
             return
 
         for i, data in sorted(metadata.items()):
-            embed = await self.prepare_embed(message, data, i)
-            view = ImageView(data, embed, ephemeral=False)
+            embed = await self.prepare_embed(message, data, i, len(attachments))
+            view = ImageView(data, [embed], ephemeral=False)
             if self.attach_images and i in image_bytes:
                 img = io.BytesIO(image_bytes[i])
                 filename = md5(image_bytes[i]).hexdigest() + ".png"
@@ -252,13 +254,16 @@ class ImageScanner(commands.Cog):
 
 
     # context menu set in __init__
-    async def scanimage(self, ctx: discord.Interaction, message: discord.Message):
+    async def scanimage_app(self, interaction: discord.Interaction, message: discord.Message):
         """Get image metadata"""
         assert self.image_cache
-        attachments = [a for a in message.attachments if a.filename.lower().endswith(IMAGE_TYPES)]
+        attachments = [a for a in message.attachments if a.filename.lower().endswith(tuple(SUPPORTED_FORMATS))]
         if not attachments:
-            await ctx.response.send_message("This post contains no images.", ephemeral=True)
+            await interaction.response.send_message("This post contains no images.", ephemeral=True)
             return
+        
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
         if message.id in self.image_cache:
             metadata, image_bytes = self.image_cache[message.id]
         else:
@@ -274,21 +279,16 @@ class ImageScanner(commands.Cog):
                 metadata[i] = f"Filename: {att.filename}, Dimensions: {att.width}x{att.height}, " \
                               f"Filesize: " + (f"{size_mb} MB" if size_mb >= 1.0 else f"{size_kb} KB")
 
-        if len(metadata) == 1: # send interactive embed
-            for i, data in metadata.items():
-                embed = await self.prepare_embed(message, data, i)
-                view = ImageView(data, embed, ephemeral=True)
-                msg = await ctx.response.send_message(embed=embed, view=view, ephemeral=True)
-                view.message = msg
-        else: # send raw metadata
-            response = "\n\n".join([data for i, data in sorted(metadata.items())]).strip(", \n")
-            if len(response) < 1980:
-                await ctx.response.send_message(f"```yaml\n{response}```", ephemeral=True)
-            else:
-                with io.StringIO() as fp:
-                    fp.write(response)
-                    fp.seek(0)
-                    await ctx.response.send_message(file=discord.File(fp, "parameters.yaml"), ephemeral=True)  # type: ignore
+        embeds = []
+        metadata_sorted = sorted(metadata.items(), key=lambda m: m[0])
+        for i, data in metadata_sorted:
+            embed = await self.prepare_embed(message, data, i, len(attachments))
+            embed.set_thumbnail(url=attachments[i].url or attachments[i].proxy_url or None)
+            embeds.append(embed)
+        params = "\n\n".join(metadata.values())
+        view = ImageView(params, embeds, ephemeral=True)
+
+        await interaction.followup.send(embed=embeds[0], view=view)
 
 
     async def grab_civitai_model_link(self, short_hash: str) -> Optional[str]:
@@ -305,8 +305,8 @@ class ImageScanner(commands.Cog):
                     async with session.get(url) as resp:
                         resp.raise_for_status()
                         data = await resp.json()
-            except aiohttp.ClientError:
-                log.exception("Trying to grab model from Civitai")
+            except aiohttp.ClientError as error:
+                log.warning("Trying to grab model from Civitai", error)
                 return None
 
             if not data or "modelId" not in data:
@@ -334,8 +334,8 @@ class ImageScanner(commands.Cog):
                     async with session.get(url) as resp:
                         resp.raise_for_status()
                         data = await resp.json()
-            except aiohttp.ClientError:
-                log.exception("Trying to grab model from Arc en Ciel")
+            except aiohttp.ClientError as error:
+                log.warning("Trying to grab model from Civitai", error)
                 return None
 
             if not data or not data.get("data") or "id" not in data["data"][0]:
