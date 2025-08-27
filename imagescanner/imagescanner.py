@@ -110,8 +110,8 @@ class ImageScanner(commands.Cog):
         params = utils.get_params_from_string(metadata)
         embed = utils.get_embed(params, message.author)
         embed.description = message.jump_url if self.civitai_emoji else f":arrow_right: {message.jump_url}"
-        if i > 0:
-            embed.title = (embed.title or "") + (f" ({i+1}/{total})" if total > 1 else "")
+        if total > 1:
+            embed.title = f"{embed.title or ''} ({i+1}/{total})"
 
         if self.use_civitai:
             desc_ext = []
