@@ -1,7 +1,7 @@
+import random
 import discord
 from enum import Enum
-from random import randint
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from datetime import datetime
 from minigames.minigame import Minigame
 from minigames.board import Board, find_lines, try_complete_line
@@ -57,7 +57,7 @@ class TicTacToeGame(Minigame):
     def do_turn_ai(self):
         target = try_complete_line(self.board, self.current, 3) \
                  or try_complete_line(self.board, self.opponent(), 3) \
-                 or (randint(0, 3), randint(0, 3))
+                 or self.get_random_unoccupied()
         self.do_turn(self.member(self.current), target[1]*3 + target[0])
 
     def is_finished(self) -> bool:
@@ -73,6 +73,16 @@ class TicTacToeGame(Minigame):
     
     def opponent(self) -> Player:
         return Player.CIRCLE if self.current == Player.CROSS else Player.CROSS
+    
+    def get_random_unoccupied(self) -> Tuple[int, int]:
+        empty_slots = []
+        for y in range(3):
+            for x in range(3):
+                if self.board[x, y] == Player.NONE:
+                    empty_slots.append((x, y))
+        if not empty_slots:
+            raise ValueError("No empty slots")
+        return random.choice(empty_slots)
     
     def get_content(self) -> Optional[str]:
         if not self.accepted:
@@ -126,6 +136,7 @@ class TicTacToeGame(Minigame):
                 )
 
                 async def callback(interaction: discord.Interaction):
+                    nonlocal i
                     assert isinstance(interaction.user, discord.Member)
                     if interaction.user not in self.players:
                         return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
