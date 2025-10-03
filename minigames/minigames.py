@@ -7,7 +7,7 @@ from minigames.minigame import Minigame
 from minigames.replace_view import ReplaceView
 from minigames.tictactoe import TicTacToeGame
 
-TIME_LIMIT = 5
+TIME_LIMIT = 0
 
 
 class Minigames(commands.Cog):
@@ -24,6 +24,9 @@ class Minigames(commands.Cog):
     @commands.hybrid_command(name="tictactoe", aliases=["ttt"])
     @commands.guild_only()
     async def tictactoe(self, ctx: commands.Context, opponent: Optional[discord.Member] = None):
+        """
+        Play a game of Tic-Tac-Toe against the bot or another user.
+        """
         assert ctx.guild and isinstance(ctx.author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
         opponent = opponent or ctx.guild.me
         players = [ctx.author, opponent] if opponent.bot else [opponent, ctx.author]

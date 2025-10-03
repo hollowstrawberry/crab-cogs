@@ -15,8 +15,8 @@ EMOJIS = {
     1: "⭕",
 }
 IMAGES = {
-    0: "https://discord.com/assets/4f584fe7b12fcf02.svg",
-    1: "https://discord.com/assets/a46f925a29200ec9.svg",
+    0: "https://raw.githubusercontent.com/hollowstrawberry/Pac-Man-Bot/refs/heads/master/_Resources/Emotes/TTTx.png",
+    1: "https://raw.githubusercontent.com/hollowstrawberry/Pac-Man-Bot/refs/heads/master/_Resources/Emotes/TTTo.png",
 }
 COLOR = 0xDD2E44
 
@@ -64,7 +64,7 @@ class TicTacToeGame(Minigame):
         self.do_turn(self.member(self.current), target[1]*3 + target[0])
 
     def is_finished(self) -> bool:
-        return self.winner != Player.NONE and any(slot == Player.NONE for slot in self.board._data)
+        return self.winner != Player.NONE
 
     def check_win(self) -> bool:
         return find_lines(self.board, self.current, 3)
@@ -89,12 +89,12 @@ class TicTacToeGame(Minigame):
     
     def get_content(self) -> Optional[str]:
         if not self.accepted:
-            f"{self.players[0].mention} you've been invited to play Tic-Tac-Toe!"
+            return f"{self.players[0].mention} you've been invited to play Tic-Tac-Toe!"
         else:
             return None
 
     def get_embed(self) -> discord.Embed:
-        title = "Pending invitation..." if not self.accepted \
+        title = "Tic-Tac-Toe: Pending invitation..." if not self.accepted \
                 else f"{self.member(self.current).display_name}'s turn" if self.winner == Player.NONE \
                 else "It's a tie!" if self.winner == Player.TIE \
                 else f"{self.member(self.current).display_name} is the winner!"
@@ -102,13 +102,13 @@ class TicTacToeGame(Minigame):
         for i, player in enumerate(self.players):
             if self.winner.value == i:
                 description += "👑 "
-            elif self.winner.value == Player.NONE and self.current.value == i:
+            elif self.winner.value == Player.NONE and self.current.value == i and self.accepted:
                 description += "➡️ "
             description += f"{EMOJIS[i]} - {player.mention}\n"
         embed = discord.Embed(title=title, description=description, color=COLOR)
         if self.is_finished():
             embed.set_thumbnail(url=self.member(self.current).display_avatar.url)
-        elif self.current.value >= 0:
+        elif self.current.value >= 0 and self.accepted:
             embed.set_thumbnail(url=IMAGES[self.current.value])
         return embed
 
@@ -120,7 +120,7 @@ class TicTacToeGame(Minigame):
 
             async def accept(interaction: discord.Interaction):
                 if interaction.user != self.players[0]:
-                    return await interaction.response.send_message("You're not invited to this game!", ephemeral=True)
+                    return await interaction.response.send_message("You're not the target of this invitation!", ephemeral=True)
                 self.accepted = True
                 await interaction.response.edit_message(content=self.get_content(), embed=self.get_embed(), view=self.get_view())
 

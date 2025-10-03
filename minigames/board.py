@@ -77,14 +77,14 @@ def find_lines(board: Board, value: Any, length: int, result: Optional[List[Pos]
     return win
 
 
-def try_complete_line(board: Board, value: Any, placeholder: Any, length: int) -> Optional[Pos]:
+def try_complete_line(board: Board, value: Any, empty: Any, length: int) -> Optional[Pos]:
     # Horizontals
     for y in range(board.height):
         count, missing = 0, None
         for x in range(board.width):
             if board[x, y] == value:
                 count += 1
-            elif board[x, y] is placeholder:
+            elif board[x, y] is empty:
                 missing = (x, y)
             if count == length - 1 and missing is not None:
                 return missing
@@ -95,7 +95,7 @@ def try_complete_line(board: Board, value: Any, placeholder: Any, length: int) -
         for y in range(board.height):
             if board[x, y] == value:
                 count += 1
-            elif board[x, y] is placeholder:
+            elif board[x, y] is empty:
                 missing = (x, y)
             if count == length - 1 and missing is not None:
                 return missing
@@ -108,7 +108,7 @@ def try_complete_line(board: Board, value: Any, placeholder: Any, length: int) -
             if 0 <= x < board.width:
                 if board[x, y] == value:
                     count += 1
-                elif board[x, y] is placeholder:
+                elif board[x, y] is empty:
                     missing = (x, y)
                 if count == length - 1 and missing is not None:
                     return missing
@@ -121,7 +121,7 @@ def try_complete_line(board: Board, value: Any, placeholder: Any, length: int) -
             if 0 <= x < board.width:
                 if board[x, y] == value:
                     count += 1
-                elif board[x, y] is placeholder:
+                elif board[x, y] is empty:
                     missing = (x, y)
                 if count == length - 1 and missing is not None:
                     return missing
