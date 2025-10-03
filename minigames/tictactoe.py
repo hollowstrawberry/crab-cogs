@@ -116,7 +116,7 @@ class TicTacToeGame(Minigame):
 
         else:
             for i in range(9):
-                slot: Player = self.board._data[i].value # type: ignore
+                slot: Player = self.board._data[i] # type: ignore
                 button = discord.ui.Button(
                     emoji=EMOJIS[slot.value],
                     disabled=slot==Player.NONE,
