@@ -58,14 +58,9 @@ class TicTacToeGame(Minigame):
             self.current = self.opponent()
 
     def do_turn_ai(self):
-        target = try_complete_line(self.board, self.current, Player.NONE, 3)
-        log.info(f"complete line {self.current} gave {target}")
-        if not target:
-            target = try_complete_line(self.board, self.opponent(), Player.NONE, 3)
-            log.info(f"complete line {self.opponent()} gave {target}")
-        if not target:
-            target =self.get_random_unoccupied()
-            log.info(f"random gave {target}")
+        target = try_complete_line(self.board, self.current, Player.NONE, 3) \
+            or try_complete_line(self.board, self.opponent(), Player.NONE, 3) \
+            or self.get_random_unoccupied()
         self.do_turn(self.member(self.current), target[1]*3 + target[0])
 
     def is_finished(self) -> bool:
@@ -107,14 +102,14 @@ class TicTacToeGame(Minigame):
         for i, player in enumerate(self.players):
             if self.winner.value == i:
                 description += "👑 "
-            elif self.current.value == i:
+            elif self.winner.value == Player.NONE and self.current.value == i:
                 description += "➡️ "
             description += f"{EMOJIS[i]} - {player.mention}\n"
         embed = discord.Embed(title=title, description=description, color=COLOR)
         if self.is_finished():
-            embed.set_thumbnail(url=IMAGES[self.current.value])
-        elif self.current.value >= 0:
             embed.set_thumbnail(url=self.member(self.current).display_avatar.url)
+        elif self.current.value >= 0:
+            embed.set_thumbnail(url=IMAGES[self.current.value])
         return embed
 
     def get_view(self) -> discord.ui.View:
