@@ -1,10 +1,13 @@
 import random
+import logging
 import discord
 from enum import Enum
 from typing import List, Optional, Tuple
 from datetime import datetime
 from minigames.minigame import Minigame
 from minigames.board import Board, find_lines, try_complete_line
+
+log = logging.getLogger("ttt")
 
 EMOJIS = {
     -1: "▪️",
@@ -55,9 +58,14 @@ class TicTacToeGame(Minigame):
             self.current = self.opponent()
 
     def do_turn_ai(self):
-        target = try_complete_line(self.board, self.current, 3) \
-                 or try_complete_line(self.board, self.opponent(), 3) \
-                 or self.get_random_unoccupied()
+        target = try_complete_line(self.board, self.current, 3)
+        log.info(f"complete line {self.current} gave {target}")
+        if not target:
+            target = try_complete_line(self.board, self.opponent(), 3)
+            log.info(f"complete line {self.opponent()} gave {target}")
+        if not target:
+            target =self.get_random_unoccupied()
+            log.info(f"random gave {target}")
         self.do_turn(self.member(self.current), target[1]*3 + target[0])
 
     def is_finished(self) -> bool:
