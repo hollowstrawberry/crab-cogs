@@ -126,23 +126,24 @@ class TicTacToeGame(Minigame):
 
         else:
             for i in range(9):
-                slot: Player = self.board._data[i] # type: ignore
+                index = i # will be used from the callback
+                slot: Player = self.board._data[index] # type: ignore
                 button = discord.ui.Button(
                     emoji=EMOJIS[slot.value],
                     disabled=slot!=Player.NONE,
-                    custom_id=f"minigames ttt {self.channel.id} {i}",
+                    custom_id=f"minigames ttt {self.channel.id} {index}",
                     row=i//3,
                     style=discord.ButtonStyle.secondary,
                 )
 
                 async def callback(interaction: discord.Interaction):
-                    nonlocal i
+                    nonlocal index
                     assert isinstance(interaction.user, discord.Member)
                     if interaction.user not in self.players:
                         return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
                     if interaction.user != self.member(self.current):
                         return await interaction.response.send_message("It's not your turn!", ephemeral=True)
-                    self.do_turn(interaction.user, i)
+                    self.do_turn(interaction.user, index)
                     if not self.is_finished() and self.member(self.current).bot:
                         self.do_turn_ai()
                     await interaction.response.edit_message(content=self.get_content(), embed=self.get_embed(), view=self.get_view())
