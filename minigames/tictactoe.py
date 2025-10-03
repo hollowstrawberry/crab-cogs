@@ -126,7 +126,7 @@ class TicTacToeGame(Minigame):
 
         else:
             for i in range(9):
-                index = i # will be used from the callback
+                index = int(i) # will be used from the callback
                 slot: Player = self.board._data[index] # type: ignore
                 button = discord.ui.Button(
                     emoji=EMOJIS[slot.value],
