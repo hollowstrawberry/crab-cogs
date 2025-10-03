@@ -1,0 +1,12 @@
+{
+    "author": ["hollowstrawberry"],
+    "min_bot_version": "3.5.0",
+    "description": "Games to play against your friends or the bot, like Tic-Tac-Toe and Connect 4.",
+    "hidden": false,
+    "install_msg": "🎮 __**Minigames**__ ```Cog installed. Instructions:\n1. Load it with [p]load minigames\n2. Optionally, enable slash commands with [p]slash enablecog minigames```",
+    "required_cogs": {},
+    "requirements": [],
+    "short": "Games to play against your friends or the bot, like Tic-Tac-Toe and Connect 4.",
+    "end_user_data_statement": "This cog does not store user data.",
+    "tags": ["crab", "game", "pvp", "connect4", "tictactoe"]
+}
