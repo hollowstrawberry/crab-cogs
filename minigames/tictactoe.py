@@ -27,7 +27,7 @@ class Player(Enum):
 
 class TicTacToeGame(Minigame):
     def __init__(self, players: List[discord.Member], channel: discord.TextChannel):
-        if len(self.players) != 2:
+        if len(players) != 2:
             raise ValueError("Game must have 2 players")
         super().__init__(players, channel)
         self.accepted = False
