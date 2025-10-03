@@ -88,13 +88,13 @@ class TicTacToeGame(Minigame):
         description = ""
         for i, player in enumerate(self.players):
             if self.winner.value == i:
-                description += "👑"
+                description += "👑 "
             elif self.current.value == i:
-                description += "➡️"
+                description += "➡️ "
             description += f"{EMOJIS[i]} - {player.mention}\n"
         embed = discord.Embed(title=title, description=description, color=COLOR)
         if self.is_finished():
-            embed.set_thumbnail(url=self.member(self.winner).display_avatar.url)
+            embed.set_thumbnail(url=IMAGES[self.current.value])
         elif self.current.value >= 0:
             embed.set_thumbnail(url=self.member(self.current).display_avatar.url)
         return embed
@@ -119,7 +119,7 @@ class TicTacToeGame(Minigame):
                 slot: Player = self.board._data[i] # type: ignore
                 button = discord.ui.Button(
                     emoji=EMOJIS[slot.value],
-                    disabled=slot==Player.NONE,
+                    disabled=slot!=Player.NONE,
                     custom_id=f"minigames ttt {self.channel.id} {i}",
                     row=i//3,
                     style=discord.ButtonStyle.secondary,
