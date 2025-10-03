@@ -42,7 +42,7 @@ class TicTacToeGame(Minigame):
             raise ValueError("This game is finished")
         if slot < 0 or slot > 8:
             raise ValueError("Action must be a number between 0 and 8, corresponding to the board")
-        if self.board._data[slot] == Player.NONE:
+        if self.board._data[slot] != Player.NONE:
             raise ValueError("Board slot is already occupied")
         
         self.last_interacted = datetime.now()
