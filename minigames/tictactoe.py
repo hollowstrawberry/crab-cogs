@@ -58,10 +58,10 @@ class TicTacToeGame(Minigame):
             self.current = self.opponent()
 
     def do_turn_ai(self):
-        target = try_complete_line(self.board, self.current, 3)
+        target = try_complete_line(self.board, self.current, Player.NONE, 3)
         log.info(f"complete line {self.current} gave {target}")
         if not target:
-            target = try_complete_line(self.board, self.opponent(), 3)
+            target = try_complete_line(self.board, self.opponent(), Player.NONE, 3)
             log.info(f"complete line {self.opponent()} gave {target}")
         if not target:
             target =self.get_random_unoccupied()
