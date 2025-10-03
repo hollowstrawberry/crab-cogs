@@ -94,7 +94,7 @@ class TicTacToeGame(Minigame):
             return None
 
     def get_embed(self) -> discord.Embed:
-        title = "Tic-Tac-Toe: Pending invitation..." if not self.accepted \
+        title = "Pending invitation..." if not self.accepted \
                 else f"{self.member(self.current).display_name}'s turn" if self.winner == Player.NONE \
                 else "It's a tie!" if self.winner == Player.TIE \
                 else f"{self.member(self.current).display_name} is the winner!"
@@ -106,8 +106,8 @@ class TicTacToeGame(Minigame):
                 description += "➡️ "
             description += f"{EMOJIS[i]} - {player.mention}\n"
         embed = discord.Embed(title=title, description=description, color=COLOR)
-        if self.is_finished():
-            embed.set_thumbnail(url=self.member(self.current).display_avatar.url)
+        if self.winner.value >= 0:
+            embed.set_thumbnail(url=self.member(self.winner).display_avatar.url)
         elif self.current.value >= 0 and self.accepted:
             embed.set_thumbnail(url=IMAGES[self.current.value])
         return embed

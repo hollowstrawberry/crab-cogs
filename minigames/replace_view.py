@@ -4,6 +4,7 @@ import discord
 
 class ReplaceView(discord.ui.View):
     def __init__(self, cog, callback: Callable[..., Awaitable[Any]], author: discord.Member, channel: discord.TextChannel):
+        super().__init__()
         self.cog = cog
         self.callback = callback
         self.author = author
