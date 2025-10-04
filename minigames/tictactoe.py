@@ -130,37 +130,35 @@ class TicTacToeGame(Minigame):
     def get_view(self) -> discord.ui.View:
         if not self.accepted:
             return InviteView(self)
-        if self.is_finished():
-            return None # type: ignore
-        else:
-            view = GameView(self)
-            for i in range(9):
-                slot: Player = self.board._data[i] # type: ignore
-                button = discord.ui.Button(
-                    emoji=EMOJIS[slot.value],
-                    disabled= slot != Player.NONE or self.winner != Player.NONE,
-                    custom_id=f"minigames ttt {self.channel.id} {i}",
-                    row=i//3,
-                    style=discord.ButtonStyle.secondary,
-                )
+        
+        view = GameView(self)
+        for i in range(9):
+            slot: Player = self.board._data[i] # type: ignore
+            button = discord.ui.Button(
+                emoji=EMOJIS[slot.value],
+                disabled= slot != Player.NONE or self.winner != Player.NONE,
+                custom_id=f"minigames ttt {self.channel.id} {i}",
+                row=i//3,
+                style=discord.ButtonStyle.secondary,
+            )
 
-                async def action(interaction: discord.Interaction, i=i):
-                    nonlocal self, view
-                    assert isinstance(interaction.user, discord.Member)
-                    if interaction.user not in self.players:
-                        return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
-                    if interaction.user != self.member(self.current):
-                        return await interaction.response.send_message("It's not your turn!", ephemeral=True)
-                    self.do_turn(interaction.user, i)
-                    if not self.is_finished() and self.member(self.current).bot:
-                        self.do_turn_ai()
-                    new_view = self.get_view()
-                    if self.is_finished():
-                        view.stop()
-                        new_view.stop()
-                    await interaction.response.edit_message(content=self.get_content(), embed=self.get_embed(), view=new_view)
+            async def action(interaction: discord.Interaction, i=i):
+                nonlocal self, view
+                assert isinstance(interaction.user, discord.Member)
+                if interaction.user not in self.players:
+                    return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
+                if interaction.user != self.member(self.current):
+                    return await interaction.response.send_message("It's not your turn!", ephemeral=True)
+                self.do_turn(interaction.user, i)
+                if not self.is_finished() and self.member(self.current).bot:
+                    self.do_turn_ai()
+                new_view = self.get_view()
+                if self.is_finished():
+                    view.stop()
+                    new_view.stop()
+                await interaction.response.edit_message(content=self.get_content(), embed=self.get_embed(), view=new_view)
 
-                button.callback = action
-                view.add_item(button)
+            button.callback = action
+            view.add_item(button)
 
-            return view
+        return view
