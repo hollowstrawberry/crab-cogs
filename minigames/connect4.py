@@ -105,7 +105,9 @@ class ConnectFourGame(Minigame):
     
     def cancel(self, player: discord.Member):
         self.cancelled = True
-        if player not in self.players or self.time == 0:
+        if self.time == 0:
+            self.winner = Player.TIE
+        elif player not in self.players:
             self.winner = Player.NONE
         else:
             self.winner = Player.BLUE if self.players.index(player) == 0 else Player.RED
@@ -180,7 +182,7 @@ class ConnectFourGame(Minigame):
     def get_embed(self) -> discord.Embed:
         title = "Pending invitation..." if not self.accepted \
                 else f"{self.member(self.current).display_name}'s turn" if not self.is_finished() \
-                else "The game was cancelled!" if self.cancelled and self.winner == Player.NONE \
+                else "The game was cancelled!" if self.cancelled and self.winner.value < 0 \
                 else "It's a tie!" if self.winner == Player.TIE \
                 else f"{self.member(self.winner).display_name} is the winner via surrender!" if self.cancelled \
                 else f"{self.member(self.winner).display_name} is the winner!"
