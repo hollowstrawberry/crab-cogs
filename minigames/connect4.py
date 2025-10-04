@@ -60,7 +60,7 @@ class ConnectFourGame(Minigame):
             raise ValueError(f"Column is full")
         
         self.last_interacted = datetime.now()
-        self.board[row, column] = self.current
+        self.board[column, row] = self.current
         if self.check_win():
             self.winner = self.current
         elif all(slot != Player.NONE for slot in self.board._data):
@@ -76,7 +76,7 @@ class ConnectFourGame(Minigame):
     
     def end(self):
         self.winner = Player.TIE
-        
+
     def accept(self, _):
         self.accepted = True
 
@@ -151,7 +151,7 @@ class ConnectFourGame(Minigame):
             return None
         if not self.is_finished():
             view = GameView(self)
-            options = [discord.SelectOption(label=f"{col}", value=f"{col}") for col in self.get_available_columns()]
+            options = [discord.SelectOption(label=f"{col + 1}", value=f"{col}") for col in self.get_available_columns()]
             select = discord.ui.Select(row=0, options=options, placeholder="Choose column...", custom_id=f"minigames c4 {self.channel.id}")
 
             async def action(interaction: discord.Interaction):
