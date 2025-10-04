@@ -20,12 +20,12 @@ class RematchView(discord.ui.View):
 
     async def rematch(self, interaction: discord.Interaction):
         assert interaction.message and isinstance(interaction.user, discord.Member) and self.game.command
+        log.info(f"{self.game.command=}")
         if interaction.user not in self.game.players:
             return await interaction.response.send_message("You didn't play this game!", ephemeral=True)
         players = list(self.game.players)
         players.remove(interaction.user)
         ctx = await commands.Context.from_interaction(interaction)
-        log.info(self.game.command)
         await self.game.command(ctx, players[0])
         
     async def on_timeout(self):
