@@ -1,6 +1,7 @@
 import random
 import logging
 import discord
+from copy import deepcopy
 from enum import Enum
 from typing import List, Optional
 from datetime import datetime
@@ -45,6 +46,7 @@ class ConnectFourGame(Minigame):
         self.board = Board(7, 6, Player.NONE)
         self.current = Player.RED
         self.winner = Player.NONE
+        self.time = 0
 
     def do_turn(self, player: discord.Member, column: int):
         if player != self.member(self.current):
@@ -54,21 +56,46 @@ class ConnectFourGame(Minigame):
         if column < 0 or column > 6:
             raise ValueError(f"Column must be a number between 0 and 6, not {column}")
         
-        row = self.get_highest_slot(column)
+        row = self.get_highest_slot(self.board, column)
         if row is None:
             raise ValueError(f"Column is full")
         
         self.last_interacted = datetime.now()
+        self.time += 1
         self.board[column, row] = self.current
-        if self.check_win():
+        if self.check_win(self.board, self.current, self.time):
             self.winner = self.current
         elif all(slot != Player.NONE for slot in self.board._data):
             self.winner = Player.TIE
         else:
-            self.current = self.opponent()
+            self.current = self.opponent(self.current)
 
     def do_turn_ai(self):
-        self.do_turn(self.member(self.current), self.get_random_unoccupied())
+        moves = {}
+        avoid_moves = []
+        columns = self.available_columns(self.board)
+        if len(columns) == 1:
+            moves[columns[0]] = 0
+        else:
+            for column in columns: # All moves it can make
+                temp_board = deepcopy(self.board)
+                self.drop_piece(temp_board, column, self.current)
+                if self.check_win(temp_board, self.current, self.time + 1): # Can win instantly
+                    moves = {column: 0}
+                    avoid_moves = []
+                    break
+                # The AI plays defensively, so it mostly avoids possible futures where it may lose
+                lose_count = self.may_lose_count(temp_board, self.current, self.opponent(self.current), self.time + 1, depth=3)
+                moves[column] = lose_count
+                if self.may_lose_count(temp_board, self.current, self.opponent(self.current), self.time + 1, depth=1) > 0: # Can lose next turn
+                    avoid_moves.append(column)
+        if len(avoid_moves) < len(moves):
+            for move in avoid_moves:
+                moves.pop(move)
+        least_loses = min(moves.values())
+        final_options = [col for col, val in moves.items() if val == least_loses]
+        move = random.choice(final_options)
+        self.do_turn(self.member(self.current), move)
 
     def is_finished(self) -> bool:
         return self.winner != Player.NONE
@@ -81,35 +108,63 @@ class ConnectFourGame(Minigame):
 
     def accept(self, _):
         self.accepted = True
-
-    def check_win(self) -> bool:
-        return find_lines(self.board, self.current, 4)
     
     def member(self, player: Player) -> discord.Member:
         if player.value < 0:
             raise ValueError("Invalid player")
         return self.players[player.value]
     
-    def opponent(self) -> Player:
-        return Player.BLUE if self.current == Player.RED else Player.RED
+    @classmethod
+    def opponent(cls, current: Player) -> Player:
+        return Player.BLUE if current == Player.RED else Player.RED
     
-    def get_highest_slot(self, column: int) -> Optional[int]:
+    @classmethod
+    def check_win(cls, board: Board, color: Player, time: int) -> bool:
+        return find_lines(board, color, 4)
+    
+    @classmethod
+    def get_highest_slot(cls, board: Board, column: int) -> Optional[int]:
         if column < 0 or column > 6:
-            raise ValueError
+            raise ValueError("Invalid column")
         for row in range(5, -1, -1):
-            if self.board[column, row] == Player.NONE:
+            if board[column, row] == Player.NONE:
                 return row
         return None
     
-    def get_available_columns(self): 
-        return [col for col in range(7) if self.get_highest_slot(col) is not None]
+    @classmethod
+    def drop_piece(cls, board: Board, column: int, color: Player):
+        if column < 0 or column > 6:
+            raise ValueError("Invalid column")
+        row = cls.get_highest_slot(board, column)
+        if row is None:
+            raise ValueError("Column is full")
+        board[column, row] = color
     
-    def get_random_unoccupied(self) -> int:
-        available_columns = self.get_available_columns()
+    @classmethod
+    def available_columns(cls, board: Board): 
+        return [col for col in range(7) if cls.get_highest_slot(board, col) is not None]
+    
+    @classmethod
+    def get_random_unoccupied(cls, board: Board) -> int:
+        available_columns = cls.available_columns(board)
         if not available_columns:
             raise ValueError("No available columns")
         return random.choice(available_columns)
     
+    @classmethod
+    def may_lose_count(cls, board: Board, color: Player, current: Player, time: int, depth: int):
+        count = 0
+        if depth <= 0 or time == len(board._data):
+            return count
+        for column in cls.available_columns(board):
+            temp_board = deepcopy(board)
+            cls.drop_piece(temp_board, column, current)
+            if current != color and cls.check_win(temp_board, current, time + 1):
+                count += 1
+            elif current != color or not cls.check_win(temp_board, current, time + 1):
+                count += cls.may_lose_count(temp_board, color, cls.opponent(current), time + 1, depth - 1)
+        return count
+
     def get_content(self) -> Optional[str]:
         if not self.accepted:
             return f"{self.players[0].mention} you've been invited to play Connect 4!"
@@ -153,7 +208,7 @@ class ConnectFourGame(Minigame):
             return None
         if not self.is_finished():
             view = GameView(self)
-            options = [discord.SelectOption(label=f"{col + 1}", value=f"{col}") for col in self.get_available_columns()]
+            options = [discord.SelectOption(label=f"{col + 1}", value=f"{col}") for col in self.available_columns(self.board)]
             select = discord.ui.Select(row=0, options=options, placeholder="Choose column...", custom_id=f"minigames c4 {self.channel.id}")
 
             async def action(interaction: discord.Interaction):
