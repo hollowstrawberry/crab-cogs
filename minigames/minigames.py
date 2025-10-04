@@ -1,10 +1,10 @@
 import discord
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Type
 from redbot.core import commands, Config
 from redbot.core.bot import Red
 from minigames.connect4 import ConnectFourGame
-from minigames.minigame import Minigame
+from minigames.base import Minigame
 from minigames.views.replace_view import ReplaceView
 from minigames.tictactoe import TicTacToeGame
 
@@ -31,42 +31,7 @@ class Minigames(commands.Cog):
         assert ctx.guild and isinstance(ctx.author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
         opponent = opponent or ctx.guild.me
         players = [ctx.author, opponent] if opponent.bot else [opponent, ctx.author]
-        
-        # Game already exists
-        if ctx.channel.id in self.games and not self.games[ctx.channel.id].is_finished():
-            old_game = self.games[ctx.channel.id]
-            if (datetime.now() - old_game.last_interacted).total_seconds() > 60 * TIME_LIMIT:
-                async def callback():
-                    nonlocal ctx, opponent, players, old_game
-                    assert opponent and isinstance(ctx.channel, discord.TextChannel)
-                    game = TicTacToeGame(players, ctx.channel)
-                    if opponent.bot:
-                        game.accepted = True
-                    self.games[ctx.channel.id] = game
-                    message = await ctx.send(content=game.get_content(), embed=game.get_embed(), view=game.get_view())
-                    game.message = message
-                    if old_game.message:
-                        try:
-                            await old_game.message.delete()
-                        except discord.NotFound:
-                            pass
-
-                content = f"Someone else is playing a game in this channel, but more than {TIME_LIMIT} minutes have passed since their last interaction. Do you want to start a new game?"
-                embed = discord.Embed(title="Confirmation", description=content, color=await self.bot.get_embed_color(ctx))
-                return await ctx.reply(embed=embed, view=ReplaceView(self, callback, ctx.author, ctx.channel), ephemeral=True)
-            
-            else:
-                # re-fetch message to make sure it wasn't deleted
-                old_message = await ctx.channel.fetch_message(old_game.message.id) if old_game.message else None
-                if old_message:
-                    return await ctx.reply(f"Someone else is still playing a game in this channel, here: {old_message.jump_url}\nTry again in a few minutes.", ephemeral=True)
-            
-        game = TicTacToeGame(players, ctx.channel)
-        if opponent.bot:
-            game.accepted = True
-        self.games[ctx.channel.id] = game
-        message = await ctx.reply(content=game.get_content(), embed=game.get_embed(), view=game.get_view())
-        game.message = message
+        await self.base_minigame_cmd(TicTacToeGame, ctx, players, opponent.bot)
 
     @commands.hybrid_command(name="connect4", aliases=["c4"])
     @commands.guild_only()
@@ -77,17 +42,23 @@ class Minigames(commands.Cog):
         assert ctx.guild and isinstance(ctx.author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
         opponent = opponent or ctx.guild.me
         players = [ctx.author, opponent] if opponent.bot else [opponent, ctx.author]
+        await self.base_minigame_cmd(ConnectFourGame, ctx, players, opponent.bot)
+
+
+    async def base_minigame_cmd(self, game_cls: Type[Minigame], ctx: commands.Context, players: List[discord.Member], against_bot: bool):
+        assert ctx.guild and isinstance(ctx.author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
         
         # Game already exists
         if ctx.channel.id in self.games and not self.games[ctx.channel.id].is_finished():
             old_game = self.games[ctx.channel.id]
+
             if (datetime.now() - old_game.last_interacted).total_seconds() > 60 * TIME_LIMIT:
                 async def callback():
-                    nonlocal ctx, opponent, players, old_game
-                    assert opponent and isinstance(ctx.channel, discord.TextChannel)
-                    game = ConnectFourGame(players, ctx.channel)
-                    if opponent.bot:
-                        game.accepted = True
+                    nonlocal ctx, players, old_game, against_bot
+                    assert isinstance(ctx.author, discord.Member) and isinstance(ctx.channel, discord.TextChannel) 
+                    game = game_cls(players, ctx.channel)
+                    if against_bot:
+                        game.accept(ctx.author)
                     self.games[ctx.channel.id] = game
                     message = await ctx.send(content=game.get_content(), embed=game.get_embed(), view=game.get_view())
                     game.message = message
@@ -106,10 +77,11 @@ class Minigames(commands.Cog):
                 old_message = await ctx.channel.fetch_message(old_game.message.id) if old_game.message else None
                 if old_message:
                     return await ctx.reply(f"Someone else is still playing a game in this channel, here: {old_message.jump_url}\nTry again in a few minutes.", ephemeral=True)
-            
-        game = ConnectFourGame(players, ctx.channel)
-        if opponent.bot:
-            game.accepted = True
+        
+        # New game
+        game = game_cls(players, ctx.channel)
+        if against_bot:
+            game.accept(ctx.author)
         self.games[ctx.channel.id] = game
-        message = await ctx.reply(content=game.get_content(), embed=game.get_embed(), view=game.get_view()) # type: ignore
+        message = await ctx.reply(content=game.get_content(), embed=game.get_embed(), view=game.get_view())
         game.message = message

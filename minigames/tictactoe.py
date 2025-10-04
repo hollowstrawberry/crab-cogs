@@ -3,9 +3,9 @@ import discord
 from enum import Enum
 from typing import List, Optional, Tuple
 from datetime import datetime
-from minigames.minigame import Minigame
+from minigames.base import Minigame
 from minigames.board import Board, find_lines, try_complete_line
-from minigames.views.game_view import GameView
+from minigames.views.minigame_view import MinigameView
 from minigames.views.invite_view import InviteView
 
 
@@ -131,7 +131,7 @@ class TicTacToeGame(Minigame):
         if not self.accepted:
             return InviteView(self)
         
-        view = GameView(self)
+        view = MinigameView(self)
         for i in range(9):
             slot: Player = self.board._data[i] # type: ignore
             button = discord.ui.Button(

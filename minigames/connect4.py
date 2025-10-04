@@ -5,12 +5,10 @@ from copy import deepcopy
 from enum import Enum
 from typing import List, Optional
 from datetime import datetime
-from minigames.minigame import Minigame
-from minigames.board import Board, find_lines, try_complete_line
-from minigames.views.game_view import GameView
+from minigames.base import Minigame
+from minigames.board import Board, find_lines
+from minigames.views.minigame_view import MinigameView
 from minigames.views.invite_view import InviteView
-
-log = logging.getLogger("c4")
 
 
 class Player(Enum):
@@ -207,7 +205,7 @@ class ConnectFourGame(Minigame):
         if self.is_finished():
             return None
         if not self.is_finished():
-            view = GameView(self)
+            view = MinigameView(self)
             options = [discord.SelectOption(label=f"{col + 1}", value=f"{col}") for col in self.available_columns(self.board)]
             select = discord.ui.Select(row=0, options=options, placeholder="Choose column to drop a piece...", custom_id=f"minigames c4 {self.channel.id}")
 

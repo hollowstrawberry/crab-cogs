@@ -3,7 +3,7 @@ import discord
 from minigames.minigame import Minigame
 
 
-class GameView(discord.ui.View):
+class MinigameView(discord.ui.View):
     def __init__(self, game: Minigame):
         super().__init__(timeout=None)
         self.game = game
