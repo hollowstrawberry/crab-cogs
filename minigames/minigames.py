@@ -7,7 +7,7 @@ from minigames.minigame import Minigame
 from minigames.replace_view import ReplaceView
 from minigames.tictactoe import TicTacToeGame
 
-TIME_LIMIT = 0
+TIME_LIMIT = 5
 
 
 class Minigames(commands.Cog):
