@@ -18,19 +18,19 @@ class Player(Enum):
     BLUE = 1
 
 COLORS = {
-    -2: 0x78B159,
-    -1: 0x31373D,
-    0: 0xDD2E44,
-    1: 0x55ACEE,
+    Player.TIE: 0x78B159,
+    Player.NONE: 0x31373D,
+    Player.RED: 0xDD2E44,
+    Player.BLUE: 0x55ACEE,
 }
 EMOJIS = {
-    -1: "⚫",
-    0: "🔴",
-    1: "🔵",
+    Player.NONE: "⚫",
+    Player.RED: "🔴",
+    Player.BLUE: "🔵",
 }
 IMAGES = {
-    0: "https://raw.githubusercontent.com/hollowstrawberry/crab-cogs/refs/heads/testing/minigames/media/red.png",
-    1: "https://raw.githubusercontent.com/hollowstrawberry/crab-cogs/refs/heads/testing/minigames/media/blue.png",
+    Player.RED: "https://raw.githubusercontent.com/hollowstrawberry/crab-cogs/refs/heads/testing/minigames/media/red.png",
+    Player.BLUE: "https://raw.githubusercontent.com/hollowstrawberry/crab-cogs/refs/heads/testing/minigames/media/blue.png",
 }
 NUMBERS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣"]
 
@@ -180,7 +180,7 @@ class ConnectFourGame(Minigame):
                 description += "👑 "
             elif self.winner == Player.NONE and self.current.value == i and self.accepted:
                 description += "►"
-            description += f"{EMOJIS[i]} - {player.mention}\n"
+            description += f"{EMOJIS[Player(i)]} - {player.mention}\n"
         description += "\n"
         if not self.is_finished():
             for i in range(7):
@@ -188,15 +188,15 @@ class ConnectFourGame(Minigame):
             description += "\n"
         for y in range(6):
             for x in range(7):
-                description += EMOJIS[self.board[x, y].value] # type: ignore
+                description += EMOJIS[self.board[x, y]] # type: ignore
             description += "\n"
-        color = COLORS[self.winner.value] if self.winner != Player.NONE else COLORS[self.current.value]
+        color = COLORS[self.winner] if self.winner != Player.NONE else COLORS[self.current]
         embed = discord.Embed(title=title, description=description, color=color)
         if self.winner != Player.NONE:
             if self.winner.value >= 0:
                 embed.set_thumbnail(url=self.member(self.winner).display_avatar.url)
         elif self.current.value >= 0 and self.accepted:
-            embed.set_thumbnail(url=IMAGES[self.current.value])
+            embed.set_thumbnail(url=IMAGES[self.current])
         return embed
 
 
