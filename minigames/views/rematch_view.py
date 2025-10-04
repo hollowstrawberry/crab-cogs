@@ -23,6 +23,7 @@ class RematchView(discord.ui.View):
         players = list(self.game.players)
         players.remove(interaction.user)
         ctx = await commands.Context.from_interaction(interaction)
+        ctx.command = self.game.command # type: ignore
         await self.game.command(ctx, players[0])
         
     async def on_timeout(self):
