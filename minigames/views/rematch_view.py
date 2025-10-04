@@ -1,8 +1,11 @@
+import logging
 import discord
 from typing import Optional
 from discord.ext import commands
 
 from minigames.base import Minigame
+
+log = logging.getLogger("red.crab-cogs.minigames")
 
 
 class RematchView(discord.ui.View):
@@ -22,6 +25,7 @@ class RematchView(discord.ui.View):
         players = list(self.game.players)
         players.remove(interaction.user)
         ctx = await commands.Context.from_interaction(interaction)
+        log.info(self.game.command)
         await self.game.command(ctx, players[0])
         
     async def on_timeout(self):
