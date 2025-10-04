@@ -155,14 +155,14 @@ class ConnectFourGame(Minigame):
             options = [discord.SelectOption(label=f"{col + 1}", value=f"{col}") for col in self.get_available_columns()]
             select = discord.ui.Select(row=0, options=options, placeholder="Choose column...", custom_id=f"minigames c4 {self.channel.id}")
 
-            async def action(interaction: discord.Interaction):
-                nonlocal self, view, select
+            async def action(interaction: discord.Interaction, current_select: discord.ui.Select):
+                nonlocal self, view
                 assert isinstance(interaction.user, discord.Member)
                 if interaction.user not in self.players:
                     return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
                 if interaction.user != self.member(self.current):
                     return await interaction.response.send_message("It's not your turn!", ephemeral=True)
-                self.do_turn(interaction.user, int(select.options[0].value))
+                self.do_turn(interaction.user, int(current_select.options[0].value))
                 if not self.is_finished() and self.member(self.current).bot:
                     self.do_turn_ai()
                 new_view = self.get_view()
@@ -172,6 +172,6 @@ class ConnectFourGame(Minigame):
                         new_view.stop()
                 await interaction.response.edit_message(content=self.get_content(), embed=self.get_embed(), view=new_view)
 
-            select.callback = action
+            select.callback = action # type: ignore
             view.add_item(select)
             return view
