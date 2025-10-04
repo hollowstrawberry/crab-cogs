@@ -7,8 +7,10 @@ from datetime import datetime
 
 from minigames.base import Minigame
 from minigames.board import Board, find_lines
+from minigames.constants import TwoPlayerGameCommand
 from minigames.views.minigame_view import MinigameView
 from minigames.views.invite_view import InviteView
+from minigames.views.rematch_view import RematchView
 
 
 class Player(Enum):
@@ -36,15 +38,16 @@ NUMBERS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7�
 
 
 class ConnectFourGame(Minigame):
-    def __init__(self, players: List[discord.Member], channel: discord.TextChannel):
+    def __init__(self, players: List[discord.Member], channel: discord.TextChannel, command: TwoPlayerGameCommand):
         if len(players) != 2:
             raise ValueError("Game must have 2 players")
-        super().__init__(players, channel)
+        super().__init__(players, channel, command)
         self.accepted = False
         self.board = Board(7, 6, Player.NONE)
         self.current = Player.RED
         self.winner = Player.NONE
         self.time = 0
+        self.cancelled = False
 
     def do_turn(self, player: discord.Member, column: int):
         if player != self.member(self.current):
@@ -63,7 +66,7 @@ class ConnectFourGame(Minigame):
         self.board[column, row] = self.current
         if self.check_win(self.board, self.current, self.time):
             self.winner = self.current
-        elif all(slot != Player.NONE for slot in self.board._data):
+        elif self.is_finished():
             self.winner = Player.TIE
         else:
             self.current = self.opponent(self.current)
@@ -96,11 +99,15 @@ class ConnectFourGame(Minigame):
         self.do_turn(self.member(self.current), move)
 
     def is_finished(self) -> bool:
-        return self.winner != Player.NONE
+        return self.winner != Player.NONE or self.cancelled or self.time == len(self.board._data)
+    
+    def is_cancelled(self) -> bool:
+        return self.cancelled
     
     def end(self, player: discord.Member):
+        self.cancelled = True
         if player not in self.players:
-            self.winner = Player.TIE
+            self.winner = Player.NONE
         else:
             self.winner = Player.BLUE if self.players.index(player) == 0 else Player.RED
 
@@ -171,8 +178,10 @@ class ConnectFourGame(Minigame):
 
     def get_embed(self) -> discord.Embed:
         title = "Pending invitation..." if not self.accepted \
-                else f"{self.member(self.current).display_name}'s turn" if self.winner == Player.NONE \
+                else f"{self.member(self.current).display_name}'s turn" if not self.is_finished() \
+                else "The game was cancelled!" if self.cancelled and self.winner == Player.NONE \
                 else "It's a tie!" if self.winner == Player.TIE \
+                else f"{self.member(self.winner).display_name} is the winner via surrender!" if self.cancelled \
                 else f"{self.member(self.winner).display_name} is the winner!"
         description = ""
         for i, player in enumerate(self.players):
@@ -204,7 +213,7 @@ class ConnectFourGame(Minigame):
         if not self.accepted:
             return InviteView(self)
         if self.is_finished():
-            return None
+            return None if self.is_cancelled() else RematchView(self)
         if not self.is_finished():
             view = MinigameView(self)
             options = [discord.SelectOption(label=f"{col + 1}", value=f"{col}") for col in self.available_columns(self.board)]
@@ -226,6 +235,8 @@ class ConnectFourGame(Minigame):
                     if new_view:
                         new_view.stop()
                 await interaction.response.edit_message(content=self.get_content(), embed=self.get_embed(), view=new_view)
+                if isinstance(new_view, RematchView):
+                    new_view.message = interaction.message
 
             select.callback = action
             view.add_item(select)

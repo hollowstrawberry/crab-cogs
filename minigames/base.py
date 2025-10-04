@@ -3,16 +3,25 @@ from typing import List, Optional
 from abc import ABC, abstractmethod
 from datetime import datetime
 
+from minigames.constants import TwoPlayerGameCommand
+
+
+
 
 class Minigame(ABC):
-    def __init__(self, players: List[discord.Member], channel: discord.TextChannel):
+    def __init__(self, players: List[discord.Member], channel: discord.TextChannel, command: Optional[TwoPlayerGameCommand]):
         self.players = players
         self.channel = channel
+        self.command = command
         self.message: Optional[discord.Message] = None
         self.last_interacted: datetime = datetime.now()
 
     @abstractmethod
     def is_finished(self) -> bool:
+        pass
+
+    @abstractmethod
+    def is_cancelled(self) -> bool:
         pass
 
     @abstractmethod

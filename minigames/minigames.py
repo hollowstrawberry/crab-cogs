@@ -1,11 +1,12 @@
 import discord
-from typing import Dict, List, Optional, Type
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Type
 from datetime import datetime
 from redbot.core import commands, Config
 from redbot.core.bot import Red
 
 from minigames.connect4 import ConnectFourGame
 from minigames.base import Minigame
+from minigames.constants import TwoPlayerGameCommand
 from minigames.views.replace_view import ReplaceView
 from minigames.tictactoe import TicTacToeGame
 
@@ -32,7 +33,7 @@ class Minigames(commands.Cog):
         assert ctx.guild and isinstance(ctx.author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
         opponent = opponent or ctx.guild.me
         players = [ctx.author, opponent] if opponent.bot else [opponent, ctx.author]
-        await self.base_minigame_cmd(TicTacToeGame, ctx, players, opponent.bot)
+        await self.base_minigame_cmd(TicTacToeGame, ctx, players, opponent.bot, self.tictactoe)
 
     @commands.hybrid_command(name="connect4", aliases=["c4"])
     @commands.guild_only()
@@ -43,10 +44,16 @@ class Minigames(commands.Cog):
         assert ctx.guild and isinstance(ctx.author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
         opponent = opponent or ctx.guild.me
         players = [ctx.author, opponent] if opponent.bot else [opponent, ctx.author]
-        await self.base_minigame_cmd(ConnectFourGame, ctx, players, opponent.bot)
+        await self.base_minigame_cmd(ConnectFourGame, ctx, players, opponent.bot, self.connectfour)
 
 
-    async def base_minigame_cmd(self, game_cls: Type[Minigame], ctx: commands.Context, players: List[discord.Member], against_bot: bool):
+    async def base_minigame_cmd(self,
+                                game_cls: Type[Minigame],
+                                ctx: commands.Context,
+                                players: List[discord.Member],
+                                against_bot: bool,
+                                game_cmd: Optional[TwoPlayerGameCommand],
+                                ):
         assert ctx.guild and isinstance(ctx.author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
         
         # Game already exists
@@ -59,7 +66,7 @@ class Minigames(commands.Cog):
                     async def callback():
                         nonlocal ctx, players, old_game, against_bot
                         assert isinstance(ctx.author, discord.Member) and isinstance(ctx.channel, discord.TextChannel) 
-                        game = game_cls(players, ctx.channel)
+                        game = game_cls(players, ctx.channel, game_cmd)
                         if against_bot:
                             game.accept(ctx.author)
                         self.games[ctx.channel.id] = game
@@ -85,7 +92,7 @@ class Minigames(commands.Cog):
                     return
         
         # New game
-        game = game_cls(players, ctx.channel)
+        game = game_cls(players, ctx.channel, game_cmd)
         if against_bot:
             game.accept(ctx.author)
         self.games[ctx.channel.id] = game

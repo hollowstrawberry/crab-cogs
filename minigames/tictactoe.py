@@ -6,8 +6,10 @@ from datetime import datetime
 
 from minigames.base import Minigame
 from minigames.board import Board, find_lines, try_complete_line
+from minigames.constants import TwoPlayerGameCommand
 from minigames.views.minigame_view import MinigameView
 from minigames.views.invite_view import InviteView
+from minigames.views.rematch_view import RematchView
 
 
 class Player(Enum):
@@ -33,14 +35,15 @@ IMAGES = {
 }
 
 class TicTacToeGame(Minigame):
-    def __init__(self, players: List[discord.Member], channel: discord.TextChannel):
+    def __init__(self, players: List[discord.Member], channel: discord.TextChannel, command: TwoPlayerGameCommand):
         if len(players) != 2:
             raise ValueError("Game must have 2 players")
-        super().__init__(players, channel)
+        super().__init__(players, channel, command)
         self.accepted = False
         self.board = Board(3, 3, Player.NONE)
         self.current = Player.CROSS
         self.winner = Player.NONE
+        self.cancelled = False
 
     def do_turn(self, player: discord.Member, slot: int):
         if player != self.member(self.current):
@@ -68,11 +71,15 @@ class TicTacToeGame(Minigame):
         self.do_turn(self.member(self.current), target[1]*3 + target[0])
 
     def is_finished(self) -> bool:
-        return self.winner != Player.NONE
+        return self.winner != Player.NONE or self.cancelled
+    
+    def is_cancelled(self) -> bool:
+        return self.cancelled
     
     def end(self, player: discord.Member):
+        self.cancelled = True
         if player not in self.players:
-            self.winner = Player.TIE
+            self.winner = Player.NONE
         else:
             self.winner = Player.CIRCLE if self.players.index(player) == 0 else Player.CROSS
 
@@ -108,9 +115,12 @@ class TicTacToeGame(Minigame):
 
     def get_embed(self) -> discord.Embed:
         title = "Pending invitation..." if not self.accepted \
-                else f"{self.member(self.current).display_name}'s turn" if self.winner == Player.NONE \
+                else f"{self.member(self.current).display_name}'s turn" if not self.is_finished() \
+                else "The game was cancelled!" if self.cancelled and self.winner == Player.NONE \
                 else "It's a tie!" if self.winner == Player.TIE \
+                else f"{self.member(self.winner).display_name} is the winner via surrender!" if self.cancelled \
                 else f"{self.member(self.winner).display_name} is the winner!"
+        
         description = ""
         for i, player in enumerate(self.players):
             if self.winner.value == i:
@@ -131,8 +141,10 @@ class TicTacToeGame(Minigame):
     def get_view(self) -> discord.ui.View:
         if not self.accepted:
             return InviteView(self)
-        
-        view = MinigameView(self)
+
+        assert self.command
+
+        view = RematchView(self) if self.is_finished() and not self.is_cancelled() else MinigameView(self)
         for i in range(9):
             slot: Player = self.board._data[i] # type: ignore
             button = discord.ui.Button(
@@ -158,6 +170,8 @@ class TicTacToeGame(Minigame):
                     view.stop()
                     new_view.stop()
                 await interaction.response.edit_message(content=self.get_content(), embed=self.get_embed(), view=new_view)
+                if isinstance(new_view, RematchView):
+                    new_view.message = interaction.message
 
             button.callback = action
             view.add_item(button)
