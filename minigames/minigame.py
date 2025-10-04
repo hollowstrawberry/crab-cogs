@@ -16,7 +16,7 @@ class Minigame(ABC):
         pass
 
     @abstractmethod
-    def end(self) -> None:
+    def end(self, player: discord.Member) -> None:
         pass
 
     @abstractmethod

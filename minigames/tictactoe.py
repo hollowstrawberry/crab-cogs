@@ -69,8 +69,11 @@ class TicTacToeGame(Minigame):
     def is_finished(self) -> bool:
         return self.winner != Player.NONE
     
-    def end(self):
-        self.winner = Player.TIE
+    def end(self, player: discord.Member):
+        if player not in self.players:
+            self.winner = Player.TIE
+        else:
+            self.winner = Player.CIRCLE if self.players.index(player) == 0 else Player.CROSS
 
     def accept(self, _):
         self.accepted = True

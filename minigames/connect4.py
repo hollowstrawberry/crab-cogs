@@ -75,8 +75,11 @@ class ConnectFourGame(Minigame):
     def is_finished(self) -> bool:
         return self.winner != Player.NONE
     
-    def end(self):
-        self.winner = Player.TIE
+    def end(self, player: discord.Member):
+        if player not in self.players:
+            self.winner = Player.TIE
+        else:
+            self.winner = Player.BLUE if self.players.index(player) == 0 else Player.RED
 
     def accept(self, _):
         self.accepted = True
@@ -142,6 +145,7 @@ class ConnectFourGame(Minigame):
                 embed.set_thumbnail(url=self.member(self.winner).display_avatar.url)
         elif self.current.value >= 0 and self.accepted:
             embed.set_thumbnail(url=IMAGES[self.current.value])
+            log.info(IMAGES[self.current.value])
         return embed
 
 
