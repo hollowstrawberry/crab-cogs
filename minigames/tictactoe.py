@@ -15,8 +15,8 @@ EMOJIS = {
     1: "⭕",
 }
 IMAGES = {
-    0: "https://raw.githubusercontent.com/hollowstrawberry/Pac-Man-Bot/refs/heads/master/_Resources/Emotes/TTTx.png",
-    1: "https://raw.githubusercontent.com/hollowstrawberry/Pac-Man-Bot/refs/heads/master/_Resources/Emotes/TTTo.png",
+    0: "https://raw.githubusercontent.com/hollowstrawberry/crab-cogs/refs/heads/testing/minigames/media/x.png",
+    1: "https://raw.githubusercontent.com/hollowstrawberry/crab-cogs/refs/heads/testing/minigames/media/o.png",
 }
 COLOR = 0xDD2E44
 
