@@ -207,7 +207,7 @@ class ConnectFourGame(Minigame):
             return None
         if not self.is_finished():
             view = MinigameView(self)
-            options = [discord.SelectOption(label=NUMBERS[col], value=f"{col}") for col in self.available_columns(self.board)]
+            options = [discord.SelectOption(label=f"{col + 1}", value=f"{col}") for col in self.available_columns(self.board)]
             select = discord.ui.Select(row=0, options=options, placeholder="Choose column to drop a piece...", custom_id=f"minigames c4 {self.channel.id}")
 
             async def action(interaction: discord.Interaction):
