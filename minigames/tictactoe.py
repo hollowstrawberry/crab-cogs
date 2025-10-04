@@ -79,7 +79,7 @@ class TicTacToeGame(Minigame):
     
     def cancel(self, player: discord.Member):
         self.cancelled = True
-        if player not in self.players:
+        if player not in self.players or self.time == 0:
             self.winner = Player.NONE
         else:
             self.winner = Player.CIRCLE if self.players.index(player) == 0 else Player.CROSS
