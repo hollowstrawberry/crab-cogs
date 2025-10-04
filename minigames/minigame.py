@@ -16,7 +16,7 @@ class Minigame(ABC):
         pass
 
     @abstractmethod
-    def end(self):
+    def end(self) -> None:
         pass
 
     @abstractmethod

@@ -20,7 +20,7 @@ class GameView(discord.ui.View):
         if interaction.user not in self.game.players:
             return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
         await interaction.message.delete()
-        self.message = await interaction.message.channel.send(content=self.game.get_content(), embed=self.game.get_embed(), view=self.game.get_view())
+        self.message = await interaction.message.channel.send(content=self.game.get_content(), embed=self.game.get_embed(), view=self.game.get_view()) # type: ignore
     
     async def end(self, interaction: discord.Interaction):
         assert interaction.channel and isinstance(interaction.user, discord.Member)
@@ -28,6 +28,7 @@ class GameView(discord.ui.View):
             return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
         self.game.end()
         new_view = self.game.get_view()
-        new_view.stop()
+        if new_view:
+            new_view.stop()
         self.stop()
         await interaction.response.edit_message(content=self.game.get_content(), embed=self.game.get_embed(), view=new_view)

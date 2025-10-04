@@ -144,10 +144,12 @@ class ConnectFourGame(Minigame):
         return embed
 
 
-    def get_view(self) -> discord.ui.View:
+    def get_view(self) -> Optional[discord.ui.View]:
         if not self.accepted:
-            view = InviteView(self)
-        else:
+            return InviteView(self)
+        if self.is_finished():
+            return None
+        if not self.is_finished():
             view = GameView(self)
             options = [discord.SelectOption(label=f"{col}", value=f"{col}") for col in self.get_available_columns()]
             select = discord.ui.Select(row=0, options=options, placeholder="Choose column...", custom_id=f"minigames c4 {self.channel.id}")
@@ -165,10 +167,10 @@ class ConnectFourGame(Minigame):
                 new_view = self.get_view()
                 if self.is_finished():
                     view.stop()
-                    new_view.stop()
+                    if new_view:
+                        new_view.stop()
                 await interaction.response.edit_message(content=self.get_content(), embed=self.get_embed(), view=new_view)
 
             select.callback = action
             view.add_item(select)
-
-        return view
+            return view

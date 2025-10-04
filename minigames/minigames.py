@@ -111,5 +111,5 @@ class Minigames(commands.Cog):
         if opponent.bot:
             game.accepted = True
         self.games[ctx.channel.id] = game
-        message = await ctx.reply(content=game.get_content(), embed=game.get_embed(), view=game.get_view())
+        message = await ctx.reply(content=game.get_content(), embed=game.get_embed(), view=game.get_view()) # type: ignore
         game.message = message

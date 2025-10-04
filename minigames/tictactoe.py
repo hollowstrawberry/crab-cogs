@@ -123,7 +123,9 @@ class TicTacToeGame(Minigame):
 
     def get_view(self) -> discord.ui.View:
         if not self.accepted:
-            view = InviteView(self)
+            return InviteView(self)
+        if self.is_finished():
+            return None # type: ignore
         else:
             view = GameView(self)
             for i in range(9):
@@ -154,5 +156,5 @@ class TicTacToeGame(Minigame):
 
                 button.callback = action
                 view.add_item(button)
-
-        return view
+                
+            return view
