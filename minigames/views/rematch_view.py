@@ -18,7 +18,7 @@ class RematchView(discord.ui.View):
     async def rematch(self, interaction: discord.Interaction):
         assert interaction.message and isinstance(interaction.user, discord.Member)
         if interaction.user not in self.game.players:
-            return await interaction.response.send_message("You didn't play this game!", ephemeral=True)
+            return await interaction.response.send_message("You didn't play this game! You should start a new one.", ephemeral=True)
         
         temp_players = list(self.game.players)
         temp_players.remove(interaction.user)
