@@ -126,7 +126,7 @@ class ConnectFourGame(Minigame):
             if self.winner.value == i:
                 description += "👑 "
             elif self.winner == Player.NONE and self.current.value == i and self.accepted:
-                description += "➡️ "
+                description += "►"
             description += f"{EMOJIS[i]} - {player.mention}\n"
         description += "\n"
         for i in range(7):

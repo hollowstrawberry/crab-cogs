@@ -115,7 +115,7 @@ class TicTacToeGame(Minigame):
             if self.winner.value == i:
                 description += "👑 "
             elif self.winner == Player.NONE and self.current.value == i and self.accepted:
-                description += "➡️ "
+                description += "►"
             description += f"{EMOJIS[i]} - {player.mention}\n"
         color = COLORS[self.winner.value] if self.winner != Player.NONE else COLORS[self.current.value]
         embed = discord.Embed(title=title, description=description, color=color)
