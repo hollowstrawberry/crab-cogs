@@ -17,19 +17,19 @@ class Player(Enum):
     CIRCLE = 1
 
 COLORS = {
-    -2: 0x78B159,
-    -1: 0x31373D,
-    0: 0xDD2E44,
-    1: 0xDD2E44,
+    Player.TIE: 0x78B159,
+    Player.NONE: 0x31373D,
+    Player.CROSS: 0xDD2E44,
+    Player.CIRCLE: 0xDD2E44,
 }
 EMOJIS = {
-    -1: "▪️",
-    0: "❌",
-    1: "⭕",
+    Player.NONE: "▪️",
+    Player.CROSS: "❌",
+    Player.CIRCLE: "⭕",
 }
 IMAGES = {
-    0: "https://raw.githubusercontent.com/hollowstrawberry/crab-cogs/refs/heads/testing/minigames/media/x.png",
-    1: "https://raw.githubusercontent.com/hollowstrawberry/crab-cogs/refs/heads/testing/minigames/media/o.png",
+    Player.CROSS: "https://raw.githubusercontent.com/hollowstrawberry/crab-cogs/refs/heads/testing/minigames/media/x.png",
+    Player.CIRCLE: "https://raw.githubusercontent.com/hollowstrawberry/crab-cogs/refs/heads/testing/minigames/media/o.png",
 }
 
 class TicTacToeGame(Minigame):
@@ -117,14 +117,14 @@ class TicTacToeGame(Minigame):
                 description += "👑 "
             elif self.winner == Player.NONE and self.current.value == i and self.accepted:
                 description += "►"
-            description += f"{EMOJIS[i]} - {player.mention}\n"
-        color = COLORS[self.winner.value] if self.winner != Player.NONE else COLORS[self.current.value]
+            description += f"{EMOJIS[Player(i)]} - {player.mention}\n"
+        color = COLORS[self.winner] if self.winner != Player.NONE else COLORS[self.current]
         embed = discord.Embed(title=title, description=description, color=color)
         if self.winner != Player.NONE:
             if self.winner.value >= 0:
                 embed.set_thumbnail(url=self.member(self.winner).display_avatar.url)
         elif self.current.value >= 0 and self.accepted:
-            embed.set_thumbnail(url=IMAGES[self.current.value])
+            embed.set_thumbnail(url=IMAGES[self.current])
         return embed
 
 
@@ -136,7 +136,7 @@ class TicTacToeGame(Minigame):
         for i in range(9):
             slot: Player = self.board._data[i] # type: ignore
             button = discord.ui.Button(
-                emoji=EMOJIS[slot.value],
+                emoji=EMOJIS[slot],
                 disabled= slot != Player.NONE or self.winner != Player.NONE,
                 custom_id=f"minigames ttt {self.channel.id} {i}",
                 row=i//3,
