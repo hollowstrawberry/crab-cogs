@@ -58,6 +58,8 @@ class Minigames(commands.Cog):
                                 game_cmd: Optional[TwoPlayerGameCommand],
                                 ):
         assert ctx.guild and isinstance(ctx.author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
+
+        log.info(game_cmd.__name__ if game_cmd else None)
         
         # Game already exists
         if ctx.channel.id in self.games and not self.games[ctx.channel.id].is_finished():
