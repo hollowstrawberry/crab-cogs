@@ -69,10 +69,7 @@ class ConnectFourGame(Minigame):
             self.current = self.opponent()
 
     def do_turn_ai(self):
-        target = try_complete_line(self.board, self.current, Player.NONE, 3) \
-            or try_complete_line(self.board, self.opponent(), Player.NONE, 3) \
-            or [0, self.get_random_unoccupied()]
-        self.do_turn(self.member(self.current), target[1])
+        self.do_turn(self.member(self.current), self.get_random_unoccupied())
 
     def is_finished(self) -> bool:
         return self.winner != Player.NONE
