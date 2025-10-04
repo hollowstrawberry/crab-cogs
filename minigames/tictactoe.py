@@ -109,20 +109,20 @@ class TicTacToeGame(Minigame):
         title = "Pending invitation..." if not self.accepted \
                 else f"{self.member(self.current).display_name}'s turn" if self.winner == Player.NONE \
                 else "It's a tie!" if self.winner == Player.TIE \
-                else f"{self.member(self.current).display_name} is the winner!"
+                else f"{self.member(self.winner).display_name} is the winner!"
         description = ""
         for i, player in enumerate(self.players):
             if self.winner.value == i:
                 description += "👑 "
-            elif self.winner.value == Player.NONE and self.current.value == i:
+            elif self.winner == Player.NONE and self.current.value == i and self.accepted:
                 description += "➡️ "
             description += f"{EMOJIS[i]} - {player.mention}\n"
         color = COLORS[self.winner.value] if self.winner != Player.NONE else COLORS[self.current.value]
         embed = discord.Embed(title=title, description=description, color=color)
-        if self.winner.value != Player.NONE:
+        if self.winner != Player.NONE:
             if self.winner.value >= 0:
                 embed.set_thumbnail(url=self.member(self.winner).display_avatar.url)
-        elif self.current.value >= 0:
+        elif self.current.value >= 0 and self.accepted:
             embed.set_thumbnail(url=IMAGES[self.current.value])
         return embed
 
