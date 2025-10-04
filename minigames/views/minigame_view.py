@@ -1,6 +1,6 @@
 import discord
 
-from minigames.minigame import Minigame
+from minigames.base import Minigame
 
 
 class MinigameView(discord.ui.View):

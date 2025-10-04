@@ -76,7 +76,10 @@ class Minigames(commands.Cog):
                 # re-fetch message to make sure it wasn't deleted
                 old_message = await ctx.channel.fetch_message(old_game.message.id) if old_game.message else None
                 if old_message:
-                    return await ctx.reply(f"Someone else is still playing a game in this channel, here: {old_message.jump_url}\nTry again in a few minutes.", ephemeral=True)
+                    content = f"There is still an active game in this channel, here: {old_message.jump_url}\nTry again in a few minutes"
+                    permissions = ctx.channel.permissions_for(ctx.author)
+                    content += " or consider creating a thread." if permissions.create_public_threads or permissions.create_private_threads else "."
+                    return await ctx.reply(content, ephemeral=True)
         
         # New game
         game = game_cls(players, ctx.channel)
