@@ -22,8 +22,8 @@ class RematchView(discord.ui.View):
             return await interaction.response.send_message("You didn't play this game!", ephemeral=True)
         players = list(self.game.players)
         players.remove(interaction.user)
+        interaction.command = self.game.command # type: ignore
         ctx = await commands.Context.from_interaction(interaction)
-        ctx.command = self.game.command # type: ignore
         await self.game.command(ctx, players[0])
         
     async def on_timeout(self):
