@@ -9,8 +9,6 @@ from minigames.board import Board, find_lines, try_complete_line
 from minigames.views.game_view import GameView
 from minigames.views.invite_view import InviteView
 
-log = logging.getLogger("c4")
-
 
 class Player(Enum):
     TIE = -2
@@ -33,7 +31,6 @@ IMAGES = {
     0: "https://raw.githubusercontent.com/hollowstrawberry/crab-cogs/refs/heads/testing/minigames/media/red.png",
     1: "https://raw.githubusercontent.com/hollowstrawberry/crab-cogs/refs/heads/testing/minigames/media/blue.png",
 }
-
 NUMBERS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣"]
 
 
@@ -126,7 +123,7 @@ class ConnectFourGame(Minigame):
         for i, player in enumerate(self.players):
             if self.winner.value == i:
                 description += "👑 "
-            elif self.winner.value == Player.NONE and self.current.value == i and self.accepted:
+            elif self.winner.value == Player.NONE and self.current.value == i:
                 description += "➡️ "
             description += f"{EMOJIS[i]} - {player.mention}\n"
         description += "\n"
@@ -142,8 +139,8 @@ class ConnectFourGame(Minigame):
         if self.winner.value != Player.NONE:
             if self.winner.value >= 0:
                 embed.set_thumbnail(url=self.member(self.winner).display_avatar.url)
-        elif self.current.value >= 0 and self.accepted:
-            embed.set_thumbnail(url="https://cdn.discordapp.com/emojis/1159695833697104033.png")
+        elif self.current.value >= 0:
+            embed.set_thumbnail(url=IMAGES[self.current.value])
         return embed
 
 

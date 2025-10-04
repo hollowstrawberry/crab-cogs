@@ -114,7 +114,7 @@ class TicTacToeGame(Minigame):
         for i, player in enumerate(self.players):
             if self.winner.value == i:
                 description += "👑 "
-            elif self.winner.value == Player.NONE and self.current.value == i and self.accepted:
+            elif self.winner.value == Player.NONE and self.current.value == i:
                 description += "➡️ "
             description += f"{EMOJIS[i]} - {player.mention}\n"
         color = COLORS[self.winner.value] if self.winner != Player.NONE else COLORS[self.current.value]
@@ -122,7 +122,7 @@ class TicTacToeGame(Minigame):
         if self.winner.value != Player.NONE:
             if self.winner.value >= 0:
                 embed.set_thumbnail(url=self.member(self.winner).display_avatar.url)
-        elif self.current.value >= 0 and self.accepted:
+        elif self.current.value >= 0:
             embed.set_thumbnail(url=IMAGES[self.current.value])
         return embed
 
