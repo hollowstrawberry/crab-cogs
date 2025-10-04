@@ -165,10 +165,9 @@ class TicTacToeGame(Minigame):
                 self.do_turn(interaction.user, i)
                 if not self.is_finished() and self.member(self.current).bot:
                     self.do_turn_ai()
-                new_view = self.get_view()
                 if self.is_finished():
                     view.stop()
-                    new_view.stop()
+                new_view = self.get_view()
                 await interaction.response.edit_message(content=self.get_content(), embed=self.get_embed(), view=new_view)
                 if isinstance(new_view, RematchView):
                     new_view.message = interaction.message

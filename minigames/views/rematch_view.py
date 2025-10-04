@@ -5,8 +5,6 @@ from discord.ext import commands
 
 from minigames.base import Minigame
 
-log = logging.getLogger("red.crab-cogs.minigames")
-
 
 class RematchView(discord.ui.View):
     def __init__(self, game: Minigame):
@@ -20,7 +18,6 @@ class RematchView(discord.ui.View):
 
     async def rematch(self, interaction: discord.Interaction):
         assert interaction.message and isinstance(interaction.user, discord.Member) and self.game.command
-        log.info(f"{self.game.command=}")
         if interaction.user not in self.game.players:
             return await interaction.response.send_message("You didn't play this game!", ephemeral=True)
         players = list(self.game.players)
