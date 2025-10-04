@@ -1,4 +1,3 @@
-import logging
 import discord
 from typing import Optional
 from discord.ext import commands
@@ -17,14 +16,14 @@ class RematchView(discord.ui.View):
             self.add_item(button)
 
     async def rematch(self, interaction: discord.Interaction):
-        assert interaction.message and isinstance(interaction.user, discord.Member) and self.game.command
+        assert interaction.message and isinstance(interaction.user, discord.Member)
         if interaction.user not in self.game.players:
             return await interaction.response.send_message("You didn't play this game!", ephemeral=True)
-        players = list(self.game.players)
-        players.remove(interaction.user)
-        interaction.command = self.game.command # type: ignore
-        ctx = await commands.Context.from_interaction(interaction)
-        await self.game.command(ctx, players[0])
+        temp_players = list(self.game.players)
+        temp_players.remove(interaction.user)
+        opponent = temp_players[0]
+        players = [interaction.user, opponent] if opponent.bot else [opponent, interaction.user]
+        await self.game.cog.base_minigame_cmd(type(self.game), interaction, players, opponent.bot)
         
     async def on_timeout(self):
         await super().on_timeout()

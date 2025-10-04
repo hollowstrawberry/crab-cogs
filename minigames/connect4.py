@@ -5,9 +5,8 @@ from enum import Enum
 from typing import List, Optional
 from datetime import datetime
 
-from minigames.base import Minigame
+from minigames.base import BaseMinigameCog, Minigame
 from minigames.board import Board, find_lines
-from minigames.constants import TwoPlayerGameCommand
 from minigames.views.minigame_view import MinigameView
 from minigames.views.invite_view import InviteView
 from minigames.views.rematch_view import RematchView
@@ -38,10 +37,10 @@ NUMBERS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7�
 
 
 class ConnectFourGame(Minigame):
-    def __init__(self, players: List[discord.Member], channel: discord.TextChannel, command: TwoPlayerGameCommand):
+    def __init__(self, cog: BaseMinigameCog, players: List[discord.Member], channel: discord.TextChannel):
         if len(players) != 2:
             raise ValueError("Game must have 2 players")
-        super().__init__(players, channel, command)
+        super().__init__(cog, players, channel)
         self.accepted = False
         self.board = Board(7, 6, Player.NONE)
         self.current = Player.RED

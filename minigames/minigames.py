@@ -1,22 +1,21 @@
 import logging
 import discord
-from typing import Dict, List, Optional, Type
+from typing import Dict, List, Optional, Type, Union
 from datetime import datetime
 from redbot.core import commands, Config
 from redbot.core.bot import Red
 
+from minigames.base import Minigame, BaseMinigameCog
 from minigames.connect4 import ConnectFourGame
-from minigames.base import Minigame
-from minigames.constants import TwoPlayerGameCommand
-from minigames.views.replace_view import ReplaceView
 from minigames.tictactoe import TicTacToeGame
+from minigames.views.replace_view import ReplaceView
 
 log = logging.getLogger("red.crab-cogs.minigames")
 
 TIME_LIMIT = 5 # minutes
 
 
-class Minigames(commands.Cog):
+class Minigames(BaseMinigameCog):
     """Games to play against your friends or the bot, like Tic-Tac-Toe and Connect 4."""
 
     def __init__(self, bot: Red):
@@ -27,7 +26,7 @@ class Minigames(commands.Cog):
         self.config = Config.get_conf(self, identifier=7669699620)
         self.config.register_guild()
 
-    @commands.hybrid_command(name="tictactoe", aliases=["ttt"])
+    @commands.hybrid_command(name="tictactoe", aliases=["ttt"]) # type: ignore
     @commands.guild_only()
     async def tictactoe(self, ctx: commands.Context, opponent: Optional[discord.Member] = None):
         """
@@ -36,9 +35,9 @@ class Minigames(commands.Cog):
         assert ctx.guild and isinstance(ctx.author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
         opponent = opponent or ctx.guild.me
         players = [ctx.author, opponent] if opponent.bot else [opponent, ctx.author]
-        await self.base_minigame_cmd(TicTacToeGame, ctx, players, opponent.bot, self.tictactoe)
+        await self.base_minigame_cmd(TicTacToeGame, ctx, players, opponent.bot)
 
-    @commands.hybrid_command(name="connect4", aliases=["c4"])
+    @commands.hybrid_command(name="connect4", aliases=["c4"]) # type: ignore
     @commands.guild_only()
     async def connectfour(self, ctx: commands.Context, opponent: Optional[discord.Member] = None):
         """
@@ -47,17 +46,18 @@ class Minigames(commands.Cog):
         assert ctx.guild and isinstance(ctx.author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
         opponent = opponent or ctx.guild.me
         players = [ctx.author, opponent] if opponent.bot else [opponent, ctx.author]
-        await self.base_minigame_cmd(ConnectFourGame, ctx, players, opponent.bot, self.connectfour)
+        await self.base_minigame_cmd(ConnectFourGame, ctx, players, opponent.bot)
 
 
     async def base_minigame_cmd(self,
                                 game_cls: Type[Minigame],
-                                ctx: commands.Context,
+                                ctx: Union[commands.Context, discord.Interaction],
                                 players: List[discord.Member],
                                 against_bot: bool,
-                                game_cmd: Optional[TwoPlayerGameCommand],
                                 ):
-        assert ctx.guild and isinstance(ctx.author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
+        author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
+        reply = ctx.reply if isinstance(ctx, commands.Context) else ctx.response.send_message
+        assert ctx.guild and isinstance(ctx.channel, discord.TextChannel) and isinstance(author, discord.Member)
         
         # Game already exists
         if ctx.channel.id in self.games and not self.games[ctx.channel.id].is_finished():
@@ -68,12 +68,12 @@ class Minigames(commands.Cog):
                 if (datetime.now() - old_game.last_interacted).total_seconds() > 60 * TIME_LIMIT:
                     async def callback():
                         nonlocal ctx, players, old_game, against_bot
-                        assert isinstance(ctx.author, discord.Member) and isinstance(ctx.channel, discord.TextChannel) 
-                        game = game_cls(players, ctx.channel, game_cmd)
+                        assert isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel) 
+                        game = game_cls(self, players, ctx.channel)
                         if against_bot:
-                            game.accept(ctx.author)
+                            game.accept(author)
                         self.games[ctx.channel.id] = game
-                        message = await ctx.send(content=game.get_content(), embed=game.get_embed(), view=game.get_view())
+                        message = await ctx.channel.send(content=game.get_content(), embed=game.get_embed(), view=game.get_view())
                         game.message = message
                         if old_game.message:
                             try:
@@ -82,22 +82,23 @@ class Minigames(commands.Cog):
                                 pass
 
                     content = f"Someone else is playing a game in this channel, here: {old_message.jump_url}, but more than {TIME_LIMIT} minutes have passed since their last interaction. Do you want to start a new game?"
-                    embed = discord.Embed(title="Confirmation", description=content, color=await self.bot.get_embed_color(ctx))
-                    view = ReplaceView(self, callback, ctx.author)
-                    view.message = await ctx.reply(embed=embed, view=view, ephemeral=True)
+                    embed = discord.Embed(title="Confirmation", description=content, color=await self.bot.get_embed_color(ctx.channel))
+                    view = ReplaceView(self, callback, author)
+                    message = await reply(embed=embed, view=view, ephemeral=True)
+                    view.message = message if isinstance(ctx, commands.Context) else await ctx.original_response() # type: ignore
                     return
                 
                 else:
                     content = f"There is still an active game in this channel, here: {old_message.jump_url}\nTry again in a few minutes"
-                    permissions = ctx.channel.permissions_for(ctx.author)
+                    permissions = ctx.channel.permissions_for(author)
                     content += " or consider creating a thread." if permissions.create_public_threads or permissions.create_private_threads else "."
-                    await ctx.reply(content, ephemeral=True)
+                    await reply(content, ephemeral=True)
                     return
         
         # New game
-        game = game_cls(players, ctx.channel, game_cmd)
+        game = game_cls(self, players, ctx.channel)
         if against_bot:
-            game.accept(ctx.author)
+            game.accept(author)
         self.games[ctx.channel.id] = game
-        message = await ctx.reply(content=game.get_content(), embed=game.get_embed(), view=game.get_view())
-        game.message = message
+        message = await reply(content=game.get_content(), embed=game.get_embed(), view=game.get_view())
+        game.message = message if isinstance(ctx, commands.Context) else await ctx.original_response() # type: ignore

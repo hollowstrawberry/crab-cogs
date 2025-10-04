@@ -4,9 +4,8 @@ from enum import Enum
 from typing import List, Optional, Tuple
 from datetime import datetime
 
-from minigames.base import Minigame
+from minigames.base import BaseMinigameCog, Minigame
 from minigames.board import Board, find_lines, try_complete_line
-from minigames.constants import TwoPlayerGameCommand
 from minigames.views.minigame_view import MinigameView
 from minigames.views.invite_view import InviteView
 from minigames.views.rematch_view import RematchView
@@ -35,10 +34,10 @@ IMAGES = {
 }
 
 class TicTacToeGame(Minigame):
-    def __init__(self, players: List[discord.Member], channel: discord.TextChannel, command: TwoPlayerGameCommand):
+    def __init__(self, cog: BaseMinigameCog, players: List[discord.Member], channel: discord.TextChannel):
         if len(players) != 2:
             raise ValueError("Game must have 2 players")
-        super().__init__(players, channel, command)
+        super().__init__(cog, players, channel)
         self.accepted = False
         self.board = Board(3, 3, Player.NONE)
         self.current = Player.CROSS
@@ -141,8 +140,6 @@ class TicTacToeGame(Minigame):
     def get_view(self) -> discord.ui.View:
         if not self.accepted:
             return InviteView(self)
-
-        assert self.command
 
         view = RematchView(self) if self.is_finished() else MinigameView(self)
         for i in range(9):

@@ -1,18 +1,25 @@
 import discord
-from typing import List, Optional
 from abc import ABC, abstractmethod
+from typing import List, Optional, Type, Union
 from datetime import datetime
-
-from minigames.constants import TwoPlayerGameCommand
-
+from discord.ext import commands
 
 
+class BaseMinigameCog(commands.Cog):
+    @abstractmethod
+    async def base_minigame_cmd(self,
+                                game_cls: Type["Minigame"],
+                                ctx: Union[commands.Context, discord.Interaction],
+                                players: List[discord.Member],
+                                against_bot: bool):
+        pass
+        
 
 class Minigame(ABC):
-    def __init__(self, players: List[discord.Member], channel: discord.TextChannel, command: Optional[TwoPlayerGameCommand]):
+    def __init__(self, cog: BaseMinigameCog, players: List[discord.Member], channel: discord.TextChannel):
+        self.cog = cog
         self.players = players
         self.channel = channel
-        self.command = command
         self.message: Optional[discord.Message] = None
         self.last_interacted: datetime = datetime.now()
 
