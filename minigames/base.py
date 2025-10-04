@@ -4,13 +4,10 @@ from typing import List, Optional, Type, Union
 from datetime import datetime
 from redbot.core import commands
 
+
 class BaseMinigameCog(commands.Cog):
     @abstractmethod
-    async def base_minigame_cmd(self,
-                                game_cls: Type["Minigame"],
-                                ctx: Union[commands.Context, discord.Interaction],
-                                players: List[discord.Member],
-                                against_bot: bool):
+    async def base_minigame_cmd(self, game_cls: Type["Minigame"], ctx: Union[commands.Context, discord.Interaction], players: List[discord.Member], against_bot: bool):
         pass
         
 
@@ -31,7 +28,7 @@ class Minigame(ABC):
         pass
 
     @abstractmethod
-    def end(self, player: discord.Member) -> None:
+    def cancel(self, player: Optional[discord.Member]) -> None:
         pass
 
     @abstractmethod

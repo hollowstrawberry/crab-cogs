@@ -53,8 +53,8 @@ class ConnectFourGame(Minigame):
             raise ValueError(f"It's not {player.name}'s turn")
         if self.is_finished():
             raise ValueError("This game is finished")
-        if column < 0 or column > 6:
-            raise ValueError(f"Column must be a number between 0 and 6, not {column}")
+        if column < 0 or column > self.board.width - 1:
+            raise ValueError(f"Column must be a number between 0 and {self.board.width - 1}, not {column}")
         
         row = self.get_highest_slot(self.board, column)
         if row is None:
@@ -103,7 +103,7 @@ class ConnectFourGame(Minigame):
     def is_cancelled(self) -> bool:
         return self.cancelled
     
-    def end(self, player: discord.Member):
+    def cancel(self, player: discord.Member):
         self.cancelled = True
         if player not in self.players:
             self.winner = Player.NONE
@@ -128,16 +128,16 @@ class ConnectFourGame(Minigame):
     
     @classmethod
     def get_highest_slot(cls, board: Board, column: int) -> Optional[int]:
-        if column < 0 or column > 6:
+        if column < 0 or column > board.width - 1:
             raise ValueError("Invalid column")
-        for row in range(5, -1, -1):
+        for row in range(board.height - 1, -1, -1):
             if board[column, row] == Player.NONE:
                 return row
         return None
     
     @classmethod
     def drop_piece(cls, board: Board, column: int, color: Player):
-        if column < 0 or column > 6:
+        if column < 0 or column > board.width - 1:
             raise ValueError("Invalid column")
         row = cls.get_highest_slot(board, column)
         if row is None:
@@ -146,7 +146,7 @@ class ConnectFourGame(Minigame):
     
     @classmethod
     def available_columns(cls, board: Board): 
-        return [col for col in range(7) if cls.get_highest_slot(board, col) is not None]
+        return [col for col in range(board.width) if cls.get_highest_slot(board, col) is not None]
     
     @classmethod
     def get_random_unoccupied(cls, board: Board) -> int:
@@ -191,11 +191,11 @@ class ConnectFourGame(Minigame):
             description += f"{EMOJIS[Player(i)]} - {player.mention}\n"
         description += "\n"
         if not self.is_finished():
-            for i in range(7):
+            for i in range(self.board.width):
                 description += NUMBERS[i]
             description += "\n"
-        for y in range(6):
-            for x in range(7):
+        for y in range(self.board.height):
+            for x in range(self.board.width):
                 description += EMOJIS[self.board[x, y]] # type: ignore
             description += "\n"
         color = COLORS[self.winner] if self.winner != Player.NONE else COLORS[self.current]

@@ -26,7 +26,7 @@ class MinigameView(discord.ui.View):
         assert interaction.channel and isinstance(interaction.user, discord.Member)
         if interaction.user not in self.game.players and not interaction.channel.permissions_for(interaction.user).manage_messages:
             return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
-        self.game.end(interaction.user)
+        self.game.cancel(interaction.user)
         new_view = self.game.get_view()
         if new_view:
             new_view.stop()

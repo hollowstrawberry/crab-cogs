@@ -1,6 +1,5 @@
 import discord
 from typing import Optional
-from discord.ext import commands
 
 from minigames.base import Minigame
 
@@ -31,7 +30,8 @@ class RematchView(discord.ui.View):
         
     async def on_timeout(self):
         if self.message:
+            self.game.cancel(None)
             try:
-                await self.message.edit(view=None)
+                await self.message.edit(view=self.game.get_view())
             except discord.NotFound:
                 pass

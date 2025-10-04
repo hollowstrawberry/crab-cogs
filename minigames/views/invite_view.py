@@ -21,7 +21,7 @@ class InviteView(discord.ui.View):
         assert isinstance(interaction.user, discord.Member)
         if interaction.user not in self.game.players:
             return await interaction.response.send_message("You're not the target of this invitation!", ephemeral=True)
-        self.game.end(interaction.user)
+        self.game.cancel(interaction.user)
         self.stop()
         assert interaction.message
         await interaction.message.delete()

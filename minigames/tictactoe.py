@@ -42,6 +42,7 @@ class TicTacToeGame(Minigame):
         self.board = Board(3, 3, Player.NONE)
         self.current = Player.CROSS
         self.winner = Player.NONE
+        self.time = 0
         self.cancelled = False
 
     def do_turn(self, player: discord.Member, slot: int):
@@ -55,10 +56,11 @@ class TicTacToeGame(Minigame):
             raise ValueError(f"Board slot {slot} is already occupied")
         
         self.last_interacted = datetime.now()
+        self.time += 1
         self.board._data[slot] = self.current
         if self.check_win():
             self.winner = self.current
-        elif all(slot != Player.NONE for slot in self.board._data):
+        elif self.is_finished():
             self.winner = Player.TIE
         else:
             self.current = self.opponent()
@@ -70,12 +72,12 @@ class TicTacToeGame(Minigame):
         self.do_turn(self.member(self.current), target[1]*3 + target[0])
 
     def is_finished(self) -> bool:
-        return self.winner != Player.NONE or self.cancelled
+        return self.winner != Player.NONE or self.cancelled or self.time == 9
     
     def is_cancelled(self) -> bool:
         return self.cancelled
     
-    def end(self, player: discord.Member):
+    def cancel(self, player: discord.Member):
         self.cancelled = True
         if player not in self.players:
             self.winner = Player.NONE
