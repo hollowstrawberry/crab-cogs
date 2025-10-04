@@ -193,8 +193,8 @@ class TicTacToeGame(Minigame):
                     view.stop()
                     await interaction.response.edit_message(content=self.get_content(), embed=self.get_embed(), view=new_view)
 
-                bump_button = discord.ui.Button(emoji="⬇️", label="Bump", style=discord.ButtonStyle.primary)
-                end_button = discord.ui.Button(emoji="🛑", label="End", style=discord.ButtonStyle.danger)
+                bump_button = discord.ui.Button(emoji="⬇️", label="Bump", style=discord.ButtonStyle.primary, row=1)
+                end_button = discord.ui.Button(emoji="🛑", label="End", style=discord.ButtonStyle.danger, row=1)
                 bump_button.callback = bump
                 end_button.callback = end
                 view.add_item(bump_button)
