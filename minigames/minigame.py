@@ -14,3 +14,19 @@ class Minigame(ABC):
     @abstractmethod
     def is_finished(self) -> bool:
         pass
+
+    @abstractmethod
+    def end(self):
+        pass
+
+    @abstractmethod
+    def get_content(self) -> Optional[str]:
+        pass
+
+    @abstractmethod
+    def get_embed(self) -> discord.Embed:
+        pass
+
+    @abstractmethod
+    def get_view(self) -> discord.ui.View:
+        pass

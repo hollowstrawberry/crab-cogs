@@ -1,14 +1,26 @@
 import random
-import logging
 import discord
 from enum import Enum
 from typing import List, Optional, Tuple
 from datetime import datetime
 from minigames.minigame import Minigame
 from minigames.board import Board, find_lines, try_complete_line
+from minigames.views.game_view import GameView
+from minigames.views.invite_view import InviteView
 
-log = logging.getLogger("ttt")
 
+class Player(Enum):
+    TIE = -2
+    NONE = -1
+    CROSS = 0
+    CIRCLE = 1
+
+COLORS = {
+    -2: 0x78B159,
+    -1: 0x31373D,
+    0: 0xDD2E44,
+    1: 0xDD2E44,
+}
 EMOJIS = {
     -1: "▪️",
     0: "❌",
@@ -18,16 +30,6 @@ IMAGES = {
     0: "https://raw.githubusercontent.com/hollowstrawberry/crab-cogs/refs/heads/testing/minigames/media/x.png",
     1: "https://raw.githubusercontent.com/hollowstrawberry/crab-cogs/refs/heads/testing/minigames/media/o.png",
 }
-COLOR = 0xDD2E44
-TIE_COLOR = 0x78B159
-
-
-class Player(Enum):
-    TIE = -2
-    NONE = -1
-    CROSS = 0
-    CIRCLE = 1
-
 
 class TicTacToeGame(Minigame):
     def __init__(self, players: List[discord.Member], channel: discord.TextChannel):
@@ -45,7 +47,7 @@ class TicTacToeGame(Minigame):
         if self.is_finished():
             raise ValueError("This game is finished")
         if slot < 0 or slot > 8:
-            raise ValueError(f"Action must be a number between 0 and 8, not {slot}")
+            raise ValueError(f"Slot must be a number between 0 and 8, not {slot}")
         if self.board._data[slot] != Player.NONE:
             raise ValueError(f"Board slot {slot} is already occupied")
         
@@ -66,6 +68,9 @@ class TicTacToeGame(Minigame):
 
     def is_finished(self) -> bool:
         return self.winner != Player.NONE
+    
+    def end(self):
+        self.winner = Player.TIE
 
     def check_win(self) -> bool:
         return find_lines(self.board, self.current, 3)
@@ -106,7 +111,7 @@ class TicTacToeGame(Minigame):
             elif self.winner.value == Player.NONE and self.current.value == i and self.accepted:
                 description += "➡️ "
             description += f"{EMOJIS[i]} - {player.mention}\n"
-        color = TIE_COLOR if self.winner == Player.TIE else COLOR
+        color = COLORS[self.winner.value] if self.winner != Player.NONE else COLORS[self.current.value]
         embed = discord.Embed(title=title, description=description, color=color)
         if self.winner.value != Player.NONE:
             if self.winner.value >= 0:
@@ -117,33 +122,10 @@ class TicTacToeGame(Minigame):
 
 
     def get_view(self) -> discord.ui.View:
-        view = discord.ui.View(timeout=None)
-
         if not self.accepted:
-            async def accept(interaction: discord.Interaction):
-                nonlocal self
-                if interaction.user != self.players[0]:
-                    return await interaction.response.send_message("You're not the target of this invitation!", ephemeral=True)
-                self.accepted = True
-                await interaction.response.edit_message(content=self.get_content(), embed=self.get_embed(), view=self.get_view())
-
-            async def cancel(interaction: discord.Interaction):
-                nonlocal self, view
-                if interaction.user not in self.players:
-                    return await interaction.response.send_message("You're not the target of this invitation!", ephemeral=True)
-                self.winner = Player.TIE
-                view.stop()
-                assert interaction.message
-                await interaction.message.delete()
-
-            accept_button = discord.ui.Button(label="Accept", style=discord.ButtonStyle.primary)
-            cancel_button = discord.ui.Button(label="Cancel", style=discord.ButtonStyle.secondary)
-            accept_button.callback = accept
-            cancel_button.callback = cancel
-            view.add_item(accept_button)
-            view.add_item(cancel_button)
-
+            view = InviteView(self)
         else:
+            view = GameView(self)
             for i in range(9):
                 slot: Player = self.board._data[i] # type: ignore
                 button = discord.ui.Button(
@@ -172,32 +154,5 @@ class TicTacToeGame(Minigame):
 
                 button.callback = action
                 view.add_item(button)
-
-            if not self.is_finished():
-                async def bump(interaction: discord.Interaction):
-                    nonlocal self, view
-                    assert interaction.message
-                    if interaction.user not in self.players:
-                        return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
-                    await interaction.message.delete()
-                    self.message = await interaction.message.channel.send(content=self.get_content(), embed=self.get_embed(), view=self.get_view())
-                
-                async def end(interaction: discord.Interaction):
-                    nonlocal self, view
-                    assert interaction.channel and isinstance(interaction.user, discord.Member)
-                    if interaction.user not in self.players and not interaction.channel.permissions_for(interaction.user).manage_messages:
-                        return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
-                    self.winner = Player.TIE
-                    new_view = self.get_view()
-                    new_view.stop()
-                    view.stop()
-                    await interaction.response.edit_message(content=self.get_content(), embed=self.get_embed(), view=new_view)
-
-                bump_button = discord.ui.Button(emoji="⬇️", label="Bump", style=discord.ButtonStyle.primary, row=3)
-                end_button = discord.ui.Button(emoji="🛑", label="End", style=discord.ButtonStyle.danger, row=3)
-                bump_button.callback = bump
-                end_button.callback = end
-                view.add_item(bump_button)
-                view.add_item(end_button)
 
         return view
