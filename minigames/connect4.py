@@ -55,7 +55,6 @@ class ConnectFourGame(Minigame):
         if column < 0 or column > 6:
             raise ValueError(f"Column must be a number between 0 and 6, not {column}")
         
-        log.info(f"{column=}")
         row = self.get_highest_slot(column)
         if row is None:
             raise ValueError(f"Column is full")
@@ -144,8 +143,7 @@ class ConnectFourGame(Minigame):
             if self.winner.value >= 0:
                 embed.set_thumbnail(url=self.member(self.winner).display_avatar.url)
         elif self.current.value >= 0 and self.accepted:
-            embed.set_thumbnail(url=IMAGES[self.current.value])
-            log.info(IMAGES[self.current.value])
+            embed.set_thumbnail(url="https://cdn.discordapp.com/emojis/1159695833697104033.png")
         return embed
 
 
