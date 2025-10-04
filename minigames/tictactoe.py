@@ -109,7 +109,8 @@ class TicTacToeGame(Minigame):
         color = TIE_COLOR if self.winner == Player.TIE else COLOR
         embed = discord.Embed(title=title, description=description, color=color)
         if self.winner.value != Player.NONE:
-            embed.set_thumbnail(url=self.member(self.winner).display_avatar.url)
+            if self.winner.value >= 0:
+                embed.set_thumbnail(url=self.member(self.winner).display_avatar.url)
         elif self.current.value >= 0 and self.accepted:
             embed.set_thumbnail(url=IMAGES[self.current.value])
         return embed
