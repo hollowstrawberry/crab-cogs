@@ -108,11 +108,13 @@ class TicTacToeGame(Minigame):
             raise ValueError("No empty slots")
         return random.choice(empty_slots)
     
+
     def get_content(self) -> Optional[str]:
         if not self.accepted:
             return f"{self.players[0].mention} you've been invited to play Tic-Tac-Toe!"
         else:
             return None
+
 
     def get_embed(self) -> discord.Embed:
         title = "Pending invitation..." if not self.accepted \
@@ -126,16 +128,20 @@ class TicTacToeGame(Minigame):
         for i, player in enumerate(self.players):
             if self.winner.value == i:
                 description += "👑 "
-            elif self.winner == Player.NONE and self.current.value == i and self.accepted:
+            elif not self.is_finished() and self.current.value == i and self.accepted:
                 description += "►"
             description += f"{EMOJIS[Player(i)]} - {player.mention}\n"
+
         color = COLORS[self.winner] if self.winner != Player.NONE else COLORS[self.current]
+
         embed = discord.Embed(title=title, description=description, color=color)
-        if self.winner != Player.NONE:
+        
+        if self.is_finished():
             if self.winner.value >= 0:
                 embed.set_thumbnail(url=self.member(self.winner).display_avatar.url)
-        elif self.current.value >= 0 and self.accepted:
+        elif self.accepted:
             embed.set_thumbnail(url=IMAGES[self.current])
+
         return embed
 
 
@@ -148,7 +154,7 @@ class TicTacToeGame(Minigame):
             slot: Player = self.board._data[i] # type: ignore
             button = discord.ui.Button(
                 emoji=EMOJIS[slot],
-                disabled= slot != Player.NONE or self.winner != Player.NONE,
+                disabled= slot != Player.NONE or self.is_finished(),
                 custom_id=f"minigames ttt {self.channel.id} {i}",
                 row=i//3,
                 style=discord.ButtonStyle.secondary,

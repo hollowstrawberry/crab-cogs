@@ -169,11 +169,13 @@ class ConnectFourGame(Minigame):
                 count += cls.may_lose_count(temp_board, color, cls.opponent(current), time + 1, depth - 1)
         return count
 
+
     def get_content(self) -> Optional[str]:
         if not self.accepted:
             return f"{self.players[0].mention} you've been invited to play Connect 4!"
         else:
             return None
+
 
     def get_embed(self) -> discord.Embed:
         title = "Pending invitation..." if not self.accepted \
@@ -182,11 +184,12 @@ class ConnectFourGame(Minigame):
                 else "It's a tie!" if self.winner == Player.TIE \
                 else f"{self.member(self.winner).display_name} is the winner via surrender!" if self.cancelled \
                 else f"{self.member(self.winner).display_name} is the winner!"
+        
         description = ""
         for i, player in enumerate(self.players):
             if self.winner.value == i:
                 description += "👑 "
-            elif self.winner == Player.NONE and self.current.value == i and self.accepted:
+            elif not self.is_finished() and self.current.value == i and self.accepted:
                 description += "►"
             description += f"{EMOJIS[Player(i)]} - {player.mention}\n"
         description += "\n"
@@ -198,13 +201,17 @@ class ConnectFourGame(Minigame):
             for x in range(self.board.width):
                 description += EMOJIS[self.board[x, y]] # type: ignore
             description += "\n"
+
         color = COLORS[self.winner] if self.winner != Player.NONE else COLORS[self.current]
+
         embed = discord.Embed(title=title, description=description, color=color)
-        if self.winner != Player.NONE:
+
+        if self.is_finished():
             if self.winner.value >= 0:
                 embed.set_thumbnail(url=self.member(self.winner).display_avatar.url)
-        elif self.current.value >= 0 and self.accepted:
+        elif self.accepted:
             embed.set_thumbnail(url=IMAGES[self.current])
+
         return embed
 
 
