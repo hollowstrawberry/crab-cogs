@@ -144,7 +144,7 @@ class TicTacToeGame(Minigame):
 
         assert self.command
 
-        view = RematchView(self) if self.is_finished() and not self.is_cancelled() else MinigameView(self)
+        view = RematchView(self) if self.is_finished() else MinigameView(self)
         for i in range(9):
             slot: Player = self.board._data[i] # type: ignore
             button = discord.ui.Button(

@@ -3,7 +3,6 @@ from typing import Optional
 from discord.ext import commands
 
 from minigames.base import Minigame
-from minigames.constants import TwoPlayerGameCommand
 
 
 class RematchView(discord.ui.View):
@@ -11,9 +10,12 @@ class RematchView(discord.ui.View):
         super().__init__(timeout=None)
         self.game = game
         self.message: Optional[discord.Message] = None
+        if not self.game.is_cancelled():
+            button = discord.ui.Button(label="Rematch", style=discord.ButtonStyle.green, row=4)
+            button.callback = self.rematch
+            self.add_item(button)
 
-    @discord.ui.button(label="Rematch", style=discord.ButtonStyle.green, row=4)
-    async def rematch(self, interaction: discord.Interaction, _):
+    async def rematch(self, interaction: discord.Interaction):
         assert interaction.message and isinstance(interaction.user, discord.Member) and self.game.command
         if interaction.user not in self.game.players:
             return await interaction.response.send_message("You didn't play this game!", ephemeral=True)

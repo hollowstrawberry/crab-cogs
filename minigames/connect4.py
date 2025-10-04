@@ -213,31 +213,31 @@ class ConnectFourGame(Minigame):
         if not self.accepted:
             return InviteView(self)
         if self.is_finished():
-            return None if self.is_cancelled() else RematchView(self)
-        if not self.is_finished():
-            view = MinigameView(self)
-            options = [discord.SelectOption(label=f"{col + 1}", value=f"{col}") for col in self.available_columns(self.board)]
-            select = discord.ui.Select(row=0, options=options, placeholder="Choose column to drop a piece...", custom_id=f"minigames c4 {self.channel.id}")
+            return RematchView(self)
 
-            async def action(interaction: discord.Interaction):
-                nonlocal self, view
-                assert isinstance(interaction.user, discord.Member)
-                if interaction.user not in self.players:
-                    return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
-                if interaction.user != self.member(self.current):
-                    return await interaction.response.send_message("It's not your turn!", ephemeral=True)
-                self.do_turn(interaction.user, int(interaction.data['values'][0])) # type: ignore
-                if not self.is_finished() and self.member(self.current).bot:
-                    self.do_turn_ai()
-                new_view = self.get_view()
-                if self.is_finished():
-                    view.stop()
-                    if new_view:
-                        new_view.stop()
-                await interaction.response.edit_message(content=self.get_content(), embed=self.get_embed(), view=new_view)
-                if isinstance(new_view, RematchView):
-                    new_view.message = interaction.message
+        view = MinigameView(self)
+        options = [discord.SelectOption(label=f"{col + 1}", value=f"{col}") for col in self.available_columns(self.board)]
+        select = discord.ui.Select(row=0, options=options, placeholder="Choose column to drop a piece...", custom_id=f"minigames c4 {self.channel.id}")
 
-            select.callback = action
-            view.add_item(select)
-            return view
+        async def action(interaction: discord.Interaction):
+            nonlocal self, view
+            assert isinstance(interaction.user, discord.Member)
+            if interaction.user not in self.players:
+                return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
+            if interaction.user != self.member(self.current):
+                return await interaction.response.send_message("It's not your turn!", ephemeral=True)
+            self.do_turn(interaction.user, int(interaction.data['values'][0])) # type: ignore
+            if not self.is_finished() and self.member(self.current).bot:
+                self.do_turn_ai()
+            new_view = self.get_view()
+            if self.is_finished():
+                view.stop()
+                if new_view:
+                    new_view.stop()
+            await interaction.response.edit_message(content=self.get_content(), embed=self.get_embed(), view=new_view)
+            if isinstance(new_view, RematchView):
+                new_view.message = interaction.message
+
+        select.callback = action
+        view.add_item(select)
+        return view

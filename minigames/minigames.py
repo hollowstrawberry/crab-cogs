@@ -1,5 +1,6 @@
+import logging
 import discord
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Type
+from typing import Dict, List, Optional, Type
 from datetime import datetime
 from redbot.core import commands, Config
 from redbot.core.bot import Red
@@ -9,6 +10,8 @@ from minigames.base import Minigame
 from minigames.constants import TwoPlayerGameCommand
 from minigames.views.replace_view import ReplaceView
 from minigames.tictactoe import TicTacToeGame
+
+log = logging.getLogger("red.crab-cogs.minigames")
 
 TIME_LIMIT = 5 # minutes
 
