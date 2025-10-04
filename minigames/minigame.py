@@ -20,6 +20,10 @@ class Minigame(ABC):
         pass
 
     @abstractmethod
+    def accept(self, player: discord.Member) -> None:
+        pass
+
+    @abstractmethod
     def get_content(self) -> Optional[str]:
         pass
 

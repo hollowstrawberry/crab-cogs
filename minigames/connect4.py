@@ -76,6 +76,9 @@ class ConnectFourGame(Minigame):
     
     def end(self):
         self.winner = Player.TIE
+        
+    def accept(self, _):
+        self.accepted = True
 
     def check_win(self) -> bool:
         return find_lines(self.board, self.current, 4)

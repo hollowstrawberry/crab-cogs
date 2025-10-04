@@ -72,6 +72,9 @@ class TicTacToeGame(Minigame):
     def end(self):
         self.winner = Player.TIE
 
+    def accept(self, _):
+        self.accepted = True
+
     def check_win(self) -> bool:
         return find_lines(self.board, self.current, 3)
     
@@ -156,5 +159,5 @@ class TicTacToeGame(Minigame):
 
                 button.callback = action
                 view.add_item(button)
-                
+
             return view
