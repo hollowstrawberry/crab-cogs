@@ -9,10 +9,11 @@ class RematchView(discord.ui.View):
         super().__init__(timeout=30)
         self.game = game
         self.message: Optional[discord.Message] = None
+        self.rematch_button = None
         if not self.game.is_cancelled():
-            button = discord.ui.Button(label="Rematch", style=discord.ButtonStyle.green, row=4)
-            button.callback = self.rematch
-            self.add_item(button)
+            self.rematch_button = discord.ui.Button(label="Rematch", style=discord.ButtonStyle.green, row=4)
+            self.rematch_button.callback = self.rematch
+            self.add_item(self.rematch_button)
 
     async def rematch(self, interaction: discord.Interaction):
         assert interaction.message and isinstance(interaction.user, discord.Member)
@@ -30,8 +31,9 @@ class RematchView(discord.ui.View):
         
     async def on_timeout(self):
         if self.message:
-            self.game.cancel(None)
+            if self.rematch_button:
+                self.remove_item(self.rematch_button)
             try:
-                await self.message.edit(view=self.game.get_view())
+                await self.message.edit(view=self)
             except discord.NotFound:
                 pass
