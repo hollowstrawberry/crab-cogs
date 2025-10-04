@@ -9,7 +9,7 @@ class GameView(discord.ui.View):
         self.game = game
         if not self.game.is_finished():
             bump_button = discord.ui.Button(emoji="⬇️", label="Bump", style=discord.ButtonStyle.primary, row=4)
-            end_button = discord.ui.Button(emoji="🛑", label="End", style=discord.ButtonStyle.danger, row=4)
+            end_button = discord.ui.Button(emoji="🏳️", label="End", style=discord.ButtonStyle.danger, row=4)
             bump_button.callback = self.bump
             end_button.callback = self.end
             self.add_item(bump_button)
