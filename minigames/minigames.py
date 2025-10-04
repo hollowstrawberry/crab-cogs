@@ -9,7 +9,7 @@ from minigames.base import Minigame
 from minigames.views.replace_view import ReplaceView
 from minigames.tictactoe import TicTacToeGame
 
-TIME_LIMIT = 0 # minutes
+TIME_LIMIT = 5 # minutes
 
 
 class Minigames(commands.Cog):
@@ -52,33 +52,32 @@ class Minigames(commands.Cog):
         # Game already exists
         if ctx.channel.id in self.games and not self.games[ctx.channel.id].is_finished():
             old_game = self.games[ctx.channel.id]
+            old_message = await ctx.channel.fetch_message(old_game.message.id) if old_game.message else None # re-fetch
 
-            if (datetime.now() - old_game.last_interacted).total_seconds() > 60 * TIME_LIMIT:
-                async def callback():
-                    nonlocal ctx, players, old_game, against_bot
-                    assert isinstance(ctx.author, discord.Member) and isinstance(ctx.channel, discord.TextChannel) 
-                    game = game_cls(players, ctx.channel)
-                    if against_bot:
-                        game.accept(ctx.author)
-                    self.games[ctx.channel.id] = game
-                    message = await ctx.send(content=game.get_content(), embed=game.get_embed(), view=game.get_view())
-                    game.message = message
-                    if old_game.message:
-                        try:
-                            await old_game.message.delete()
-                        except discord.NotFound:
-                            pass
+            if old_message:
+                if (datetime.now() - old_game.last_interacted).total_seconds() > 60 * TIME_LIMIT:
+                    async def callback():
+                        nonlocal ctx, players, old_game, against_bot
+                        assert isinstance(ctx.author, discord.Member) and isinstance(ctx.channel, discord.TextChannel) 
+                        game = game_cls(players, ctx.channel)
+                        if against_bot:
+                            game.accept(ctx.author)
+                        self.games[ctx.channel.id] = game
+                        message = await ctx.send(content=game.get_content(), embed=game.get_embed(), view=game.get_view())
+                        game.message = message
+                        if old_game.message:
+                            try:
+                                await old_game.message.delete()
+                            except discord.NotFound:
+                                pass
 
-                content = f"Someone else is playing a game in this channel, but more than {TIME_LIMIT} minutes have passed since their last interaction. Do you want to start a new game?"
-                embed = discord.Embed(title="Confirmation", description=content, color=await self.bot.get_embed_color(ctx))
-                view = ReplaceView(self, callback, ctx.author, ctx.channel)
-                view.message = await ctx.reply(embed=embed, view=view, ephemeral=True)
-                return
-            
-            else:
-                # re-fetch message to make sure it wasn't deleted
-                old_message = await ctx.channel.fetch_message(old_game.message.id) if old_game.message else None
-                if old_message:
+                    content = f"Someone else is playing a game in this channel, here: {old_message.jump_url}, but more than {TIME_LIMIT} minutes have passed since their last interaction. Do you want to start a new game?"
+                    embed = discord.Embed(title="Confirmation", description=content, color=await self.bot.get_embed_color(ctx))
+                    view = ReplaceView(self, callback, ctx.author, ctx.channel)
+                    view.message = await ctx.reply(embed=embed, view=view, ephemeral=True)
+                    return
+                
+                else:
                     content = f"There is still an active game in this channel, here: {old_message.jump_url}\nTry again in a few minutes"
                     permissions = ctx.channel.permissions_for(ctx.author)
                     content += " or consider creating a thread." if permissions.create_public_threads or permissions.create_private_threads else "."
