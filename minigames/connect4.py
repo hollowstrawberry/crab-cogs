@@ -55,6 +55,7 @@ class ConnectFourGame(Minigame):
         if column < 0 or column > 6:
             raise ValueError(f"Column must be a number between 0 and 6, not {column}")
         
+        log.info(f"{column=}")
         row = self.get_highest_slot(column)
         if row is None:
             raise ValueError(f"Column is full")
