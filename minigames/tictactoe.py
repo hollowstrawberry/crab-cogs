@@ -19,6 +19,7 @@ IMAGES = {
     1: "https://raw.githubusercontent.com/hollowstrawberry/crab-cogs/refs/heads/testing/minigames/media/o.png",
 }
 COLOR = 0xDD2E44
+TIE_COLOR = 0x78B159
 
 
 class Player(Enum):
@@ -105,40 +106,55 @@ class TicTacToeGame(Minigame):
             elif self.winner.value == Player.NONE and self.current.value == i and self.accepted:
                 description += "➡️ "
             description += f"{EMOJIS[i]} - {player.mention}\n"
-        embed = discord.Embed(title=title, description=description, color=COLOR)
-        if self.winner.value >= 0:
+        color = TIE_COLOR if self.winner == Player.TIE else COLOR
+        embed = discord.Embed(title=title, description=description, color=color)
+        if self.winner.value != Player.NONE:
             embed.set_thumbnail(url=self.member(self.winner).display_avatar.url)
         elif self.current.value >= 0 and self.accepted:
             embed.set_thumbnail(url=IMAGES[self.current.value])
         return embed
 
+
     def get_view(self) -> discord.ui.View:
         view = discord.ui.View(timeout=None)
 
         if not self.accepted:
-            button = discord.ui.Button(label="Accept", style=discord.ButtonStyle.primary)
-
             async def accept(interaction: discord.Interaction):
+                nonlocal self
                 if interaction.user != self.players[0]:
                     return await interaction.response.send_message("You're not the target of this invitation!", ephemeral=True)
                 self.accepted = True
                 await interaction.response.edit_message(content=self.get_content(), embed=self.get_embed(), view=self.get_view())
 
-            button.callback = accept
-            view.add_item(button)
+            async def cancel(interaction: discord.Interaction):
+                nonlocal self, view
+                if interaction.user not in self.players:
+                    return await interaction.response.send_message("You're not the target of this invitation!", ephemeral=True)
+                self.winner = Player.TIE
+                view.stop()
+                assert interaction.message
+                await interaction.message.delete()
+
+            accept_button = discord.ui.Button(label="Accept", style=discord.ButtonStyle.primary)
+            cancel_button = discord.ui.Button(label="Cancel", style=discord.ButtonStyle.secondary)
+            accept_button.callback = accept
+            cancel_button.callback = cancel
+            view.add_item(accept_button)
+            view.add_item(cancel_button)
 
         else:
             for i in range(9):
                 slot: Player = self.board._data[i] # type: ignore
                 button = discord.ui.Button(
                     emoji=EMOJIS[slot.value],
-                    disabled=slot!=Player.NONE,
+                    disabled= slot != Player.NONE or self.winner != Player.NONE,
                     custom_id=f"minigames ttt {self.channel.id} {i}",
                     row=i//3,
                     style=discord.ButtonStyle.secondary,
                 )
 
-                async def callback(interaction: discord.Interaction, i=i):
+                async def action(interaction: discord.Interaction, i=i):
+                    nonlocal self, view
                     assert isinstance(interaction.user, discord.Member)
                     if interaction.user not in self.players:
                         return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
@@ -147,11 +163,40 @@ class TicTacToeGame(Minigame):
                     self.do_turn(interaction.user, i)
                     if not self.is_finished() and self.member(self.current).bot:
                         self.do_turn_ai()
-                    await interaction.response.edit_message(content=self.get_content(), embed=self.get_embed(), view=self.get_view())
+                    new_view = self.get_view()
                     if self.is_finished():
                         view.stop()
+                        new_view.stop()
+                    await interaction.response.edit_message(content=self.get_content(), embed=self.get_embed(), view=new_view)
 
-                button.callback = callback
+                button.callback = action
                 view.add_item(button)
+
+            if not self.is_finished():
+                async def bump(interaction: discord.Interaction):
+                    nonlocal self, view
+                    assert interaction.message
+                    if interaction.user not in self.players:
+                        return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
+                    await interaction.message.delete()
+                    self.message = await interaction.message.channel.send(content=self.get_content(), embed=self.get_embed(), view=self.get_view())
+                
+                async def end(interaction: discord.Interaction):
+                    nonlocal self, view
+                    assert interaction.channel and isinstance(interaction.user, discord.Member)
+                    if interaction.user not in self.players and not interaction.channel.permissions_for(interaction.user).manage_messages:
+                        return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
+                    self.winner = Player.TIE
+                    new_view = self.get_view()
+                    new_view.stop()
+                    view.stop()
+                    await interaction.response.edit_message(content=self.get_content(), embed=self.get_embed(), view=new_view)
+
+                bump_button = discord.ui.Button(emoji="⬇️", label="Bump", style=discord.ButtonStyle.primary)
+                end_button = discord.ui.Button(emoji="🛑", label="End", style=discord.ButtonStyle.danger)
+                bump_button.callback = bump
+                end_button.callback = end
+                view.add_item(bump_button)
+                view.add_item(end_button)
 
         return view

@@ -50,12 +50,15 @@ class Minigames(commands.Cog):
                         except discord.NotFound:
                             pass
 
-                content = f"Someone else is playing a game in this channel, but more than {TIME_LIMIT} minutes have passed. Do you want to start a new game?"
+                content = f"Someone else is playing a game in this channel, but more than {TIME_LIMIT} minutes have passed since their last interaction. Do you want to start a new game?"
                 embed = discord.Embed(title="Confirmation", description=content, color=await self.bot.get_embed_color(ctx))
                 return await ctx.reply(embed=embed, view=ReplaceView(self, callback, ctx.author, ctx.channel), ephemeral=True)
             
             else:
-                return await ctx.reply("Someone else is already playing a game in this channel!", ephemeral=True)
+                # re-fetch message to make sure it wasn't deleted
+                old_message = await ctx.channel.fetch_message(old_game.message.id) if old_game.message else None
+                if old_message:
+                    return await ctx.reply(f"Someone else is already playing a game in this channel, here: {old_message.jump_url}", ephemeral=True)
             
         game = TicTacToeGame(players, ctx.channel)
         if opponent.bot:
