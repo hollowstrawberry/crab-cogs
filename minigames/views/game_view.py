@@ -5,7 +5,7 @@ from minigames.minigame import Minigame
 
 class GameView(discord.ui.View):
     def __init__(self, game: Minigame):
-        super().__init__()
+        super().__init__(timeout=None)
         self.game = game
         if not self.game.is_finished():
             bump_button = discord.ui.Button(emoji="⬇️", label="Bump", style=discord.ButtonStyle.primary, row=4)

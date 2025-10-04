@@ -2,7 +2,7 @@ import random
 import logging
 import discord
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import List, Optional
 from datetime import datetime
 from minigames.minigame import Minigame
 from minigames.board import Board, find_lines, try_complete_line
