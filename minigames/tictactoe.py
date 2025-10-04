@@ -3,6 +3,7 @@ import discord
 from enum import Enum
 from typing import List, Optional, Tuple
 from datetime import datetime
+
 from minigames.base import Minigame
 from minigames.board import Board, find_lines, try_complete_line
 from minigames.views.minigame_view import MinigameView

@@ -1,14 +1,15 @@
 import discord
-from datetime import datetime
 from typing import Dict, List, Optional, Type
+from datetime import datetime
 from redbot.core import commands, Config
 from redbot.core.bot import Red
+
 from minigames.connect4 import ConnectFourGame
 from minigames.base import Minigame
 from minigames.views.replace_view import ReplaceView
 from minigames.tictactoe import TicTacToeGame
 
-TIME_LIMIT = 5
+TIME_LIMIT = 0 # minutes
 
 
 class Minigames(commands.Cog):
@@ -70,7 +71,9 @@ class Minigames(commands.Cog):
 
                 content = f"Someone else is playing a game in this channel, but more than {TIME_LIMIT} minutes have passed since their last interaction. Do you want to start a new game?"
                 embed = discord.Embed(title="Confirmation", description=content, color=await self.bot.get_embed_color(ctx))
-                return await ctx.reply(embed=embed, view=ReplaceView(self, callback, ctx.author, ctx.channel), ephemeral=True)
+                view = ReplaceView(self, callback, ctx.author, ctx.channel)
+                view.message = await ctx.reply(embed=embed, view=view, ephemeral=True)
+                return
             
             else:
                 # re-fetch message to make sure it wasn't deleted
@@ -79,7 +82,8 @@ class Minigames(commands.Cog):
                     content = f"There is still an active game in this channel, here: {old_message.jump_url}\nTry again in a few minutes"
                     permissions = ctx.channel.permissions_for(ctx.author)
                     content += " or consider creating a thread." if permissions.create_public_threads or permissions.create_private_threads else "."
-                    return await ctx.reply(content, ephemeral=True)
+                    await ctx.reply(content, ephemeral=True)
+                    return
         
         # New game
         game = game_cls(players, ctx.channel)

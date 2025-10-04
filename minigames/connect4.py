@@ -1,10 +1,10 @@
 import random
-import logging
 import discord
 from copy import deepcopy
 from enum import Enum
 from typing import List, Optional
 from datetime import datetime
+
 from minigames.base import Minigame
 from minigames.board import Board, find_lines
 from minigames.views.minigame_view import MinigameView
