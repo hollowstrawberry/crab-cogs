@@ -73,7 +73,7 @@ class Minigames(commands.Cog):
 
                     content = f"Someone else is playing a game in this channel, here: {old_message.jump_url}, but more than {TIME_LIMIT} minutes have passed since their last interaction. Do you want to start a new game?"
                     embed = discord.Embed(title="Confirmation", description=content, color=await self.bot.get_embed_color(ctx))
-                    view = ReplaceView(self, callback, ctx.author, ctx.channel)
+                    view = ReplaceView(self, callback, ctx.author)
                     view.message = await ctx.reply(embed=embed, view=view, ephemeral=True)
                     return
                 

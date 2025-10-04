@@ -3,12 +3,11 @@ from typing import Any, Awaitable, Callable, Optional
 
 
 class ReplaceView(discord.ui.View):
-    def __init__(self, cog, callback: Callable[..., Awaitable[Any]], author: discord.Member, channel: discord.TextChannel):
+    def __init__(self, cog, callback: Callable[..., Awaitable[Any]], author: discord.Member):
         super().__init__()
         self.cog = cog
         self.callback = callback
         self.author = author
-        self.channel = channel
         self.message: Optional[discord.Message] = None
 
     @discord.ui.button(label="Yes, start a new game", style=discord.ButtonStyle.danger)
