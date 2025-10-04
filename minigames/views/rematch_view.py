@@ -6,7 +6,7 @@ from minigames.base import Minigame
 
 class RematchView(discord.ui.View):
     def __init__(self, game: Minigame):
-        super().__init__(timeout=30)
+        super().__init__(timeout=300)
         self.game = game
         self.message: Optional[discord.Message] = None
         self.rematch_button = None
