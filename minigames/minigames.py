@@ -26,7 +26,7 @@ class Minigames(BaseMinigameCog):
         self.config = Config.get_conf(self, identifier=7669699620)
         self.config.register_guild()
 
-    @commands.hybrid_command(name="tictactoe", aliases=["ttt"]) # type: ignore
+    @commands.hybrid_command(name="tictactoe", aliases=["ttt"])
     @commands.guild_only()
     async def tictactoe(self, ctx: commands.Context, opponent: Optional[discord.Member] = None):
         """
@@ -37,7 +37,7 @@ class Minigames(BaseMinigameCog):
         players = [ctx.author, opponent] if opponent.bot else [opponent, ctx.author]
         await self.base_minigame_cmd(TicTacToeGame, ctx, players, opponent.bot)
 
-    @commands.hybrid_command(name="connect4", aliases=["c4"]) # type: ignore
+    @commands.hybrid_command(name="connect4", aliases=["c4"])
     @commands.guild_only()
     async def connectfour(self, ctx: commands.Context, opponent: Optional[discord.Member] = None):
         """

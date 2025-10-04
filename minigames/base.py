@@ -2,8 +2,7 @@ import discord
 from abc import ABC, abstractmethod
 from typing import List, Optional, Type, Union
 from datetime import datetime
-from discord.ext import commands
-
+from redbot.core import commands
 
 class BaseMinigameCog(commands.Cog):
     @abstractmethod
