@@ -17,6 +17,7 @@ class Player(Enum):
     CROSS = 0
     CIRCLE = 1
 
+
 COLORS = {
     Player.TIE: 0x78B159,
     Player.NONE: 0x31373D,
@@ -32,6 +33,7 @@ IMAGES = {
     Player.CROSS: "https://raw.githubusercontent.com/hollowstrawberry/crab-cogs/refs/heads/testing/minigames/media/x.png",
     Player.CIRCLE: "https://raw.githubusercontent.com/hollowstrawberry/crab-cogs/refs/heads/testing/minigames/media/o.png",
 }
+
 
 class TicTacToeGame(Minigame):
     def __init__(self, cog: BaseMinigameCog, players: List[discord.Member], channel: discord.TextChannel):

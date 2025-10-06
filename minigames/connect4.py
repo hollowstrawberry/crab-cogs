@@ -18,6 +18,7 @@ class Player(Enum):
     RED = 0
     BLUE = 1
 
+
 COLORS = {
     Player.TIE: 0x78B159,
     Player.NONE: 0x31373D,
