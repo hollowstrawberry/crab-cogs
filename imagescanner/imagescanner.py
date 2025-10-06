@@ -123,7 +123,7 @@ class ImageScanner(commands.Cog):
             utils.remove_field(embed, "VAE hash") #  vae hashes seem to be bugged in automatic1111 webui
             if params.get("Lora hashes"):
                 hashes = PARAM_REGEX.findall(params["Lora hashes"].strip('"')+",") # trailing comma for the regex
-                log.info(hashes)
+                log.debug(hashes)
                 links = {name: await self.grab_civitai_model_link(short_hash)
                             for name, short_hash in hashes}
                 for name, link in links.items():
@@ -143,7 +143,7 @@ class ImageScanner(commands.Cog):
             utils.remove_field(embed, "VAE hash") #  vae hashes seem to be bugged in automatic1111 webui
             if params.get("Lora hashes"):
                 hashes = PARAM_REGEX.findall(params["Lora hashes"].strip('"')+",") # trailing comma for the regex
-                log.info(hashes)
+                log.debug(hashes)
                 links = {name: await self.grab_arcenciel_model_link(short_hash)
                             for name, short_hash in hashes}
                 for name, link in links.items():
@@ -227,7 +227,7 @@ class ImageScanner(commands.Cog):
             try:
                 await ctx.member.send(embed=embed)
             except discord.Forbidden:
-                log.info(f"User {ctx.member.id} does not accept DMs")
+                log.debug(f"User {ctx.member.id} does not accept DMs")
             return
 
         for i, data in sorted(metadata.items()):
@@ -242,7 +242,7 @@ class ImageScanner(commands.Cog):
                     msg = await ctx.member.send(embed=embed, file=file, view=view)
                     view.message = msg
                 except discord.Forbidden:
-                    log.info(f"User {ctx.member.id} does not accept DMs")
+                    log.debug(f"User {ctx.member.id} does not accept DMs")
             else:
                 if len(attachments) > i:
                     embed.set_thumbnail(url=attachments[i].url)
@@ -250,7 +250,7 @@ class ImageScanner(commands.Cog):
                     msg = await ctx.member.send(embed=embed, view=view)
                     view.message = msg
                 except discord.Forbidden:
-                    log.info(f"User {ctx.member.id} does not accept DMs")
+                    log.debug(f"User {ctx.member.id} does not accept DMs")
 
 
     # context menu set in __init__
@@ -306,7 +306,7 @@ class ImageScanner(commands.Cog):
                         resp.raise_for_status()
                         data = await resp.json()
             except aiohttp.ClientError as error:
-                log.warning("Trying to grab model from Civitai", error)
+                log.warning(f"Trying to grab model from Civitai: {type(error).__name__}: {error}")
                 return None
 
             if not data or "modelId" not in data:
@@ -335,7 +335,7 @@ class ImageScanner(commands.Cog):
                         resp.raise_for_status()
                         data = await resp.json()
             except aiohttp.ClientError as error:
-                log.warning("Trying to grab model from Civitai", error)
+                log.warning(f"Trying to grab model from Civitai: {type(error).__name__}: {error}")
                 return None
 
             if not data or not data.get("data") or "id" not in data["data"][0]:
