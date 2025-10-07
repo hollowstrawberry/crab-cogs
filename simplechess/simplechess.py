@@ -186,7 +186,7 @@ class SimpleChess(BaseChessCog):
         await self.chess_new(ctx, opponent, int(difficulty) or None)
 
     @app_chess.command(name="bots")
-    @app_commands.describe(opponent="Invite someone to play, or play against the bot by default.")
+    @app_commands.describe(opponent="A different bot for this one to play against.")
     @app_commands.guild_only()
     async def chess_bots_app(self, interaction: discord.Interaction, opponent: discord.Member):
         """Make this bot play Chess against another bot."""
