@@ -127,7 +127,6 @@ class ChessGame(BaseChessGame):
         file = discord.File(await self.generate_board_image(), filename)
 
         outcome = self.board.outcome()
-        last_capture = self.last_capture()
         winner = None
         if outcome is None:
             if self.surrendered:
@@ -159,15 +158,15 @@ class ChessGame(BaseChessGame):
         embed.description = ""
         if winner == self.players[1]  or self.surrendered == self.players[0]:
             embed.description += "👑 "
-        embed.description += f"`⬛` {self.players[1].mention}"
-        if last_capture and last_capture.color == chess.WHITE and not outcome and not self.is_cancelled():
-            embed.description += f" captured {PIECE_NAMES[last_capture.symbol()]}"
-
+        embed.description += f"`⬛` {self.players[1].mention}\n"
         if winner == self.players[0] or self.surrendered == self.players[1]:
             embed.description += "👑 "
-        embed.description += f"\n`⬜` {self.players[0].mention}"
-        if last_capture and last_capture.color == chess.BLACK and not outcome and not self.is_cancelled():
-            embed.description += f" captured {PIECE_NAMES[last_capture.symbol()]}"
+        embed.description += f"`⬜` {self.players[0].mention}\n"
+
+        if not outcome and not self.is_cancelled():
+            last_capture = self.last_capture()
+            if last_capture:
+                embed.description += f"\nCaptured {PIECE_NAMES[last_capture.symbol()]}."
 
         embed.set_image(url=f"attachment://{filename}")
         embed.set_footer(text=f"Turn {self.board.fullmove_number}")
