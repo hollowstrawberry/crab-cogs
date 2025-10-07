@@ -1,5 +1,6 @@
 import sys
 import asyncio
+import logging
 import discord
 from io import BytesIO
 from typing import List, Optional, Tuple
@@ -18,6 +19,7 @@ from easychess.views.game_view import GameView
 from easychess.views.rematch_view import RematchView
 from easychess.views.thinking_view import ThinkingView
 
+log = logging.getLogger("red.crab-cogs.easychess")
 
 COLOR_WHITE = 0xffffff
 COLOR_BLACK = 0x000000
@@ -58,6 +60,7 @@ class ChessGame(BaseChessGame):
 
     async def update_state(self):
         if self.is_finished():
+            log.info(f"is finished {self.cancelled=}")
             if self.cog.games.get(self.channel.id) == self:
                 del self.cog.games[self.channel.id]
             await self.cog.config.channel(self.channel).game.set(None)
