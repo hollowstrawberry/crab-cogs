@@ -81,7 +81,7 @@ class ChessGame(BaseChessGame):
         b = await asyncio.to_thread(svg_to_png, svg)
         return BytesIO(b or b'')
 
-    async def update_message(self):
+    async def update_message(self, interaction: Optional[discord.Interaction] = None):
         content = f"{self.players[0].mention} you're being invited to play chess." if not self.accepted else ""
         embed = discord.Embed()
         
@@ -136,11 +136,13 @@ class ChessGame(BaseChessGame):
 
         embed.set_image(url=f"attachment://{filename}")
 
-        old_message = self.message
-        self.message = await self.channel.send(content=content, embed=embed, file=file, view=view)
-
-        if old_message:
-            try:
-                await old_message.delete()
-            except discord.NotFound:
-                pass
+        if interaction:
+            await interaction.edit_original_response(content=content, embed=embed, attachments=[file], view=view)
+        else:
+            old_message = self.message
+            self.message = await self.channel.send(content=content, embed=embed, file=file, view=view)
+            if old_message:
+                try:
+                    await old_message.delete()
+                except discord.NotFound:
+                    pass

@@ -52,5 +52,5 @@ class BaseChessGame(ABC):
         pass
 
     @abstractmethod
-    async def update_message(self):
+    async def update_message(self, interaction: Optional[discord.Interaction] = None):
         pass
