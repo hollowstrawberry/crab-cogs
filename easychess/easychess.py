@@ -17,7 +17,7 @@ from easychess.views.replace_view import ReplaceView
 
 log = logging.getLogger("red.crab-cogs.easychess")
 
-TIME_LIMIT = 0 # minutes
+TIME_LIMIT = 5 # minutes
 
 
 class EasyChess(BaseChessCog):
@@ -78,8 +78,8 @@ class EasyChess(BaseChessCog):
                 old_message = old_game.message
                 assert old_message
 
-            minutes_passed = (datetime.now() - old_game.last_interacted).total_seconds() // 60
-            if minutes_passed > TIME_LIMIT:
+            minutes_passed = int((datetime.now() - old_game.last_interacted).total_seconds() // 60)
+            if minutes_passed >= TIME_LIMIT:
                 async def callback():
                     nonlocal ctx, players, author, old_game, old_message, opponent
                     assert opponent and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)

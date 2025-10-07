@@ -131,8 +131,6 @@ class ChessGame(BaseChessGame):
         else:
             embed.title = "The game ended in a tie!"
 
-        embed.title += f" (Turn {self.board.fullmove_number})"
-
         if outcome and outcome.winner is None or self.is_cancelled():
             embed.color = COLOR_TIE
         elif winner:
@@ -148,8 +146,8 @@ class ChessGame(BaseChessGame):
             embed.description += "👑 "
         embed.description += f"`⬜` {self.players[0].mention}\n"
 
-
         embed.set_image(url=f"attachment://{filename}")
+        embed.set_footer(text=f"Turn {self.board.fullmove_number}")
 
         if interaction:
             await interaction.edit_original_response(content=content, embed=embed, attachments=[file], view=view)
