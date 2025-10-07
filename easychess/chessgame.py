@@ -93,6 +93,7 @@ class ChessGame(BaseChessGame):
     async def move_engine(self):
         if not self.engine:
             self.engine = await self.start_engine()
+        log.info(f"{self.engine=}")
         result = await self.engine.play(self.board, limit=self.limit)
         if result.move:
             await self.do_move(result.move)
