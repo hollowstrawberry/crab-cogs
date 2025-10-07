@@ -11,11 +11,14 @@ class GameMoveModal(discord.ui.Modal, title="Chess Move"):
         self.game = game
 
     async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.pong()
         assert isinstance(self.move.component, discord.ui.TextInput)
-        success, message = self.game.move_user(self.move.component.value)
+        move = self.move.component.value
+        success, message = self.game.move_user(move)
         if not success:
             return await interaction.response.send_message(message, ephemeral=True)
+        else:
+            await interaction.response.send_message(f"Executed move {move}", ephemeral=True)
+
         await self.game.update_message()
 
         if self.game.member(self.game.board.turn).bot and not self.game.is_finished():
