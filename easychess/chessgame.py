@@ -153,11 +153,11 @@ class ChessGame(BaseChessGame):
         if winner == self.players[0] or self.surrendered == self.players[1]:
             embed.description += "👑 "
         embed.description += f"`⬜` {self.players[0].mention}\n"
-        
+
         if not outcome and not self.is_cancelled():
             last_capture = self.last_capture()
             if last_capture:
-                embed.description += f"\n\n`Captured {last_capture.unicode_symbol()}`"
+                embed.description += f"\nCaptured: {last_capture.unicode_symbol()}"
 
         embed.set_image(url=f"attachment://{filename}")
         embed.set_footer(text=f"Turn {self.board.fullmove_number}")
