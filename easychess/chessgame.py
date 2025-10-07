@@ -31,6 +31,7 @@ class ChessGame(BaseChessGame):
         self.accepted = initial_state is not None
         self.cancelled = False
         self.surrendered: Optional[discord.Member] = None
+        self.last_board = self.board.copy()
     
     def accept(self):
         self.accepted = True
@@ -41,6 +42,11 @@ class ChessGame(BaseChessGame):
     def is_finished(self):
         return self.is_cancelled() or self.board.is_game_over()
     
+    def last_capture(self) -> Optional[chess.Piece]:
+        if not self.board.move_stack or not self.last_board.is_capture(self.board.peek()):
+            return None
+        return self.last_board.piece_at(self.board.peek().to_square)
+    
     async def cancel(self, member: Optional[discord.Member]):
         if member in self.players:
             self.surrendered = member
@@ -48,6 +54,8 @@ class ChessGame(BaseChessGame):
         await self.update_state()
     
     async def do_move(self, move: chess.Move):
+        if self.board.move_stack:
+            self.last_board.push(self.board.peek())
         self.board.push(move)
         self.last_interacted = datetime.now()
         await self.update_state()
@@ -145,6 +153,11 @@ class ChessGame(BaseChessGame):
         if winner == self.players[0] or self.surrendered == self.players[1]:
             embed.description += "👑 "
         embed.description += f"`⬜` {self.players[0].mention}\n"
+        
+        if not outcome and not self.is_cancelled():
+            last_capture = self.last_capture()
+            if last_capture:
+                embed.description += f"\n\n`Captured {last_capture.unicode_symbol()}`"
 
         embed.set_image(url=f"attachment://{filename}")
         embed.set_footer(text=f"Turn {self.board.fullmove_number}")
