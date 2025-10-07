@@ -152,7 +152,7 @@ class ChessGame(BaseChessGame):
             embed.description += "👑 "
         embed.description += f"`⬛` {self.players[1].mention}"
         if last_capture and last_capture.color == chess.WHITE and not outcome and not self.is_cancelled():
-            embed.description += f" captured **{last_capture.unicode_symbol()}**"
+            embed.description += f" captured **{last_capture.unicode_symbol(invert_color=True)}**"
 
         if winner == self.players[0] or self.surrendered == self.players[1]:
             embed.description += "👑 "
