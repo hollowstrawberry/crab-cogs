@@ -24,7 +24,7 @@ class EasyChess(BaseChessCog):
 
     async def cog_load(self):
         all_channels = await self.config.all_channels()
-        for channel_id, config in all_channels:
+        for channel_id, config in all_channels.items():
             channel = self.bot.get_channel(channel_id)
             if not config["game"] or not isinstance(channel, discord.TextChannel):
                 continue
