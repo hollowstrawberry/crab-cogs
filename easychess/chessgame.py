@@ -63,7 +63,10 @@ class ChessGame(BaseChessGame):
             await self.cog.config.channel(self.channel).game.set(None)
             await self.cog.config.channel(self.channel).players.set([])
             if self.engine:
-                await self.engine.quit()
+                try:
+                    await self.engine.quit()
+                except chess.engine.EngineTerminatedError:
+                    pass
         else:
             await self.cog.config.channel(self.channel).game.set(self.board.fen())
             await self.cog.config.channel(self.channel).players.set([player.id for player in self.players])

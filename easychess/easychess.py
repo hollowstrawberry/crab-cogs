@@ -1,6 +1,7 @@
 import logging
 import discord
-from typing import Dict, List, Optional, Union
+import chess.engine
+from typing import List, Optional, Union
 from datetime import datetime
 from redbot.core import commands, app_commands
 from redbot.core.bot import Red
@@ -42,7 +43,10 @@ class EasyChess(BaseChessCog):
     async def cog_unload(self):
         for game in self.games.values():
             if game.engine:
-                await game.engine.quit()
+                try:
+                    await game.engine.quit()
+                except chess.engine.EngineTerminatedError:
+                    pass
 
 
     @commands.command(name="chess")
