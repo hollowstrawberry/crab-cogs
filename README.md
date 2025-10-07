@@ -34,7 +34,7 @@ Lets anyone steal emojis and stickers sent by other people, and lets moderators 
 
 ![demonstration](https://i.imgur.com/Mj4jbGo.png)
 
-### ♟️ EasyChess
+### ♟️ SimpleChess
 
 Play Chess against your friends or the bot, or make bots play against each other. Uses [Sunfish](https://github.com/thomasahle/sunfish) as the chess engine, which has an ELO of around 2000. Only one game may be active per channel, but it works in threads.
 

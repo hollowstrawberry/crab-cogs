@@ -1,6 +1,6 @@
 import discord
 
-from easychess.base import BaseChessGame
+from simplechess.base import BaseChessGame
 
 
 class RematchView(discord.ui.View):

@@ -1,6 +1,6 @@
 import discord
 
-from easychess.base import BaseChessGame
+from simplechess.base import BaseChessGame
 
 
 class GameMoveModal(discord.ui.Modal, title="Chess Move"):
@@ -31,9 +31,9 @@ class GameView(discord.ui.View):
     def __init__(self, game: BaseChessGame):
         super().__init__(timeout=None)
         self.game = game
-        self.move_button = discord.ui.Button(custom_id=f"easychess {game.channel.id} move", emoji="♟️", label="Enter Move", style=discord.ButtonStyle.success)
-        self.bump_button = discord.ui.Button(custom_id=f"easychess {game.channel.id} bump", emoji="⬇️", label="Bump", style=discord.ButtonStyle.primary)
-        self.end_button = discord.ui.Button(custom_id=f"easychess {game.channel.id} end", emoji="🏳️", label="Surrender", style=discord.ButtonStyle.danger)
+        self.move_button = discord.ui.Button(custom_id=f"simplechess {game.channel.id} move", emoji="♟️", label="Enter Move", style=discord.ButtonStyle.success)
+        self.bump_button = discord.ui.Button(custom_id=f"simplechess {game.channel.id} bump", emoji="⬇️", label="Bump", style=discord.ButtonStyle.primary)
+        self.end_button = discord.ui.Button(custom_id=f"simplechess {game.channel.id} end", emoji="🏳️", label="Surrender", style=discord.ButtonStyle.danger)
         self.move_button.callback = self.move
         self.bump_button.callback = self.bump
         self.end_button.callback = self.end

@@ -9,18 +9,18 @@ from redbot.core import commands, app_commands
 from redbot.core.bot import Red
 from redbot.core.data_manager import bundled_data_path
 
-from easychess.base import BaseChessCog
-from easychess.chessgame import ChessGame
-from easychess.views.bots_view import BotsView
-from easychess.views.game_view import GameView
-from easychess.views.replace_view import ReplaceView
+from simplechess.base import BaseChessCog
+from simplechess.chessgame import ChessGame
+from simplechess.views.bots_view import BotsView
+from simplechess.views.game_view import GameView
+from simplechess.views.replace_view import ReplaceView
 
-log = logging.getLogger("red.crab-cogs.easychess")
+log = logging.getLogger("red.crab-cogs.simplechess")
 
 TIME_LIMIT = 5 # minutes
 
 
-class EasyChess(BaseChessCog):
+class SimpleChess(BaseChessCog):
     """Play Chess against your friends or the bot, or make bots play against each other."""
 
     def __init__(self, bot: Red):

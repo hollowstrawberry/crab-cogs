@@ -1,7 +1,7 @@
-from .easychess import EasyChess
+from .simplechess import SimpleChess
 from redbot.core.utils import get_end_user_data_statement
 
 __red_end_user_data_statement__ = get_end_user_data_statement(__file__)
 
 async def setup(bot):
-    await bot.add_cog(EasyChess(bot))
+    await bot.add_cog(SimpleChess(bot))

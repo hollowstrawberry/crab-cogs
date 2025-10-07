@@ -9,15 +9,15 @@ import chess
 import chess.engine
 import chess.svg
 
-from easychess.base import BaseChessCog, BaseChessGame
-from easychess.utils import svg_to_png
-from easychess.views.bots_view import BotsView
-from easychess.views.invite_view import InviteView
-from easychess.views.game_view import GameView
-from easychess.views.rematch_view import RematchView
-from easychess.views.thinking_view import ThinkingView
+from simplechess.base import BaseChessCog, BaseChessGame
+from simplechess.utils import svg_to_png
+from simplechess.views.bots_view import BotsView
+from simplechess.views.invite_view import InviteView
+from simplechess.views.game_view import GameView
+from simplechess.views.rematch_view import RematchView
+from simplechess.views.thinking_view import ThinkingView
 
-log = logging.getLogger("red.crab-cogs.easychess")
+log = logging.getLogger("red.crab-cogs.simplechess")
 
 COLOR_WHITE = 0xffffff
 COLOR_BLACK = 0x000000
