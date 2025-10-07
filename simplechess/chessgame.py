@@ -87,9 +87,8 @@ class ChessGame(BaseChessGame):
     
     async def move_engine(self):
         assert self.cog.engine
-        result = await self.cog.engine.play(self.board, limit=self.limit, info=chess.engine.Info.ALL)
+        result = await self.cog.engine.play(self.board, limit=self.limit)
         if result.move:
-            log.info(result.info)
             await self.do_move(result.move)
         else:
             raise ValueError("Engine failed to make a move")
