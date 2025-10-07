@@ -44,6 +44,7 @@ class EasyChess(BaseChessCog):
                 self.games[channel.id] = game
                 view = BotsView(game) if all(player.bot for player in players) else GameView(game)
                 self.bot.add_view(view)
+                game.message = await channel.fetch_message(config["message"])
             except Exception:
                 log.error(f"Parsing game in {channel_id}", exc_info=True)
 
@@ -69,30 +70,34 @@ class EasyChess(BaseChessCog):
             old_message = await ctx.channel.fetch_message(old_game.message.id) if old_game.message else None # re-fetch
             reply = ctx.reply if isinstance(ctx, commands.Context) else ctx.response.send_message
 
-            if old_message:
-                if (datetime.now() - old_game.last_interacted).total_seconds() > 60 * TIME_LIMIT:
-                    async def callback():
-                        nonlocal ctx, players, old_game, author, opponent
-                        assert opponent and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel) 
-                        game = ChessGame(self, players, ctx.channel)
-                        if opponent.bot:
-                            game.accept()
-                        self.games[ctx.channel.id] = game
-                        await game.update_message()
+            if not old_message:
+                await old_game.update_message()
+                old_message = old_game.message
+                assert old_message
 
-                    content = f"Someone else is playing Chess in this channel, here: {old_message.jump_url}, but more than {TIME_LIMIT} minutes have passed since their last interaction. Do you want to start a new game?"
-                    embed = discord.Embed(title="Confirmation", description=content, color=await self.bot.get_embed_color(ctx.channel))
-                    view = ReplaceView(self, callback, author)
-                    message = await reply(embed=embed, view=view, ephemeral=True)
-                    view.message = message if isinstance(ctx, commands.Context) else await ctx.original_response() # type: ignore
-                    return
-                
-                else:
-                    content = f"There is still an active game in this channel, here: {old_message.jump_url}\nTry again in a few minutes"
-                    permissions = ctx.channel.permissions_for(author)
-                    content += " or consider creating a thread." if permissions.create_public_threads or permissions.create_private_threads else "."
-                    await reply(content, ephemeral=True)
-                    return
+            if (datetime.now() - old_game.last_interacted).total_seconds() > 60 * TIME_LIMIT:
+                async def callback():
+                    nonlocal ctx, players, old_game, author, opponent
+                    assert opponent and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel) 
+                    game = ChessGame(self, players, ctx.channel)
+                    if opponent.bot:
+                        game.accept()
+                    self.games[ctx.channel.id] = game
+                    await game.update_message()
+
+                content = f"Someone else is playing Chess in this channel, here: {old_message.jump_url}, but more than {TIME_LIMIT} minutes have passed since their last interaction. Do you want to start a new game?"
+                embed = discord.Embed(title="Confirmation", description=content, color=await self.bot.get_embed_color(ctx.channel))
+                view = ReplaceView(self, callback, author)
+                message = await reply(embed=embed, view=view, ephemeral=True)
+                view.message = message if isinstance(ctx, commands.Context) else await ctx.original_response() # type: ignore
+                return
+            
+            else:
+                content = f"There is still an active game in this channel, here: {old_message.jump_url}\nTry again in a few minutes"
+                permissions = ctx.channel.permissions_for(author)
+                content += " or consider creating a thread." if permissions.create_public_threads or permissions.create_private_threads else "."
+                await reply(content, ephemeral=True)
+                return
         
         # New game
         game = ChessGame(self, players, ctx.channel)
@@ -118,8 +123,13 @@ class EasyChess(BaseChessCog):
         if ctx.channel.id in self.games and not self.games[ctx.channel.id].is_finished():
             old_game = self.games[ctx.channel.id]
             old_message = await ctx.channel.fetch_message(old_game.message.id) if old_game.message else None # re-fetch
-            if old_message:
-                return await ctx.send("There's an ongoing chess game in this channel, we can't interrupt it.")
+
+            if not old_message:
+                await old_game.update_message()
+                old_message = old_game.message
+                assert old_message
+            
+            return await ctx.send("There's an ongoing chess game in this channel, we can't interrupt it.")
             
         game = ChessGame(self, [ctx.guild.me, opponent], ctx.channel)
         game.accept()

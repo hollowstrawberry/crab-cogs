@@ -161,3 +161,4 @@ class ChessGame(BaseChessGame):
                     pass
 
         self.view = view
+        await self.cog.config.channel(self.channel).message.set(self.message)
