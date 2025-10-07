@@ -15,7 +15,7 @@ TIME_LIMIT = 5 # minutes
 
 
 class EasyChess(BaseChessCog):
-    """Play Chess against your friends or the bot."""
+    """Play Chess against your friends or the bot, or make bots play against each other."""
 
     def __init__(self, bot: Red):
         super().__init__(bot)
@@ -109,7 +109,7 @@ class EasyChess(BaseChessCog):
         await self.chess_new(ctx, opponent)
 
     @app_chess.command(name="bots")
-    async def chess_bots_app(self, interaction: discord.Interaction, opponent: Optional[discord.Member] = None):
+    async def chess_bots_app(self, interaction: discord.Interaction, opponent: discord.Member):
         """Make this bot play Chess against another bot."""
         ctx = await commands.Context.from_interaction(interaction)
         await self.chess_bots(ctx, opponent)
