@@ -18,6 +18,7 @@ from simplechess.views.replace_view import ReplaceView
 log = logging.getLogger("red.crab-cogs.simplechess")
 
 TIME_LIMIT = 5 # minutes
+DEFAULT_DIFFICULTY = 5 # depth
 
 
 class SimpleChess(BaseChessCog):
@@ -152,12 +153,15 @@ class SimpleChess(BaseChessCog):
 
 
     @commands.command(name="chess")
+    @commands.guild_only()
     async def chess_new_cmd(self, ctx: Union[commands.Context, discord.Interaction], opponent: Optional[discord.Member] = None):
-        await self.chess_new(ctx, opponent, 5)
+        await self.chess_new(ctx, opponent, DEFAULT_DIFFICULTY)
 
     @commands.command(name="chessbots")
+    @commands.guild_only()
     async def chess_bots_cmd(self, ctx: commands.Context, opponent: discord.Member):
-        await self.chess_bots(ctx, opponent, 5)
+        await self.chess_bots(ctx, opponent, DEFAULT_DIFFICULTY)
+
 
     app_chess = app_commands.Group(name="chess", description="Play Chess on Discord!")
 
@@ -168,10 +172,11 @@ class SimpleChess(BaseChessCog):
                                       app_commands.Choice(name="Medium", value="3"),
                                       app_commands.Choice(name="Hard", value="5"),
                                       app_commands.Choice(name="Hardest", value="0")])
+    @app_commands.guild_only()
     async def chess_new_app(self,
                             interaction: discord.Interaction,
                             opponent: Optional[discord.Member] = None,
-                            difficulty: str = "5"):
+                            difficulty: str = f"{DEFAULT_DIFFICULTY}"):
         """Play a game of Chess against a friend or the bot."""
         ctx = await commands.Context.from_interaction(interaction)
         command = self.bot.get_command("chess")
@@ -181,6 +186,8 @@ class SimpleChess(BaseChessCog):
         await self.chess_new(ctx, opponent, int(difficulty) or None)
 
     @app_chess.command(name="bots")
+    @app_commands.describe(opponent="Invite someone to play, or play against the bot by default.")
+    @app_commands.guild_only()
     async def chess_bots_app(self, interaction: discord.Interaction, opponent: discord.Member):
         """Make this bot play Chess against another bot."""
         ctx = await commands.Context.from_interaction(interaction)
@@ -188,4 +195,4 @@ class SimpleChess(BaseChessCog):
         assert command
         if not await command.can_run(ctx, check_all_parents=True, change_permission_state=False):
             return await interaction.response.send_message("You're not allowed to do that here.", ephemeral=True)
-        await self.chess_bots(ctx, opponent, 5)
+        await self.chess_bots(ctx, opponent, DEFAULT_DIFFICULTY)
