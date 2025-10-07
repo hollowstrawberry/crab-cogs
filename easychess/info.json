@@ -1,0 +1,12 @@
+{
+    "author": ["hollowstrawberry"],
+    "min_bot_version": "3.5.0",
+    "description": "Play Chess against your friends or the bot.",
+    "hidden": false,
+    "install_msg": "♟️ __**Chess**__\nPlay Chess against your friends or the bot.\nOnly one game may be active per channel, but it works in threads, and inactive games may be ended by any user.\n```Cog installed. Instructions:\n1. Load it with [p]load easychess\n2. Optionally, enable slash commands with [p]slash enablecog easychess\n  2.1. Then do [p]slash sync\n  2.2. Then restart Discord.\n3. Start playing with [p]chess```",
+    "required_cogs": {},
+    "requirements": ["chess", "Wand"],
+    "short": "Play Chess against your friends or the bot.",
+    "end_user_data_statement": "This cog does not store user data.",
+    "tags": ["crab", "game", "pvp", "chess", "tabletop"]
+}
