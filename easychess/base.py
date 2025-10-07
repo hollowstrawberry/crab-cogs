@@ -1,6 +1,7 @@
+import chess
 import discord
 from abc import ABC, abstractmethod
-from typing import List, Optional, Type, Union
+from typing import List, Optional, Tuple, Union
 from datetime import datetime
 from redbot.core import commands
 from redbot.core.bot import Red
@@ -21,6 +22,10 @@ class BaseChessGame(ABC):
         self.channel = channel
         self.message: Optional[discord.Message] = None
         self.last_interacted: datetime = datetime.now()
+        self.board = chess.Board()
+
+    def member(self, color: chess.Color):
+        return self.players[1] if color == chess.BLACK else self.players[0]
 
     @abstractmethod
     def is_finished(self):
@@ -35,7 +40,15 @@ class BaseChessGame(ABC):
         pass
 
     @abstractmethod
-    def cancel(self):
+    def cancel(self, member: Optional[discord.Member]):
+        pass
+
+    @abstractmethod
+    def move_user(self, move: str) -> Tuple[bool, str]:
+        pass
+
+    @abstractmethod
+    async def move_engine(self):
         pass
 
     @abstractmethod

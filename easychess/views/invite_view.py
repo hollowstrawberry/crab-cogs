@@ -19,10 +19,9 @@ class InviteView(discord.ui.View):
 
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
     async def cancel(self, interaction: discord.Interaction, _):
-        assert isinstance(interaction.user, discord.Member)
+        assert interaction.message and isinstance(interaction.user, discord.Member)
         if interaction.user not in self.game.players:
             return await interaction.response.send_message("You're not the target of this invitation!", ephemeral=True)
-        self.game.cancel()
+        self.game.cancel(None)
         self.stop()
-        assert interaction.message
         await interaction.message.delete()

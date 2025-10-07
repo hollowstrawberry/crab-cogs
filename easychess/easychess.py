@@ -13,6 +13,7 @@ log = logging.getLogger("red.crab-cogs.easychess")
 
 TIME_LIMIT = 5 # minutes
 
+
 class EasyChess(BaseChessCog):
     """Play Chess against your friends or the bot."""
 
@@ -23,31 +24,7 @@ class EasyChess(BaseChessCog):
         self.config = Config.get_conf(self, identifier=766969962064)
         self.config.register_guild()
 
-    @commands.group(name="chess", invoke_without_command=True)
-    @commands.guild_only()
-    async def chess(self, ctx: commands.Context, move: Optional[str]):
-        current_game = self.games.get(ctx.channel.id, None)
-        prefixes = await self.bot.get_valid_prefixes(ctx.guild)
-        shortest_p = min(prefixes, key=lambda p: len(p))
-        if not current_game:
-            return await ctx.reply(f"Start a new game with `{shortest_p}chess new` (and optionally ping an opponent)", ephemeral=True)
-        if not move:
-            return await ctx.reply(f"Send chess moves in standard formats, example: `{shortest_p}chess Nc3` or `{shortest_p}chess b1c3`", ephemeral=True)
-        if ctx.author not in current_game.players:
-            return await ctx.reply(f"You're not a player in the current chess game!", ephemeral=True)
-        if ctx.author != current_game.member(current_game.board.turn):
-            return await ctx.reply(f"It's not your turn!", ephemeral=True)
-
-        success, message = current_game.move_user(move)
-        if not success:
-            return await ctx.reply(message, ephemeral=True)
-        await current_game.update_message()
-
-        if current_game.member(current_game.board.turn).bot:
-            await current_game.move_engine()
-            await current_game.update_message()
-
-    @chess.command(name="new")
+    @commands.hybrid_command(name="chess")
     async def chess_new(self, ctx: Union[commands.Context, discord.Interaction], opponent: Optional[discord.Member] = None):
         """Play a game of Chess against a friend or the bot."""
         author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
@@ -92,5 +69,5 @@ class EasyChess(BaseChessCog):
             game.accept()
         self.games[ctx.channel.id] = game
         if isinstance(ctx, discord.Interaction):
-            await ctx.response.send_message("Starting game...")
+            await ctx.response.send_message("Starting game...", ephemeral=True)
         await game.update_message()

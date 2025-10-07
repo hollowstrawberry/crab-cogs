@@ -11,29 +11,29 @@ from redbot.core.data_manager import bundled_data_path
 from easychess.base import BaseChessCog, BaseChessGame
 from easychess.utils import svg_to_png
 from easychess.views.invite_view import InviteView
+from easychess.views.game_view import GameView
 from easychess.views.rematch_view import RematchView
 
 
 class ChessGame(BaseChessGame):
     def __init__(self, cog: BaseChessCog, players: List[discord.Member], channel: discord.TextChannel):
         super().__init__(cog, players, channel)
-        self.board = chess.Board()
         self.limit = chess.engine.Limit(time=1.0)
         self.engine: Optional[chess.engine.UciProtocol] = None
         self.accepted = False
         self.cancelled = False
+        self.surrendered: Optional[discord.Member] = None
     
     async def start_engine(self) -> chess.engine.UciProtocol:
         _, engine = await chess.engine.popen_uci([sys.executable, '-u', str(bundled_data_path(self.cog) / "sunfish.py")])
         return engine
-
-    def member(self, color: chess.Color):
-        return self.players[1] if color == chess.BLACK else self.players[0]
     
     def accept(self):
         self.accepted = True
 
-    def cancel(self):
+    def cancel(self, member: Optional[discord.Member]):
+        if member in self.players:
+            self.surrendered = member
         self.cancelled = True
 
     def is_cancelled(self):
@@ -49,9 +49,9 @@ class ChessGame(BaseChessGame):
             except chess.InvalidMoveError:
                 move = self.board.parse_uci(san_or_uci)
         except chess.InvalidMoveError:
-            return False, "That move is not written correctly."
+            return False, "That move is not written correctly. Try again."
         except chess.IllegalMoveError:
-            return False, "That move is illegal in the current state of the board."
+            return False, "That move is illegal in the current state of the board. Try a different move."
         except chess.AmbiguousMoveError:
             return False, "That move may be interpreted in more than one way. Be specific."
         
@@ -81,6 +81,7 @@ class ChessGame(BaseChessGame):
 
         view = InviteView(self) if not self.accepted \
             else RematchView(self) if is_finished and not self.cancelled \
+            else GameView(self) if not is_finished \
             else discord.ui.View(timeout=0)
 
         filename = "board.png"
@@ -90,7 +91,11 @@ class ChessGame(BaseChessGame):
         outcome = self.board.outcome()
         winner = None
         if outcome is None:
-            if self.cancelled:
+            if self.surrendered:
+                winner_index = 1 if self.players.index(self.surrendered) == 0 else 0
+                embed.title = f"{self.players[winner_index].display_name} is the winner via surrender!"
+                embed.set_thumbnail(url=self.players[winner_index].display_avatar.url)
+            elif self.cancelled:
                 embed.title = "The game was cancelled."
             elif self.accepted:
                 turn = self.member(self.board.turn)
@@ -105,21 +110,21 @@ class ChessGame(BaseChessGame):
         else:
             embed.title = "The game is over!"
 
-        embed.color = 0xffffff
+        if outcome and outcome.winner:
+            embed.color = 0xfffff if outcome.winner == chess.WHITE else 0x000000
+        else:
+            embed.color = 0xffffff if self.board.turn == chess.WHITE else 0x000000
         
         embed.description = ""
-        if winner == self.players[0]:
+        if winner == self.players[1]  or self.surrendered == self.players[0]:
             embed.description += "👑"
-        embed.description += f"⬜ - {self.players[0].mention}\n"
-        if winner == self.players[1]:
+        embed.description += f"`⬛` {self.players[1].mention}\n"
+        if winner == self.players[0] or self.surrendered == self.players[1]:
             embed.description += "👑"
-        embed.description += f"⬛ - {self.players[1].mention}\n"
+        embed.description += f"`⬜` {self.players[0].mention}\n"
+
 
         embed.set_image(url=f"attachment://{filename}")
-
-        prefixes = await self.cog.bot.get_valid_prefixes(self.channel.guild)
-        shortest_p = min(prefixes, key=lambda p: len(p))
-        embed.set_footer(text=f"Example move: {shortest_p}chess Nc3")
 
         old_message = self.message
         self.message = await self.channel.send(content=content, embed=embed, file=file, view=view)
