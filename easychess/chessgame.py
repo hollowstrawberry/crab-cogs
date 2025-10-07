@@ -75,7 +75,7 @@ class ChessGame(BaseChessGame):
             raise ValueError("Engine failed to make a move")
         
     async def generate_board_image(self) -> BytesIO:
-        lastmove = self.board.peek() if self.board.move_stack else None
+        lastmove = self.board.peek() if self.board.move_stack and not self.is_finished() else None
         check = self.board.king(self.board.turn) if self.board.is_check() else None
         svg = chess.svg.board(self.board, lastmove=lastmove, check=check, size=512)
         b = await asyncio.to_thread(svg_to_png, svg)

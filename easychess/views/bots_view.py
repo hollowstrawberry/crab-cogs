@@ -27,4 +27,4 @@ class BotsView(discord.ui.View):
         assert interaction.channel and isinstance(interaction.user, discord.Member)
         self.stop()
         self.game.cancel(interaction.user)
-        await self.game.update_message(interaction)
+        await self.game.update_message()

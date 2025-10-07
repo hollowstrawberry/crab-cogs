@@ -50,4 +50,4 @@ class GameView(discord.ui.View):
             return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
         self.game.cancel(interaction.user)
         self.stop()
-        await self.game.update_message(interaction)
+        await self.game.update_message()
