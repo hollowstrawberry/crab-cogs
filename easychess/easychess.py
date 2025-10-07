@@ -162,8 +162,8 @@ class EasyChess(BaseChessCog):
     app_chess = app_commands.Group(name="chess", description="Play Chess on Discord!")
 
     @app_chess.command(name="new")
-    @app_commands.describe(opponent="Invite someone to play, or play against the bot by default",
-                           difficulty="Higher number means harder difficulty, Hard by default.")
+    @app_commands.describe(opponent="Invite someone to play, or play against the bot by default.",
+                           difficulty="Hard by default.")
     @app_commands.choices(difficulty=[app_commands.Choice(name="Easy", value="1"),
                                       app_commands.Choice(name="Medium", value="3"),
                                       app_commands.Choice(name="Hard", value="5")])
