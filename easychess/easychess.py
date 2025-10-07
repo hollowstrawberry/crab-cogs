@@ -32,7 +32,7 @@ class EasyChess(BaseChessCog):
         if not current_game:
             return await ctx.reply(f"Start a new game with `{shortest_p}chess new` (and optionally ping an opponent)", ephemeral=True)
         if not move:
-            return await ctx.reply(f"Send chess moves in standard formats, example: `{shortest_p}chess Nc3` or `{shortest_p}chess b1c3`", ephemeral=True)
+            return await ctx.reply(f"Send chess moves in standard formats, example: {shortest_p}chess Nc3", ephemeral=True)
         if ctx.author not in current_game.players:
             return await ctx.reply(f"You're not a player in the current chess game!", ephemeral=True)
         if ctx.author != current_game.member(current_game.board.turn):
