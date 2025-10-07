@@ -29,7 +29,8 @@ class EasyChess(BaseChessCog):
     async def cog_load(self):
         _, engine = await chess.engine.popen_uci([sys.executable, '-u', str(bundled_data_path(self) / "sunfish.py")])
         self.engine = engine
-        
+        await self.engine.ping()
+
         all_channels = await self.config.all_channels()
         for channel_id, config in all_channels.items():
             try:
