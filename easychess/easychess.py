@@ -109,7 +109,7 @@ class EasyChess(BaseChessCog):
                 return
         
         # New game
-        game = ChessGame(self, players, ctx.channel)
+        game = ChessGame(self, players, ctx.channel, depth=depth)
         if opponent.bot:
             game.accept()
         self.games[ctx.channel.id] = game
