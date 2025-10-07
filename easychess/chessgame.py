@@ -92,9 +92,9 @@ class ChessGame(BaseChessGame):
         winner = None
         if outcome is None:
             if self.surrendered:
-                winner_index = 1 if self.players.index(self.surrendered) == 0 else 0
-                embed.title = f"{self.players[winner_index].display_name} is the winner via surrender!"
-                embed.set_thumbnail(url=self.players[winner_index].display_avatar.url)
+                winner = self.players[1] if self.players.index(self.surrendered) == 0 else self.players[0]
+                embed.title = f"{winner.display_name} is the winner via surrender!"
+                embed.set_thumbnail(url=winner.display_avatar.url)
             elif self.cancelled:
                 embed.title = "The game was cancelled."
             elif self.accepted:
@@ -110,8 +110,10 @@ class ChessGame(BaseChessGame):
         else:
             embed.title = "The game ended in a tie!"
 
-        if outcome:
-            embed.color = COLOR_WHITE if outcome.winner == chess.WHITE else COLOR_BLACK if outcome.winner == chess.BLACK else COLOR_TIE
+        if outcome and outcome.winner is None:
+            embed.color = COLOR_TIE
+        elif winner:
+            embed.color = COLOR_WHITE if self.players.index(winner) == 0 else COLOR_BLACK
         else:
             embed.color = COLOR_WHITE if self.board.turn == chess.WHITE else COLOR_BLACK
         
