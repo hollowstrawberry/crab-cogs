@@ -28,20 +28,20 @@ class GameView(discord.ui.View):
         super().__init__(timeout=None)
         self.game = game
 
-    discord.ui.button(emoji="♟️", label="Enter Move", style=discord.ButtonStyle.success)
-    async def move(self, interaction: discord.Interaction):
+    @discord.ui.button(emoji="♟️", label="Enter Move", style=discord.ButtonStyle.success)
+    async def move(self, interaction: discord.Interaction, _):
         await interaction.response.send_modal(GameMoveModal(self.game))
 
-    discord.ui.button(emoji="⬇️", label="Bump", style=discord.ButtonStyle.primary)
-    async def bump(self, interaction: discord.Interaction):
+    @discord.ui.button(emoji="⬇️", label="Bump", style=discord.ButtonStyle.primary)
+    async def bump(self, interaction: discord.Interaction, _):
         assert interaction.message
         if interaction.user not in self.game.players:
             return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
         await interaction.response.pong()
         await self.game.update_message()
         
-    discord.ui.button(emoji="🏳️", label="End", style=discord.ButtonStyle.danger)
-    async def end(self, interaction: discord.Interaction):
+    @discord.ui.button(emoji="🏳️", label="End", style=discord.ButtonStyle.danger)
+    async def end(self, interaction: discord.Interaction, _):
         assert interaction.channel and isinstance(interaction.user, discord.Member)
         if interaction.user not in self.game.players and not interaction.channel.permissions_for(interaction.user).manage_messages:
             return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
