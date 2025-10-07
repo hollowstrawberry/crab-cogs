@@ -1,5 +1,4 @@
 import discord
-from typing import Optional
 
 from easychess.base import BaseChessGame
 
@@ -8,7 +7,6 @@ class RematchView(discord.ui.View):
     def __init__(self, game: BaseChessGame):
         super().__init__(timeout=300)
         self.game = game
-        self.message: Optional[discord.Message] = None
 
     @discord.ui.button(label="Rematch", style=discord.ButtonStyle.green)
     async def rematch(self, interaction: discord.Interaction, _):
@@ -25,8 +23,8 @@ class RematchView(discord.ui.View):
         await self.on_timeout()
         
     async def on_timeout(self):
-        if self.message:
+        if self.game.message:
             try:
-                await self.message.edit(view=None)
+                await self.game.message.edit(view=None)
             except discord.NotFound:
                 pass
