@@ -23,15 +23,6 @@ COLOR_WHITE = 0xffffff
 COLOR_BLACK = 0x000000
 COLOR_TIE = 0x78B159
 
-PIECE_NAMES = {
-    "R": "white rook",   "r": "black rook",
-    "N": "white knight", "n": "black knight",
-    "B": "white bishop", "b": "black bishop",
-    "Q": "white queen",  "q": "black queen",
-    "K": "white king",   "k": "black king",
-    "P": "white pawn",   "p": "black pawn",
-}
-
 
 class ChessGame(BaseChessGame):
     def __init__(self, cog: BaseChessCog, players: List[discord.Member], channel: discord.TextChannel, initial_state: str = None):
@@ -161,13 +152,13 @@ class ChessGame(BaseChessGame):
             embed.description += "👑 "
         embed.description += f"`⬛` {self.players[1].mention}"
         if last_capture and last_capture.color == chess.WHITE and not outcome and not self.is_cancelled():
-            embed.description += f" captured {PIECE_NAMES[last_capture.symbol()]}"
+            embed.description += f" captured {last_capture.unicode_symbol()}"
 
         if winner == self.players[0] or self.surrendered == self.players[1]:
             embed.description += "👑 "
         embed.description += f"\n`⬜` {self.players[0].mention}"
         if last_capture and last_capture.color == chess.BLACK and not outcome and not self.is_cancelled():
-            embed.description += f" captured {PIECE_NAMES[last_capture.symbol()]}"
+            embed.description += f" captured {last_capture.unicode_symbol()}"
 
         embed.set_image(url=f"attachment://{filename}")
         embed.set_footer(text=f"Turn {self.board.fullmove_number}")
