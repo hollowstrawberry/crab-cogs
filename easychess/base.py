@@ -12,6 +12,7 @@ class BaseChessCog(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
         self.games: Dict[int, BaseChessGame] = {}
+        self.engine: Optional[chess.engine.UciProtocol] = None
         self.config = Config.get_conf(self, identifier=766969962064)
         self.config.register_channel(game=None, players=[])
 
@@ -27,7 +28,6 @@ class BaseChessGame(ABC):
         self.channel = channel
         self.message: Optional[discord.Message] = None
         self.last_interacted: datetime = datetime.now()
-        self.engine: Optional[chess.engine.UciProtocol] = None
         self.board = chess.Board(initial_state or chess.STARTING_FEN)
 
     def member(self, color: chess.Color):

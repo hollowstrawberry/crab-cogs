@@ -1,10 +1,13 @@
+import sys
 import logging
 import discord
 import chess.engine
 from typing import List, Optional, Union
 from datetime import datetime
+
 from redbot.core import commands, app_commands
 from redbot.core.bot import Red
+from redbot.core.data_manager import bundled_data_path
 
 from easychess.base import BaseChessCog
 from easychess.chessgame import ChessGame
@@ -24,6 +27,9 @@ class EasyChess(BaseChessCog):
         super().__init__(bot)
 
     async def cog_load(self):
+        _, engine = await chess.engine.popen_uci([sys.executable, '-u', str(bundled_data_path(self) / "sunfish.py")])
+        self.engine = engine
+        
         all_channels = await self.config.all_channels()
         for channel_id, config in all_channels.items():
             try:
@@ -41,12 +47,8 @@ class EasyChess(BaseChessCog):
                 log.error(f"Parsing game in {channel_id}", exc_info=True)
 
     async def cog_unload(self):
-        for game in self.games.values():
-            if game.engine:
-                try:
-                    await game.engine.quit()
-                except chess.engine.EngineTerminatedError:
-                    pass
+        if self.engine:
+            await self.engine.quit()
 
 
     @commands.command(name="chess")

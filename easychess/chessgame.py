@@ -1,11 +1,9 @@
-import sys
 import asyncio
 import logging
 import discord
 from io import BytesIO
 from typing import List, Optional, Tuple
 from datetime import datetime
-from redbot.core.data_manager import bundled_data_path
 
 import chess
 import chess.engine
@@ -34,10 +32,6 @@ class ChessGame(BaseChessGame):
         self.cancelled = False
         self.surrendered: Optional[discord.Member] = None
     
-    async def start_engine(self) -> chess.engine.UciProtocol:
-        _, engine = await chess.engine.popen_uci([sys.executable, '-u', str(bundled_data_path(self.cog) / "sunfish.py")])
-        return engine
-    
     def accept(self):
         self.accepted = True
 
@@ -60,16 +54,10 @@ class ChessGame(BaseChessGame):
 
     async def update_state(self):
         if self.is_finished():
-            log.info(f"is finished {self.cancelled=}")
             if self.cog.games.get(self.channel.id) == self:
                 del self.cog.games[self.channel.id]
             await self.cog.config.channel(self.channel).game.set(None)
             await self.cog.config.channel(self.channel).players.set([])
-            if self.engine:
-                try:
-                    await self.engine.quit()
-                except chess.engine.EngineTerminatedError:
-                    pass
         else:
             await self.cog.config.channel(self.channel).game.set(self.board.fen())
             await self.cog.config.channel(self.channel).players.set([player.id for player in self.players])
@@ -91,10 +79,8 @@ class ChessGame(BaseChessGame):
         return True, ""
     
     async def move_engine(self):
-        if not self.engine:
-            self.engine = await self.start_engine()
-        log.info(f"{self.engine=}")
-        result = await self.engine.play(self.board, limit=self.limit)
+        assert self.cog.engine
+        result = await self.cog.engine.play(self.board, limit=self.limit)
         if result.move:
             await self.do_move(result.move)
         else:
