@@ -25,9 +25,9 @@ COLOR_TIE = 0x78B159
 
 
 class ChessGame(BaseChessGame):
-    def __init__(self, cog: BaseChessCog, players: List[discord.Member], channel: discord.TextChannel, initial_state: str = None):
+    def __init__(self, cog: BaseChessCog, players: List[discord.Member], channel: discord.TextChannel, initial_state: str = None, depth: Optional[int] = None):
         super().__init__(cog, players, channel, initial_state)
-        self.limit = chess.engine.Limit(time=1.0)
+        self.limit = chess.engine.Limit(time=1.0, depth=depth)
         self.accepted = initial_state is not None
         self.cancelled = False
         self.surrendered: Optional[discord.Member] = None
@@ -148,7 +148,7 @@ class ChessGame(BaseChessGame):
             embed.color = COLOR_WHITE if self.board.turn == chess.WHITE else COLOR_BLACK
         
         embed.description = ""
-        if winner == self.players[1]  or self.surrendered == self.players[0]:
+        if winner == self.players[1] or self.surrendered == self.players[0]:
             embed.description += "👑 "
         embed.description += f"`⬛` {self.players[1].mention}"
         if last_capture and last_capture.color == chess.WHITE and not outcome and not self.is_cancelled():
