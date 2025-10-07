@@ -24,6 +24,7 @@ class EasyChess(BaseChessCog):
         self.config = Config.get_conf(self, identifier=766969962064)
         self.config.register_guild()
 
+
     @commands.hybrid_command(name="chess")
     async def chess_new(self, ctx: Union[commands.Context, discord.Interaction], opponent: Optional[discord.Member] = None):
         """Play a game of Chess against a friend or the bot."""
@@ -68,6 +69,10 @@ class EasyChess(BaseChessCog):
         if opponent.bot:
             game.accept()
         self.games[ctx.channel.id] = game
+
         if isinstance(ctx, discord.Interaction):
             await ctx.response.send_message("Starting game...", ephemeral=True)
+        elif ctx.interaction:
+            await ctx.interaction.response.send_message("Starting game...", ephemeral=True)
+            
         await game.update_message()
