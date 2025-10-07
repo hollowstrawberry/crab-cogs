@@ -159,3 +159,5 @@ class ChessGame(BaseChessGame):
                     await old_message.delete()
                 except discord.NotFound:
                     pass
+
+        self.view = view

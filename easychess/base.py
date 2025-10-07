@@ -26,8 +26,9 @@ class BaseChessGame(ABC):
         self.cog = cog
         self.players = players
         self.channel = channel
-        self.message: Optional[discord.Message] = None
         self.last_interacted: datetime = datetime.now()
+        self.message: Optional[discord.Message] = None
+        self.view: Optional[discord.ui.View] = None
         self.board = chess.Board(initial_state or chess.STARTING_FEN)
 
     def member(self, color: chess.Color):
