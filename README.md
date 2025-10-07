@@ -22,9 +22,9 @@ Converts many Audio cog commands into slash commands. The fun part is it will au
 
 ![demonstration](https://i.imgur.com/EDJybmH.png)
 
-### Minigames
+### 🕹️ Minigames
 
-Features **Connect 4** and **Tic-Tac-Toe**, which you can play against the bot or your friends. Only one game may be active per channel, but it works in threads, and inactive games may be ended by any user.
+Features **Connect 4** and **Tic-Tac-Toe**, which you can play against your friends or the bot itself. Only one game may be active per channel, but it works in threads.
 
 ![demonstration](https://i.imgur.com/llfbOG6.png)
 
@@ -33,6 +33,12 @@ Features **Connect 4** and **Tic-Tac-Toe**, which you can play against the bot o
 Lets anyone steal emojis and stickers sent by other people, and lets moderators upload them to the current server instantly. Supports context menus. Specially useful if you're on mobile as the Discord app doesn't let you copy emoji links or upload stickers, but this cog has commands for those. Animated stickers are annoying but there's a workaround.
 
 ![demonstration](https://i.imgur.com/Mj4jbGo.png)
+
+### ♟️ EasyChess
+
+Play Chess against your friends or the bot, or make bots play against each other. Uses [Sunfish](https://github.com/thomasahle/sunfish) as the chess engine, which has an ELO of around 2000. Only one game may be active per channel, but it works in threads.
+
+![demonstration](https://i.imgur.com/6IleFWa.png)
 
 ### 🎌 EasyTranslate
 
