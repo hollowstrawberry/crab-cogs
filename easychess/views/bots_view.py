@@ -11,11 +11,16 @@ class BotsView(discord.ui.View):
         self.game = game
 
     @discord.ui.button(emoji="♟️", label="Next Move", style=discord.ButtonStyle.success)
-    async def move(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def move(self, interaction: discord.Interaction, _):
         self.stop()
         await interaction.response.edit_message(view=ThinkingView())
         await self.game.move_engine()
         await self.game.update_message(interaction)
+
+    @discord.ui.button(emoji="⬇️", label="Bump", style=discord.ButtonStyle.primary)
+    async def bump(self, interaction: discord.Interaction, _):
+        self.stop()
+        await self.game.update_message()
         
     @discord.ui.button(emoji="🏳️", label="End", style=discord.ButtonStyle.danger)
     async def end(self, interaction: discord.Interaction, _):

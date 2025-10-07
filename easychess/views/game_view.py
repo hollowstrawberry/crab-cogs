@@ -41,7 +41,7 @@ class GameView(discord.ui.View):
         assert interaction.message
         if interaction.user not in self.game.players:
             return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
-        await self.game.update_message(interaction)
+        await self.game.update_message()
         
     @discord.ui.button(emoji="🏳️", label="Surrender", style=discord.ButtonStyle.danger)
     async def end(self, interaction: discord.Interaction, _):
