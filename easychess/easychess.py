@@ -122,7 +122,7 @@ class EasyChess(BaseChessCog):
         await game.update_message()
 
 
-    async def chess_bots(self, ctx: commands.Context, opponent: discord.Member):
+    async def chess_bots(self, ctx: commands.Context, opponent: discord.Member, depth: Optional[int] = None):
         """Make bots play Chess against each other"""
         assert ctx.guild and isinstance(ctx.channel, discord.TextChannel)
         if not opponent.bot or opponent == ctx.guild.me:
@@ -142,7 +142,7 @@ class EasyChess(BaseChessCog):
             
             return await ctx.send("There's an ongoing chess game in this channel, we can't interrupt it.")
             
-        game = ChessGame(self, [ctx.guild.me, opponent], ctx.channel)
+        game = ChessGame(self, [ctx.guild.me, opponent], ctx.channel, depth=depth)
         game.accept()
         self.games[ctx.channel.id] = game
 
@@ -157,7 +157,7 @@ class EasyChess(BaseChessCog):
 
     @commands.command(name="chessbots")
     async def chess_bots_cmd(self, ctx: commands.Context, opponent: discord.Member):
-        await self.chess_bots(ctx, opponent)
+        await self.chess_bots(ctx, opponent, 5)
 
     app_chess = app_commands.Group(name="chess", description="Play Chess on Discord!")
 
@@ -166,7 +166,8 @@ class EasyChess(BaseChessCog):
                            difficulty="Hard by default.")
     @app_commands.choices(difficulty=[app_commands.Choice(name="Easy", value="1"),
                                       app_commands.Choice(name="Medium", value="3"),
-                                      app_commands.Choice(name="Hard", value="5")])
+                                      app_commands.Choice(name="Hard", value="5"),
+                                      app_commands.Choice(name="Hardest", value="0")])
     async def chess_new_app(self,
                             interaction: discord.Interaction,
                             opponent: Optional[discord.Member] = None,
@@ -177,7 +178,7 @@ class EasyChess(BaseChessCog):
         assert command
         if not await command.can_run(ctx, check_all_parents=True, change_permission_state=False):
             return await interaction.response.send_message("You're not allowed to do that here.", ephemeral=True)
-        await self.chess_new(ctx, opponent, int(difficulty))
+        await self.chess_new(ctx, opponent, int(difficulty) or None)
 
     @app_chess.command(name="bots")
     async def chess_bots_app(self, interaction: discord.Interaction, opponent: discord.Member):
@@ -187,4 +188,4 @@ class EasyChess(BaseChessCog):
         assert command
         if not await command.can_run(ctx, check_all_parents=True, change_permission_state=False):
             return await interaction.response.send_message("You're not allowed to do that here.", ephemeral=True)
-        await self.chess_bots(ctx, opponent)
+        await self.chess_bots(ctx, opponent, 5)
