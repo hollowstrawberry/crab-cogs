@@ -9,7 +9,7 @@ class MinigameView(discord.ui.View):
         self.game = game
         if not self.game.is_finished():
             bump_button = discord.ui.Button(emoji="⬇️", label="Bump", style=discord.ButtonStyle.primary, row=4)
-            end_button = discord.ui.Button(emoji="🏳️", label="End", style=discord.ButtonStyle.danger, row=4)
+            end_button = discord.ui.Button(emoji="🏳️", label="Surrender", style=discord.ButtonStyle.danger, row=4)
             bump_button.callback = self.bump
             end_button.callback = self.end
             self.add_item(bump_button)
@@ -19,12 +19,12 @@ class MinigameView(discord.ui.View):
         assert interaction.message
         if interaction.user not in self.game.players:
             return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
-        await interaction.message.delete()
         self.message = await interaction.message.channel.send(content=self.game.get_content(), embed=self.game.get_embed(), view=self.game.get_view()) # type: ignore
+        await interaction.message.delete()
     
     async def end(self, interaction: discord.Interaction):
         assert interaction.channel and isinstance(interaction.user, discord.Member)
-        if interaction.user not in self.game.players and not interaction.channel.permissions_for(interaction.user).manage_messages:
+        if interaction.user not in self.game.players:
             return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
         self.game.cancel(interaction.user)
         new_view = self.game.get_view()
