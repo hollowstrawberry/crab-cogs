@@ -451,7 +451,7 @@ hist = [Position(initial, 0, (True, True), (True, True), 0, 0)]
 
 # minifier-hide start
 import sys
-from .uci import run
+from uci import run
 run(sys.modules[__name__], hist[-1])
 sys.exit()
 # minifier-hide end
