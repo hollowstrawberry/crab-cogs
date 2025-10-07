@@ -25,17 +25,19 @@ class EasyChess(BaseChessCog):
     async def cog_load(self):
         all_channels = await self.config.all_channels()
         for channel_id, config in all_channels.items():
-            channel = self.bot.get_channel(channel_id)
-            if not config["game"] or not isinstance(channel, discord.TextChannel):
-                continue
-            players: List[discord.Member] = [channel.guild.get_member(user_id) for user_id in config["players"]] # type: ignore
-            if any(player is None for player in players):
-                continue
-            log.info(config["game"])
-            game = ChessGame(self, players, channel, config["game"])
-            self.games[channel.id] = game
-            view = BotsView(game) if all(player.bot for player in players) else GameView(game)
-            self.bot.add_view(view)
+            try:
+                channel = self.bot.get_channel(channel_id)
+                if not config["game"] or not isinstance(channel, discord.TextChannel):
+                    continue
+                players: List[discord.Member] = [channel.guild.get_member(user_id) for user_id in config["players"]] # type: ignore
+                if any(player is None for player in players):
+                    continue
+                game = ChessGame(self, players, channel, config["game"])
+                self.games[channel.id] = game
+                view = BotsView(game) if all(player.bot for player in players) else GameView(game)
+                self.bot.add_view(view)
+            except Exception:
+                log.error(f"Parsing game in {channel_id}", exc_info=True)
 
     async def cog_unload(self):
         for game in self.games.values():

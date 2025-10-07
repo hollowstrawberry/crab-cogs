@@ -66,7 +66,7 @@ class ChessGame(BaseChessGame):
                 await self.engine.quit()
         else:
             await self.cog.config.channel(self.channel).game.set(self.board.fen())
-            await self.cog.config.channel(self.channel).game.set([player.id for player in self.players])
+            await self.cog.config.channel(self.channel).players.set([player.id for player in self.players])
 
     async def move_user(self, san_or_uci: str) -> Tuple[bool, str]:
         try:
