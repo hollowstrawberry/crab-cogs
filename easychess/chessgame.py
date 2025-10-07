@@ -70,8 +70,7 @@ class ChessGame(BaseChessGame):
     async def generate_board_image(self) -> BytesIO:
         lastmove = self.board.peek() if self.board.move_stack else None
         check = self.board.king(self.board.turn) if self.board.is_check() else None
-        arrows = [(lastmove.from_square, lastmove.to_square)] if lastmove else []
-        svg = chess.svg.board(self.board, lastmove=lastmove, check=check, arrows=arrows, size=512)
+        svg = chess.svg.board(self.board, lastmove=lastmove, check=check, size=512)
         b = await asyncio.to_thread(svg_to_png, svg)
         return BytesIO(b or b'')
 
@@ -120,12 +119,13 @@ class ChessGame(BaseChessGame):
 
         prefixes = await self.cog.bot.get_valid_prefixes(self.channel.guild)
         shortest_p = min(prefixes, key=lambda p: len(p))
-        embed.set_footer(text=f"Send chess moves in standard formats, example: {shortest_p}chess Nc3")
+        embed.set_footer(text=f"Example move: {shortest_p}chess Nc3")
 
-        await self.channel.send(content=content, embed=embed, file=file, view=view)
+        old_message = self.message
+        self.message = await self.channel.send(content=content, embed=embed, file=file, view=view)
 
-        if self.message:
+        if old_message:
             try:
-                await self.message.delete()
+                await old_message.delete()
             except discord.NotFound:
                 pass
