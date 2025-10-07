@@ -141,7 +141,7 @@ class ChessGame(BaseChessGame):
         else:
             embed.title = "The game ended in a tie!"
 
-        if outcome and outcome.winner is None or self.is_cancelled():
+        if outcome and outcome.winner is None or self.is_cancelled() and self.board.fullmove_number <= 3:
             embed.color = COLOR_TIE
         elif winner:
             embed.color = COLOR_WHITE if self.players.index(winner) == 0 else COLOR_BLACK
