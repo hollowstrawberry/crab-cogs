@@ -1,12 +1,14 @@
 import logging
 import discord
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 from datetime import datetime
-from redbot.core import commands, app_commands, Config
+from redbot.core import commands, app_commands
 from redbot.core.bot import Red
 
 from easychess.base import BaseChessCog
 from easychess.chessgame import ChessGame
+from easychess.views.bots_view import BotsView
+from easychess.views.game_view import GameView
 from easychess.views.replace_view import ReplaceView
 
 log = logging.getLogger("red.crab-cogs.easychess")
@@ -19,10 +21,25 @@ class EasyChess(BaseChessCog):
 
     def __init__(self, bot: Red):
         super().__init__(bot)
-        self.allowedguilds = set()
-        self.games: Dict[int, ChessGame] = {}
-        self.config = Config.get_conf(self, identifier=766969962064)
-        self.config.register_guild()
+
+    async def cog_load(self):
+        all_channels = await self.config.all_channels()
+        for channel_id, config in all_channels:
+            channel = self.bot.get_channel(channel_id)
+            if not config["game"] or not isinstance(channel, discord.TextChannel):
+                continue
+            players: List[discord.Member] = [channel.guild.get_member(user_id) for user_id in config["players"]] # type: ignore
+            if any(player is None for player in players):
+                continue
+            game = ChessGame(self, players, channel, config["game"])
+            self.games[channel.id] = game
+            view = BotsView(game) if all(player.bot for player in players) else GameView(game)
+            self.bot.add_view(view)
+
+    async def cog_unload(self):
+        for game in self.games.values():
+            if game.engine:
+                await game.engine.quit()
 
 
     @commands.command(name="chess")
@@ -106,10 +123,18 @@ class EasyChess(BaseChessCog):
     async def chess_new_app(self, interaction: discord.Interaction, opponent: Optional[discord.Member] = None):
         """Play a game of Chess against a friend or the bot."""
         ctx = await commands.Context.from_interaction(interaction)
+        command = self.bot.get_command("chess")
+        assert command
+        if not await command.can_run(ctx, check_all_parents=True, change_permission_state=False):
+            return await interaction.response.send_message("You're not allowed to do that here.", ephemeral=True)
         await self.chess_new(ctx, opponent)
 
     @app_chess.command(name="bots")
     async def chess_bots_app(self, interaction: discord.Interaction, opponent: discord.Member):
         """Make this bot play Chess against another bot."""
         ctx = await commands.Context.from_interaction(interaction)
+        command = self.bot.get_command("chessbots")
+        assert command
+        if not await command.can_run(ctx, check_all_parents=True, change_permission_state=False):
+            return await interaction.response.send_message("You're not allowed to do that here.", ephemeral=True)
         await self.chess_bots(ctx, opponent)

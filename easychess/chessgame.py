@@ -23,11 +23,10 @@ COLOR_TIE = 0x78B159
 
 
 class ChessGame(BaseChessGame):
-    def __init__(self, cog: BaseChessCog, players: List[discord.Member], channel: discord.TextChannel):
-        super().__init__(cog, players, channel)
+    def __init__(self, cog: BaseChessCog, players: List[discord.Member], channel: discord.TextChannel, initial_state: str = None):
+        super().__init__(cog, players, channel, initial_state)
         self.limit = chess.engine.Limit(time=1.0)
-        self.engine: Optional[chess.engine.UciProtocol] = None
-        self.accepted = False
+        self.accepted = initial_state is not None
         self.cancelled = False
         self.surrendered: Optional[discord.Member] = None
     
@@ -38,18 +37,35 @@ class ChessGame(BaseChessGame):
     def accept(self):
         self.accepted = True
 
-    def cancel(self, member: Optional[discord.Member]):
-        if member in self.players:
-            self.surrendered = member
-        self.cancelled = True
-
     def is_cancelled(self):
         return self.cancelled
 
     def is_finished(self):
         return self.is_cancelled() or self.board.is_game_over()
+    
+    async def cancel(self, member: Optional[discord.Member]):
+        if member in self.players:
+            self.surrendered = member
+        self.cancelled = True
+        await self.update_state()
+    
+    async def do_move(self, move: chess.Move):
+        self.board.push(move)
+        await self.update_state()
 
-    def move_user(self, san_or_uci: str) -> Tuple[bool, str]:
+    async def update_state(self):
+        if self.is_finished():
+            if self.cog.games.get(self.channel.id) == self:
+                del self.cog.games[self.channel.id]
+            await self.cog.config.channel(self.channel).game.set(None)
+            await self.cog.config.channel(self.channel).players.set([])
+            if self.engine:
+                await self.engine.quit()
+        else:
+            await self.cog.config.channel(self.channel).game.set(self.board.fen())
+            await self.cog.config.channel(self.channel).game.set([player.id for player in self.players])
+
+    async def move_user(self, san_or_uci: str) -> Tuple[bool, str]:
         try:
             try:
                 move = self.board.parse_san(san_or_uci)
@@ -62,7 +78,7 @@ class ChessGame(BaseChessGame):
         except chess.AmbiguousMoveError:
             return False, "That move may be interpreted in more than one way. Be specific."
         
-        self.board.push(move)
+        await self.do_move(move)
         return True, ""
     
     async def move_engine(self):
@@ -70,13 +86,14 @@ class ChessGame(BaseChessGame):
             self.engine = await self.start_engine()
         result = await self.engine.play(self.board, limit=self.limit)
         if result.move:
-            self.board.push(result.move)
+            await self.do_move(result.move)
         else:
             raise ValueError("Engine failed to make a move")
         
     async def generate_board_image(self) -> BytesIO:
-        lastmove = self.board.peek() if self.board.move_stack and not self.is_finished() else None
-        check = self.board.king(self.board.turn) if self.board.is_check() else None
+        is_finished = self.is_finished()
+        lastmove = self.board.peek() if self.board.move_stack and not is_finished else None
+        check = self.board.king(self.board.turn) if self.board.is_check() and not is_finished else None
         svg = chess.svg.board(self.board, lastmove=lastmove, check=check, size=512)
         b = await asyncio.to_thread(svg_to_png, svg)
         return BytesIO(b or b'')
