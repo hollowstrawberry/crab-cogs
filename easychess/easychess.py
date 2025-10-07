@@ -42,8 +42,8 @@ class EasyChess(BaseChessCog):
                     continue
                 game = ChessGame(self, players, channel, config["game"])
                 self.games[channel.id] = game
-                view = BotsView(game) if all(player.bot for player in players) else GameView(game)
-                self.bot.add_view(view)
+                #view = BotsView(game) if all(player.bot for player in players) else GameView(game)
+                #self.bot.add_view(view)
             except Exception:
                 log.error(f"Parsing game in {channel_id}", exc_info=True)
 
