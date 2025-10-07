@@ -48,6 +48,7 @@ class EasyChess(BaseChessCog):
                 log.error(f"Parsing game in {channel_id}", exc_info=True)
 
     async def cog_unload(self):
+        del self.games
         if self.engine:
             await self.engine.quit()
 
