@@ -15,12 +15,11 @@ class BotsView(discord.ui.View):
         self.stop()
         await interaction.response.edit_message(view=ThinkingView())
         await self.game.move_engine()
-        await self.game.update_message()
+        await self.game.update_message(interaction)
         
     @discord.ui.button(emoji="🏳️", label="End", style=discord.ButtonStyle.danger)
     async def end(self, interaction: discord.Interaction, _):
         assert interaction.channel and isinstance(interaction.user, discord.Member)
         self.stop()
         self.game.cancel(interaction.user)
-        await interaction.response.pong()
-        await self.game.update_message()
+        await self.game.update_message(interaction)
