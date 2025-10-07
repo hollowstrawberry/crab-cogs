@@ -15,6 +15,11 @@ from easychess.views.game_view import GameView
 from easychess.views.rematch_view import RematchView
 
 
+COLOR_WHITE = 0xffffff
+COLOR_BLACK = 0x000000
+COLOR_TIE = 0x78B159
+
+
 class ChessGame(BaseChessGame):
     def __init__(self, cog: BaseChessCog, players: List[discord.Member], channel: discord.TextChannel):
         super().__init__(cog, players, channel)
@@ -40,7 +45,7 @@ class ChessGame(BaseChessGame):
         return self.cancelled
 
     def is_finished(self):
-        return self.board.is_game_over()
+        return self.is_cancelled() or self.board.is_game_over()
 
     def move_user(self, san_or_uci: str) -> Tuple[bool, str]:
         try:
@@ -75,21 +80,19 @@ class ChessGame(BaseChessGame):
         return BytesIO(b or b'')
 
     async def update_message(self):
-        is_finished = self.is_finished()
+        outcome = self.board.outcome()
+        winner = None
 
         content = f"{self.players[0].mention} you're being invited to play chess." if not self.accepted else ""
 
         view = InviteView(self) if not self.accepted \
-            else RematchView(self) if is_finished and not self.cancelled \
-            else GameView(self) if not is_finished \
-            else discord.ui.View(timeout=0)
+            else RematchView(self) if outcome is not None \
+            else GameView(self)
 
         filename = "board.png"
         file = discord.File(await self.generate_board_image(), filename)
 
         embed = discord.Embed()
-        outcome = self.board.outcome()
-        winner = None
         if outcome is None:
             if self.surrendered:
                 winner_index = 1 if self.players.index(self.surrendered) == 0 else 0
@@ -108,19 +111,19 @@ class ChessGame(BaseChessGame):
             embed.title = f"{winner.display_name} is the winner!"
             embed.set_thumbnail(url=winner.display_avatar.url)
         else:
-            embed.title = "The game is over!"
+            embed.title = "The game ended in a tie!"
 
-        if outcome and outcome.winner:
-            embed.color = 0xfffff if outcome.winner == chess.WHITE else 0x000000
+        if outcome:
+            embed.color = COLOR_WHITE if outcome.winner == chess.WHITE else COLOR_BLACK if outcome.winner == chess.BLACK else COLOR_TIE
         else:
-            embed.color = 0xffffff if self.board.turn == chess.WHITE else 0x000000
+            embed.color = COLOR_WHITE if self.board.turn == chess.WHITE else COLOR_BLACK
         
         embed.description = ""
         if winner == self.players[1]  or self.surrendered == self.players[0]:
-            embed.description += "👑"
+            embed.description += "👑 "
         embed.description += f"`⬛` {self.players[1].mention}\n"
         if winner == self.players[0] or self.surrendered == self.players[1]:
-            embed.description += "👑"
+            embed.description += "👑 "
         embed.description += f"`⬜` {self.players[0].mention}\n"
 
 
