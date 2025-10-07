@@ -98,14 +98,16 @@ class EasyChess(BaseChessCog):
         await game.update_message()
 
 
-    @app_commands.command(name="chess new")
+    app_chess = app_commands.Group(name="chess", description="Play Chess on Discord!")
+
+    @app_chess.command(name="new")
     async def chess_new_app(self, interaction: discord.Interaction, opponent: Optional[discord.Member] = None):
         """Play a game of Chess against a friend or the bot."""
         ctx = await commands.Context.from_interaction(interaction)
         await self.chess_new(ctx, opponent)
 
 
-    @app_commands.command(name="chess bots")
+    @app_chess.command(name="bots")
     async def chess_bots_app(self, interaction: discord.Interaction, opponent: Optional[discord.Member] = None):
         """Make this bot play Chess against another bot."""
         ctx = await commands.Context.from_interaction(interaction)
