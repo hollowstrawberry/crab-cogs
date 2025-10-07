@@ -96,8 +96,9 @@ class ChessGame(BaseChessGame):
     async def generate_board_image(self) -> BytesIO:
         is_finished = self.is_finished()
         lastmove = self.board.peek() if self.board.move_stack and not is_finished else None
+        arrows = [(lastmove.from_square, lastmove.to_square)] if lastmove and not is_finished else []
         check = self.board.king(self.board.turn) if self.board.is_check() and not is_finished else None
-        svg = chess.svg.board(self.board, lastmove=lastmove, check=check, size=512)
+        svg = chess.svg.board(self.board, lastmove=lastmove, check=check, arrows=arrows, size=512)
         b = await asyncio.to_thread(svg_to_png, svg)
         return BytesIO(b or b'')
 
