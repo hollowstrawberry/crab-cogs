@@ -26,8 +26,7 @@ COLOR_TIE = 0x78B159
 
 class ChessGame(BaseChessGame):
     def __init__(self, cog: BaseChessCog, players: List[discord.Member], channel: discord.TextChannel, initial_state: str = None, depth: Optional[int] = None):
-        super().__init__(cog, players, channel, initial_state)
-        self.limit = chess.engine.Limit(time=1.0, depth=depth)
+        super().__init__(cog, players, channel, initial_state, depth)
         self.accepted = initial_state is not None
         self.cancelled = False
         self.surrendered: Optional[discord.Member] = None

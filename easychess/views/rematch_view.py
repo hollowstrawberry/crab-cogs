@@ -19,7 +19,7 @@ class RematchView(discord.ui.View):
         opponent = temp_players[0]
 
         self.stop()
-        await self.game.cog.chess_new(interaction, opponent)
+        await self.game.cog.chess_new(interaction, opponent, self.game.limit.depth)
         await self.on_timeout()
         
     async def on_timeout(self):

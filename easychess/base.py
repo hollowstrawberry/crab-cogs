@@ -17,12 +17,12 @@ class BaseChessCog(commands.Cog):
         self.config.register_channel(game=None, message=0, players=[], depth=None)
 
     @abstractmethod
-    async def chess_new(self, ctx: Union[commands.Context, discord.Interaction], opponent: Optional[discord.Member]):
+    async def chess_new(self, ctx: Union[commands.Context, discord.Interaction], opponent: Optional[discord.Member], depth: Optional[int] = None):
         pass
 
 
 class BaseChessGame(ABC):
-    def __init__(self, cog: BaseChessCog, players: List[discord.Member], channel: discord.TextChannel, initial_state: str = None):
+    def __init__(self, cog: BaseChessCog, players: List[discord.Member], channel: discord.TextChannel, initial_state: str = None, depth: Optional[int] = None):
         self.cog = cog
         self.players = players
         self.channel = channel
@@ -30,6 +30,7 @@ class BaseChessGame(ABC):
         self.message: Optional[discord.Message] = None
         self.view: Optional[discord.ui.View] = None
         self.board = chess.Board(initial_state or chess.STARTING_FEN)
+        self.limit = chess.engine.Limit(time=1.0, depth=depth)
 
     def member(self, color: chess.Color):
         return self.players[1] if color == chess.BLACK else self.players[0]
