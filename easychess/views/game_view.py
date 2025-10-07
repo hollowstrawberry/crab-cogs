@@ -42,6 +42,10 @@ class GameView(discord.ui.View):
         self.add_item(self.end_button)
 
     async def move(self, interaction: discord.Interaction):
+        if interaction.user not in self.game.players:
+            return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
+        if interaction.user != self.game.member(self.game.board.turn):
+            return await interaction.response.send_message("It's not your turn!", ephemeral=True)
         await interaction.response.send_modal(GameMoveModal(self.game, interaction))
 
     async def bump(self, interaction: discord.Interaction):
