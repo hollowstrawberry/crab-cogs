@@ -44,8 +44,12 @@ class EasyChess(BaseChessCog):
                 self.games[channel.id] = game
                 view = BotsView(game) if all(player.bot for player in players) else GameView(game)
                 self.bot.add_view(view)
-                game.message = await channel.fetch_message(config["message"])
-            except Exception:
+                game.view = view
+                try:
+                    game.message = await channel.fetch_message(config["message"])
+                except discord.NotFound:
+                    pass
+            except Exception: # don't interrupt load sequence
                 log.error(f"Parsing game in {channel_id}", exc_info=True)
 
     async def cog_unload(self):
