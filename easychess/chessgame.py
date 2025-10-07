@@ -1,12 +1,14 @@
-import asyncio
-from io import BytesIO
 import sys
+import asyncio
+import discord
+from io import BytesIO
+from typing import List, Optional, Tuple
+from datetime import datetime
+from redbot.core.data_manager import bundled_data_path
+
 import chess
 import chess.engine
 import chess.svg
-import discord
-from typing import List, Optional, Tuple
-from redbot.core.data_manager import bundled_data_path
 
 from easychess.base import BaseChessCog, BaseChessGame
 from easychess.utils import svg_to_png
@@ -51,6 +53,7 @@ class ChessGame(BaseChessGame):
     
     async def do_move(self, move: chess.Move):
         self.board.push(move)
+        self.last_interacted = datetime.now()
         await self.update_state()
 
     async def update_state(self):

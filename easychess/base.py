@@ -28,7 +28,7 @@ class BaseChessGame(ABC):
         self.message: Optional[discord.Message] = None
         self.last_interacted: datetime = datetime.now()
         self.engine: Optional[chess.engine.UciProtocol] = None
-        self.board = chess.Board(initial_state)
+        self.board = chess.Board(initial_state or chess.STARTING_FEN)
 
     def member(self, color: chess.Color):
         return self.players[1] if color == chess.BLACK else self.players[0]
