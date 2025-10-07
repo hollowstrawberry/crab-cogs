@@ -56,8 +56,7 @@ class ChessGame(BaseChessGame):
         if self.is_finished():
             if self.cog.games.get(self.channel.id) == self:
                 del self.cog.games[self.channel.id]
-            await self.cog.config.channel(self.channel).game.set(None)
-            await self.cog.config.channel(self.channel).players.set([])
+            await self.cog.config.channel(self.channel).clear()
         else:
             await self.cog.config.channel(self.channel).game.set(self.board.fen())
             await self.cog.config.channel(self.channel).players.set([player.id for player in self.players])
@@ -106,6 +105,7 @@ class ChessGame(BaseChessGame):
                 else RematchView(self) if self.is_finished() \
                 else ThinkingView() if self.member(self.board.turn).bot and not all(member.bot for member in self.players) \
                 else GameView(self)
+
         filename = "board.png"
         file = discord.File(await self.generate_board_image(), filename)
 
@@ -130,6 +130,8 @@ class ChessGame(BaseChessGame):
             embed.set_thumbnail(url=winner.display_avatar.url)
         else:
             embed.title = "The game ended in a tie!"
+
+        embed.title += f" (Turn {self.board.fullmove_number})"
 
         if outcome and outcome.winner is None or self.is_cancelled():
             embed.color = COLOR_TIE

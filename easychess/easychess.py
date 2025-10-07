@@ -17,7 +17,7 @@ from easychess.views.replace_view import ReplaceView
 
 log = logging.getLogger("red.crab-cogs.easychess")
 
-TIME_LIMIT = 5 # minutes
+TIME_LIMIT = 0 # minutes
 
 
 class EasyChess(BaseChessCog):
@@ -66,26 +66,32 @@ class EasyChess(BaseChessCog):
 
         # Game already exists
         if ctx.channel.id in self.games and not self.games[ctx.channel.id].is_finished():
-            old_game = self.games[ctx.channel.id]
-            old_message = await ctx.channel.fetch_message(old_game.message.id) if old_game.message else None # re-fetch
             reply = ctx.reply if isinstance(ctx, commands.Context) else ctx.response.send_message
+            old_game = self.games[ctx.channel.id]
+            try:
+                old_message = await ctx.channel.fetch_message(old_game.message.id) if old_game.message else None # re-fetch
+            except discord.NotFound:
+                old_message = None
 
             if not old_message:
                 await old_game.update_message()
                 old_message = old_game.message
                 assert old_message
 
-            if (datetime.now() - old_game.last_interacted).total_seconds() > 60 * TIME_LIMIT:
+            minutes_passed = (datetime.now() - old_game.last_interacted).total_seconds() // 60
+            if minutes_passed > TIME_LIMIT:
                 async def callback():
-                    nonlocal ctx, players, old_game, author, opponent
-                    assert opponent and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel) 
+                    nonlocal ctx, players, author, old_game, old_message, opponent
+                    assert opponent and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
+                    await old_game.cancel(author)
+                    await old_game.update_message()
                     game = ChessGame(self, players, ctx.channel)
                     if opponent.bot:
                         game.accept()
                     self.games[ctx.channel.id] = game
                     await game.update_message()
 
-                content = f"Someone else is playing Chess in this channel, here: {old_message.jump_url}, but more than {TIME_LIMIT} minutes have passed since their last interaction. Do you want to start a new game?"
+                content = f"Someone else is playing Chess in this channel, here: {old_message.jump_url}, but {minutes_passed} minutes have passed since their last interaction. Do you want to start a new game?"
                 embed = discord.Embed(title="Confirmation", description=content, color=await self.bot.get_embed_color(ctx.channel))
                 view = ReplaceView(self, callback, author)
                 message = await reply(embed=embed, view=view, ephemeral=True)
@@ -122,7 +128,10 @@ class EasyChess(BaseChessCog):
         
         if ctx.channel.id in self.games and not self.games[ctx.channel.id].is_finished():
             old_game = self.games[ctx.channel.id]
-            old_message = await ctx.channel.fetch_message(old_game.message.id) if old_game.message else None # re-fetch
+            try:
+                old_message = await ctx.channel.fetch_message(old_game.message.id) if old_game.message else None # re-fetch
+            except discord.NotFound:
+                old_message = None
 
             if not old_message:
                 await old_game.update_message()
