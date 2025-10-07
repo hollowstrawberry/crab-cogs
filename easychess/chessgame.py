@@ -119,7 +119,8 @@ class ChessGame(BaseChessGame):
         embed.set_image(url=f"attachment://{filename}")
 
         prefixes = await self.cog.bot.get_valid_prefixes(self.channel.guild)
-        embed.set_footer(text=f"Send chess moves in standard SAN/UCI formats, example: `{prefixes[0]}chess g2g4`")
+        shortest_p = min(prefixes, key=lambda p: len(p))
+        embed.set_footer(text=f"Send chess moves in standard formats, example: `{shortest_p}chess Nc3` or `{shortest_p}chess b1c3`")
 
         await self.channel.send(content=content, embed=embed, file=file, view=view)
 
