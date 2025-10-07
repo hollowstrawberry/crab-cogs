@@ -40,7 +40,7 @@ class EasyChess(BaseChessCog):
                 players: List[discord.Member] = [channel.guild.get_member(user_id) for user_id in config["players"]] # type: ignore
                 if any(player is None for player in players):
                     continue
-                game = ChessGame(self, players, channel, config["game"])
+                game = ChessGame(self, players, channel, config["game"], config["depth"])
                 self.games[channel.id] = game
                 view = BotsView(game) if all(player.bot for player in players) else GameView(game)
                 self.bot.add_view(view)
@@ -164,7 +164,8 @@ class EasyChess(BaseChessCog):
     @app_chess.command(name="new")
     @app_commands.describe(opponent="Invite someone to play, or play against the bot by default",
                            difficulty="How smart the bot will play, Hard by default.")
-    @app_commands.choices(difficulty=[app_commands.Choice(name="Easy", value="3"),
+    @app_commands.choices(difficulty=[app_commands.Choice(name="Beginner", value="2"),
+                                      app_commands.Choice(name="Easy", value="3"),
                                       app_commands.Choice(name="Medium", value="4"),
                                       app_commands.Choice(name="Hard", value="5"),
                                       app_commands.Choice(name="As hard as it gets", value="0")])

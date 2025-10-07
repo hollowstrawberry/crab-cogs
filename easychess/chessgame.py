@@ -67,6 +67,7 @@ class ChessGame(BaseChessGame):
             await self.cog.config.channel(self.channel).clear()
         else:
             await self.cog.config.channel(self.channel).game.set(self.board.fen())
+            await self.cog.config.channel(self.channel).depth.set(self.limit.depth)
             await self.cog.config.channel(self.channel).players.set([player.id for player in self.players])
 
     async def move_user(self, san_or_uci: str) -> Tuple[bool, str]:
@@ -87,7 +88,8 @@ class ChessGame(BaseChessGame):
     
     async def move_engine(self):
         assert self.cog.engine
-        result = await self.cog.engine.play(self.board, limit=self.limit)
+        bad_limit = chess.engine.Limit(time=1.0, depth=2)
+        result = await self.cog.engine.play(self.board, limit=self.limit if self.member(self.board.turn) == self.channel.guild.me else bad_limit)
         if result.move:
             await self.do_move(result.move)
         else:
