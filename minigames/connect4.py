@@ -1,6 +1,5 @@
 import random
 import discord
-from copy import deepcopy
 from enum import Enum
 from typing import List, Optional
 from datetime import datetime
@@ -79,7 +78,7 @@ class ConnectFourGame(Minigame):
             moves[columns[0]] = 0
         else:
             for column in columns: # All moves it can make
-                temp_board = deepcopy(self.board)
+                temp_board = self.board.copy()
                 self.drop_piece(temp_board, column, self.current)
                 if self.check_win(temp_board, self.current, self.time + 1): # Can win instantly
                     moves = {column: 0}
@@ -164,7 +163,7 @@ class ConnectFourGame(Minigame):
         if depth <= 0 or time == len(board._data):
             return count
         for column in cls.available_columns(board):
-            temp_board = deepcopy(board)
+            temp_board = board.copy()
             cls.drop_piece(temp_board, column, current)
             if current != color and cls.check_win(temp_board, current, time + 1):
                 count += 1

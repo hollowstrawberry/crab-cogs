@@ -23,6 +23,11 @@ class Board:
         x, y = pos
         self._data[self._index(x, y)] = value
 
+    def copy(self):
+        new_board = Board(self.width, self.height)
+        new_board._data = list(self._data)
+        return new_board
+
 
 # These functions were originally handwritten in C# by me, and converted to Python with an LLM
 
