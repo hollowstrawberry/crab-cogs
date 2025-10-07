@@ -80,19 +80,16 @@ class ChessGame(BaseChessGame):
         return BytesIO(b or b'')
 
     async def update_message(self):
-        outcome = self.board.outcome()
-        winner = None
-
         content = f"{self.players[0].mention} you're being invited to play chess." if not self.accepted else ""
-
+        embed = discord.Embed()
         view = InviteView(self) if not self.accepted \
-            else RematchView(self) if outcome is not None \
-            else GameView(self)
-
+            else GameView(self) if not self.is_finished() \
+            else RematchView(self)
         filename = "board.png"
         file = discord.File(await self.generate_board_image(), filename)
 
-        embed = discord.Embed()
+        outcome = self.board.outcome()
+        winner = None
         if outcome is None:
             if self.surrendered:
                 winner_index = 1 if self.players.index(self.surrendered) == 0 else 0
