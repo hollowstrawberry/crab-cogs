@@ -163,16 +163,17 @@ class EasyChess(BaseChessCog):
 
     @app_chess.command(name="new")
     @app_commands.describe(opponent="Invite someone to play, or play against the bot by default",
-                           difficulty="How smart the bot will play, Hard by default.")
-    @app_commands.choices(difficulty=[app_commands.Choice(name="Beginner", value="2"),
-                                      app_commands.Choice(name="Easy", value="3"),
-                                      app_commands.Choice(name="Medium", value="4"),
-                                      app_commands.Choice(name="Hard", value="5"),
-                                      app_commands.Choice(name="As hard as it gets", value="0")])
+                           difficulty="Higher number means harder difficulty, 3 by default.")
+    @app_commands.choices(difficulty=[app_commands.Choice(name="1", value="1"),
+                                      app_commands.Choice(name="2", value="2"),
+                                      app_commands.Choice(name="3", value="3"),
+                                      app_commands.Choice(name="4", value="4"),
+                                      app_commands.Choice(name="5", value="5"),
+                                      app_commands.Choice(name="6", value="0")])
     async def chess_new_app(self,
                             interaction: discord.Interaction,
                             opponent: Optional[discord.Member] = None,
-                            difficulty: str = "5"):
+                            difficulty: str = "3"):
         """Play a game of Chess against a friend or the bot."""
         ctx = await commands.Context.from_interaction(interaction)
         command = self.bot.get_command("chess")

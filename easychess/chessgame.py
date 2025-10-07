@@ -88,8 +88,7 @@ class ChessGame(BaseChessGame):
     
     async def move_engine(self):
         assert self.cog.engine
-        bad_limit = chess.engine.Limit(time=1.0, depth=2)
-        result = await self.cog.engine.play(self.board, limit=self.limit if self.member(self.board.turn) == self.channel.guild.me else bad_limit)
+        result = await self.cog.engine.play(self.board, limit=self.limit)
         if result.move:
             await self.do_move(result.move)
         else:
