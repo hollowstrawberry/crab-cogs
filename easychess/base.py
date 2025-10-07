@@ -30,7 +30,7 @@ class BaseChessGame(ABC):
         self.message: Optional[discord.Message] = None
         self.view: Optional[discord.ui.View] = None
         self.board = chess.Board(initial_state or chess.STARTING_FEN)
-        self.limit = chess.engine.Limit(time=1.0, depth=depth)
+        self.limit = chess.engine.Limit(time=1.0) if all(p.bot for p in players) else chess.engine.Limit(depth=depth)
 
     def member(self, color: chess.Color):
         return self.players[1] if color == chess.BLACK else self.players[0]
