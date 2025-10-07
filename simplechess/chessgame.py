@@ -1,13 +1,11 @@
 import asyncio
 import logging
 import discord
+import chess
+import chess.svg
 from io import BytesIO
 from typing import List, Optional, Tuple
 from datetime import datetime
-
-import chess
-import chess.engine
-import chess.svg
 
 from simplechess.base import BaseChessCog, BaseChessGame
 from simplechess.utils import svg_to_png
@@ -45,6 +43,9 @@ class ChessGame(BaseChessGame):
         if not self.board.move_stack or not self.last_board.is_capture(self.board.peek()):
             return None
         return self.last_board.piece_at(self.board.peek().to_square)
+    
+    def is_premature_surrender(self):
+        return self.surrendered and self.board.fullmove_number <= 3
     
     async def cancel(self, member: Optional[discord.Member]):
         if member in self.players:
@@ -122,7 +123,7 @@ class ChessGame(BaseChessGame):
         last_capture = self.last_capture()
         winner = None
         if outcome is None:
-            if self.surrendered:
+            if self.surrendered and not self.is_premature_surrender():
                 winner = self.players[1] if self.players.index(self.surrendered) == 0 else self.players[0]
                 embed.title = f"{winner.display_name} is the winner via surrender!"
                 embed.set_thumbnail(url=winner.display_avatar.url)
@@ -141,7 +142,7 @@ class ChessGame(BaseChessGame):
         else:
             embed.title = "The game ended in a tie!"
 
-        if outcome and outcome.winner is None or self.is_cancelled() and (winner is None or self.board.fullmove_number <= 3):
+        if outcome and outcome.winner is None or self.is_cancelled() and (winner is None or self.is_premature_surrender()):
             embed.color = COLOR_TIE
         elif winner:
             embed.color = COLOR_WHITE if self.players.index(winner) == 0 else COLOR_BLACK
@@ -149,13 +150,13 @@ class ChessGame(BaseChessGame):
             embed.color = COLOR_WHITE if self.board.turn == chess.WHITE else COLOR_BLACK
         
         embed.description = ""
-        if winner == self.players[1] or self.surrendered == self.players[0]:
+        if winner == self.players[1] or self.surrendered == self.players[0] and not self.is_premature_surrender():
             embed.description += "👑 "
         embed.description += f"`⬛` {self.players[1].mention}"
         if last_capture and last_capture.color == chess.WHITE and not outcome and not self.is_cancelled():
             embed.description += f" captured **{last_capture.unicode_symbol(invert_color=True)}**"
 
-        if winner == self.players[0] or self.surrendered == self.players[1]:
+        if winner == self.players[0] or self.surrendered == self.players[1] and not self.is_premature_surrender():
             embed.description += "👑 "
         embed.description += f"\n`⬜` {self.players[0].mention}"
         if last_capture and last_capture.color == chess.BLACK and not outcome and not self.is_cancelled():
