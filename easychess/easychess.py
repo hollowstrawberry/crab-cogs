@@ -2,7 +2,7 @@ import logging
 import discord
 from typing import Dict, Optional, Union
 from datetime import datetime
-from redbot.core import commands, Config
+from redbot.core import commands, app_commands, Config
 from redbot.core.bot import Red
 
 from easychess.base import BaseChessCog
@@ -25,7 +25,7 @@ class EasyChess(BaseChessCog):
         self.config.register_guild()
 
 
-    @commands.hybrid_command(name="chess")
+    @commands.command(name="chess")
     async def chess_new(self, ctx: Union[commands.Context, discord.Interaction], opponent: Optional[discord.Member] = None):
         """Play a game of Chess against a friend or the bot."""
         author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
@@ -74,5 +74,39 @@ class EasyChess(BaseChessCog):
             await ctx.response.send_message("Starting game...", ephemeral=True)
         elif ctx.interaction:
             await ctx.interaction.response.send_message("Starting game...", ephemeral=True)
-            
+
         await game.update_message()
+
+
+    @commands.command(name="chessbots")
+    async def chess_bots(self, ctx: commands.Context, opponent: discord.Member):
+        """Make bots play Chess against each other"""
+        assert ctx.guild and isinstance(ctx.channel, discord.TextChannel)
+        if not opponent.bot or opponent == ctx.guild.me:
+            return await ctx.send("Opponent must be a bot different from myself.")
+        
+        if ctx.channel.id in self.games and not self.games[ctx.channel.id].is_finished():
+            old_game = self.games[ctx.channel.id]
+            old_message = await ctx.channel.fetch_message(old_game.message.id) if old_game.message else None # re-fetch
+            if old_message:
+                return await ctx.send("There's an ongoing chess game in this channel, we can't interrupt it.")
+            
+        game = ChessGame(self, [ctx.guild.me, opponent], ctx.channel)
+        game.accept()
+        self.games[ctx.channel.id] = game
+
+        await game.update_message()
+
+
+    @app_commands.command(name="chess new")
+    async def chess_new_app(self, interaction: discord.Interaction, opponent: Optional[discord.Member] = None):
+        """Play a game of Chess against a friend or the bot."""
+        ctx = await commands.Context.from_interaction(interaction)
+        await self.chess_new(ctx, opponent)
+
+
+    @app_commands.command(name="chess bots")
+    async def chess_bots_app(self, interaction: discord.Interaction, opponent: Optional[discord.Member] = None):
+        """Make this bot play Chess against another bot."""
+        ctx = await commands.Context.from_interaction(interaction)
+        await self.chess_bots(ctx, opponent)

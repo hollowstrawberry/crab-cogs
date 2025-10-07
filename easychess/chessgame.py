@@ -10,6 +10,7 @@ from redbot.core.data_manager import bundled_data_path
 
 from easychess.base import BaseChessCog, BaseChessGame
 from easychess.utils import svg_to_png
+from easychess.views.bots_view import BotsView
 from easychess.views.invite_view import InviteView
 from easychess.views.game_view import GameView
 from easychess.views.rematch_view import RematchView
@@ -82,9 +83,14 @@ class ChessGame(BaseChessGame):
     async def update_message(self):
         content = f"{self.players[0].mention} you're being invited to play chess." if not self.accepted else ""
         embed = discord.Embed()
-        view = InviteView(self) if not self.accepted \
-            else GameView(self) if not self.is_finished() \
-            else RematchView(self)
+        
+        if all(m.bot for m in self.players):
+            view = BotsView(self) if not self.is_finished() \
+                else discord.ui.View(timeout=0)
+        else:
+            view = InviteView(self) if not self.accepted \
+                else RematchView(self) if self.is_finished() \
+                else GameView(self)
         filename = "board.png"
         file = discord.File(await self.generate_board_image(), filename)
 
