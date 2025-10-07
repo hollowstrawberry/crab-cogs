@@ -16,8 +16,6 @@ class GameMoveModal(discord.ui.Modal, title="Chess Move"):
         success, message = self.game.move_user(move)
         if not success:
             return await interaction.response.send_message(message, ephemeral=True)
-        else:
-            await interaction.response.send_message(f"Executed move {move}", ephemeral=True)
 
         await self.game.update_message(interaction)
 
@@ -40,7 +38,6 @@ class GameView(discord.ui.View):
         assert interaction.message
         if interaction.user not in self.game.players:
             return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
-        await interaction.response.pong()
         await self.game.update_message(interaction)
         
     @discord.ui.button(emoji="🏳️", label="Surrender", style=discord.ButtonStyle.danger)
@@ -50,5 +47,4 @@ class GameView(discord.ui.View):
             return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
         self.game.cancel(interaction.user)
         self.stop()
-        await interaction.response.pong()
         await self.game.update_message(interaction)
