@@ -14,6 +14,7 @@ from easychess.views.bots_view import BotsView
 from easychess.views.invite_view import InviteView
 from easychess.views.game_view import GameView
 from easychess.views.rematch_view import RematchView
+from easychess.views.thinking_view import ThinkingView
 
 
 COLOR_WHITE = 0xffffff
@@ -90,6 +91,7 @@ class ChessGame(BaseChessGame):
         else:
             view = InviteView(self) if not self.accepted \
                 else RematchView(self) if self.is_finished() \
+                else ThinkingView() if self.member(self.board.turn).bot and not all(member.bot for member in self.players) \
                 else GameView(self)
         filename = "board.png"
         file = discord.File(await self.generate_board_image(), filename)

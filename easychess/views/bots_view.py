@@ -2,6 +2,7 @@ import asyncio
 import discord
 
 from easychess.base import BaseChessGame
+from easychess.views.thinking_view import ThinkingView
 
 
 class BotsView(discord.ui.View):
@@ -12,8 +13,7 @@ class BotsView(discord.ui.View):
     @discord.ui.button(emoji="♟️", label="Next Move", style=discord.ButtonStyle.success)
     async def move(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.stop()
-        button.disabled = True
-        await interaction.response.edit_message(view=self)
+        await interaction.response.edit_message(view=ThinkingView())
         await self.game.move_engine()
         await self.game.update_message()
         

@@ -95,6 +95,8 @@ class EasyChess(BaseChessCog):
         game.accept()
         self.games[ctx.channel.id] = game
 
+        if ctx.interaction:
+            await ctx.interaction.response.send_message("Starting game...", ephemeral=True)
         await game.update_message()
 
 
@@ -105,7 +107,6 @@ class EasyChess(BaseChessCog):
         """Play a game of Chess against a friend or the bot."""
         ctx = await commands.Context.from_interaction(interaction)
         await self.chess_new(ctx, opponent)
-
 
     @app_chess.command(name="bots")
     async def chess_bots_app(self, interaction: discord.Interaction, opponent: Optional[discord.Member] = None):
