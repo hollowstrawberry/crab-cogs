@@ -1,3 +1,4 @@
+import asyncio
 import discord
 
 from easychess.base import BaseChessGame
@@ -22,6 +23,7 @@ class BotsView(discord.ui.View):
         self.stop()
         await interaction.response.edit_message(view=ThinkingView())
         await self.game.move_engine()
+        await asyncio.sleep(1) # slow down spam clicking
         await self.game.update_message(interaction)
 
     async def bump(self, interaction: discord.Interaction):
