@@ -78,13 +78,13 @@ def board_to_svg(board: draughts.Board) -> str:
                 fill = red_fill
                 stroke = black_fill
             svg_parts.append(
-                f'<circle cx="{cx}" cy="{cy}" r="{radius}" fill="{fill}" stroke="{stroke}" stroke-width="4" />'
+                f'<circle cx="{cx}" cy="{cy}" r="{radius}" fill="{fill}" stroke="{stroke}" stroke-width="3" />'
             )
             # kings (upper-case): draw crown/star on top of the piece (but under the numbers)
             if token.isupper():
-                inner_r = radius * 0.9
+                inner_r = radius * 0.8
                 svg_parts.append(
-                    f'<circle cx="{cx}" cy="{cy}" r="{radius}" fill="{fill}" stroke="{stroke}" stroke-width="2" />'
+                    f'<circle cx="{cx}" cy="{cy}" r="{inner_r}" fill="{fill}" stroke="{stroke}" stroke-width="3" />'
                 )
     svg_parts.append('</g>')
     svg_parts.append('</svg>')

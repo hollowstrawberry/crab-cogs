@@ -26,6 +26,7 @@ class CheckersGame(BaseCheckersGame):
         self.accepted = initial_state is not None
         self.cancelled = False
         self.surrendered: Optional[discord.Member] = None
+        self.last_move: Optional[draughts.Move] = None
         self.time = 0
     
     def accept(self):
@@ -62,6 +63,7 @@ class CheckersGame(BaseCheckersGame):
             self.board.push(move)
         except (ValueError, KeyError, IndexError):
             return False, f"That move is invalid, valid moves are: " + ", ".join(f"`{' '.join(str(n) for n in m.steps_move)}`" for m in self.board.legal_moves())
+        self.last_move = move
         self.time += 1
         self.last_interacted = datetime.now()
         await self.update_state()
@@ -115,10 +117,14 @@ class CheckersGame(BaseCheckersGame):
         if winner == draughts.BLACK or self.surrendered == self.players[1] and not self.is_premature_surrender():
             embed.description += "👑 "
         embed.description += f"`⬛` {self.players[0].mention}"
+        if self.board.turn == draughts.WHITE and self.last_move and not self.is_finished():
+            embed.description += " " + "→".join(str(n) for n in self.last_move.steps_move)
 
         if winner == draughts.WHITE or self.surrendered == self.players[0] and not self.is_premature_surrender():
             embed.description += "👑 "
         embed.description += f"\n`🟥` {self.players[1].mention}"
+        if self.board.turn == draughts.BLACK and self.last_move and not self.is_finished():
+            embed.description += " " + "→".join(str(n) for n in self.last_move.steps_move)
 
         embed.set_image(url=f"attachment://{filename}")
         embed.set_footer(text=f"Turn {self.time // 2 + 1}")
