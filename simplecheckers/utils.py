@@ -1,16 +1,14 @@
 import draughts
-from typing import List, Tuple, Union
+from typing import List, Tuple
 from wand.image import Image
 from wand.color import Color
 
 
-from typing import List, Tuple
-import draughts  # keep your existing import
-
 def board_to_svg(board: 'draughts.Board', arrows: List[int]) -> str:
     """
     Convert board to SVG and draw a connected arrow path for a list of playable-square indices.
-    arrows: list of 1-based indices into the playable squares (top->bottom, left->right).
+    arrows: list of 1-based indices into the playable squares (top->bottom, left->right),
+    indices interpreted rotated 180° (1 -> last playable square).
     """
     board_str = board if isinstance(board, str) else str(board)
     lines = [ln for ln in board_str.splitlines() if '|' in ln]
@@ -41,12 +39,13 @@ def board_to_svg(board: 'draughts.Board', arrows: List[int]) -> str:
                 playable.append((r, c))
 
     def index_to_rc(idx: int) -> Tuple[int, int]:
-        # 1-based idx -> playable list
+        # 1-based idx -> playable list, rotated 180° (reverse the playable list)
         if not isinstance(idx, int):
             raise ValueError("Arrow indices must be integers.")
-        if idx < 1 or idx > len(playable):
-            raise ValueError(f"arrow index {idx} out of range (1..{len(playable)})")
-        return playable[idx - 1]
+        n = len(playable)
+        if idx < 1 or idx > n:
+            raise ValueError(f"arrow index {idx} out of range (1..{n})")
+        return playable[-idx]
 
     # Convert indices to SVG centers (rotate to match piece drawing)
     centers: List[Tuple[float, float]] = []
@@ -63,16 +62,6 @@ def board_to_svg(board: 'draughts.Board', arrows: List[int]) -> str:
         f'<svg viewBox="0 0 {svg_width} {svg_height}" xmlns="http://www.w3.org/2000/svg">'
     ]
 
-    # Arrowhead marker
-    svg_parts.append('''
-    <defs>
-      <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5"
-              orient="auto" markerUnits="strokeWidth">
-        <path d="M0,0 L10,3.5 L0,7 z" fill="currentColor" />
-      </marker>
-    </defs>
-    ''')
-
     # Draw board squares
     svg_parts.append('<g id="squares">')
     light_sq = "#E8D0AA"
@@ -87,23 +76,27 @@ def board_to_svg(board: 'draughts.Board', arrows: List[int]) -> str:
             )
     svg_parts.append('</g>')
 
-    # Draw arrows (if any) behind pieces
+    # Draw arrows
     if centers:
-        svg_parts.append(
-            '<g id="arrows" fill="none" stroke="yellow" stroke-width="1" '
-            'style="opacity:0.95; color: #FFD54F;">'
-        )
-        points_str = " ".join(f"{x:.2f},{y:.2f}" for x, y in centers)
-        stroke_w = max(4, square_size * 0.15)
-        svg_parts.append(
-            f'<polyline points="{points_str}" stroke="currentColor" stroke-width="{stroke_w:.2f}" '
-            f'fill="none" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead)"/>'
-        )
-        node_r = max(3.0, square_size * 0.06)
-        for (x, y) in centers:
+        arrow_color = "#17841E"
+        stroke_w = max(4.0, square_size * 0.16)
+        svg_parts.append(f'<g id="arrows" fill="none" style="opacity:0.95;">')
+
+        poly_points = list(centers) if len(centers) > 1 else []
+
+        # Draw the polyline if there are >1 centers (i.e. at least one segment)
+        if poly_points:
+            points_str = " ".join(f"{x:.2f},{y:.2f}" for x, y in poly_points)
             svg_parts.append(
-                f'<circle cx="{x:.2f}" cy="{y:.2f}" r="{node_r:.2f}" fill="currentColor" stroke="black" stroke-width="1"/>'
+                f'<polyline points="{points_str}" stroke="{arrow_color}" stroke-width="{stroke_w:.2f}" '
+                f'fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
             )
+
+        # node circles: fill same color
+        node_r = max(3.0, square_size * 0.08)
+        for x, y in centers[:-1]:
+            svg_parts.append(f'<circle cx="{x:.2f}" cy="{y:.2f}" r="{node_r:.2f}" fill="{arrow_color}" />')
+
         svg_parts.append('</g>')
 
     # Draw pieces
@@ -134,6 +127,7 @@ def board_to_svg(board: 'draughts.Board', arrows: List[int]) -> str:
                 svg_parts.append(
                     f'<circle cx="{cx}" cy="{cy}" r="{inner_r}" fill="{fill}" stroke="{stroke}" stroke-width="3" />'
                 )
+
     svg_parts.append('</g>')
     svg_parts.append('</svg>')
 
