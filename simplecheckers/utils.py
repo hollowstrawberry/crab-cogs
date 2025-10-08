@@ -1,31 +1,16 @@
-import logging
 import math
 import draughts
 from wand.image import Image
 from wand.color import Color
 
-log = logging.getLogger("red.crab-cogs.simplecheckers")
-
 
 def create_svg(board: draughts.Board) -> str:
-    """
-    Create an SVG of a draughts/checkers board.
-    `board` may be either a string (the string-repr you pasted) or an object whose str() produces that layout.
-    """
-    # Config
-    square_size = 40
-    margin = 16
-
-    # Get string representation
-    if not isinstance(board, str):
-        board_str = str(board)
-    else:
-        board_str = board
-
-    # Keep only lines that contain '|' (drops separators like "-----")
+    board_str = board if isinstance(board, str) else str(board)
     lines = [ln for ln in board_str.splitlines() if '|' in ln]
+    square_size = 512 // len(lines)
+    margin = 0
 
-    # Split on '|' and strip cells; normalize each row to the same width
+    # Parse rows and normalize widths
     rows = [[cell.strip() for cell in ln.split('|')] for ln in lines]
     max_width = max(len(r) for r in rows)
     for r in rows:
@@ -38,63 +23,43 @@ def create_svg(board: draughts.Board) -> str:
     svg_width = width * square_size + 2 * margin
     svg_height = height * square_size + 2 * margin
 
-    # Start svg; use a light background so pieces show up (change to transparent if you want)
+    # Pre-calc where playable (dark) squares are: we'll treat (r+c)%2 == 1 as playable
+    is_playable = lambda r, c: (r + c) % 2 == 1
+
+    # Start svg (no outer background rect; transparent by default)
     svg_parts = [
-        f'<svg viewBox="0 0 {svg_width} {svg_height}" xmlns="http://www.w3.org/2000/svg">',
-        # outer background (change fill to "none" if you want transparent)
-        f'<rect x="0" y="0" width="{svg_width}" height="{svg_height}" fill="#f6f3ee" />',
-        # defs for gradients (added here once)
-        '<defs>'
+        f'<svg viewBox="0 0 {svg_width} {svg_height}" xmlns="http://www.w3.org/2000/svg">'
     ]
 
-    # Pre-create crown gradients for possible king markers (one per cell)
-    for r in range(height):
-        for c in range(width):
-            gid = f'crown_gradient_{r}_{c}'
-            svg_parts.append(
-                f'<linearGradient id="{gid}" x1="0%" y1="0%" x2="100%" y2="100%">'
-                f'<stop offset="0%" stop-color="#FFD700" />'
-                f'<stop offset="50%" stop-color="#FFA500" />'
-                f'<stop offset="100%" stop-color="#FFD700" />'
-                f'</linearGradient>'
-            )
+    # Single crown gradient (reused for all kings)
+    svg_parts.append('<defs>')
+    svg_parts.append(
+        '<linearGradient id="crown_gradient" x1="0%" y1="0%" x2="100%" y2="100%">'
+        '<stop offset="0%" stop-color="#FFD700" />'
+        '<stop offset="50%" stop-color="#FFA500" />'
+        '<stop offset="100%" stop-color="#FFD700" />'
+        '</linearGradient>'
+    )
     svg_parts.append('</defs>')
 
-    # Coordinates (letters along bottom, numbers along left). Put them outside the board area.
-    # Letters
-    for i in range(width):
-        x = margin + i * square_size + square_size / 2
-        # place letters slightly below the board
-        y = svg_height - (margin * 0.25)
-        svg_parts.append(
-            f'<text x="{x}" y="{y}" text-anchor="middle" font-size="{margin * 0.8}" '
-            f'fill="#333" dominant-baseline="hanging">{chr(97 + i)}</text>'
-        )
-    # Numbers on left
-    for i in range(height):
-        y = margin + i * square_size + square_size / 2
-        x = margin * 0.6
-        svg_parts.append(
-            f'<text x="{x}" y="{y}" text-anchor="middle" font-size="{margin * 0.8}" '
-            f'fill="#333" dominant-baseline="middle">{height - i}</text>'
-        )
-
-    # Draw board squares in a group
+    # Draw board squares
     svg_parts.append('<g id="squares">')
+    light_sq = "#E8D0AA"
+    dark_sq = "#B87C4C"  # same palette as before (playable squares)
     for r in range(height):
         for c in range(width):
             x = margin + c * square_size
             y = margin + r * square_size
-            # choose two pleasant square colors (light/dark)
-            color = "#E8D0AA" if (r + c) % 2 == 0 else "#B87C4C"
-            svg_parts.append(f'<rect x="{x}" y="{y}" width="{square_size}" height="{square_size}" fill="{color}" />')
+            color = light_sq if not is_playable(r, c) else dark_sq
+            svg_parts.append(
+                f'<rect x="{x}" y="{y}" width="{square_size}" height="{square_size}" fill="{color}" />'
+            )
     svg_parts.append('</g>')
 
-    # Draw pieces on top
+    # Draw pieces (black + red). red replaces 'white' pieces as requested.
     svg_parts.append('<g id="pieces">')
-    # Softened black so it reads on backgrounds (use #000 if you really want pure black)
-    black_fill = "#111111"
-    white_fill = "#ffffff"
+    black_fill = "#111111"   # softened black for visibility
+    red_fill = "#DD2E44"     # user-specified red for "white" pieces
     for r, row in enumerate(rows):
         for c, cell in enumerate(row):
             token = cell.strip()
@@ -105,17 +70,16 @@ def create_svg(board: draughts.Board) -> str:
             radius = square_size * 0.4
             if token.lower() == 'b':
                 fill = black_fill
-                stroke = "#fff"
+                stroke = red_fill
             else:
-                fill = white_fill
-                stroke = "#000"
+                # treat anything else (w/W) as the red piece
+                fill = red_fill
+                stroke = black_fill
             svg_parts.append(
-                f'<circle cx="{cx}" cy="{cy}" r="{radius}" fill="{fill}" stroke="{stroke}" stroke-width="2" />'
+                f'<circle cx="{cx}" cy="{cy}" r="{radius}" fill="{fill}" stroke="{stroke}" stroke-width="4" />'
             )
-            # kings: upper-case token => draw small star/crown using the per-cell gradient id
+            # kings (upper-case): draw crown/star on top of the piece (but under the numbers)
             if token.isupper():
-                gid = f'crown_gradient_{r}_{c}'
-                # small star path centered at cx,cy
                 outer_r = radius * 0.5
                 inner_r = outer_r * 0.382
                 points = []
@@ -126,12 +90,41 @@ def create_svg(board: draughts.Board) -> str:
                     py = cy + rad * math.sin(ang)
                     points.append(f'{px:.2f},{py:.2f}')
                 svg_parts.append(
-                    f'<path d="M {" L ".join(points)} Z" fill="url(#{gid})" stroke="#DAA520" stroke-width="1.5" />'
+                    f'<path d="M {" L ".join(points)} Z" fill="url(#crown_gradient)" stroke="#DAA520" stroke-width="1.5" />'
                 )
-
     svg_parts.append('</g>')
-    svg_parts.append('</svg>')
 
+    # Number playable squares (1..N), always on top and color changes if there's a piece under it.
+    svg_parts.append('<g id="numbers" font-family="sans-serif">')
+    font_size = square_size * 0.30
+    number = 1
+    for r in range(height):
+        for c in range(width):
+            if not is_playable(r, c):
+                continue
+            cx = margin + c * square_size + square_size / 2
+            cy = margin + r * square_size + square_size / 2
+
+            # detect if a piece occupies this cell
+            token = rows[r][c].strip()
+            occupied = bool(token)
+            # choose number color depending on piece below:
+            # - if empty: white
+            # - if black piece: white (contrasts black)
+            # - if red piece: black (contrasts red)
+            if not occupied:
+                num_color = "#ffffff"
+            else:
+                num_color = "#ffffff" if token.lower() == 'b' else "#000000"
+
+            svg_parts.append(
+                f'<text x="{cx}" y="{cy}" text-anchor="middle" dominant-baseline="central" '
+                f'font-size="{font_size}" font-weight="bold" fill="{num_color}">{number}</text>'
+            )
+            number += 1
+    svg_parts.append('</g>')
+
+    svg_parts.append('</svg>')
     return "\n".join(svg_parts)
 
 

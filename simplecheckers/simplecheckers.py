@@ -14,6 +14,7 @@ from simplecheckers.views.replace_view import ReplaceView
 log = logging.getLogger("red.crab-cogs.simplecheckers")
 
 TIME_LIMIT = 5 # minutes
+VARIANT = "english"
 
 
 class SimpleCheckers(BaseCheckersCog):
@@ -80,7 +81,7 @@ class SimpleCheckers(BaseCheckersCog):
                     assert opponent and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
                     await old_game.cancel(author)
                     await old_game.update_message()
-                    game = CheckersGame(self, players, ctx.channel, "standard")
+                    game = CheckersGame(self, players, ctx.channel, VARIANT)
                     self.games[ctx.channel.id] = game
                     await game.update_message()
 
@@ -99,7 +100,7 @@ class SimpleCheckers(BaseCheckersCog):
                 return
         
         # New game
-        game = CheckersGame(self, players, ctx.channel, "standard")
+        game = CheckersGame(self, players, ctx.channel, VARIANT)
         if opponent.bot:
             game.accept()
         self.games[ctx.channel.id] = game
