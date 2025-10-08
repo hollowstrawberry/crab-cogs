@@ -29,8 +29,8 @@ class CheckersGame(BaseCheckersGame):
         self.accepted = initial_state is not None
         self.cancelled = False
         self.surrendered: Optional[discord.Member] = None
-        self.last_move: Optional[draughts.Move] = None
         self.time = 0
+        self.last_move: List[int] = []
     
     def accept(self):
         self.accepted = True
@@ -61,12 +61,13 @@ class CheckersGame(BaseCheckersGame):
             await self.cog.config.channel(self.channel).players.set([player.id for player in self.players])
 
     async def move_user(self, move_str: str) -> Tuple[bool, str]:
+        move_lst = [int(m) for m in move_str.split()]
         try:
-            move = draughts.Move(self.board, steps_move=[int(m) for m in move_str.split()])
+            move = draughts.Move(self.board, steps_move=move_lst)
             self.board.push(move)
         except (ValueError, KeyError, IndexError):
             return False, f"That move is invalid, valid moves are: " + ", ".join(f"`{' '.join(str(n) for n in m.steps_move)}`" for m in self.board.legal_moves())
-        self.last_move = move
+        self.last_move = move_lst
         self.time += 1
         self.last_interacted = datetime.now()
         await self.update_state()
@@ -85,7 +86,7 @@ class CheckersGame(BaseCheckersGame):
             
     async def generate_board_image(self) -> BytesIO:
         overlay_path = str(bundled_data_path(self.cog) / "overlay.png")
-        b = await asyncio.to_thread(board_to_png, self.board, overlay_path)
+        b = await asyncio.to_thread(board_to_png, self.board, overlay_path, self.last_move)
         return BytesIO(b)
 
     async def update_message(self, interaction: Optional[discord.Interaction] = None):
@@ -136,14 +137,10 @@ class CheckersGame(BaseCheckersGame):
         if winner == draughts.BLACK or self.surrendered == self.players[1] and not self.is_premature_surrender():
             embed.description += "👑 "
         embed.description += f"`⚫` {self.players[0].mention}"
-        if self.board.turn == draughts.WHITE and self.last_move and not self.is_finished():
-            embed.description += " " + "→".join(str(n) for n in self.last_move.steps_move)
 
         if winner == draughts.WHITE or self.surrendered == self.players[0] and not self.is_premature_surrender():
             embed.description += "👑 "
         embed.description += f"\n`🔴` {self.players[1].mention}"
-        if self.board.turn == draughts.BLACK and self.last_move and not self.is_finished():
-            embed.description += " " + "→".join(str(n) for n in self.last_move.steps_move)
 
         embed.set_image(url=f"attachment://{filename}")
         embed.set_footer(text=f"Turn {self.time // 2 + 1}")
