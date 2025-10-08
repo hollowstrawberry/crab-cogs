@@ -156,7 +156,7 @@ class MinimaxAgent:
         best_score = -INF
         move_scores: List[Tuple[Any, int]] = []
         reached_depth = 0
-        
+
         for depth in range(1, max_depth + 1):
             reached_depth = depth
             self.nodes = 0
@@ -184,7 +184,7 @@ class MinimaxAgent:
                     if allow_overrun and not overrunning:
                         overrunning = True
                         per_depth_deadline = None
-                        log.info(f"Allowing overrun to finish current depth {depth}")
+                        log.debug(f"Allowing overrun to finish current depth {depth}")
                     else:
                         timed_out = True
                         break
@@ -226,7 +226,7 @@ class MinimaxAgent:
                 log.debug(f"Timed out or no results at depth {depth}")
                 break
 
-        log.info(f"{reached_depth}, {self.nodes=}, {best_score=}, elapsed={int(elapsed*1000)}ms")
+        log.info(f"{reached_depth}, {self.nodes=}, {best_score=}, elapsed={int(time.time() - start_time * 1000)}ms")
 
         if not move_scores:
             return None

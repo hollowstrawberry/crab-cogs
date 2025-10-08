@@ -36,8 +36,10 @@ class MinimaxAgentOld:
             return None
 
         move_scores = []  # to collect (move, score) for the deepest completed depth
+        reached_depth = 0
 
         for depth in range(1, max_depth + 1):
+            reached_depth = depth
             self.nodes = 0
             depth_results = []
             depth_best_score = -INF
@@ -124,10 +126,10 @@ class MinimaxAgentOld:
             else:
                 break
 
-            log.info(f"[OLD] Depth {depth} completed. {self.nodes=}, {best_score=}, elapsed={int((time.time() - start_time) * 1000)}ms")
-
         if not move_scores:
             return None
+        
+        log.info(f"{reached_depth}, {self.nodes=}, {best_score=}, elapsed={int(time.time() - start_time * 1000)}ms")
 
         MARGIN = 20  # tweak for more/less randomness
         candidates = [m for m, score in move_scores if score >= best_score - MARGIN]
