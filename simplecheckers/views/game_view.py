@@ -56,7 +56,7 @@ class GameView(discord.ui.View):
         embed.description += "\n4. When a piece reaches the far side, it becomes a “king” and can move backwards and forwards."
         embed.description += "\n5. You win after capturing all your opponent's pieces or blocking all of them from moving."
         embed.add_field(name="Move notation", value="A move is separated by spaces, starting with the piece you want to move and listing every jump along its path." +
-                        "\nExamples: `12 16` (single move forward), `22 13 6` (capture two pieces)", inline=True)
+                        "\n__Examples:__ `12 16` (single move forward), `22 13 6` (capture two pieces)", inline=True)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     async def bump(self, interaction: discord.Interaction):
