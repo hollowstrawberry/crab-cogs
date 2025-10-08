@@ -63,7 +63,7 @@ class CheckersGame(BaseCheckersGame):
 
     async def move_user(self, move_str: str) -> Tuple[bool, str]:
         try:
-            steps = [int(s) for s in move_str.split("x")]
+            steps = [int(s) for s in move_str.split("-" if "-" in move_str else "x")]
             if any(s < 1 or s > 32 for s in steps):
                 raise ValueError
         except ValueError:
