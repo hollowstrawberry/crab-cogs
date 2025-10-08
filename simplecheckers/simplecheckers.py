@@ -113,7 +113,7 @@ class SimpleCheckers(BaseCheckersCog):
         await game.update_message()
 
 
-    @commands.hybrid_command(name="checkers")
+    @commands.hybrid_command(name="checkers", aliases=["draughts"])
     @commands.guild_only()
     async def checkers_new_cmd(self, ctx: commands.Context, opponent: discord.Member):
         """Play a game of Checkers against a friend."""
