@@ -33,7 +33,7 @@ class SimpleCheckers(BaseCheckersCog):
                 players: List[discord.Member] = [channel.guild.get_member(user_id) for user_id in config["players"]] # type: ignore
                 if any(player is None for player in players):
                     continue
-                game = CheckersGame(self, players, channel, config["game"])
+                game = CheckersGame(self, players, channel, config["game"], config["variant"])
                 self.games[channel.id] = game
                 view = GameView(game)
                 self.bot.add_view(view)
