@@ -50,7 +50,7 @@ class MinimaxAgent:
                 time_remaining_at_depth_start = max(0.0, time_limit - elapsed)
 
             # allow overrun for this depth if it started with > half the time_limit remaining
-            allow_overrun = time_limit is not None and time_remaining_at_depth_start is not None and time_remaining_at_depth_start > time_limit / 2.0
+            allow_overrun = time_limit is not None and time_remaining_at_depth_start is not None and time_remaining_at_depth_start > time_limit / 3.0
             per_depth_deadline = deadline  # will be set to None if we choose to allow overrun
             overrunning = False
 
@@ -72,7 +72,6 @@ class MinimaxAgent:
                         # disable the deadline for the rest of this depth so it can finish
                         overrunning = True
                         per_depth_deadline = None
-                        log.info(f"Time expired but allowing overrun to finish depth {depth} (started with {time_remaining_at_depth_start:.2f}s left).")
                     else:
                         timed_out = True
                         break
@@ -95,7 +94,6 @@ class MinimaxAgent:
                     if allow_overrun and not overrunning:
                         overrunning = True
                         per_depth_deadline = None
-                        log.info(f"Subtree timed out but enabling overrun to finish depth {depth}. Continuing.")
                         # Re-run this move with no deadline so we get a concrete score and allow the depth to finish.
                         board.push(m)
                         score = self._alphabeta(
@@ -124,7 +122,6 @@ class MinimaxAgent:
                 move_scores = depth_results
                 best_score = depth_best_score
             else:
-                log.info("Timed out before completing depth %s", depth)
                 break
 
             log.info(f"Depth {depth} completed. nodes={self.nodes}, best_score={best_score}, elapsed={int((time.time() - start_time) * 1000)}ms")
