@@ -5,10 +5,9 @@ import draughts
 from io import BytesIO
 from typing import List, Optional, Tuple
 from datetime import datetime
-from redbot.core.data_manager import bundled_data_path
 
 from simplecheckers.base import BaseCheckersCog, BaseCheckersGame
-from simplecheckers.utils import board_to_png
+from simplecheckers.utils import create_svg, svg_to_png
 from simplecheckers.views.invite_view import InviteView
 from simplecheckers.views.game_view import GameView
 from simplecheckers.views.rematch_view import RematchView
@@ -69,8 +68,8 @@ class CheckersGame(BaseCheckersGame):
         return True, ""
             
     async def generate_board_image(self) -> BytesIO:
-        font_path = str(bundled_data_path(self.cog) / "Roboto-Regular.ttf")
-        b = await asyncio.to_thread(board_to_png, self.board, font_path)
+        svg = create_svg(self.board)
+        b = await asyncio.to_thread(svg_to_png, svg)
         return BytesIO(b or b'')
 
     async def update_message(self, interaction: Optional[discord.Interaction] = None):
@@ -122,7 +121,7 @@ class CheckersGame(BaseCheckersGame):
         embed.description += f"\n`⬜` {self.players[0].mention}"
 
         embed.set_image(url=f"attachment://{filename}")
-        embed.set_footer(text=f"Turn {self.time // 2 + 1}")
+        embed.set_footer(text=f"Turn {int(self.time // 2)}")
 
         if interaction:
             await interaction.edit_original_response(content=content, embed=embed, attachments=[file], view=view)
