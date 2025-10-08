@@ -10,6 +10,7 @@ from redbot.core.data_manager import bundled_data_path
 from simplecheckers.agent import MinimaxAgent
 from simplecheckers.base import BaseCheckersCog, BaseCheckersGame
 from simplecheckers.utils import board_to_png
+from simplecheckers.views.bots_view import BotsView
 from simplecheckers.views.invite_view import InviteView
 from simplecheckers.views.game_view import GameView
 from simplecheckers.views.rematch_view import RematchView
@@ -91,10 +92,14 @@ class CheckersGame(BaseCheckersGame):
         content = f"{self.players[0].mention} you're being invited to play checkers." if not self.accepted else ""
         embed = discord.Embed()
         
-        view = InviteView(self) if not self.accepted \
-            else RematchView(self) if self.is_finished() \
-            else ThinkingView() if self.member(self.board.turn).bot and not all(m.bot for m in self.players) \
-            else GameView(self)
+        if all(m.bot for m in self.players):
+            view = BotsView(self) if not self.is_finished() \
+                else discord.ui.View(timeout=0)
+        else:
+            view = InviteView(self) if not self.accepted \
+                else RematchView(self) if self.is_finished() \
+                else ThinkingView() if self.member(self.board.turn).bot \
+                else GameView(self)
 
         filename = "board.png"
         file = discord.File(await self.generate_board_image(), filename)
