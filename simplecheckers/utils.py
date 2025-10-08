@@ -65,8 +65,10 @@ def board_to_svg(board: draughts.Board) -> str:
             token = cell.strip()
             if not token:
                 continue
-            cx = margin + c * square_size + square_size / 2
-            cy = margin + (height - 1 - r) * square_size + square_size / 2
+            rotated_r = height - 1 - r
+            rotated_c = width - 1 - c
+            cx = margin + rotated_c * square_size + square_size / 2
+            cy = margin + rotated_r * square_size + square_size / 2
             radius = square_size * 0.4
             if token.lower() == 'b':
                 fill = black_fill
