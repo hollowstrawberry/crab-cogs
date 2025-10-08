@@ -63,12 +63,12 @@ class CheckersGame(BaseCheckersGame):
 
     async def move_user(self, move_str: str) -> Tuple[bool, str]:
         try:
-            steps = [int(s) for s in move_str.split()]
+            steps = [int(s) for s in move_str.split("x")]
             if any(s < 1 or s > 32 for s in steps):
                 raise ValueError
         except ValueError:
             return False, "That move is invalid. Your move must be a sequence of numbers representing the cells 1 to 32."
-        move = draughts.Move(self.board, steps_move=steps)
+        move = draughts.Move(self.board, hub_move=move_str)
         if move not in self.board.legal_moves():
             return False, "That move is illegal in the current state of the board, try something else."
         await self.do_move(move)
