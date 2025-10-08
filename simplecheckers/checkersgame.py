@@ -71,7 +71,7 @@ class CheckersGame(BaseCheckersGame):
         await self.update_state()
         return True, ""
     
-    async def move_agent(self):
+    async def move_engine(self):
         agent = MinimaxAgent(self.board.turn)
         move = await asyncio.to_thread(agent.choose_move, self.board, 6, 1.0)
         if not move:

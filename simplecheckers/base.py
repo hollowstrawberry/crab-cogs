@@ -53,7 +53,7 @@ class BaseCheckersGame(ABC):
         pass
 
     @abstractmethod
-    async def move_agent(self):
+    async def move_engine(self):
         pass
 
     @abstractmethod

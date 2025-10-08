@@ -3,7 +3,7 @@ import discord
 from typing import List, Optional, Union
 from datetime import datetime
 
-from redbot.core import commands
+from redbot.core import commands, app_commands
 from redbot.core.bot import Red
 
 from simplecheckers.base import BaseCheckersCog
@@ -52,7 +52,6 @@ class SimpleCheckers(BaseCheckersCog):
 
 
     async def checkers_new(self, ctx: Union[commands.Context, discord.Interaction], opponent: Optional[discord.Member]):
-        """Play a game of Checkers against a friend or the bot."""
         author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
         assert ctx.guild and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
         
@@ -114,8 +113,69 @@ class SimpleCheckers(BaseCheckersCog):
         await game.update_message()
 
 
-    @commands.hybrid_command(name="checkers", aliases=["draughts"])
+    async def checkers_bots(self, ctx: commands.Context, opponent: discord.Member, depth: Optional[int] = None):
+        assert ctx.guild and isinstance(ctx.channel, discord.TextChannel)
+        if not opponent.bot or opponent == ctx.guild.me:
+            return await ctx.send("Opponent must be a bot different from myself.")
+        
+        if ctx.channel.id in self.games and not self.games[ctx.channel.id].is_finished():
+            old_game = self.games[ctx.channel.id]
+            try:
+                old_message = await ctx.channel.fetch_message(old_game.message.id) if old_game.message else None # re-fetch
+            except discord.NotFound:
+                old_message = None
+
+            if not old_message:
+                await old_game.update_message()
+                old_message = old_game.message
+                assert old_message
+            
+            return await ctx.send("There's an ongoing chess game in this channel, we can't interrupt it.")
+            
+        game = CheckersGame(self, [ctx.guild.me, opponent], ctx.channel, VARIANT)
+        game.accept()
+        self.games[ctx.channel.id] = game
+
+        if ctx.interaction:
+            await ctx.interaction.response.send_message("Starting game...", ephemeral=True)
+        await game.update_message()
+
+
+    @commands.command(name="checkers", aliases=["draughts"])
     @commands.guild_only()
-    async def checkers_new_cmd(self, ctx: commands.Context, opponent: discord.Member):
-        """Play a game of Checkers against a friend."""
+    async def chess_new_cmd(self, ctx: commands.Context, opponent: Optional[discord.Member] = None):
+        """Play a game of Checkers/Draughts against a friend or the bot."""
         await self.checkers_new(ctx, opponent)
+
+    @commands.command(name="checkersbots", aliases=["draughtsbots"])
+    @commands.guild_only()
+    async def chess_bots_cmd(self, ctx: commands.Context, opponent: discord.Member):
+        """Make bots play Checkers/Draughts against each other."""
+        await self.checkers_bots(ctx, opponent)
+
+
+    app_chess = app_commands.Group(name="checkers", description="Play Checkers/Draughts on Discord!")
+
+    @app_chess.command(name="new")
+    @app_commands.describe(opponent="Invite someone to play, or play against the bot by default.")
+    @app_commands.guild_only()
+    async def chess_new_app(self, interaction: discord.Interaction, opponent: Optional[discord.Member] = None):
+        """Play a game of Checkers against a friend or the bot."""
+        ctx = await commands.Context.from_interaction(interaction)
+        command = self.bot.get_command("checkers")
+        assert command
+        if not await command.can_run(ctx, check_all_parents=True, change_permission_state=False):
+            return await interaction.response.send_message("You're not allowed to do that here.", ephemeral=True)
+        await self.checkers_new(ctx, opponent)
+
+    @app_chess.command(name="bots")
+    @app_commands.describe(opponent="A different bot for this one to play against.")
+    @app_commands.guild_only()
+    async def chess_bots_app(self, interaction: discord.Interaction, opponent: discord.Member):
+        """Make this bot play Checkers against another bot."""
+        ctx = await commands.Context.from_interaction(interaction)
+        command = self.bot.get_command("checkersbots")
+        assert command
+        if not await command.can_run(ctx, check_all_parents=True, change_permission_state=False):
+            return await interaction.response.send_message("You're not allowed to do that here.", ephemeral=True)
+        await self.checkers_bots(ctx, opponent)

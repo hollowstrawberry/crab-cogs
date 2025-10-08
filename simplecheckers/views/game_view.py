@@ -1,4 +1,5 @@
 import discord
+import draughts
 
 from simplecheckers.base import BaseCheckersGame
 
@@ -23,7 +24,7 @@ class GameMoveModal(discord.ui.Modal, title="Checkers Move"):
         await self.game.update_message(self.parent_interaction)
 
         if self.game.member(self.game.board.turn).bot:
-            await self.game.move_agent()
+            await self.game.move_engine()
             await self.game.update_message(self.parent_interaction)
 
 
@@ -31,7 +32,8 @@ class GameView(discord.ui.View):
     def __init__(self, game: BaseCheckersGame):
         super().__init__(timeout=None)
         self.game = game
-        self.move_button = discord.ui.Button(custom_id=f"simplecheckers {game.channel.id} move", emoji="♟️", label="Enter Move", style=discord.ButtonStyle.success)
+        emoji = "🔴" if game.board.turn == draughts.WHITE else "⚫"
+        self.move_button = discord.ui.Button(custom_id=f"simplecheckers {game.channel.id} move", emoji=emoji, label="Enter Move", style=discord.ButtonStyle.success)
         self.help_button = discord.ui.Button(custom_id=f"simplecheckers {game.channel.id} help", emoji="❓", label="Instructions", style=discord.ButtonStyle.secondary)
         self.bump_button = discord.ui.Button(custom_id=f"simplecheckers {game.channel.id} bump", emoji="⬇️", label="Bump", style=discord.ButtonStyle.primary)
         self.end_button = discord.ui.Button(custom_id=f"simplecheckers {game.channel.id} end", emoji="🏳️", label="Surrender", style=discord.ButtonStyle.danger)
