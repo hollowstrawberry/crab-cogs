@@ -62,7 +62,7 @@ def board_to_svg(board: draughts.Board, font_path: str) -> str:
     # Draw board squares
     svg_parts.append('<g id="squares">')
     light_sq = "#E8D0AA"
-    dark_sq = "#B87C4C"  # same palette as before (playable squares)
+    dark_sq = "#B87C4C"
     for r in range(height):
         for c in range(width):
             x = margin + c * square_size
@@ -73,10 +73,10 @@ def board_to_svg(board: draughts.Board, font_path: str) -> str:
             )
     svg_parts.append('</g>')
 
-    # Draw pieces (black + red). red replaces 'white' pieces as requested.
+    # Draw pieces (black + red). red replaces white
     svg_parts.append('<g id="pieces">')
-    black_fill = "#111111"   # softened black for visibility
-    red_fill = "#DD2E44"     # user-specified red for "white" pieces
+    black_fill = "#111111"
+    red_fill = "#DD2E44"
     for r, row in enumerate(rows):
         for c, cell in enumerate(row):
             token = cell.strip()
@@ -93,12 +93,12 @@ def board_to_svg(board: draughts.Board, font_path: str) -> str:
                 fill = red_fill
                 stroke = black_fill
             svg_parts.append(
-                f'<circle cx="{cx}" cy="{cy}" r="{radius}" fill="{fill}" stroke="{stroke}" stroke-width="4" />'
+                f'<circle cx="{cx}" cy="{cy}" r="{radius}" fill="{fill}" stroke="{stroke}" stroke-width="3" />'
             )
             # kings (upper-case): draw crown/star on top of the piece (but under the numbers)
             if token.isupper():
-                outer_r = radius * 0.5
-                inner_r = outer_r * 0.382
+                outer_r = radius * 0.6
+                inner_r = outer_r * 0.45
                 points = []
                 for i_pt in range(10):
                     ang = (i_pt * math.pi / 5) - (math.pi / 2)
