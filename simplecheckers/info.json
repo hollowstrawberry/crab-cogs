@@ -1,0 +1,13 @@
+{
+    "author": ["hollowstrawberry"],
+    "min_bot_version": "3.5.21",
+    "min_python_version": [3,9,0],
+    "description": "Play Checkers against your friends. Requires ImageMagick installed on the host machine.",
+    "hidden": false,
+    "install_msg": "🔴 __**SimpleCheckers**__\nPlay Checkers against your friends.\nOnly one game may be active per channel, but it works in threads, and inactive games may be ended by any user.\n```Cog installed. Instructions:\n1. Load it with [p]load simplecheckers\n2. Make sure ImageMagick is installed on the bot's host machine: https://imagemagick.org/script/download.php\n3. Optionally, enable slash commands with [p]slash enablecog simplecheckers\n  3.1. Then do [p]slash sync\n  3.2. Then restart Discord.\n4. Start playing with [p]checkers or [p]draughts or /checkers```",
+    "required_cogs": {},
+    "requirements": ["pydraughts", "Wand"],
+    "short": "Play Checkers against your friends.",
+    "end_user_data_statement": "This cog does not store user data.",
+    "tags": ["crab", "game", "pvp", "checkers", "draughts", "tabletop"]
+}
