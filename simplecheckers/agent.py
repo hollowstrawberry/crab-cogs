@@ -162,8 +162,8 @@ class MinimaxAgent:
             depth_best_score = -INF
 
             elapsed = time.time() - start_time
-            time_remaining = time_limit - elapsed if time_limit else None
-            allow_overrun = time_limit is not None and time_remaining is not None and time_remaining > (time_limit * 2.0/3.0)
+            time_remaining = max(0, time_limit - elapsed) if time_limit else None
+            allow_overrun = time_limit is not None and time_remaining is not None and time_remaining > time_limit * 2.0/3.0
             per_depth_deadline = deadline
             overrunning = False
 
