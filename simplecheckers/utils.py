@@ -1,4 +1,3 @@
-import math
 import draughts
 from wand.image import Image
 from wand.color import Color
@@ -31,21 +30,10 @@ def board_to_svg(board: draughts.Board) -> str:
         f'<svg viewBox="0 0 {svg_width} {svg_height}" xmlns="http://www.w3.org/2000/svg">'
     ]
 
-    # Single crown gradient (reused for all kings)
-    svg_parts.append('<defs>')
-    svg_parts.append(
-        '<linearGradient id="crown_gradient" x1="0%" y1="0%" x2="100%" y2="100%">'
-        '<stop offset="0%" stop-color="#FFD700" />'
-        '<stop offset="50%" stop-color="#FFA500" />'
-        '<stop offset="100%" stop-color="#FFD700" />'
-        '</linearGradient>'
-    )
-    svg_parts.append('</defs>')
-
     # Draw board squares
     svg_parts.append('<g id="squares">')
     light_sq = "#E8D0AA"
-    dark_sq = "#B87C4C"  # same palette as before (playable squares)
+    dark_sq = "#B87C4C"
     for r in range(height):
         for c in range(width):
             x = margin + c * square_size
@@ -56,15 +44,16 @@ def board_to_svg(board: draughts.Board) -> str:
             )
     svg_parts.append('</g>')
 
-    # Draw pieces (black + red). red replaces 'white' pieces as requested.
+    # Draw pieces (black + red). red replaces white
     svg_parts.append('<g id="pieces">')
-    black_fill = "#111111"   # softened black for visibility
-    red_fill = "#DD2E44"     # user-specified red for "white" pieces
+    black_fill = "#111111"
+    red_fill = "#DD2E44"
     for r, row in enumerate(rows):
         for c, cell in enumerate(row):
             token = cell.strip()
             if not token:
                 continue
+            # sillyness to rotate the board
             rotated_r = height - 1 - r
             rotated_c = width - 1 - c
             cx = margin + rotated_c * square_size + square_size / 2
@@ -80,7 +69,7 @@ def board_to_svg(board: draughts.Board) -> str:
             svg_parts.append(
                 f'<circle cx="{cx}" cy="{cy}" r="{radius}" fill="{fill}" stroke="{stroke}" stroke-width="3" />'
             )
-            # kings (upper-case): draw crown/star on top of the piece (but under the numbers)
+            # kings (upper-case): draw another ring
             if token.isupper():
                 inner_r = radius * 0.78
                 svg_parts.append(
