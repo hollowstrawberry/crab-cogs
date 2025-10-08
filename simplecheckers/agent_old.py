@@ -129,7 +129,7 @@ class MinimaxAgentOld:
         if not move_scores:
             return None
         
-        log.info(f"{reached_depth}, {self.nodes=}, {best_score=}, elapsed={int(time.time() - start_time * 1000)}ms")
+        log.info(f"[OLD] {reached_depth}, {self.nodes=}, {best_score=}, elapsed={int((time.time() - start_time) * 1000)}ms")
 
         MARGIN = 20  # tweak for more/less randomness
         candidates = [m for m, score in move_scores if score >= best_score - MARGIN]

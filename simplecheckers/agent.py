@@ -226,7 +226,7 @@ class MinimaxAgent:
                 log.debug(f"Timed out or no results at depth {depth}")
                 break
 
-        log.info(f"{reached_depth}, {self.nodes=}, {best_score=}, elapsed={int(time.time() - start_time * 1000)}ms")
+        log.info(f"{reached_depth}, {self.nodes=}, {best_score=}, elapsed={int((time.time() - start_time) * 1000)}ms")
 
         if not move_scores:
             return None
