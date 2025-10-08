@@ -1,8 +1,8 @@
 import time
+import random
 import logging
-from typing import Optional, Tuple, Dict
-
 import draughts
+from typing import Optional, Tuple, Dict
 
 log = logging.getLogger("red.crab-cogs.simplecheckers.agent")
 
@@ -11,8 +11,7 @@ INF = 10**9
 
 class MinimaxAgent:
     """
-    Minimax agent with alpha-beta and iterative deepening that uses push/pop.
-    Construct with MinimaxAgent(my_color=draughts.BLACK or draughts.WHITE).
+    Minimax agent with alpha-beta and iterative deepening. Made with an LLM.
     """
 
     def __init__(self, my_color: int):
@@ -22,34 +21,40 @@ class MinimaxAgent:
         self.tt: Dict[str, Tuple[int, int]] = {}
         self.nodes = 0
 
+
     def choose_move(self, board: draughts.Board, max_depth: int, time_limit: Optional[float] = None):
-        """
-        Iterative deepening root search.
-        - board: draughts.Board
-        - max_depth: maximum search depth to attempt
-        - time_limit: seconds (optional). If provided, function will return best-so-far when time runs out.
-        Returns chosen move or None.
-        """
-        board = board.copy() # just in case
+        board = board.copy()  # just in case
 
         start_time = time.time()
         deadline = start_time + time_limit if time_limit is not None else None
 
-        best_move = None
         best_score = -INF
 
-        # root move ordering: shallow evaluation of resulting position
+        # root moves
         root_moves = list(board.legal_moves())
         if not root_moves:
             return None
 
-        # iterative deepening
+        move_scores = []  # to collect (move, score) for the deepest completed depth
+
         for depth in range(1, max_depth + 1):
             self.nodes = 0
-            depth_best_move = None
+            depth_results = []
             depth_best_score = -INF
 
-            # order moves by quick shallow eval (descending if it's our turn)
+            # compute time remaining at the start of this depth (None if no time limit)
+            if time_limit is None:
+                time_remaining_at_depth_start = None
+            else:
+                elapsed = time.time() - start_time
+                time_remaining_at_depth_start = max(0.0, time_limit - elapsed)
+
+            # allow overrun for this depth if it started with > half the time_limit remaining
+            allow_overrun = time_limit is not None and time_remaining_at_depth_start is not None and time_remaining_at_depth_start > time_limit / 2.0
+            per_depth_deadline = deadline  # will be set to None if we choose to allow overrun
+            overrunning = False
+
+            # quick ordering function
             def quick_score(m):
                 board.push(m)
                 val = self._evaluate_simple(board)
@@ -61,37 +66,77 @@ class MinimaxAgent:
             timed_out = False
 
             for m in root_moves:
-                # time check at each root move
-                if deadline is not None and time.time() > deadline:
-                    timed_out = True
-                    break
+                # check per-depth deadline before starting this root move
+                if per_depth_deadline is not None and time.time() > per_depth_deadline:
+                    if allow_overrun and not overrunning:
+                        # disable the deadline for the rest of this depth so it can finish
+                        overrunning = True
+                        per_depth_deadline = None
+                        log.info(f"Time expired but allowing overrun to finish depth {depth} (started with {time_remaining_at_depth_start:.2f}s left).")
+                    else:
+                        timed_out = True
+                        break
 
                 board.push(m)
-                score = self._alphabeta(board, depth - 1, -INF, INF, maximizing=(board.turn != self.my_color),
-                                         deadline=deadline)
+                score = self._alphabeta(
+                    board,
+                    depth - 1,
+                    -INF,
+                    INF,
+                    maximizing=(board.turn != self.my_color),
+                    deadline=per_depth_deadline
+                )
                 board.pop()
 
                 if score is None:
-                    # time cutoff in subtree
-                    timed_out = True
-                    break
+                    # If we get None, that means a time cutoff happened inside the subtree.
+                    # If we allowed overrun and haven't already disabled the deadline, disable it now
+                    # and continue (so the rest of the depth can finish).
+                    if allow_overrun and not overrunning:
+                        overrunning = True
+                        per_depth_deadline = None
+                        log.info(f"Subtree timed out but enabling overrun to finish depth {depth}. Continuing.")
+                        # Re-run this move with no deadline so we get a concrete score and allow the depth to finish.
+                        board.push(m)
+                        score = self._alphabeta(
+                            board,
+                            depth - 1,
+                            -INF,
+                            INF,
+                            maximizing=(board.turn != self.my_color),
+                            deadline=None
+                        )
+                        board.pop()
+                        # if still None (very unlikely), treat as timed out and break
+                        if score is None:
+                            timed_out = True
+                            break
+                    else:
+                        timed_out = True
+                        break
 
+                depth_results.append((m, score))
                 if score > depth_best_score:
                     depth_best_score = score
-                    depth_best_move = m
 
-            # if we completed this depth without timing out, adopt depth result
-            if not timed_out and depth_best_move is not None:
-                best_move = depth_best_move
+            # if we completed the entire depth without timing out, adopt its results
+            if not timed_out and depth_results:
+                move_scores = depth_results
                 best_score = depth_best_score
             else:
-                log.info("Timed out")
-                # timed out during this depth: return best_move from previous completed depth
+                log.info("Timed out before completing depth %s", depth)
                 break
 
-            log.info(f"Depth {depth} completed. {self.nodes=}, {best_score=}, elapsed={int((time.time() - start_time) * 1000)}ms")
+            log.info(f"Depth {depth} completed. nodes={self.nodes}, best_score={best_score}, elapsed={int((time.time() - start_time) * 1000)}ms")
 
-        return best_move
+        if not move_scores:
+            return None
+
+        MARGIN = 20  # tweak for more/less randomness
+        candidates = [m for m, score in move_scores if score >= best_score - MARGIN]
+        chosen = random.choice(candidates)
+        return chosen
+
 
     def _alphabeta(self, board: draughts.Board, depth: int, alpha: int, beta: int,
                    maximizing: bool, deadline: Optional[float]) -> Optional[int]:
@@ -165,6 +210,7 @@ class MinimaxAgent:
         # store in tt
         self.tt[tt_key] = (depth, value)
         return value
+
 
     def _evaluate_simple(self, board: draughts.Board) -> int:
         """

@@ -130,13 +130,13 @@ class CheckersGame(BaseCheckersGame):
         embed.description = ""
         if winner == draughts.BLACK or self.surrendered == self.players[1] and not self.is_premature_surrender():
             embed.description += "👑 "
-        embed.description += f"`⬛` {self.players[0].mention}"
+        embed.description += f"`⚫` {self.players[0].mention}"
         if self.board.turn == draughts.WHITE and self.last_move and not self.is_finished():
             embed.description += " " + "→".join(str(n) for n in self.last_move.steps_move)
 
         if winner == draughts.WHITE or self.surrendered == self.players[0] and not self.is_premature_surrender():
             embed.description += "👑 "
-        embed.description += f"\n`🟥` {self.players[1].mention}"
+        embed.description += f"\n`🔴` {self.players[1].mention}"
         if self.board.turn == draughts.BLACK and self.last_move and not self.is_finished():
             embed.description += " " + "→".join(str(n) for n in self.last_move.steps_move)
 
