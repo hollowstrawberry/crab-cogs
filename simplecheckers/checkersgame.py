@@ -61,10 +61,16 @@ class CheckersGame(BaseCheckersGame):
             await self.cog.config.channel(self.channel).game.set(self.board.fen)
             await self.cog.config.channel(self.channel).players.set([player.id for player in self.players])
 
-    async def move_user(self, hub_move: str) -> Tuple[bool, str]:
-        move = draughts.Move(self.board, hub_move=hub_move)
+    async def move_user(self, move_str: str) -> Tuple[bool, str]:
+        try:
+            steps = [int(s) for s in move_str.split()]
+            if any(s < 1 or s > 32 for s in steps):
+                raise ValueError
+        except ValueError:
+            return False, "That move is invalid. Your move must be a sequence of numbers representing the cells 1 to 32."
+        move = draughts.Move(self.board, steps_move=steps)
         if move not in self.board.legal_moves():
-            return False, "That move is invalid, try something else."
+            return False, "That move is illegal in the current state of the board, try something else."
         await self.do_move(move)
         return True, ""
             
