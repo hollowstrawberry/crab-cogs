@@ -8,6 +8,7 @@ from datetime import datetime
 from redbot.core.data_manager import bundled_data_path
 
 from simplecheckers.agent import MinimaxAgent
+from simplecheckers.agent_old import MinimaxAgentOld
 from simplecheckers.base import BaseCheckersCog, BaseCheckersGame
 from simplecheckers.utils import board_to_png
 from simplecheckers.views.bots_view import BotsView
@@ -74,7 +75,7 @@ class CheckersGame(BaseCheckersGame):
         return True, ""
     
     async def move_engine(self):
-        agent = MinimaxAgent(self.board.turn)
+        agent = MinimaxAgent(self.board.turn) if self.member(self.board.turn) == self.channel.guild.me else MinimaxAgentOld(self.board.turn)
         move = await asyncio.to_thread(agent.choose_move, self.board, 6, 1.0)
         if not move:
             raise ValueError("Agent failed to make a move")
@@ -137,11 +138,11 @@ class CheckersGame(BaseCheckersGame):
         embed.description = ""
         if winner == draughts.BLACK or self.surrendered == self.players[1] and not self.is_premature_surrender():
             embed.description += "👑 "
-        embed.description += f"`⚫` {self.players[0].mention}"
+        embed.description += f"`⚫` {self.players[0].mention}\n"
 
         if winner == draughts.WHITE or self.surrendered == self.players[0] and not self.is_premature_surrender():
             embed.description += "👑 "
-        embed.description += f"\n`🔴` {self.players[1].mention}"
+        embed.description += f"`🔴` {self.players[1].mention}"
 
         embed.set_image(url=f"attachment://{filename}")
         embed.set_footer(text=f"Turn {self.time // 2 + 1}")
