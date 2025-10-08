@@ -140,12 +140,12 @@ class MinimaxAgent:
     # ----------------------------
     # Public API
     # ----------------------------
-    def choose_move(self, board: draughts.Board, max_depth: int, time_limit: Optional[float] = None):
+    def choose_move(self, board: draughts.Board, max_depth: int, time_limit: float):
         board = board.copy()
         eval_state = EvalState(board, self.my_color)
 
         start_time = time.time()
-        deadline = start_time + time_limit if time_limit is not None else None
+        deadline = start_time + time_limit
 
         root_moves = list(board.legal_moves())
         if not root_moves:
@@ -162,8 +162,7 @@ class MinimaxAgent:
             depth_best_score = -INF
 
             elapsed = time.time() - start_time
-            time_remaining = max(0, time_limit - elapsed) if time_limit else None
-            allow_overrun = time_limit is not None and time_remaining is not None and time_remaining > time_limit * 2.0/3.0
+            allow_overrun = time_limit - elapsed > time_limit * 2.0/3.0
             per_depth_deadline = deadline
             overrunning = False
 
@@ -230,7 +229,7 @@ class MinimaxAgent:
         if not move_scores:
             return None
 
-        MARGIN = 10
+        MARGIN = 20
         candidates = [m for m, score in move_scores if score >= best_score - MARGIN]
         return random.choice(candidates)
 
