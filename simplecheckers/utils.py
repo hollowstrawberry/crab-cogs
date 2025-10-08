@@ -95,7 +95,7 @@ def create_svg(board: draughts.Board) -> str:
     svg_parts.append('</g>')
 
     # Number playable squares (1..N), always on top and color changes if there's a piece under it.
-    svg_parts.append('<g id="numbers" font-family="sans-serif">')
+    svg_parts.append('<g id="numbers" font-family="DejaVu Sans, Arial, sans-serif">')
     font_size = square_size * 0.30
     number = 1
     for r in range(height):
@@ -118,8 +118,10 @@ def create_svg(board: draughts.Board) -> str:
                 num_color = "#ffffff" if token.lower() == 'b' else "#000000"
 
             svg_parts.append(
-                f'<text x="{cx}" y="{cy}" text-anchor="middle" dominant-baseline="central" '
-                f'font-size="{font_size}" font-weight="bold" fill="{num_color}">{number}</text>'
+                f'<text x="{cx}" y="{cy + font_size*0.35}" text-anchor="middle" '
+                f'font-size="{font_size}px" font-weight="bold" fill="{num_color}" '
+                f'stroke="{num_color}" stroke-width="0.8">'
+                f'{number}</text>'
             )
             number += 1
     svg_parts.append('</g>')
