@@ -4,7 +4,7 @@ from simplecheckers.base import BaseCheckersGame
 
 
 class GameMoveModal(discord.ui.Modal, title="Checkers Move"):
-    move = discord.ui.Label(text='Move', description="A move in standard notations, example pending.", component=discord.ui.TextInput())
+    move = discord.ui.Label(text='Move', description="A move separated by spaces, starting with the piece you want to move and listing every jump along its path. Example: 22 13 6", component=discord.ui.TextInput())
 
     def __init__(self, game: BaseCheckersGame, parent_interaction: discord.Interaction):
         super().__init__()
@@ -28,12 +28,15 @@ class GameView(discord.ui.View):
         super().__init__(timeout=None)
         self.game = game
         self.move_button = discord.ui.Button(custom_id=f"simplecheckers {game.channel.id} move", emoji="♟️", label="Enter Move", style=discord.ButtonStyle.success)
+        self.help_button = discord.ui.Button(custom_id=f"simplecheckers {game.channel.id} help", emoji="❓", label="Instructions", style=discord.ButtonStyle.success)
         self.bump_button = discord.ui.Button(custom_id=f"simplecheckers {game.channel.id} bump", emoji="⬇️", label="Bump", style=discord.ButtonStyle.primary)
         self.end_button = discord.ui.Button(custom_id=f"simplecheckers {game.channel.id} end", emoji="🏳️", label="Surrender", style=discord.ButtonStyle.danger)
         self.move_button.callback = self.move
+        self.help_button.callback = self.help
         self.bump_button.callback = self.bump
         self.end_button.callback = self.end
         self.add_item(self.move_button)
+        self.add_item(self.help_button)
         self.add_item(self.bump_button)
         self.add_item(self.end_button)
 
@@ -43,6 +46,18 @@ class GameView(discord.ui.View):
         if interaction.user != self.game.member(self.game.board.turn):
             return await interaction.response.send_message("It's not your turn!", ephemeral=True)
         await interaction.response.send_modal(GameMoveModal(self.game, interaction))
+
+    async def help(self, interaction: discord.Interaction):
+        embed = discord.Embed(title="⛃ Checkers Rules", color=0xDD2E44)
+        embed.description = "This variant of checkers, often known as English draughts or American checkers, has the following rules:"
+        embed.description += "\n1. Players take turns moving their pieces diagonally forward."
+        embed.description += "\n2. If you can jump and capture an opponent’s piece by jumping over it, you have to do it."
+        embed.description += "\n3. You may also jump over multiple pieces in sequence in a single move."
+        embed.description += "\n4. When a piece reaches the far side, it becomes a “king” and can move backwards and forwards."
+        embed.description += "\n5. You win after capturing all your opponent's pieces or blocking all of them from moving."
+        embed.add_field(name="Move notation", value="A move is separated by spaces, starting with the piece you want to move and listing every jump along its path." +
+                        "\nExamples: `12 16` (single move forward), `22 13 6` (capture two pieces)", inline=True)
+        await interaction.response.send_message(embed, ephemeral=True)
 
     async def bump(self, interaction: discord.Interaction):
         assert interaction.message
