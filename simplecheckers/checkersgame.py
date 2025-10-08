@@ -66,7 +66,7 @@ class CheckersGame(BaseCheckersGame):
             move = draughts.Move(self.board, steps_move=move_lst)
             self.board.push(move)
         except (ValueError, KeyError, IndexError):
-            return False, f"That move is invalid, valid moves are: " + ", ".join(f"`{' '.join(str(n) for n in m.steps_move)}`" for m in self.board.legal_moves())
+            return False, f"That move is invalid, valid moves are:\n" + "\n".join(f"`{' '.join(str(n) for n in m.steps_move)}`" for m in self.board.legal_moves())
         self.last_arrows = move_lst
         self.time += 1
         self.last_interacted = datetime.now()
