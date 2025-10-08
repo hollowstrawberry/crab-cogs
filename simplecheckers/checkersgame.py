@@ -68,7 +68,6 @@ class CheckersGame(BaseCheckersGame):
         return True, ""
             
     async def generate_board_image(self) -> BytesIO:
-        log.info(str(self.board))
         svg = create_svg(self.board)
         b = await asyncio.to_thread(svg_to_png, svg)
         return BytesIO(b or b'')
