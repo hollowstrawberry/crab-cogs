@@ -70,12 +70,13 @@ class CheckersGame(BaseCheckersGame):
         return True, ""
             
     async def generate_board_image(self) -> BytesIO:
+        log.info(self.board.fen)
         svg = draughts.svg.create_svg(self.board)
         b = await asyncio.to_thread(svg_to_png, svg)
         return BytesIO(b or b'')
 
     async def update_message(self, interaction: Optional[discord.Interaction] = None):
-        content = f"{self.players[0].mention} you're being invited to play chess." if not self.accepted else ""
+        content = f"{self.players[0].mention} you're being invited to play checkers." if not self.accepted else ""
         embed = discord.Embed()
         
         view = InviteView(self) if not self.accepted \

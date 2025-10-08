@@ -11,7 +11,7 @@ from simplecheckers.checkersgame import CheckersGame
 from simplecheckers.views.game_view import GameView
 from simplecheckers.views.replace_view import ReplaceView
 
-log = logging.getLogger("red.crab-cogs.simplechess")
+log = logging.getLogger("red.crab-cogs.simplecheckers")
 
 TIME_LIMIT = 5 # minutes
 
