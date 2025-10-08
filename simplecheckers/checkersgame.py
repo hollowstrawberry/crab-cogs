@@ -5,9 +5,10 @@ import draughts
 from io import BytesIO
 from typing import List, Optional, Tuple
 from datetime import datetime
+from redbot.core.data_manager import bundled_data_path
 
 from simplecheckers.base import BaseCheckersCog, BaseCheckersGame
-from simplecheckers.utils import create_svg, svg_to_png
+from simplecheckers.utils import board_to_png
 from simplecheckers.views.invite_view import InviteView
 from simplecheckers.views.game_view import GameView
 from simplecheckers.views.rematch_view import RematchView
@@ -68,9 +69,9 @@ class CheckersGame(BaseCheckersGame):
         return True, ""
             
     async def generate_board_image(self) -> BytesIO:
-        svg = create_svg(self.board)
-        b = await asyncio.to_thread(svg_to_png, svg)
-        return BytesIO(b or b'')
+        overlay_path = str(bundled_data_path(self.cog) / "overlay.png")
+        b = await asyncio.to_thread(board_to_png, self.board, overlay_path)
+        return BytesIO(b)
 
     async def update_message(self, interaction: Optional[discord.Interaction] = None):
         content = f"{self.players[0].mention} you're being invited to play checkers." if not self.accepted else ""

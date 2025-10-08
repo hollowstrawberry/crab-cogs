@@ -4,7 +4,7 @@ from wand.image import Image
 from wand.color import Color
 
 
-def create_svg(board: draughts.Board) -> str:
+def board_to_svg(board: draughts.Board) -> str:
     board_str = board if isinstance(board, str) else str(board)
     lines = [ln for ln in board_str.splitlines() if '|' in ln]
     square_size = 512 // len(lines)
@@ -130,7 +130,13 @@ def create_svg(board: draughts.Board) -> str:
     return "\n".join(svg_parts)
 
 
-def svg_to_png(svg: str):
-    with Image(blob=svg.encode('utf-8'), background=Color("transparent")) as img:
-        img.format = "png"
-        return img.make_blob()
+def svg_to_png(svg: str, overlay_path: str) -> bytes:
+    with Image(blob=svg.encode('utf-8'), background=Color("transparent")) as base:
+        base.format = "png"
+        with Image(filename=overlay_path) as overlay:
+            base.composite(overlay, left=0, top=0)
+        return base.make_blob() or b''
+    
+
+def board_to_png(board: draughts.Board, overlay_path: str) -> bytes:
+    return svg_to_png(board_to_svg(board), overlay_path)
