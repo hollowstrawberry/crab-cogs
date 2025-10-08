@@ -66,7 +66,7 @@ def board_to_svg(board: draughts.Board) -> str:
             if not token:
                 continue
             cx = margin + c * square_size + square_size / 2
-            cy = margin + r * square_size + square_size / 2
+            cy = margin + (height - 1 - r) * square_size + square_size / 2
             radius = square_size * 0.4
             if token.lower() == 'b':
                 fill = black_fill
@@ -93,39 +93,6 @@ def board_to_svg(board: draughts.Board) -> str:
                     f'<path d="M {" L ".join(points)} Z" fill="url(#crown_gradient)" stroke="#DAA520" stroke-width="1.5" />'
                 )
     svg_parts.append('</g>')
-
-    # Number playable squares (1..N), always on top and color changes if there's a piece under it.
-    svg_parts.append('<g id="numbers" font-family="DejaVu Sans, Arial, sans-serif">')
-    font_size = square_size * 0.30
-    number = 1
-    for r in range(height):
-        for c in range(width):
-            if not is_playable(r, c):
-                continue
-            cx = margin + c * square_size + square_size / 2
-            cy = margin + r * square_size + square_size / 2
-
-            # detect if a piece occupies this cell
-            token = rows[r][c].strip()
-            occupied = bool(token)
-            # choose number color depending on piece below:
-            # - if empty: white
-            # - if black piece: white (contrasts black)
-            # - if red piece: black (contrasts red)
-            if not occupied:
-                num_color = "#ffffff"
-            else:
-                num_color = "#ffffff" if token.lower() == 'b' else "#000000"
-
-            svg_parts.append(
-                f'<text x="{cx}" y="{cy + font_size*0.35}" text-anchor="middle" '
-                f'font-size="{font_size}px" font-weight="bold" fill="{num_color}" '
-                f'stroke="{num_color}" stroke-width="0.8">'
-                f'{number}</text>'
-            )
-            number += 1
-    svg_parts.append('</g>')
-
     svg_parts.append('</svg>')
     return "\n".join(svg_parts)
 

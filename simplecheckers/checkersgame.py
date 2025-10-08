@@ -117,7 +117,7 @@ class CheckersGame(BaseCheckersGame):
 
         if winner == draughts.WHITE or self.surrendered == self.players[1] and not self.is_premature_surrender():
             embed.description += "👑 "
-        embed.description += f"\n`⬜` {self.players[0].mention}"
+        embed.description += f"\n`🟥` {self.players[0].mention}"
 
         embed.set_image(url=f"attachment://{filename}")
         embed.set_footer(text=f"Turn {int(self.time // 2)}")
