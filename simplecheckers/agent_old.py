@@ -50,7 +50,7 @@ class MinimaxAgentOld:
                 time_remaining_at_depth_start = max(0.0, time_limit - elapsed)
 
             # allow overrun for this depth if it started with > half the time_limit remaining
-            allow_overrun = time_limit is not None and time_remaining_at_depth_start is not None and time_remaining_at_depth_start > time_limit / 3.0
+            allow_overrun = time_limit is not None and time_remaining_at_depth_start is not None and time_remaining_at_depth_start > time_limit * 2.0 / 3.0
             per_depth_deadline = deadline  # will be set to None if we choose to allow overrun
             overrunning = False
 

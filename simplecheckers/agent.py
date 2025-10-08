@@ -162,8 +162,8 @@ class MinimaxAgent:
             depth_best_score = -INF
 
             elapsed = time.time() - start_time
-            time_remaining = max(0.0, time_limit - elapsed) if time_limit else None
-            allow_overrun = time_limit is not None and time_remaining is not None and time_remaining > time_limit / 3.0
+            time_remaining = time_limit - elapsed if time_limit else None
+            allow_overrun = time_limit is not None and time_remaining is not None and time_remaining > (time_limit * 2.0/3.0)
             per_depth_deadline = deadline
             overrunning = False
 
@@ -225,7 +225,7 @@ class MinimaxAgent:
                 log.debug(f"Timed out or no results at depth {depth}")
                 break
 
-            log.info(f"Depth {depth} completed. {self.nodes=}, {best_score=}, elapsed={int((time.time() - start_time) * 1000)}ms")
+            log.info(f"Depth {depth} completed. {self.nodes=}, {best_score=}, elapsed={int(elapsed*1000)}ms")
 
         if not move_scores:
             return None
