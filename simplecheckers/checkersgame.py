@@ -1,9 +1,7 @@
-import re
 import asyncio
 import logging
 import discord
 import draughts
-import draughts.svg
 from io import BytesIO
 from typing import List, Optional, Tuple
 from datetime import datetime
@@ -70,8 +68,8 @@ class CheckersGame(BaseCheckersGame):
         return True, ""
             
     async def generate_board_image(self) -> BytesIO:
-        log.info(self.board.fen)
-        svg = draughts.svg.create_svg(self.board)
+        log.info(str(self.board))
+        svg = create_svg(self.board)
         b = await asyncio.to_thread(svg_to_png, svg)
         return BytesIO(b or b'')
 
