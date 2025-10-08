@@ -30,7 +30,7 @@ class CheckersGame(BaseCheckersGame):
         self.cancelled = False
         self.surrendered: Optional[discord.Member] = None
         self.time = 0
-        self.last_move: List[int] = []
+        self.last_arrows: List[int] = []
     
     def accept(self):
         self.accepted = True
@@ -67,7 +67,7 @@ class CheckersGame(BaseCheckersGame):
             self.board.push(move)
         except (ValueError, KeyError, IndexError):
             return False, f"That move is invalid, valid moves are: " + ", ".join(f"`{' '.join(str(n) for n in m.steps_move)}`" for m in self.board.legal_moves())
-        self.last_move = move_lst
+        self.last_arrows = move_lst
         self.time += 1
         self.last_interacted = datetime.now()
         await self.update_state()
@@ -86,7 +86,8 @@ class CheckersGame(BaseCheckersGame):
             
     async def generate_board_image(self) -> BytesIO:
         overlay_path = str(bundled_data_path(self.cog) / "overlay.png")
-        b = await asyncio.to_thread(board_to_png, self.board, overlay_path, self.last_move)
+        arrows = self.last_arrows if not self.is_finished() else []
+        b = await asyncio.to_thread(board_to_png, self.board, overlay_path, arrows)
         return BytesIO(b)
 
     async def update_message(self, interaction: Optional[discord.Interaction] = None):

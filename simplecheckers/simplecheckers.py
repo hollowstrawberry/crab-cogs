@@ -8,6 +8,7 @@ from redbot.core.bot import Red
 
 from simplecheckers.base import BaseCheckersCog
 from simplecheckers.checkersgame import CheckersGame
+from simplecheckers.views.bots_view import BotsView
 from simplecheckers.views.game_view import GameView
 from simplecheckers.views.replace_view import ReplaceView
 
@@ -35,7 +36,7 @@ class SimpleCheckers(BaseCheckersCog):
                     continue
                 game = CheckersGame(self, players, channel, config["variant"], config["game"])
                 self.games[channel.id] = game
-                view = GameView(game)
+                view = BotsView(game) if all(p.bot for p in players) else GameView(game)
                 self.bot.add_view(view)
                 game.view = view
                 try:
