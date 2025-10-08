@@ -82,17 +82,9 @@ def board_to_svg(board: draughts.Board) -> str:
             )
             # kings (upper-case): draw crown/star on top of the piece (but under the numbers)
             if token.isupper():
-                outer_r = radius * 0.5
-                inner_r = outer_r * 0.382
-                points = []
-                for i_pt in range(10):
-                    ang = (i_pt * math.pi / 5) - (math.pi / 2)
-                    rad = outer_r if (i_pt % 2 == 0) else inner_r
-                    px = cx + rad * math.cos(ang)
-                    py = cy + rad * math.sin(ang)
-                    points.append(f'{px:.2f},{py:.2f}')
+                inner_r = radius * 0.9
                 svg_parts.append(
-                    f'<path d="M {" L ".join(points)} Z" fill="url(#crown_gradient)" stroke="#DAA520" stroke-width="1.5" />'
+                    f'<circle cx="{cx}" cy="{cy}" r="{radius}" fill="{fill}" stroke="{stroke}" stroke-width="2" />'
                 )
     svg_parts.append('</g>')
     svg_parts.append('</svg>')

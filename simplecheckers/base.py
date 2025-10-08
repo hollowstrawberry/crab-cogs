@@ -30,7 +30,7 @@ class BaseCheckersGame(ABC):
         self.board = draughts.Board(variant, initial_state or "startpos")
 
     def member(self, color: int):
-        return self.players[1] if color == draughts.BLACK else self.players[0]
+        return self.players[0] if color == draughts.BLACK else self.players[1]
 
     @abstractmethod
     def is_finished(self):

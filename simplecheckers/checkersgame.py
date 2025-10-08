@@ -121,7 +121,7 @@ class CheckersGame(BaseCheckersGame):
         embed.description += f"\n`🟥` {self.players[1].mention}"
 
         embed.set_image(url=f"attachment://{filename}")
-        embed.set_footer(text=f"Turn {int(self.time // 2)}")
+        embed.set_footer(text=f"Turn {self.time // 2 + 1}")
 
         if interaction:
             await interaction.edit_original_response(content=content, embed=embed, attachments=[file], view=view)
