@@ -22,6 +22,10 @@ class GameMoveModal(discord.ui.Modal, title="Checkers Move"):
 
         await self.game.update_message(self.parent_interaction)
 
+        if self.game.member(self.game.board.turn).bot:
+            await self.game.move_agent()
+            await self.game.update_message(self.parent_interaction)
+
 
 class GameView(discord.ui.View):
     def __init__(self, game: BaseCheckersGame):

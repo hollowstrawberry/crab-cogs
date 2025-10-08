@@ -53,5 +53,9 @@ class BaseCheckersGame(ABC):
         pass
 
     @abstractmethod
+    async def move_agent(self):
+        pass
+
+    @abstractmethod
     async def update_message(self, interaction: Optional[discord.Interaction] = None):
         pass

@@ -7,11 +7,13 @@ from typing import List, Optional, Tuple
 from datetime import datetime
 from redbot.core.data_manager import bundled_data_path
 
+from simplecheckers.agent import MinimaxAgent
 from simplecheckers.base import BaseCheckersCog, BaseCheckersGame
 from simplecheckers.utils import board_to_png
 from simplecheckers.views.invite_view import InviteView
 from simplecheckers.views.game_view import GameView
 from simplecheckers.views.rematch_view import RematchView
+from simplecheckers.views.thinking_view import ThinkingView
 
 log = logging.getLogger("red.crab-cogs.simplecheckers")
 
@@ -68,6 +70,17 @@ class CheckersGame(BaseCheckersGame):
         self.last_interacted = datetime.now()
         await self.update_state()
         return True, ""
+    
+    async def move_agent(self):
+        agent = MinimaxAgent(self.board.turn)
+        move = await asyncio.to_thread(agent.choose_move, self.board, 6, 1.0)
+        if not move:
+            raise ValueError("Agent failed to make a move")
+        move_str = " ".join(str(n) for n in move.steps_move)
+        success, message = await self.move_user(move_str)
+        if not success:
+            log.error(f"Invalid agent move {move_str}")
+            raise ValueError(message)
             
     async def generate_board_image(self) -> BytesIO:
         overlay_path = str(bundled_data_path(self.cog) / "overlay.png")
@@ -80,6 +93,7 @@ class CheckersGame(BaseCheckersGame):
         
         view = InviteView(self) if not self.accepted \
             else RematchView(self) if self.is_finished() \
+            else ThinkingView() if self.member(self.board.turn).bot and not all(m.bot for m in self.players) \
             else GameView(self)
 
         filename = "board.png"

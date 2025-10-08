@@ -1,6 +1,6 @@
 import logging
 import discord
-from typing import List, Union
+from typing import List, Optional, Union
 from datetime import datetime
 
 from redbot.core import commands
@@ -18,7 +18,7 @@ VARIANT = "english"
 
 
 class SimpleCheckers(BaseCheckersCog):
-    """Play Checkers/Draughts against your friends."""
+    """Play Checkers/Draughts against your friends or the bot."""
 
     def __init__(self, bot: Red):
         super().__init__(bot)
@@ -51,15 +51,14 @@ class SimpleCheckers(BaseCheckersCog):
                 game.view.stop()
 
 
-    async def checkers_new(self, ctx: Union[commands.Context, discord.Interaction], opponent: discord.Member):
-        """Play a game of Checkers against a friend."""
+    async def checkers_new(self, ctx: Union[commands.Context, discord.Interaction], opponent: Optional[discord.Member]):
+        """Play a game of Checkers against a friend or the bot."""
         author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
         assert ctx.guild and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
         
         reply = ctx.reply if isinstance(ctx, commands.Context) else ctx.response.send_message
-        if opponent.bot:
-            return await reply("You can't play against a bot, maybe one day!", ephemeral=True)
-        players = [opponent, author]
+        opponent = opponent or ctx.guild.me
+        players = [author, opponent] if opponent.bot else [opponent, author]
 
         # Game already exists
         if ctx.channel.id in self.games and not self.games[ctx.channel.id].is_finished():
@@ -77,11 +76,13 @@ class SimpleCheckers(BaseCheckersCog):
             minutes_passed = int((datetime.now() - old_game.last_interacted).total_seconds() // 60)
             if minutes_passed >= TIME_LIMIT:
                 async def callback():
-                    nonlocal ctx, players, author, old_game
+                    nonlocal ctx, players, author, opponent, old_game
                     assert opponent and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
                     await old_game.cancel(author)
                     await old_game.update_message()
                     game = CheckersGame(self, players, ctx.channel, VARIANT)
+                    if opponent.bot:
+                        game.accept()
                     self.games[ctx.channel.id] = game
                     await game.update_message()
 
