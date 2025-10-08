@@ -1,10 +1,18 @@
 import math
+import base64
 import draughts
 from wand.image import Image
 from wand.color import Color
 
 
-def create_svg(board: draughts.Board) -> str:
+def load_font_base64(path: str) -> str:
+    with open(path, "rb") as f:
+        font_bytes = f.read()  # read raw font bytes
+    b64 = base64.b64encode(font_bytes).decode("ascii")  # base64 encode -> string
+    return f"data:font/ttf;base64,{b64}"
+
+
+def board_to_svg(board: draughts.Board, font_path: str) -> str:
     board_str = board if isinstance(board, str) else str(board)
     lines = [ln for ln in board_str.splitlines() if '|' in ln]
     square_size = 512 // len(lines)
@@ -27,8 +35,17 @@ def create_svg(board: draughts.Board) -> str:
     is_playable = lambda r, c: (r + c) % 2 == 1
 
     # Start svg (no outer background rect; transparent by default)
+    font_data_uri = load_font_base64(font_path)
+
     svg_parts = [
-        f'<svg viewBox="0 0 {svg_width} {svg_height}" xmlns="http://www.w3.org/2000/svg">'
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {svg_width} {svg_height}">',
+        "<style><![CDATA[",
+        "@font-face {",
+        "  font-family: 'DejaVuSans';",
+        f"  src: url('{font_data_uri}') format('truetype');",
+        "}",
+        "text { font-family: 'DejaVuSans'; }",
+        "]]></style>",
     ]
 
     # Single crown gradient (reused for all kings)
@@ -128,7 +145,11 @@ def create_svg(board: draughts.Board) -> str:
     return "\n".join(svg_parts)
 
 
-def svg_to_png(svg: str):
+def svg_to_png(svg: str) -> bytes:
     with Image(blob=svg.encode('utf-8'), background=Color("transparent")) as img:
         img.format = "png"
-        return img.make_blob()
+        return img.make_blob() or b''
+    
+
+def board_to_png(board: draughts.Board, font_path: str) -> bytes:
+    return svg_to_png(board_to_svg(board, font_path))
