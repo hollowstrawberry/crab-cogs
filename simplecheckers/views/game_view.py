@@ -4,7 +4,7 @@ from simplecheckers.base import BaseCheckersGame
 
 
 class GameMoveModal(discord.ui.Modal, title="Checkers Move"):
-    move = discord.ui.Label(text='Move', description="A move separated by spaces, starting with the piece you want to move and listing every jump along its path. Example: 22 13 6", component=discord.ui.TextInput())
+    move = discord.ui.Label(text='Move', description="The piece you want to move and every jump after, separated by spaces. Example: 22 13 6", component=discord.ui.TextInput())
 
     def __init__(self, game: BaseCheckersGame, parent_interaction: discord.Interaction):
         super().__init__()
