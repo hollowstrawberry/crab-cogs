@@ -62,7 +62,6 @@ class SimpleChess(BaseChessCog):
 
 
     async def chess_new(self, ctx: Union[commands.Context, discord.Interaction], opponent: Optional[discord.Member], depth: Optional[int] = None):
-        """Play a game of Chess against a friend or the bot."""
         author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
         assert ctx.guild and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
         opponent = opponent or ctx.guild.me
@@ -124,7 +123,6 @@ class SimpleChess(BaseChessCog):
 
 
     async def chess_bots(self, ctx: commands.Context, opponent: discord.Member, depth: Optional[int] = None):
-        """Make bots play Chess against each other"""
         assert ctx.guild and isinstance(ctx.channel, discord.TextChannel)
         if not opponent.bot or opponent == ctx.guild.me:
             return await ctx.send("Opponent must be a bot different from myself.")
@@ -154,12 +152,14 @@ class SimpleChess(BaseChessCog):
 
     @commands.command(name="chess")
     @commands.guild_only()
-    async def chess_new_cmd(self, ctx: Union[commands.Context, discord.Interaction], opponent: Optional[discord.Member] = None):
+    async def chess_new_cmd(self, ctx: commands.Context, opponent: Optional[discord.Member] = None):
+        """Play a game of Chess against a friend or the bot."""
         await self.chess_new(ctx, opponent, DEFAULT_DIFFICULTY)
 
     @commands.command(name="chessbots")
     @commands.guild_only()
     async def chess_bots_cmd(self, ctx: commands.Context, opponent: discord.Member):
+        """Make bots play Chess against each other."""
         await self.chess_bots(ctx, opponent, DEFAULT_DIFFICULTY)
 
 
