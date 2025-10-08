@@ -124,7 +124,7 @@ class MinimaxAgentOld:
             else:
                 break
 
-            log.debug(f"Depth {depth} completed. nodes={self.nodes}, best_score={best_score}, elapsed={int((time.time() - start_time) * 1000)}ms")
+            log.info(f"[OLD] Depth {depth} completed. {self.nodes=}, {best_score=}, elapsed={int((time.time() - start_time) * 1000)}ms")
 
         if not move_scores:
             return None
