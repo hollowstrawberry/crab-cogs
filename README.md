@@ -36,9 +36,15 @@ Lets anyone steal emojis and stickers sent by other people, and lets moderators 
 
 ### ♟️ SimpleChess
 
-Play Chess against your friends or the bot, or make bots play against each other. Uses [Sunfish](https://github.com/thomasahle/sunfish) as the chess engine, which has an ELO of around 2000. Only one game may be active per channel, but it works in threads.
+Play Chess against your friends or the bot, or make bots play against each other. Uses [Sunfish](https://github.com/thomasahle/sunfish) as the chess engine, which has an ELO of around 1900, but the difficulty can be lowered when using the slash command. Only one game may be active per channel, but it works in threads.
 
 ![demonstration](https://i.imgur.com/6IleFWa.png)
+
+### 🔴 SimpleCheckers
+
+Play Checkers against your friends or the bot, or make bots play against each other. The engine is a simple minimax algorithm, but may still pose a challenge to most people. Only one game may be active per channel, but it works in threads.
+
+![demonstration](https://i.imgur.com/yeIXktH.png)
 
 ### 🎌 EasyTranslate
 
