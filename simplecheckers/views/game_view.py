@@ -28,7 +28,7 @@ class GameView(discord.ui.View):
         super().__init__(timeout=None)
         self.game = game
         self.move_button = discord.ui.Button(custom_id=f"simplecheckers {game.channel.id} move", emoji="♟️", label="Enter Move", style=discord.ButtonStyle.success)
-        self.help_button = discord.ui.Button(custom_id=f"simplecheckers {game.channel.id} help", emoji="❓", label="Instructions", style=discord.ButtonStyle.success)
+        self.help_button = discord.ui.Button(custom_id=f"simplecheckers {game.channel.id} help", emoji="❓", label="Instructions", style=discord.ButtonStyle.secondary)
         self.bump_button = discord.ui.Button(custom_id=f"simplecheckers {game.channel.id} bump", emoji="⬇️", label="Bump", style=discord.ButtonStyle.primary)
         self.end_button = discord.ui.Button(custom_id=f"simplecheckers {game.channel.id} end", emoji="🏳️", label="Surrender", style=discord.ButtonStyle.danger)
         self.move_button.callback = self.move
@@ -57,7 +57,7 @@ class GameView(discord.ui.View):
         embed.description += "\n5. You win after capturing all your opponent's pieces or blocking all of them from moving."
         embed.add_field(name="Move notation", value="A move is separated by spaces, starting with the piece you want to move and listing every jump along its path." +
                         "\nExamples: `12 16` (single move forward), `22 13 6` (capture two pieces)", inline=True)
-        await interaction.response.send_message(embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     async def bump(self, interaction: discord.Interaction):
         assert interaction.message
