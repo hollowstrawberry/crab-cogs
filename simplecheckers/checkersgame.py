@@ -58,10 +58,10 @@ class CheckersGame(BaseCheckersGame):
 
     async def move_user(self, move_str: str) -> Tuple[bool, str]:
         try:
-            move = draughts.Move(self.board, hub_move=move_str)
+            move = draughts.Move(self.board, hub_position_move=move_str)
             self.board.push(move)
         except (ValueError, KeyError, IndexError):
-            return False, f"That move is invalid, valid moves are: " + ", ".join(f"`{m.hub_move}`" for m in self.board.legal_moves())
+            return False, f"That move is invalid, valid moves are: " + ", ".join(f"`{m.hub_position_move}`" for m in self.board.legal_moves())
         self.time += 1
         self.last_interacted = datetime.now()
         await self.update_state()
