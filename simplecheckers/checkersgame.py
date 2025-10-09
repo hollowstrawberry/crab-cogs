@@ -85,7 +85,15 @@ class CheckersGame(BaseCheckersGame):
             move = draughts.Move(self.board, steps_move=move_lst)
             self.board.push(move)
         except (ValueError, KeyError, IndexError):
-            return False, f"That move is invalid, valid moves are:\n" + "\n".join(f"`{' '.join(str(n) for n in m.steps_move)}`" for m in self.board.legal_moves())
+            moves = self.board.legal_moves()
+            moves_str = " / ".join(f"`{' '.join(str(n) for n in m.steps_move)}`" for m in moves)
+            if len(moves) == 1:
+                response = f"That move is invalid, the only valid move is: {moves_str}"
+            else:
+                response = f"That move is invalid, valid moves are:\n{moves_str}"
+            if any(move.has_captures for move in moves):
+                response += "\nRemember, captures are mandatory in standard rules of checkers!"
+            return False, response
         self.last_arrows = move_lst
         self.time += 1
         self.last_interacted = datetime.now()
