@@ -44,13 +44,28 @@ class CheckersGame(BaseCheckersGame):
     
     def is_premature_surrender(self):
         return self.surrendered and self.time <= 5
+
+    def count_pieces(self, color: int):
+        board_str = str(self.board)
+        if color == draughts.WHITE:
+            return board_str.count("w") + board_str.count("W")
+        else:
+            return board_str.count("b") + board_str.count("B")
     
     async def cancel(self, member: Optional[discord.Member]):
+        self.cancelled = True
         if member in self.players:
             self.surrendered = member
-        self.cancelled = True
+        elif all(p.bot for p in self.players):
+            # make one of the AIs surrender on user cancel
+            white_pieces = self.count_pieces(draughts.WHITE)
+            black_pieces = self.count_pieces(draughts.BLACK)
+            if white_pieces < 5 and white_pieces < black_pieces:
+                self.surrendered = self.member(draughts.WHITE)
+            elif black_pieces < 5 and black_pieces < white_pieces:
+                self.surrendered = self.member(draughts.BLACK)
         await self.update_state()
-
+            
     async def update_state(self):
         if self.is_finished():
             if self.cog.games.get(self.channel.id) == self:
