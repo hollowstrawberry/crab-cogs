@@ -7,9 +7,8 @@ from typing import List, Optional, Tuple
 from datetime import datetime
 from redbot.core.data_manager import bundled_data_path
 
-from simplecheckers.agent import MinimaxAgent
-from simplecheckers.agent_old import MinimaxAgentOld
 from simplecheckers.base import BaseCheckersCog, BaseCheckersGame
+from simplecheckers.agent import MinimaxAgent
 from simplecheckers.utils import board_to_png
 from simplecheckers.views.bots_view import BotsView
 from simplecheckers.views.invite_view import InviteView
@@ -94,7 +93,7 @@ class CheckersGame(BaseCheckersGame):
         return True, ""
     
     async def move_engine(self):
-        agent = MinimaxAgentOld(self.board.turn) if self.member(self.board.turn) == self.channel.guild.me else MinimaxAgent(self.board.turn)
+        agent = MinimaxAgent(self.board.turn)
         move = await asyncio.to_thread(agent.choose_move, self.board, 6, 1.0)
         if not move:
             raise ValueError("Agent failed to make a move")
