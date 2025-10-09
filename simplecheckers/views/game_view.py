@@ -2,6 +2,7 @@ import discord
 import draughts
 
 from simplecheckers.base import BaseCheckersGame
+from simplecheckers.constants import INSTRUCTIONS
 
 
 class GameMoveModal(discord.ui.Modal, title="Checkers Move"):
@@ -54,13 +55,8 @@ class GameView(discord.ui.View):
         await interaction.response.send_modal(GameMoveModal(self.game, interaction))
 
     async def help(self, interaction: discord.Interaction):
-        embed = discord.Embed(title="⛃ Checkers Rules", color=0xDD2E44)
-        embed.description = "This variant of checkers, often known as English draughts or American checkers, has the following rules:"
-        embed.description += "\n1. Players take turns moving their pieces diagonally forward."
-        embed.description += "\n2. If you can jump and capture an opponent’s piece by jumping over it, you have to do it."
-        embed.description += "\n3. You may also jump over multiple pieces in sequence in a single move."
-        embed.description += "\n4. When a piece reaches the far side, it becomes a “king” and can move backwards and forwards."
-        embed.description += "\n5. You win after capturing all your opponent's pieces or blocking all of them from moving."
+        instructions = INSTRUCTIONS[self.game.board.variant]
+        embed = discord.Embed(title="⛃ Checkers Rules", description=instructions, color=0xDD2E44)
         embed.add_field(name="Move notation", value="A move is separated by spaces, starting with the piece you want to move and listing every jump along its path." +
                         "\n__Examples:__ `12 16` (single move forward), `22 13 6` (capture two pieces)", inline=True)
         await interaction.response.send_message(embed=embed, ephemeral=True)

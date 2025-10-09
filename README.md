@@ -34,6 +34,12 @@ Lets anyone steal emojis and stickers sent by other people, and lets moderators 
 
 ![demonstration](https://i.imgur.com/Mj4jbGo.png)
 
+### 🎌 EasyTranslate
+
+A simple and unobtrusive translation cog with support for context menus and autocomplete. Choose your primary language with `/setmylanguage` then right click any message to find the Translate button. Alternatively use `/translate` to send a message in a different language. Heavily modified version of the translate cog from ob13-cogs.
+
+![demonstration](https://i.imgur.com/zlc5BVJ.gif)
+
 ### ♟️ SimpleChess
 
 Play Chess against your friends or the bot, or make bots play against each other. Uses [Sunfish](https://github.com/thomasahle/sunfish) as the chess engine, which has an ELO of around 1900, but the difficulty can be lowered when using the slash command. Only one game may be active per channel, but it works in threads.
@@ -42,15 +48,9 @@ Play Chess against your friends or the bot, or make bots play against each other
 
 ### 🔴 SimpleCheckers
 
-Play Checkers against your friends or the bot, or make bots play against each other. The engine is a simple minimax algorithm, but may still pose a challenge to most people. Only one game may be active per channel, but it works in threads.
+Play Checkers against your friends or the bot, or make bots play against each other. The only variant available right now is English Draughts (also known as American Checkers), but if you want to play a different variant of chess let me know and I might add it. The checkers AI is a simple minimax algorithm, but it may still pose a challenge to most people. Only one game may be active per channel, but it works in threads.
 
-![demonstration](https://i.imgur.com/yeIXktH.png)
-
-### 🎌 EasyTranslate
-
-A simple and unobtrusive translation cog with support for context menus and autocomplete. Choose your primary language with `/setmylanguage` then right click any message to find the Translate button. Alternatively use `/translate` to send a message in a different language. Heavily modified version of the translate cog from ob13-cogs.
-
-![demonstration](https://i.imgur.com/zlc5BVJ.gif)
+![demonstration](https://i.imgur.com/bhhBB5d.png)
 
 ### 🎤 VoiceLog
 

@@ -105,7 +105,7 @@ class CheckersGame(BaseCheckersGame):
             
     async def generate_board_image(self) -> BytesIO:
         overlay_path = str(bundled_data_path(self.cog) / "overlay.png")
-        arrows = self.last_arrows if not self.is_finished() else []
+        arrows = self.last_arrows if not self.is_cancelled() else []
         b = await asyncio.to_thread(board_to_png, self.board, overlay_path, arrows)
         return BytesIO(b)
 
