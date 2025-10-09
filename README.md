@@ -56,7 +56,7 @@ Play Chess against your friends or the bot itself. You can also make your bots p
 
 ### 🔴 SimpleCheckers
 
-Play Checkers/Draughts against your friends or the bot itself. You can also make your bots play against each other. The only variant available right now is English Draughts (also known as American Checkers), but if you want to play a different variant of chess let me know and I might add it. The checkers AI used here is a simple minimax algorithm, but it may still pose a challenge to most people.
+Play Checkers/Draughts against your friends or the bot itself. You can also make your bots play against each other. The only variant available right now is English Draughts (also known as American Checkers), but if you want to play a different variant let me know and I might add it. The checkers AI used here is a simple minimax algorithm, but it may still pose a challenge to most people.
 
 ![demonstration](https://i.imgur.com/bhhBB5d.png)
 
