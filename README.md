@@ -44,7 +44,7 @@ Only one game of each type may be active per channel, but it works in threads, a
 
 ### 🕹️ Minigames
 
-Features **Connect 4** and **Tic-Tac-Toe**, which you can play against your friends or the bot itself with button interactions. The AI is simple and can be beaten with practice.
+Features **Connect 4** and **Tic-Tac-Toe**, which you can play against your friends or the bot itself. The AI is simple and can be beaten with practice.
 
 ![demonstration](https://i.imgur.com/llfbOG6.png)
 
