@@ -77,6 +77,7 @@ class CheckersGame(BaseCheckersGame):
             await self.cog.config.channel(self.channel).game.set(self.board.fen)
             await self.cog.config.channel(self.channel).variant.set(self.board.variant)
             await self.cog.config.channel(self.channel).players.set([player.id for player in self.players])
+            await self.cog.config.channel(self.channel).time.set(self.time)
 
     async def move_user(self, move_str: str) -> Tuple[bool, str]:
         try:
