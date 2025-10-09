@@ -60,6 +60,7 @@ class CheckersGame(BaseCheckersGame):
             # make one of the AIs surrender on user cancel
             white_pieces = self.count_pieces(draughts.WHITE)
             black_pieces = self.count_pieces(draughts.BLACK)
+            log.info(f"{white_pieces=} {black_pieces=}")
             if white_pieces < 5 and white_pieces < black_pieces:
                 self.surrendered = self.member(draughts.WHITE)
             elif black_pieces < 5 and black_pieces < white_pieces:
