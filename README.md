@@ -16,17 +16,15 @@ To add one of these cogs to your instance of Red, send the following commands on
 
 You may be prompted to respond with "I agree" after the second command.
 
+# Utility cogs
+
+These may prove the most useful to most people.
+
 ### 🎵 AudioSlash
 
 Converts many Audio cog commands into slash commands. The fun part is it will autocomplete YouTube search results as well as available playlists. It will also offer convenient options such as making `bumpplay` a setting of `/play` and offering shuffle with `/playlist play`.
 
 ![demonstration](https://i.imgur.com/EDJybmH.png)
-
-### 🕹️ Minigames
-
-Features **Connect 4** and **Tic-Tac-Toe**, which you can play against your friends or the bot itself. Only one game may be active per channel, but it works in threads.
-
-![demonstration](https://i.imgur.com/llfbOG6.png)
 
 ### 😶 EmojiSteal
 
@@ -34,17 +32,35 @@ Lets anyone steal emojis and stickers sent by other people, and lets moderators 
 
 ![demonstration](https://i.imgur.com/Mj4jbGo.png)
 
-### ♟️ SimpleChess
-
-Play Chess against your friends or the bot, or make bots play against each other. Uses [Sunfish](https://github.com/thomasahle/sunfish) as the chess engine, which has an ELO of around 2000. Only one game may be active per channel, but it works in threads.
-
-![demonstration](https://i.imgur.com/6IleFWa.png)
-
 ### 🎌 EasyTranslate
 
 A simple and unobtrusive translation cog with support for context menus and autocomplete. Choose your primary language with `/setmylanguage` then right click any message to find the Translate button. Alternatively use `/translate` to send a message in a different language. Heavily modified version of the translate cog from ob13-cogs.
 
 ![demonstration](https://i.imgur.com/zlc5BVJ.gif)
+
+# Game cogs
+
+Only one game of each type may be active per channel, but it works in threads, and inactive games may be ended by any user. Chess and Checkers games persist after a bot restart.
+
+### 🕹️ Minigames
+
+Features **Connect 4** and **Tic-Tac-Toe**, which you can play against your friends or the bot itself. The AI is simple and can be beaten with practice.
+
+![demonstration](https://i.imgur.com/llfbOG6.png)
+
+### ♟️ SimpleChess
+
+Play Chess against your friends or the bot itself. You can also make your bots play against each other. Uses [Sunfish](https://github.com/thomasahle/sunfish) as the chess engine (AI), which has an ELO of around 1900, but the difficulty can be lowered when using the slash command.
+
+![demonstration](https://i.imgur.com/6IleFWa.png)
+
+### 🔴 SimpleCheckers
+
+Play Checkers/Draughts against your friends or the bot itself. You can also make your bots play against each other. The only variant available right now is English Draughts (also known as American Checkers), but if you want to play a different variant of chess let me know and I might add it. The checkers AI used here is a simple minimax algorithm, but it may still pose a challenge to most people.
+
+![demonstration](https://i.imgur.com/bhhBB5d.png)
+
+# Other cogs
 
 ### 🎤 VoiceLog
 
@@ -112,7 +128,7 @@ Connects to OpenAI's Dall-E 3 and newer models to generate images. Requires an a
 
 ### 🖼 NovelAI
 
-Connects to this AI anime generation service  to generate images with novelai3. Most parameters are available, as well as img2img. Requires a subscription. Connects with ImageScanner and ImageLog.
+Connects to this AI anime generation service to generate images with novelai3. If you want it updated let me know. Most parameters are available, as well as img2img. Requires a subscription. Connects with ImageScanner and ImageLog.
 
 **⚠️ Usage Warning:** This cog is capable of generating NSFW content. Be mindful.
 
