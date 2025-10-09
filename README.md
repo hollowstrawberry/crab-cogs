@@ -40,25 +40,23 @@ A simple and unobtrusive translation cog with support for context menus and auto
 
 # Game cogs
 
-You can play these games against your friends or the bot itself. You can also make bots play Chess or Checkers against each other.
-
 Only one game of each type may be active per channel, but it works in threads, and inactive games may be ended by any user. Chess and Checkers games persist after a bot restart.
 
 ### 🕹️ Minigames
 
-Features **Connect 4** and **Tic-Tac-Toe**. The AI is simple and can be beaten with practice.
+Features **Connect 4** and **Tic-Tac-Toe**, which you can play against your friends or the bot itself with button interactions. The AI is simple and can be beaten with practice.
 
 ![demonstration](https://i.imgur.com/llfbOG6.png)
 
 ### ♟️ SimpleChess
 
-Uses [Sunfish](https://github.com/thomasahle/sunfish) as the chess engine (AI), which has an ELO of around 1900, but the difficulty can be lowered when using the slash command.
+Play Chess against your friends or the bot itself. You can also make your bots play against each other. Uses [Sunfish](https://github.com/thomasahle/sunfish) as the chess engine (AI), which has an ELO of around 1900, but the difficulty can be lowered when using the slash command.
 
 ![demonstration](https://i.imgur.com/6IleFWa.png)
 
 ### 🔴 SimpleCheckers
 
-The only variant available right now is English Draughts (also known as American Checkers), but if you want to play a different variant of chess let me know and I might add it. The checkers AI used here is a simple minimax algorithm, but it may still pose a challenge to most people.
+Play Checkers/Draughts against your friends or the bot itself. You can also make your bots play against each other. The only variant available right now is English Draughts (also known as American Checkers), but if you want to play a different variant of chess let me know and I might add it. The checkers AI used here is a simple minimax algorithm, but it may still pose a challenge to most people.
 
 ![demonstration](https://i.imgur.com/bhhBB5d.png)
 
