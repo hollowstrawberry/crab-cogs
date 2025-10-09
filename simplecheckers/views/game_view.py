@@ -15,8 +15,8 @@ class GameMoveModal(discord.ui.Modal, title="Checkers Move"):
 
     async def on_submit(self, interaction: discord.Interaction):
         assert isinstance(self.move.component, discord.ui.TextInput)
-        move = self.move.component.value
-        success, message = await self.game.move_user(move.strip())
+        move = self.move.component.value.replace(",", " ").replace("-", " ").replace("x", " ").strip()
+        success, message = await self.game.move_user(move)
         if not success:
             return await interaction.response.send_message(message, ephemeral=True)
         else:
