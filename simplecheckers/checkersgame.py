@@ -56,15 +56,6 @@ class CheckersGame(BaseCheckersGame):
         self.cancelled = True
         if member in self.players:
             self.surrendered = member
-        elif all(p.bot for p in self.players):
-            # make one of the AIs surrender on user cancel
-            white_pieces = self.count_pieces(draughts.WHITE)
-            black_pieces = self.count_pieces(draughts.BLACK)
-            log.info(f"{white_pieces=} {black_pieces=}")
-            if white_pieces < 5 and white_pieces < black_pieces:
-                self.surrendered = self.member(draughts.WHITE)
-            elif black_pieces < 5 and black_pieces < white_pieces:
-                self.surrendered = self.member(draughts.BLACK)
         await self.update_state()
             
     async def update_state(self):
@@ -87,11 +78,21 @@ class CheckersGame(BaseCheckersGame):
         self.last_arrows = move_lst
         self.time += 1
         self.last_interacted = datetime.now()
+
+        # make one of the AIs surrender
+        if all(p.bot for p in self.players):
+            white_pieces = self.count_pieces(draughts.WHITE)
+            black_pieces = self.count_pieces(draughts.BLACK)
+            if white_pieces <= 3 and white_pieces < black_pieces:
+                self.surrendered = self.member(draughts.WHITE)
+            elif black_pieces <= 3 and black_pieces < white_pieces:
+                self.surrendered = self.member(draughts.BLACK)
+
         await self.update_state()
         return True, ""
     
     async def move_engine(self):
-        agent = MinimaxAgent(self.board.turn) if self.member(self.board.turn) == self.channel.guild.me else MinimaxAgentOld(self.board.turn)
+        agent = MinimaxAgentOld(self.board.turn) if self.member(self.board.turn) == self.channel.guild.me else MinimaxAgent(self.board.turn)
         move = await asyncio.to_thread(agent.choose_move, self.board, 6, 1.0)
         if not move:
             raise ValueError("Agent failed to make a move")
