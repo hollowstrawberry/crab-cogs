@@ -52,7 +52,7 @@ class CheckersGame(BaseCheckersGame):
             return board_str.count("b") + board_str.count("B")
         
     def check_ai_surrender(self):
-        if self.time > 60 and all(p.bot for p in self.players):
+        if self.time >= 100 and all(p.bot for p in self.players):
             white_pieces = self.count_pieces(draughts.WHITE)
             black_pieces = self.count_pieces(draughts.BLACK)
             if white_pieces <= 3 and white_pieces < black_pieces:
