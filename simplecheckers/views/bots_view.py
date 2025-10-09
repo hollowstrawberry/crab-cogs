@@ -23,7 +23,7 @@ class BotsView(discord.ui.View):
 
     async def move(self, interaction: discord.Interaction):
         self.stop()
-        await interaction.response.edit_message(view=ThinkingView())
+        await interaction.response.edit_message(view=ThinkingView(self.game))
         await self.game.move_engine()
         #await asyncio.sleep(0.5) # slow down spam clicking
         await self.game.update_message(interaction)

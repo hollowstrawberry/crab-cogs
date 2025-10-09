@@ -119,7 +119,7 @@ class CheckersGame(BaseCheckersGame):
         else:
             view = InviteView(self) if not self.accepted \
                 else RematchView(self) if self.is_finished() \
-                else ThinkingView() if self.member(self.board.turn).bot \
+                else ThinkingView(self) if self.member(self.board.turn).bot \
                 else GameView(self)
 
         filename = "board.png"
