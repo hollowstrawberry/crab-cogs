@@ -80,7 +80,7 @@ class CheckersGame(BaseCheckersGame):
         self.last_interacted = datetime.now()
 
         # make one of the AIs surrender
-        if all(p.bot for p in self.players):
+        if self.time > 60 and all(p.bot for p in self.players):
             white_pieces = self.count_pieces(draughts.WHITE)
             black_pieces = self.count_pieces(draughts.BLACK)
             if white_pieces <= 3 and white_pieces < black_pieces:
