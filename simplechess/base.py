@@ -14,7 +14,13 @@ class BaseChessCog(commands.Cog):
         self.games: Dict[int, BaseChessGame] = {}
         self.engine: Optional[chess.engine.UciProtocol] = None
         self.config = Config.get_conf(self, identifier=766969962064)
-        self.config.register_channel(game=None, message=0, players=[], depth=None)
+        default_game = {
+            "game": None,
+            "message": 0,
+            "players": [],
+            "depth": None,
+        }
+        self.config.register_channel(**default_game)
 
     @abstractmethod
     async def chess_new(self, ctx: Union[commands.Context, discord.Interaction], opponent: Optional[discord.Member], depth: Optional[int] = None):
