@@ -12,7 +12,14 @@ class BaseCheckersCog(commands.Cog):
         self.bot = bot
         self.games: Dict[int, BaseCheckersGame] = {}
         self.config = Config.get_conf(self, identifier=766969962065)
-        self.config.register_channel(game=None, message=0, variant="english", players=[])
+        default_game = {
+            "game": None,
+            "message": 0,
+            "variant": "english",
+            "players": [],
+            "time": 0,
+        }
+        self.config.register_channel(**default_game)
 
     @abstractmethod
     async def checkers_new(self, ctx: Union[commands.Context, discord.Interaction], opponent: Optional[discord.Member]):

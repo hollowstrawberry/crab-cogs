@@ -34,7 +34,7 @@ class SimpleCheckers(BaseCheckersCog):
                 players: List[discord.Member] = [channel.guild.get_member(user_id) for user_id in config["players"]] # type: ignore
                 if any(player is None for player in players):
                     continue
-                game = CheckersGame(self, players, channel, config["variant"], config["game"])
+                game = CheckersGame(self, players, channel, config["variant"], config["game"], config["time"])
                 self.games[channel.id] = game
                 view = BotsView(game) if all(p.bot for p in players) else GameView(game)
                 self.bot.add_view(view)

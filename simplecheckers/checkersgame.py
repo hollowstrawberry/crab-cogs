@@ -24,12 +24,12 @@ COLOR_TIE = 0x78B159
 
 
 class CheckersGame(BaseCheckersGame):
-    def __init__(self, cog: BaseCheckersCog, players: List[discord.Member], channel: discord.TextChannel, variant: str, initial_state: str = None):
+    def __init__(self, cog: BaseCheckersCog, players: List[discord.Member], channel: discord.TextChannel, variant: str, initial_state: str = None, initial_time: int = 0):
         super().__init__(cog, players, channel, variant, initial_state)
         self.accepted = initial_state is not None
         self.cancelled = False
         self.surrendered: Optional[discord.Member] = None
-        self.time = 0
+        self.time = initial_time
         self.last_arrows: List[int] = []
     
     def accept(self):
@@ -50,6 +50,17 @@ class CheckersGame(BaseCheckersGame):
             return board_str.count("w") + board_str.count("W")
         else:
             return board_str.count("b") + board_str.count("B")
+        
+    def check_ai_surrender(self):
+        if self.time > 60 and all(p.bot for p in self.players):
+            white_pieces = self.count_pieces(draughts.WHITE)
+            black_pieces = self.count_pieces(draughts.BLACK)
+            if white_pieces <= 3 and white_pieces < black_pieces:
+                self.surrendered = self.member(draughts.WHITE)
+                self.cancelled = True
+            elif black_pieces <= 3 and black_pieces < white_pieces:
+                self.surrendered = self.member(draughts.BLACK)
+                self.cancelled = True
     
     async def cancel(self, member: Optional[discord.Member]):
         self.cancelled = True
@@ -68,8 +79,8 @@ class CheckersGame(BaseCheckersGame):
             await self.cog.config.channel(self.channel).players.set([player.id for player in self.players])
 
     async def move_user(self, move_str: str) -> Tuple[bool, str]:
-        move_lst = [int(m) for m in move_str.split()]
         try:
+            move_lst = [int(m) for m in move_str.split()]
             move = draughts.Move(self.board, steps_move=move_lst)
             self.board.push(move)
         except (ValueError, KeyError, IndexError):
@@ -77,18 +88,7 @@ class CheckersGame(BaseCheckersGame):
         self.last_arrows = move_lst
         self.time += 1
         self.last_interacted = datetime.now()
-
-        # make one of the AIs surrender
-        if self.time > 60 and all(p.bot for p in self.players):
-            white_pieces = self.count_pieces(draughts.WHITE)
-            black_pieces = self.count_pieces(draughts.BLACK)
-            if white_pieces <= 3 and white_pieces < black_pieces:
-                self.surrendered = self.member(draughts.WHITE)
-                self.cancelled = True
-            elif black_pieces <= 3 and black_pieces < white_pieces:
-                self.surrendered = self.member(draughts.BLACK)
-                self.cancelled = True
-
+        self.check_ai_surrender()
         await self.update_state()
         return True, ""
     
