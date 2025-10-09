@@ -85,8 +85,10 @@ class CheckersGame(BaseCheckersGame):
             black_pieces = self.count_pieces(draughts.BLACK)
             if white_pieces <= 3 and white_pieces < black_pieces:
                 self.surrendered = self.member(draughts.WHITE)
+                self.cancelled = True
             elif black_pieces <= 3 and black_pieces < white_pieces:
                 self.surrendered = self.member(draughts.BLACK)
+                self.cancelled = True
 
         await self.update_state()
         return True, ""
