@@ -37,10 +37,10 @@ MAX_OPTIONS = 25
 MAX_OPTION_SIZE = 100
 
 async def extract_info(ydl: YoutubeDL, url: str) -> dict:
-    return await asyncio.to_thread(ydl.extract_info, url, False)  # noqa
+    return await asyncio.to_thread(ydl.extract_info, url, False)  # type: ignore
 
 async def download_video(ydl: YoutubeDL, url: str) -> dict:
-    return await asyncio.to_thread(ydl.extract_info, url)  # noqa
+    return await asyncio.to_thread(ydl.extract_info, url)  # type: ignore
 
 def format_youtube(res: dict) -> str:
     if res.get("duration", None):
@@ -69,13 +69,13 @@ class AudioSlash(Cog):
         self.config.register_guild(**{"backup_mode": False})
 
     async def get_audio_cog(self, inter: discord.Interaction) -> Optional[Audio]:
-        cog: Optional[Audio] = self.bot.get_cog("Audio")
+        cog: Optional[Audio] = self.bot.get_cog("Audio")  # type: ignore
         if cog:
             return cog
         await inter.response.send_message("Audio cog not loaded! Contact the bot owner for more information.", ephemeral=True)
 
     async def get_context(self, inter: discord.Interaction, cog: Audio) -> commands.Context:
-        ctx: commands.Context = await self.bot.get_context(inter)  # noqa
+        ctx: commands.Context = await self.bot.get_context(inter)
         ctx.command.cog = cog
         return ctx
 
@@ -86,7 +86,7 @@ class AudioSlash(Cog):
         fake_message.content = prefix + command_name
         command = ctx.bot.get_command(command_name)
         ctx.command = command  # Automatically bind the correct command object to the parent context
-        fake_context: commands.Context = await ctx.bot.get_context(fake_message)  # noqa
+        fake_context: commands.Context = await ctx.bot.get_context(fake_message)
         try:
             can = await command.can_run(fake_context, check_all_parents=True, change_permission_state=False)
         except commands.CommandError:
@@ -108,6 +108,7 @@ class AudioSlash(Cog):
         if not (audio := await self.get_audio_cog(inter)):
             return
         ctx = await self.get_context(inter, audio)
+        assert ctx.guild
         search = search.strip()
 
         if await self.config.guild(ctx.guild).backup_mode():
@@ -126,7 +127,7 @@ class AudioSlash(Cog):
                     search = "ytsearch1:" + search
     
                 (audio.local_folder_current_path / DOWNLOAD_FOLDER).mkdir(parents=True, exist_ok=True)
-                ydl = YoutubeDL(EXTRACT_CONFIG)
+                ydl = YoutubeDL(EXTRACT_CONFIG)  # type: ignore
                 video_info = await extract_info(ydl, search)
                 if video_info.get("entries", None):
                     video_info = video_info["entries"][0]
@@ -135,10 +136,10 @@ class AudioSlash(Cog):
                     await ctx.send("Video too long or invalid!")
                     return
         
-                filename = ydl.prepare_filename(video_info)
+                filename = ydl.prepare_filename(video_info)  # type: ignore
                 if not os.path.exists(filename):
                     await ctx.send(f"Downloading `{filename}` ...")
-                    ydl = YoutubeDL(DOWNLOAD_CONFIG)
+                    ydl = YoutubeDL(DOWNLOAD_CONFIG)  # type: ignore
                     os.chdir(audio.local_folder_current_path / DOWNLOAD_FOLDER)
                     await download_video(ydl, search)
                     
@@ -223,6 +224,7 @@ class AudioSlash(Cog):
         if not (audio := await self.get_audio_cog(inter)):
             return
         ctx = await self.get_context(inter, audio)
+        assert ctx.guild
         value = bool(int(toggle))
         if value != await audio.config.guild(ctx.guild).shuffle():
             if not await self.can_run_command(ctx, "shuffle"):
@@ -241,6 +243,7 @@ class AudioSlash(Cog):
         if not (audio := await self.get_audio_cog(inter)):
             return
         ctx = await self.get_context(inter, audio)
+        assert ctx.guild
         value = bool(int(toggle))
         if value != await audio.config.guild(ctx.guild).repeat():
             if not await self.can_run_command(ctx, "repeat"):
@@ -258,8 +261,8 @@ class AudioSlash(Cog):
                        app_commands.Choice(name="Global", value="GLOBALPLAYLIST")]
 
     @staticmethod
-    def get_scope_data(scope: str, ctx: commands.Context) -> ScopeParser:
-        return [scope, ctx.author, ctx.guild, False]  # noqa
+    def get_scope_data(scope: Optional[str], ctx: commands.Context) -> ScopeParser:
+        return [scope, ctx.author, ctx.guild, False]  # type: ignore
 
     @playlist.command(name="play")
     @app_commands.describe(playlist="The name of the playlist.",
@@ -269,6 +272,7 @@ class AudioSlash(Cog):
         if not (audio := await self.get_audio_cog(inter)):
             return
         ctx = await self.get_context(inter, audio)
+        assert ctx.guild and isinstance(ctx.author, discord.Member)
         if not await self.can_run_command(ctx, "playlist play"):
             return       
         enabled = False
@@ -374,6 +378,7 @@ class AudioSlash(Cog):
             return [app_commands.Choice(name="Autocomplete error. Please contact the bot owner.", value=".")]
 
     async def _youtube_autocomplete(self, inter: discord.Interaction, current: str):
+        assert inter.guild
         lst = []
 
         if await self.config.guild(inter.guild).backup_mode():
@@ -394,7 +399,7 @@ class AudioSlash(Cog):
             return lst[:MAX_OPTIONS]
 
         try:
-            ydl = YoutubeDL(EXTRACT_CONFIG)
+            ydl = YoutubeDL(EXTRACT_CONFIG)  # type: ignore
             results = await extract_info(ydl, f"ytsearch{MAX_OPTIONS - len(lst)}:{current}")
             lst += [app_commands.Choice(name=format_youtube(res), value=res["url"]) for res in results["entries"]]
         except YoutubeDLError:
@@ -416,7 +421,7 @@ class AudioSlash(Cog):
             return [app_commands.Choice(name="Autocomplete error. Please contact the bot owner.", value=".")]
 
     async def _playlist_autocomplete(self, inter: discord.Interaction, current: str):
-        audio: Optional[Audio] = self.bot.get_cog("Audio")
+        audio: Optional[Audio] = self.bot.get_cog("Audio")  # type: ignore
         if not audio or not audio.playlist_api:
             return []
 
@@ -441,10 +446,11 @@ class AudioSlash(Cog):
         return [app_commands.Choice(name=pl, value=pl) for pl in results][:MAX_OPTIONS]
 
 
-    @commands.command(name="audioslashbackupmode", hidden=True)
     @commands.is_owner()
+    @commands.command(name="audioslashbackupmode", hidden=True)
     async def audioslashbackupmode(self, ctx: commands.Context, value: Optional[bool]):
         """Not intended for public use. If audio stopped working, enabling this will download YouTube tracks locally."""
+        assert ctx.guild
         if value is None:
             value = await self.config.guild(ctx.guild).backup_mode()
         else:

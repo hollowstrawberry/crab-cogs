@@ -63,7 +63,7 @@ class EasyTranslate(commands.Cog):
         if language in ("zh", "ch", "chinese"):
             language = "chinese (simplified)"
         if language not in googletrans.LANGUAGES.values():
-            language = None
+            language = ""
         return language
 
     @staticmethod
@@ -88,19 +88,21 @@ class EasyTranslate(commands.Cog):
     async def translate(self, ctx: Union[commands.Context, discord.Interaction],
                         language: str, *, content: str = None, message: discord.Message = None):
         """Translates a message or string and responds in the provided context."""
+        assert isinstance(ctx.channel, discord.TextChannel)
         if not (language := self.convert_language(language)):
-            return await ctx.send(LANGUAGE_NOT_FOUND)
+            return await ctx.channel.send(LANGUAGE_NOT_FOUND)
         if not content and not message:
-            reference = ctx.message.reference
+            reference = ctx.message.reference if ctx.message else None
             if not reference:
-                return await ctx.send(MISSING_INPUTS)
-            message = reference.resolved or reference.cached_message or await ctx.channel.fetch_message(reference.message_id)
+                return await ctx.channel.send(MISSING_INPUTS)
+            message = reference.resolved or reference.cached_message or await ctx.channel.fetch_message(reference.message_id) # type: ignore
             if not message:
-                return await ctx.send(MISSING_INPUTS)
+                return await ctx.channel.send(MISSING_INPUTS)
+        assert message
         if not content:
             content = message.content
             for embed in [e for e in message.embeds if e.description]:
-                content += '\n' + embed.description
+                content += '\n' + (embed.description or "")
         content = self.convert_input(content)
         try:
             result: Translated = await asyncio.to_thread(self.translator.translate, content, language, "auto")
@@ -113,8 +115,8 @@ class EasyTranslate(commands.Cog):
                 return await ctx.send(embed=fail_embed)
 
         embed = discord.Embed(description=result.text[:3990], color=await self.bot.get_embed_color(ctx.channel))
-        source_language_name = googletrans.LANGUAGES.get(result.src.lower(), result.src).title()
-        dest_language_name = googletrans.LANGUAGES.get(result.dest.lower(), result.dest).title()
+        source_language_name = googletrans.LANGUAGES.get(result.src.lower(), str(result.src)).title()
+        dest_language_name = googletrans.LANGUAGES.get(result.dest.lower(), str(result.dest)).title()
         embed.set_footer(text=f"{source_language_name} → {dest_language_name}")
 
         if isinstance(ctx, discord.Interaction):
@@ -142,7 +144,7 @@ class EasyTranslate(commands.Cog):
         await self.translate(ctx, language, message=message)
 
     @commands.bot_has_permissions(embed_links=True)
-    @translate_automatic.command(name="to")
+    @translate_automatic.command(name="to")  # type: ignore
     async def translate_to(self, ctx: commands.Context, to: str, *, optional_input: str = ""):
         """Translate something into a specific language. Can also reply to a message to translate it."""
         await self.translate(ctx, to, content=optional_input)

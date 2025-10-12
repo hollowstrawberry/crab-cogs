@@ -1,9 +1,8 @@
 import re
-
-import discord
 import logging
-from random import random
+import discord
 from emoji import is_emoji
+from random import random
 from typing import Dict, Optional, Union
 from redbot.core import commands, Config
 from redbot.core.bot import Red
@@ -104,6 +103,7 @@ class Autoreact(commands.Cog):
         WARNING: Some regex patterns have the possibility of running infinitely, freezing the entire bot.
         Please research catastrophic backtracking.
         """
+        assert ctx.guild
         pattern = pattern.strip()
         if isinstance(emoji, str) and not is_emoji(emoji) and not is_regional_indicator(emoji):
             await ctx.send("Sorry, that doesn't seem to be a valid emoji to react with.")
@@ -117,21 +117,22 @@ class Autoreact(commands.Cog):
         if pattern.startswith('`') and pattern.endswith('`'):
             pattern = pattern.strip('`').strip()
         try:
-            pattern = re.compile(pattern)
+            re_pattern = re.compile(pattern)
         except Exception as error:
             await ctx.send(f"Invalid regex pattern: {error}")
             return
         emoji = str(emoji)
         self.autoreacts.setdefault(ctx.guild.id, {})
         async with self.config.guild(ctx.guild).autoreact_regexes() as autoreacts:
-            autoreacts[emoji] = pattern.pattern
-            self.autoreacts[ctx.guild.id][emoji] = pattern
+            autoreacts[emoji] = re_pattern.pattern
+            self.autoreacts[ctx.guild.id][emoji] = re_pattern
             await ctx.tick(message="Regex added")
 
     @autoreact.command()
     @commands.has_permissions(manage_guild=True)
     async def remove(self, ctx: commands.Context, emoji: Union[discord.Emoji, str]):
         """Remove an existing autoreact for an emoji."""
+        assert ctx.guild
         if isinstance(emoji, str) and not is_emoji(emoji) and not is_regional_indicator(emoji):
             await ctx.send("Sorry, that doesn't seem to be a valid emoji. "
                            "If the emoji was deleted, trigger the autoreact to remove it automatically.")
@@ -150,6 +151,7 @@ class Autoreact(commands.Cog):
     @commands.bot_has_permissions(embed_links=True)
     async def list(self, ctx: commands.Context):
         """Shows all autoreacts."""
+        assert ctx.guild
         if ctx.guild.id not in self.autoreacts or not self.autoreacts[ctx.guild.id]:
             return await ctx.send("None.")
         autoreacts = [f"{emoji} {regex.pattern if '`' in regex.pattern else f'`{regex.pattern}`'}"
@@ -163,7 +165,7 @@ class Autoreact(commands.Cog):
             pages.append(embed)
         await SimpleMenu(pages, timeout=300).start(ctx)
         
-    @commands.group(invoke_without_command=True)
+    @commands.group(invoke_without_command=True)  # type: ignore
     @commands.has_permissions(manage_guild=True)
     async def coreact(self, ctx: commands.Context):
         """Copies other people's reactions to recent messages."""
@@ -172,6 +174,7 @@ class Autoreact(commands.Cog):
     @coreact.command()
     async def chance(self, ctx: commands.Context, chance: Optional[float]):
         """The percent chance that the bot will add its own reaction when anyone else reacts."""
+        assert ctx.guild
         if chance is None:
             return await ctx.send(f"The current chance is {self.coreact_chance.get(ctx.guild.id, 0.0) * 100:.2f}%")
         chance = max(0.0, min(100.0, chance)) / 100

@@ -60,9 +60,9 @@ class EmojiSteal(commands.Cog):
         current_emojis = len([em for em in guild.emojis if em.animated == animated])
         return guild.emoji_limit - current_emojis
 
-    async def steal_ctx(self, ctx: commands.Context) -> Optional[List[Union[discord.PartialEmoji, discord.StickerItem]]]:
+    async def steal_ctx(self, ctx: commands.Context) -> Optional[Union[List[discord.PartialEmoji], List[discord.StickerItem]]]:
         reference = ctx.message.reference
-        if not reference:
+        if not reference or not reference.message_id:
             await ctx.send(MISSING_REFERENCE)
             return None
         message = await ctx.channel.fetch_message(reference.message_id)
@@ -103,14 +103,15 @@ class EmojiSteal(commands.Cog):
     @commands.bot_has_permissions(manage_emojis=True, add_reactions=True)
     async def steal_upload_command(self, ctx: commands.Context, *names: str):
         """Steals emojis and stickers you reply to and uploads them to this server."""
-        if not (emojis := await self.steal_ctx(ctx)):
+        assert ctx.guild
+        if not (emojis_or_stickers := await self.steal_ctx(ctx)):
             return
         
-        if isinstance(emojis[0], discord.StickerItem):
+        if isinstance(emojis_or_stickers[0], discord.StickerItem):
             if len(ctx.guild.stickers) >= ctx.guild.sticker_limit:
                 return await ctx.send(STICKER_SLOTS)
 
-            sticker = emojis[0]
+            sticker = emojis_or_stickers[0]
             fp = io.BytesIO()
 
             try:
@@ -123,12 +124,12 @@ class EmojiSteal(commands.Cog):
 
             return await ctx.send(f"{STICKER_SUCCESS}: {sticker.name}")
         
-        names = [''.join(re.findall(r"\w+", name)) for name in names]
-        names = [name if len(name) >= 2 else None for name in names]
-        emojis = list(dict.fromkeys(emojis))
+        final_names = [''.join(re.findall(r"\w+", name)) for name in names]
+        final_names = [name if len(name) >= 2 else None for name in final_names]
+        emojis: List[discord.PartialEmoji] = list(dict.fromkeys(emojis_or_stickers))  # type: ignore
 
         async with aiohttp.ClientSession() as session:
-            for emoji, name in zip_longest(emojis, names):
+            for emoji, name in zip_longest(emojis, final_names):
                 if not self.available_emoji_slots(ctx.guild, emoji.animated):
                     return await ctx.send(EMOJI_SLOTS)
                 if not emoji:
@@ -154,20 +155,23 @@ class EmojiSteal(commands.Cog):
     @app_commands.checks.has_permissions(manage_emojis=True)
     @app_commands.checks.bot_has_permissions(manage_emojis=True)
     async def steal_upload_app_command(self, ctx: discord.Interaction, message: discord.Message):
+        assert ctx.guild
         if message.stickers:
-            emojis: List[Union[discord.PartialEmoji, discord.StickerItem]] = message.stickers
-        elif not (emojis := self.get_emojis(message.content)):
+            emojis_or_stickers = message.stickers
+        else:
+            emojis_or_stickers = self.get_emojis(message.content)
+
+        if not emojis_or_stickers:
             return await ctx.response.send_message(MISSING_EMOJIS, ephemeral=True)
         
         await ctx.response.defer(thinking=True)
         
-        if isinstance(emojis[0], discord.StickerItem):
+        if isinstance(emojis_or_stickers[0], discord.StickerItem):
             if len(ctx.guild.stickers) >= ctx.guild.sticker_limit:
                 return await ctx.edit_original_response(content=STICKER_SLOTS)
 
-            sticker = emojis[0]
+            sticker = emojis_or_stickers[0]
             fp = io.BytesIO()
-
             try:
                 await sticker.save(fp)
                 await ctx.guild.create_sticker(
@@ -179,7 +183,7 @@ class EmojiSteal(commands.Cog):
             return await ctx.edit_original_response(content=f"{STICKER_SUCCESS}: {sticker.name}")
 
         added_emojis = []
-        emojis = list(dict.fromkeys(emojis))
+        emojis: List[discord.PartialEmoji] = list(dict.fromkeys(emojis_or_stickers))  # type: ignore
         async with aiohttp.ClientSession() as session:
             for emoji in emojis:
                 if not self.available_emoji_slots(ctx.guild, emoji.animated):
@@ -220,11 +224,13 @@ class EmojiSteal(commands.Cog):
         await ctx.send('\n'.join(emoji.url for emoji in emojis))
 
 
-    @commands.command()
     @commands.has_permissions(manage_emojis=True)
     @commands.bot_has_permissions(manage_emojis=True)
+    @commands.guild_only()
+    @commands.command()
     async def uploadsticker(self, ctx: commands.Context, *, name: str = None):
         """Uploads a sticker to the server, useful for mobile."""
+        assert ctx.guild
         if len(ctx.guild.stickers) >= ctx.guild.sticker_limit:
             return await ctx.send(content=STICKER_SLOTS)
 

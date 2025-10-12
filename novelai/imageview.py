@@ -20,16 +20,19 @@ class ImageView(View):
         self.message: Optional[discord.Message] = None
 
     async def message_edit_callback(self, ctx: discord.Interaction):
+        assert ctx.message
         if not self.is_finished() and not self.deleted:
             await ctx.message.edit(view=self)
 
     @discord.ui.button(emoji="🌱", style=discord.ButtonStyle.grey)
-    async def seed(self, ctx: discord.Interaction, _: discord.Button):
+    async def seed_btn(self, ctx: discord.Interaction, _):
         embed = discord.Embed(title="Generation seed", description=f"{self.seed}", color=0x77B255)
         await ctx.response.send_message(embed=embed, ephemeral=True)
 
     @discord.ui.button(emoji="♻", style=discord.ButtonStyle.grey)
-    async def recycle(self, ctx: discord.Interaction, btn: discord.Button):
+    async def recycle(self, ctx: discord.Interaction, btn: discord.ui.Button):
+        assert ctx.message
+
         if not ctx.guild and not await self.cog.config.dm_allowed():
             return await ctx.response.send_message("Direct message use is disabled.", ephemeral=True)
     
@@ -55,7 +58,8 @@ class ImageView(View):
         await ctx.response.send_message(content=content)
 
     @discord.ui.button(emoji="🗑️", style=discord.ButtonStyle.grey)
-    async def delete(self, ctx: discord.Interaction, _: discord.Button):
+    async def delete(self, ctx: discord.Interaction, _):
+        assert ctx.message and isinstance(ctx.channel, discord.TextChannel) and isinstance(ctx.user, discord.Member)
         if ctx.message.interaction:
             original_user_id = ctx.message.interaction.user.id
         elif m := re.search(r"([0-9]+)", ctx.message.content):
@@ -88,7 +92,8 @@ class RetryView(View):
         self.message: Optional[discord.Message] = None
 
     @discord.ui.button(emoji="🔁", style=discord.ButtonStyle.grey)
-    async def retry(self, ctx: discord.Interaction, _: discord.Button):
+    async def retry(self, ctx: discord.Interaction, _):
+        assert ctx.message
         if not ctx.guild and not await self.cog.config.dm_allowed():
             return await ctx.response.send_message("Direct message use is disabled.", ephemeral=True)
     

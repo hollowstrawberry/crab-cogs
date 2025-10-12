@@ -2,15 +2,17 @@ import os
 import shutil
 import logging
 import asyncio
+import discord
 import lavalink
 from gtts import gTTS
 from typing import Optional
 from googletrans import Translator
 from discord.ext import tasks
 from redbot.core import commands
-from redbot.core.bot import Red, cog_data_path
+from redbot.core.bot import Red
+from redbot.core.data_manager import cog_data_path
 from redbot.core.commands import Cog
-from redbot.cogs.audio import Audio
+from redbot.cogs.audio.core import Audio
 
 log = logging.getLogger("red.crab-cogs.tts")
 
@@ -44,8 +46,9 @@ class TextToSpeech(Cog):
     @commands.guild_only()
     async def tts(self, ctx: commands.Context, *, text: str):
         """Speak in voice chat. Overrides music. Detects the language."""
+        assert ctx.guild
 
-        audio: Optional[Audio] = self.bot.get_cog("Audio")
+        audio: Optional[Audio] = self.bot.get_cog("Audio")  # type: ignore
         if audio is None:
             return await ctx.send("Audio cog is not loaded!")
         if not ctx.guild.me.voice:
@@ -79,7 +82,7 @@ class TextToSpeech(Cog):
 
         if player:
             await player.stop()
-        player.add(requester=ctx.author, track=load_result.tracks[0])
+        player.add(requester=ctx.author, track=load_result.tracks[0])  # type: ignore
         await player.play()
         if ctx.interaction:
             await ctx.reply("🗣")

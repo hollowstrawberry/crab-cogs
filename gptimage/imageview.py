@@ -11,8 +11,8 @@ class ImageView(View):
         self.message = message
         self.deleted = False
 
-    @discord.ui.button(emoji="♻", style=discord.ButtonStyle.grey) # type: ignore
-    async def recycle(self, ctx: discord.Interaction, btn: discord.Button):
+    @discord.ui.button(emoji="♻", style=discord.ButtonStyle.grey)
+    async def recycle(self, ctx: discord.Interaction, btn: discord.ui.Button):
         assert ctx.message
         btn.disabled = True
         await ctx.message.edit(view=self)

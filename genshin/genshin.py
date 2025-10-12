@@ -1,4 +1,5 @@
 import discord
+from typing import Union
 from random import random, choice
 from redbot.core import commands, Config
 
@@ -95,7 +96,7 @@ class Genshin(commands.Cog):
         userdata["inv"][result] = userdata["inv"].get(result, 0) + 1
         return result
 
-    async def pullx(self, user: discord.User, x: int):
+    async def pullx(self, user: Union[discord.User, discord.Member], x: int):
         userdata = await self.config.user(user).get_raw()
         pulled = []
         for _ in range(x):
