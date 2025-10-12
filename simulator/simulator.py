@@ -516,6 +516,7 @@ class Simulator(commands.Cog):
             self.message_count = self.message_count // COMMIT_SIZE * COMMIT_SIZE
             embed.title = "⚠ Simulator - Stopped"
             embed.description = "Feeding has been interrupted.\n"
+            raise
         except Exception as error:
             embed.title = "⚠ Simulator - Error"
             embed.description = f"Feeding stopped due to an error.\n"
