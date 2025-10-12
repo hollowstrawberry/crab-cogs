@@ -18,7 +18,8 @@ from aiomcrcon.errors import IncorrectPasswordError, RCONConnectionError
 
 log = logging.getLogger("red.crab-cogs.minecraft")
 
-re_username = re.compile(r"^.?\w{3,30}$")
+RE_USERNAME = re.compile(r"^.?\w{3,30}$")
+WHITELIST_RELOAD = "whitelist reload"
 
 
 class Minecraft(commands.Cog):
@@ -105,7 +106,7 @@ class Minecraft(commands.Cog):
                 return
             async with self.config.guild(guild).players_to_delete() as cur_players_to_delete:
                 cur_players_to_delete.remove(player)
-        await self.run_minecraft_command(guild, f"whitelist reload")
+        await self.run_minecraft_command(guild, WHITELIST_RELOAD)
 
 
     @commands.group()
@@ -173,12 +174,12 @@ class Minecraft(commands.Cog):
             return await ctx.send(f"An error occurred. {error}")
 
         if not status:
-            embed = discord.Embed(title=f"Minecraft Server", color=0xFF0000)
+            embed = discord.Embed(title="Minecraft Server", color=0xFF0000)
             embed.add_field(name="IP", value=ip)
             embed.add_field(name="Status", value="🔴 Offline")
             file = None
         else:
-            embed = discord.Embed(title=f"Minecraft Server", color=0x00FF00)
+            embed = discord.Embed(title="Minecraft Server", color=0x00FF00)
             if hasattr(status, "motd") and status.motd:
                 embed.add_field(name="Description", value=status.motd.to_plain(), inline=False)
             embed.add_field(name="IP", value=ip)
@@ -203,8 +204,8 @@ class Minecraft(commands.Cog):
     async def join(self, ctx: commands.Context, name: str):
         """Add yourself to the whitelist. You will be removed when leaving the guild."""
         assert ctx.guild
-        if not re_username.match(name):
-            return await ctx.send(f"Invalid username.")
+        if not RE_USERNAME.match(name):
+            return await ctx.send("Invalid username.")
 
         players = await self.config.guild(ctx.guild).players()
         if str(ctx.author.id) in players:
@@ -223,7 +224,7 @@ class Minecraft(commands.Cog):
         await self.delete_orphan_players(ctx.guild)
 
 
-        success, msg = await self.run_minecraft_command(ctx.guild, "whitelist reload")
+        success, msg = await self.run_minecraft_command(ctx.guild, WHITELIST_RELOAD)
         await ctx.send(msg)
 
 
@@ -248,7 +249,7 @@ class Minecraft(commands.Cog):
 
         await self.delete_orphan_players(ctx.guild)
 
-        success, msg = await self.run_minecraft_command(ctx.guild, "whitelist reload")
+        success, msg = await self.run_minecraft_command(ctx.guild, WHITELIST_RELOAD)
         await ctx.send(msg)
 
 
@@ -257,8 +258,8 @@ class Minecraft(commands.Cog):
     async def add(self, ctx: commands.Context, name: str):
         """Add someone else to the whitelist by Minecraft username. They will not be removed automatically when leaving the guild."""
         assert ctx.guild
-        if not re_username.match(name):
-            return await ctx.send(f"Invalid username.")
+        if not RE_USERNAME.match(name):
+            return await ctx.send("Invalid username.")
 
         success, msg = await self.run_minecraft_command(ctx.guild, f"whitelist add {name}")
         await ctx.send(msg)
@@ -267,7 +268,7 @@ class Minecraft(commands.Cog):
 
         await self.delete_orphan_players(ctx.guild)
 
-        success, msg = await self.run_minecraft_command(ctx.guild, "whitelist reload")
+        success, msg = await self.run_minecraft_command(ctx.guild, WHITELIST_RELOAD)
         await ctx.send(msg)
 
 
@@ -276,8 +277,8 @@ class Minecraft(commands.Cog):
     async def remove(self, ctx: commands.Context, name: str):
         """Remove someone else from the whitelist by their Minecraft username."""
         assert ctx.guild
-        if not re_username.match(name):
-            return await ctx.send(f"Invalid username.")
+        if not RE_USERNAME.match(name):
+            return await ctx.send("Invalid username.")
 
         success, msg = await self.run_minecraft_command(ctx.guild, f"whitelist remove {name}")
         await ctx.send(msg)
@@ -286,7 +287,7 @@ class Minecraft(commands.Cog):
 
         await self.delete_orphan_players(ctx.guild)
 
-        success, msg = await self.run_minecraft_command(ctx.guild, "whitelist reload")
+        success, msg = await self.run_minecraft_command(ctx.guild, WHITELIST_RELOAD)
         await ctx.send(msg)
 
 

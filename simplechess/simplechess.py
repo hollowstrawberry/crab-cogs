@@ -19,6 +19,7 @@ log = logging.getLogger("red.crab-cogs.simplechess")
 
 TIME_LIMIT = 5 # minutes
 DEFAULT_DIFFICULTY = 5 # depth
+STARTING = "Starting game..."
 
 
 class SimpleChess(BaseChessCog):
@@ -115,9 +116,9 @@ class SimpleChess(BaseChessCog):
         self.games[ctx.channel.id] = game
 
         if isinstance(ctx, discord.Interaction):
-            await ctx.response.send_message("Starting game...", ephemeral=True)
+            await ctx.response.send_message(STARTING, ephemeral=True)
         elif ctx.interaction:
-            await ctx.interaction.response.send_message("Starting game...", ephemeral=True)
+            await ctx.interaction.response.send_message(STARTING, ephemeral=True)
 
         await game.update_message()
 
@@ -146,7 +147,7 @@ class SimpleChess(BaseChessCog):
         self.games[ctx.channel.id] = game
 
         if ctx.interaction:
-            await ctx.interaction.response.send_message("Starting game...", ephemeral=True)
+            await ctx.interaction.response.send_message(STARTING, ephemeral=True)
         await game.update_message()
 
 

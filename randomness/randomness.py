@@ -28,17 +28,17 @@ class Randomness(commands.Cog):
         thing = re.sub(f'^<@!?{self.bot.user.id}>$', 'yourself', thing)
         # Capture groups
         author = re.search(r'\b(my|me)\b', thing)
-        mention = re.search(r'<@!?([0-9]+)>', thing)
+        mention = re.search(r'<@!?(\d+)>', thing)
         server = re.search(r'\b(server|guild)\b', thing)
         # Invert mentions temporarily
-        thing = re.sub(r"^<@!?[0-9]+> ?'?s\b", 'my', thing)
-        thing = re.sub(r'^<@!?[0-9]+>', 'you', thing)
+        thing = re.sub(r"^<@!?\d+> ?'?s\b", 'my', thing)
+        thing = re.sub(r'^<@!?\d+>', 'you', thing)
         # Flip grammatical persons
         thing = re.sub(r'\b(me|myself|I)\b', 'you', thing)
         thing = re.sub(r'\byourself\b', 'myself', thing)
         thing = re.sub(r'\byour\b', 'MY', thing)
         thing = re.sub(r'\bmy\b', 'your', thing)
-        thing = re.sub(r'MY', 'my', thing)
+        thing = thing.replace('MY', 'my')
         # Generate deterministic random value
         formatted = ''.join(ch for ch in thing if ch.isalnum()).encode('utf-8')
         hashed = abs(int(hashlib.sha512(formatted).hexdigest(), 16))
@@ -48,8 +48,8 @@ class Randomness(commands.Cog):
             hashed += ctx.author.id
         elif mention:
             hashed += int(mention.group(1))
-            thing = re.sub('your', f"{mention.group()}'s", thing)  # Revert mentions
-            thing = re.sub('you', mention.group(), thing)
+            thing = thing.replace('your', f"{mention.group()}'s")  # Revert mentions
+            thing = thing.replace('you', mention.group())
         # Assign score from random value
         if thing.endswith(('ism', 'phobia', 'philia')):
             rating = hashed % 3
@@ -65,7 +65,7 @@ class Randomness(commands.Cog):
     async def pp(self, ctx: commands.Context, *, whose=""):
         """Evaluates your pp size."""
         if whose and all(x.lower() not in whose.lower() for x in ("me", "my", "mine", str(ctx.author.id), ctx.author.name, ctx.author.display_name)):
-            await ctx.reply(f"You can't view someone else's pp")
+            await ctx.reply("You can't view someone else's pp")
         else:
             pp = ctx.author.id % 13
             await ctx.reply(f"Your pp size is {pp} inches")

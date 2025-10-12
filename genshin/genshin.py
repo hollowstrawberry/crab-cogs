@@ -3,9 +3,11 @@ from typing import Union
 from random import random, choice
 from redbot.core import commands, Config
 
+HU_TAO = "Hu Tao"
+
 BANNERS = {
-    "Hu Tao": {
-        "5starfeatured": ["Hu Tao"],
+    HU_TAO: {
+        "5starfeatured": [HU_TAO],
         "5star": ["Keqing", "Mona", "Qiqi", "Diluc", "Jean"],
         "5starweapon": [],
         "4starfeatured": ["Chongyun", "Xingqiu", "Xiangling"],
@@ -26,7 +28,7 @@ BANNERS = {
 FIVESTARS = set(sum([banner["5star"] + banner["5starfeatured"] + banner["5starweapon"] for banner in BANNERS.values()], []))
 FOURSTARS = set(sum([banner["4star"] + banner["4starfeatured"] + banner["4starweapon"] for banner in BANNERS.values()], []))
 PULL_IMG = {
-    "Hu Tao": "https://cdn.discordapp.com/attachments/541768631445618689/818653017892061194/unknown.png"
+    HU_TAO: "https://cdn.discordapp.com/attachments/541768631445618689/818653017892061194/unknown.png"
 }
 WISH_IMG3 = "https://cdn.discordapp.com/attachments/541768631445618689/818649843202916362/unknown.png"
 WISH_IMG4 = "https://media.discordapp.net/attachments/541768631445618689/879785351579832371/wish4.png"
@@ -42,7 +44,7 @@ class Genshin(commands.Cog):
         self.config = Config.get_conf(self, identifier=6765673686)
         default_config = {"no4star": 0, "no4starf": 0, "no5star": 0, "no5starf": 0, "inv": {}}
         self.config.register_user(**default_config)
-        self.banner = BANNERS["Hu Tao"]
+        self.banner = BANNERS[HU_TAO]
 
     async def red_delete_data_for_user(self, requester: str, user_id: int):
         await self.config.user_from_id(user_id).clear()

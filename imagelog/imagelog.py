@@ -101,7 +101,7 @@ class ImageLog(commands.Cog):
                 color=message.author.color,
                 timestamp=datetime.now())
             embed.set_author(name=str(message.author), icon_url=str(message.author.display_avatar.url))
-            embed.add_field(name=f"Channel", value=channel.mention)
+            embed.add_field(name="Channel", value=channel.mention)
 
             if message.id in self.manual_deleted_by:
                 embed.add_field(name="Deleted by", value=f"<@{self.manual_deleted_by.pop(message.id)}>")

@@ -30,7 +30,8 @@ class Draw(commands.Cog):
     async def cog_unload(self):
         self.bot.tree.remove_command(self.avatar_context_menu.name, type=self.avatar_context_menu.type)
 
-    async def red_delete_data_for_user(self, requester: str, user_id: int):
+    async def red_delete_data_for_user(self, *args, **kwargs):
+        """Nothing to delete"""
         pass
 
     @commands.hybrid_command()

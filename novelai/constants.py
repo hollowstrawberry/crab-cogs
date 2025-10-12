@@ -102,14 +102,17 @@ PARAMETER_CHOICES = {
 PARAMETER_CHOICES_IMG2IMG = PARAMETER_CHOICES.copy()
 PARAMETER_CHOICES_IMG2IMG.pop("resolution")
 
+PARAMETER_REFERENCE_IMAGE = "Vibe transfer: Image to use as a reference."
+PARAMETER_REFERENCE_STRENGTH = "Vibe transfer: How strongly the reference image is used."
+PARAMETER_REFERENCE_EXTRACTED = "Vibe transfer: The amount of information to extract."
 PARAMETER_DESCRIPTIONS_VIBE = {
-    "reference_image1": "Vibe transfer: Image to use as a reference.",
-    "reference_image_strength1": "Vibe transfer: How strongly the reference image is used.",
-    "reference_image_info_extracted1": "Vibe transfer: The amount of information to extract.",
-    "reference_image2": "Vibe transfer: Image to use as a reference.",
-    "reference_image_strength2": "Vibe transfer: How strongly the reference image is used.",
-    "reference_image_info_extracted2": "Vibe transfer: The amount of information to extract.",
-    "reference_image3": "Vibe transfer: Image to use as a reference.",
-    "reference_image_strength3": "Vibe transfer: How strongly the reference image is used.",
-    "reference_image_info_extracted3": "Vibe transfer: The amount of information to extract.",
+    "reference_image1": PARAMETER_REFERENCE_IMAGE,
+    "reference_image_strength1": PARAMETER_REFERENCE_STRENGTH,
+    "reference_image_info_extracted1": PARAMETER_REFERENCE_EXTRACTED,
+    "reference_image2": PARAMETER_REFERENCE_IMAGE,
+    "reference_image_strength2": PARAMETER_REFERENCE_STRENGTH,
+    "reference_image_info_extracted2": PARAMETER_REFERENCE_EXTRACTED,
+    "reference_image3": PARAMETER_REFERENCE_IMAGE,
+    "reference_image_strength3": PARAMETER_REFERENCE_STRENGTH,
+    "reference_image_info_extracted3": PARAMETER_REFERENCE_EXTRACTED,
 }

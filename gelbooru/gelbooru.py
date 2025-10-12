@@ -18,6 +18,10 @@ TAG_BLACKLIST = ["loli", "shota", "guro", "video"]
 HEADERS = {
     "User-Agent": "crab-cogs/v1 (https://github.com/hollowstrawberry/crab-cogs);"
 }
+RATING_GENERAL = "rating:general"
+RATING_SENSITIVE = "rating:sensitive"
+RATING_QUESTIONABLE = "rating:questionable"
+RATING_EXPLICIT = "rating:explicit"
 
 MAX_OPTIONS = 25
 MAX_OPTION_SIZE = 100
@@ -70,7 +74,7 @@ class Booru(commands.Cog):
             tags = ""
         if not ctx.channel.nsfw:
             tags = re.sub(r"\s?rating:\S+", "", tags)
-            tags += " rating:general"
+            tags += f" {RATING_GENERAL}"
 
         try:
             result = await self.grab_image(tags, ctx)
@@ -133,11 +137,11 @@ class Booru(commands.Cog):
             if "score" not in previous:
                 results += ["score:>10", "score:>100"]
             if is_nsfw and "rating" not in previous:
-                results += ["rating:general", "rating:sensitive", "rating:questionable", "rating:explicit"]
+                results += [RATING_GENERAL, RATING_SENSITIVE, RATING_QUESTIONABLE, RATING_EXPLICIT]
 
         elif "rating" in last.lower():
             if is_nsfw:
-                ratings = ["rating:general", "rating:sensitive", "rating:questionable", "rating:explicit"]
+                ratings = [RATING_GENERAL, RATING_SENSITIVE, RATING_QUESTIONABLE, RATING_EXPLICIT]
                 results = []
                 for r in tuple(ratings):
                     if r.startswith(last.lower()):
@@ -147,13 +151,13 @@ class Booru(commands.Cog):
                 for r in ratings:
                     results.append(r)
             else:
-                results = ["rating:general"]
+                results = [RATING_GENERAL]
                 excluded = False
 
         elif "score" in last.lower():
             excluded = False
             results = ["score:>10", "score:>100", "score:>1000"]
-            if re.match(r"score:>([0-9]+)", last):
+            if re.match(r"score:>(\d+)", last):
                 if last in results:
                     results.remove(last)
                 results.insert(0, last)

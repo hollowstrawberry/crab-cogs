@@ -17,6 +17,11 @@ from imagescanner.constants import log, IMAGE_TYPES, HEADERS, PARAM_REGEX
 
 ImageCache = Dict[int, Tuple[Dict[int, str], Dict[int, bytes]]]
 
+MODEL = "Model"
+MODEL_HASH = "Model hash"
+VAE_HASH = "VAE hash"
+LORA_HASHES = "Lora hashes"
+
 
 class ImageScanner(commands.Cog):
     """Scans images for AI parameters and other metadata."""
@@ -115,14 +120,14 @@ class ImageScanner(commands.Cog):
 
         if self.use_civitai:
             desc_ext = []
-            if "Model hash" in params:
-                link = await self.grab_civitai_model_link(params["Model hash"])
+            if MODEL_HASH in params:
+                link = await self.grab_civitai_model_link(params[MODEL_HASH])
                 if link:
-                    desc_ext.append(f"[{params['Model']}]({link})" if "Model" in params else f"[Model]({link})")
-                    utils.remove_field(embed, "Model hash")
-            utils.remove_field(embed, "VAE hash") #  vae hashes seem to be bugged in automatic1111 webui
-            if params.get("Lora hashes"):
-                hashes = PARAM_REGEX.findall(params["Lora hashes"].strip('"')+",") # trailing comma for the regex
+                    desc_ext.append(f"[{params[MODEL]}]({link})" if MODEL in params else f"[Model]({link})")
+                    utils.remove_field(embed, MODEL_HASH)
+            utils.remove_field(embed, VAE_HASH) #  vae hashes seem to be bugged in automatic1111 webui
+            if params.get(LORA_HASHES):
+                hashes = PARAM_REGEX.findall(params[LORA_HASHES].strip('"')+",") # trailing comma for the regex
                 log.debug(hashes)
                 links = {name: await self.grab_civitai_model_link(short_hash)
                             for name, short_hash in hashes}
@@ -135,14 +140,14 @@ class ImageScanner(commands.Cog):
 
         if self.use_arcenciel:
             desc_ext = []
-            if "Model hash" in params:
-                link = await self.grab_arcenciel_model_link(params["Model hash"])
+            if MODEL_HASH in params:
+                link = await self.grab_arcenciel_model_link(params[MODEL_HASH])
                 if link:
-                    desc_ext.append(f"[{params['Model']}]({link})" if "Model" in params else f"[Model]({link})")
-                    utils.remove_field(embed, "Model hash")
-            utils.remove_field(embed, "VAE hash") #  vae hashes seem to be bugged in automatic1111 webui
-            if params.get("Lora hashes"):
-                hashes = PARAM_REGEX.findall(params["Lora hashes"].strip('"')+",") # trailing comma for the regex
+                    desc_ext.append(f"[{params[MODEL]}]({link})" if MODEL in params else f"[Model]({link})")
+                    utils.remove_field(embed, MODEL_HASH)
+            utils.remove_field(embed, VAE_HASH) #  vae hashes seem to be bugged in automatic1111 webui
+            if params.get(LORA_HASHES):
+                hashes = PARAM_REGEX.findall(params[LORA_HASHES].strip('"')+",") # trailing comma for the regex
                 log.debug(hashes)
                 links = {name: await self.grab_arcenciel_model_link(short_hash)
                             for name, short_hash in hashes}
@@ -277,7 +282,7 @@ class ImageScanner(commands.Cog):
             for i, att in enumerate(attachments):
                 size_kb, size_mb = round(att.size / 1024), round(att.size / 1024**2, 2)
                 metadata[i] = f"Filename: {att.filename}, Dimensions: {att.width}x{att.height}, " \
-                              f"Filesize: " + (f"{size_mb} MB" if size_mb >= 1.0 else f"{size_kb} KB")
+                              "Filesize: " + (f"{size_mb} MB" if size_mb >= 1.0 else f"{size_kb} KB")
 
         embeds = []
         metadata_sorted = sorted(metadata.items(), key=lambda m: m[0])
@@ -324,7 +329,7 @@ class ImageScanner(commands.Cog):
         if not short_hash:
             return None
         elif short_hash in self.model_cache_arcenciel:
-            id = self.model_cache_arcenciel[short_hash]
+            m_id = self.model_cache_arcenciel[short_hash]
         elif short_hash in self.model_not_found_cache_arcenciel:
             return None
         else:
@@ -341,12 +346,12 @@ class ImageScanner(commands.Cog):
             if not data or not data.get("data") or "id" not in data["data"][0]:
                 self.model_not_found_cache_arcenciel[short_hash] = True
                 return None
-            id = data["data"][0]["id"]
-            self.model_cache_arcenciel[short_hash] = id
+            m_id = data["data"][0]["id"]
+            self.model_cache_arcenciel[short_hash] = m_id
             async with self.config.model_cache_arcenciel() as model_cache:
-                model_cache[short_hash] = id
+                model_cache[short_hash] = m_id
 
-        return f"https://arcenciel.io/models/{id}"
+        return f"https://arcenciel.io/models/{m_id}"
 
 
     # Config commands
@@ -375,7 +380,7 @@ class ImageScanner(commands.Cog):
     @scanset_channel.command(name="add")
     async def scanset_channel_add(self, ctx: commands.Context, *, channels: str):
         """Add a list of channels by ID to the scan list."""
-        channel_ids = [int(ch) for ch in re.findall(r"([0-9]+)", channels)]
+        channel_ids = [int(ch) for ch in re.findall(r"(\d+)", channels)]
         if not channel_ids:
             return await ctx.reply("Please enter one or more valid channels.")
         self.scan_channels.update(ch for ch in channel_ids)
@@ -385,7 +390,7 @@ class ImageScanner(commands.Cog):
     @scanset_channel.command(name="remove")
     async def scanset_channel_remove(self, ctx: commands.Context, *, channels: str):
         """Remove a list of channels from the scan list."""
-        channel_ids = [int(ch) for ch in re.findall(r"([0-9]+)", channels)]
+        channel_ids = [int(ch) for ch in re.findall(r"(\d+)", channels)]
         if not channel_ids:
             return await ctx.reply("Please enter one or more valid channels.")
         self.scan_channels.difference_update(ch for ch in channel_ids)
@@ -433,7 +438,7 @@ class ImageScanner(commands.Cog):
         if emoji is None:
             self.civitai_emoji = ""
             await self.config.civitai_emoji.set("")
-            await ctx.reply(f"No emoji will appear when Civitai links are shown to users, only the word \"Civitai\".")
+            await ctx.reply("No emoji will appear when Civitai links are shown to users, only the word \"Civitai\".")
             return
         try:
             await ctx.react_quietly(emoji)
@@ -450,7 +455,7 @@ class ImageScanner(commands.Cog):
         if emoji is None:
             self.arcenciel_emoji = ""
             await self.config.arcenciel_emoji.set("")
-            await ctx.reply(f"No emoji will appear when arcenciel links are shown to users, only \"Arc en Ciel\".")
+            await ctx.reply("No emoji will appear when arcenciel links are shown to users, only \"Arc en Ciel\".")
             return
         try:
             await ctx.react_quietly(emoji)
@@ -467,14 +472,14 @@ class ImageScanner(commands.Cog):
         if size is None:
             size = await self.config.image_cache_size()
             await ctx.reply(f"Up to {size} recent images will be cached in memory to prevent duplicate downloads. "
-                            f"Images are removed from cache after 24 hours.")
+                            "Images are removed from cache after 24 hours.")
         elif size < 0 or size > 1000:
             await ctx.reply("Please choose a value between 0 and 1000, or none to see the current value.")
         else:
             await self.config.image_cache_size.set(size)
             await ctx.reply(f"Up to {size} recent images will be cached in memory to prevent duplicate downloads. "
-                            f"Images are removed from cache after 24 hours."
-                            f"\nRequires a cog reload to apply the new value, which will clear the cache.")
+                            "Images are removed from cache after 24 hours."
+                            "\nRequires a cog reload to apply the new value, which will clear the cache.")
             
     @scanset.command(name="scangenerated")
     async def scanset_scangenerated(self, ctx: commands.Context):

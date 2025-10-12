@@ -2,6 +2,8 @@ import discord
 
 from simplechess.base import BaseChessGame
 
+NOT_PLAYING = "You're not playing this game!"
+
 
 class GameMoveModal(discord.ui.Modal, title="Chess Move"):
     move = discord.ui.Label(text='Move', description="A move in standard notations, such as Nc3 or b1c3", component=discord.ui.TextInput())
@@ -43,7 +45,7 @@ class GameView(discord.ui.View):
 
     async def move(self, interaction: discord.Interaction):
         if interaction.user not in self.game.players:
-            return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
+            return await interaction.response.send_message(NOT_PLAYING, ephemeral=True)
         if interaction.user != self.game.member(self.game.board.turn):
             return await interaction.response.send_message("It's not your turn!", ephemeral=True)
         await interaction.response.send_modal(GameMoveModal(self.game, interaction))
@@ -51,13 +53,13 @@ class GameView(discord.ui.View):
     async def bump(self, interaction: discord.Interaction):
         assert interaction.message
         if interaction.user not in self.game.players:
-            return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
+            return await interaction.response.send_message(NOT_PLAYING, ephemeral=True)
         await self.game.update_message()
 
     async def end(self, interaction: discord.Interaction):
         assert interaction.channel and isinstance(interaction.user, discord.Member)
         if interaction.user not in self.game.players:
-            return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
+            return await interaction.response.send_message(NOT_PLAYING, ephemeral=True)
         self.stop()
         await self.game.cancel(interaction.user)
         await self.game.update_message()

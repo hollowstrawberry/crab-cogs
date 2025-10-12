@@ -27,7 +27,8 @@ class TextToSpeech(Cog):
         self.translator = Translator()
         self.clear_old_tts.start()
 
-    async def red_delete_data_for_user(self, **kwargs):
+    async def red_delete_data_for_user(self, *args, **kwargs):
+        """Nothing to delete"""
         pass
 
     @tasks.loop(hours=1)
