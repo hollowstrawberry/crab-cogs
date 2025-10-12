@@ -5,7 +5,7 @@ import logging
 import urllib.parse
 import aiohttp
 import discord
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Union
 from expiringdict import ExpiringDict
 from redbot.core import commands, app_commands, Config
 
@@ -42,8 +42,8 @@ class Booru(commands.Cog):
         if self.session:
             await self.session.close()
 
-    @commands.command()
     @commands.is_owner()
+    @commands.command()
     async def boorudeletecache(self, ctx: commands.Context):
         del self.tag_cache
         self.tag_cache = {}
@@ -63,7 +63,8 @@ class Booru(commands.Cog):
         Type - before a tag to exclude it.
         You can add score:>NUMBER to have a minimum score above a number.
         You can add rating:general / rating:sensitive / rating:questionable / rating:explicit"""
-
+        
+        assert isinstance(ctx.channel, discord.TextChannel)
         tags = tags.strip()
         if tags.lower() in ["none", "error"]:
             tags = ""
@@ -107,6 +108,9 @@ class Booru(commands.Cog):
 
 
     @booru.autocomplete("tags")
+    async def booru_tags_autocomplete(self, interaction: discord.Interaction, current: str):
+        return await self.tags_autocomplete(interaction, current)
+
     async def tags_autocomplete(self, interaction: Optional[discord.Interaction], current: str):
         if current is None:
             current = ""
@@ -117,6 +121,7 @@ class Booru(commands.Cog):
 
         excluded = last.startswith('-')
         last = last.lstrip('-')
+        is_nsfw = interaction and isinstance(interaction.channel, discord.TextChannel) and interaction.channel.nsfw
 
         if not last and not excluded:
             # suggestions
@@ -127,11 +132,11 @@ class Booru(commands.Cog):
                 results.append("-excluded_tag")
             if "score" not in previous:
                 results += ["score:>10", "score:>100"]
-            if interaction.channel.nsfw and "rating" not in previous:
+            if is_nsfw and "rating" not in previous:
                 results += ["rating:general", "rating:sensitive", "rating:questionable", "rating:explicit"]
 
         elif "rating" in last.lower():
-            if interaction.channel.nsfw:
+            if is_nsfw:
                 ratings = ["rating:general", "rating:sensitive", "rating:questionable", "rating:explicit"]
                 results = []
                 for r in tuple(ratings):
@@ -164,7 +169,8 @@ class Booru(commands.Cog):
         if excluded:
             results = [f"-{res}" for res in results]
         if previous:
-            while len(f"{previous} {res}") > MAX_OPTION_SIZE and ' ' in previous:
+            max_len_result = max(results, key=lambda r: len(r))
+            while len(f"{previous} {max_len_result}") > MAX_OPTION_SIZE and ' ' in previous:
                 previous = previous.split(' ', maxsplit=1)[1]
             results = [f"{previous} {res}" for res in results]
 

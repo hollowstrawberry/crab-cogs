@@ -38,6 +38,7 @@ class Draw(commands.Cog):
     @app_commands.describe(user="The person whose avatar you want to see.")
     async def avatar(self, ctx: commands.Context, user: Optional[discord.Member]):
         """Simply shows your avatar or somebody else's."""
+        assert isinstance(ctx.author, discord.Member)
         if not user:
             user = ctx.author
         embed = discord.Embed(color=await ctx.embed_color())
@@ -60,11 +61,11 @@ class Draw(commands.Cog):
         img_divided = cv2.divide(img, img_blurred, scale=256)
         del img
         del img_blurred
-        img_normalized = cv2.normalize(img_divided, None, 20, 255, cv2.NORM_MINMAX)
+        img_normalized = cv2.normalize(img_divided, None, 20, 255, cv2.NORM_MINMAX)  # type: ignore
         del img_divided
-        is_success, buffer = cv2.imencode(".jpg", img_normalized)
+        _, buffer = cv2.imencode(".jpg", img_normalized)
         del img_normalized
-        result = BytesIO(buffer)  # noqa
+        result = BytesIO(buffer)  # type: ignore
         del buffer
         return result
 
@@ -75,20 +76,22 @@ class Draw(commands.Cog):
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (8, 8))
         img_morphed = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
         del img
-        img_normalized = cv2.normalize(img_morphed, None, 20, 255, cv2.NORM_MINMAX)
+        img_normalized = cv2.normalize(img_morphed, None, 20, 255, cv2.NORM_MINMAX)  # type: ignore
         del img_morphed
-        is_success, buffer = cv2.imencode(".jpg", img_normalized)
+        _, buffer = cv2.imencode(".jpg", img_normalized)
         del img_normalized
-        result = BytesIO(buffer)  # noqa
+        result = BytesIO(buffer)  # type: ignore
         del buffer
         return result
 
-    @commands.hybrid_command()
+    @commands.hybrid_command()  # type: ignore
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     @commands.bot_has_permissions(attach_files=True)
+    @commands.guild_only()
     @app_commands.describe(user="The person whose avatar I should draw.")
-    async def draw(self, ctx: commands.Context, user: Optional[discord.User]):
+    async def draw(self, ctx: commands.Context, user: Optional[discord.Member]):
         """Produces a pencil drawing of you or someone else."""
+        assert isinstance(ctx.author, discord.Member)
         user = user or ctx.author
         await ctx.typing()
 
@@ -104,12 +107,14 @@ class Draw(commands.Cog):
         embed.set_image(url=f"attachment://{filename}")
         await ctx.send(embed=embed, file=discord.File(fp2, filename=filename))
 
-    @commands.hybrid_command()
+    @commands.hybrid_command()  # type: ignore
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     @commands.bot_has_permissions(attach_files=True)
+    @commands.guild_only()
     @app_commands.describe(user="The person whose avatar I should paint.")
-    async def paint(self, ctx: commands.Context, user: Optional[discord.User]):
+    async def paint(self, ctx: commands.Context, user: Optional[discord.Member]):
         """Produces an oil painting of you or someone else."""
+        assert isinstance(ctx.author, discord.Member)
         user = user or ctx.author
         await ctx.typing()
 

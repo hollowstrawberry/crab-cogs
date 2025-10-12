@@ -7,7 +7,7 @@ import discord
 import logging
 from hashlib import md5
 from datetime import datetime, timedelta
-from typing import Optional, Tuple, Coroutine, Dict, List
+from typing import Any, Optional, Tuple, Coroutine, Dict, List
 from PIL import Image, PngImagePlugin
 from redbot.core import commands, app_commands, Config
 from redbot.core.bot import Red
@@ -164,13 +164,13 @@ class NovelAI(commands.Cog):
                       ):
         max_image_size = await self.config.max_image_size()
         if reference_image1:
-            if "image" not in reference_image1.content_type or not reference_image1.width or not reference_image1.height or not (reference_image1.size / 1024 / 1024) <= max_image_size:
+            if not reference_image1.content_type or "image" not in reference_image1.content_type or not reference_image1.width or not reference_image1.height or not (reference_image1.size / 1024 / 1024) <= max_image_size:
                 return await ctx.response.send_message(f"reference_image1 must be a valid image and less than {max_image_size} MB.", ephemeral=True)
         if reference_image2:
-            if "image" not in reference_image2.content_type or not reference_image2.width or not reference_image2.height or not (reference_image2.size / 1024 / 1024) <= max_image_size:
+            if not reference_image2.content_type or "image" not in reference_image2.content_type or not reference_image2.width or not reference_image2.height or not (reference_image2.size / 1024 / 1024) <= max_image_size:
                 return await ctx.response.send_message(f"reference_image2 must be a valid image and less than {max_image_size} MB.", ephemeral=True)
         if reference_image3:
-            if "image" not in reference_image3.content_type or not reference_image3.width or not reference_image3.height or not (reference_image3.size / 1024 / 1024) <= max_image_size:
+            if  not reference_image3.content_type or "image" not in reference_image3.content_type or not reference_image3.width or not reference_image3.height or not (reference_image3.size / 1024 / 1024) <= max_image_size:
                 return await ctx.response.send_message(f"reference_image3 must be a valid image and less than {max_image_size} MB.", ephemeral=True)
                       
         model = model or ImageModel(await self.config.user(ctx.user).model())
@@ -248,16 +248,16 @@ class NovelAI(commands.Cog):
                           reference_image_info_extracted3: Optional[app_commands.Range[float, 0.0, 1.0]],
                           ):
         max_image_size = await self.config.max_image_size()
-        if "image" not in image.content_type or not image.width or not image.height or not (image.size / 1024 / 1024) <= max_image_size:
+        if not image.content_type or "image" not in image.content_type or not image.width or not image.height or not (image.size / 1024 / 1024) <= max_image_size:
             return await ctx.response.send_message(f"Attachment must be a valid image and less than {max_image_size} MB.", ephemeral=True)
         if reference_image1:
-            if "image" not in reference_image1.content_type or not reference_image1.width or not reference_image1.height or not (reference_image1.size / 1024 / 1024) <= max_image_size:
+            if not reference_image1.content_type or "image" not in reference_image1.content_type or not reference_image1.width or not reference_image1.height or not (reference_image1.size / 1024 / 1024) <= max_image_size:
                 return await ctx.response.send_message(f"reference_image1 must be a valid image and less than {max_image_size} MB.", ephemeral=True)
         if reference_image2:
-            if "image" not in reference_image2.content_type or not reference_image2.width or not reference_image2.height or not (reference_image2.size / 1024 / 1024) <= max_image_size:
+            if not reference_image2.content_type or"image" not in reference_image2.content_type or not reference_image2.width or not reference_image2.height or not (reference_image2.size / 1024 / 1024) <= max_image_size:
                 return await ctx.response.send_message(f"reference_image2 must be a valid image and less than {max_image_size} MB.", ephemeral=True)
         if reference_image3:
-            if "image" not in reference_image3.content_type or not reference_image3.width or not reference_image3.height or not (reference_image3.size / 1024 / 1024) <= max_image_size:
+            if not reference_image3.content_type or "image" not in reference_image3.content_type or not reference_image3.width or not reference_image3.height or not (reference_image3.size / 1024 / 1024) <= max_image_size:
                 return await ctx.response.send_message(f"reference_image3 must be a valid image and less than {max_image_size} MB.", ephemeral=True)
 
         width, height = scale_to_size(image.width, image.height, const.MAX_FREE_IMAGE_SIZE)
@@ -332,25 +332,31 @@ class NovelAI(commands.Cog):
                                       decrisper: Optional[bool],
                                       model: Optional[ImageModel],
                                       ) -> Optional[Tuple[str, ImagePreset]]:
+        assert isinstance(ctx.channel, discord.TextChannel)
+
         if not self.api and not await self.try_create_api():
-            return await ctx.response.send_message(
+            await ctx.response.send_message(
                 "NovelAI username and password not set. The bot owner needs to set them like this:\n"
                 "[p]set api novelai username,USERNAME\n[p]set api novelai password,PASSWORD")
+            return
                 
         if not ctx.guild and not await self.config.dm_allowed():
-            return await ctx.response.send_message("Direct message use is disabled.", ephemeral=True)
+            await ctx.response.send_message("Direct message use is disabled.", ephemeral=True)
+            return
 
         if ctx.user.id not in await self.config.vip():
             cooldown = await self.config.server_cooldown() if ctx.guild else await self.config.dm_cooldown()
             if self.generating.get(ctx.user.id, False):
                 content = "Your current image must finish generating before you can request another one."
-                return await ctx.response.send_message(content, ephemeral=True)
+                await ctx.response.send_message(content, ephemeral=True)
+                return
             if ctx.user.id in self.user_last_img and (datetime.now() - self.user_last_img[ctx.user.id]).total_seconds() < cooldown:
                 eta = self.user_last_img[ctx.user.id] + timedelta(seconds=cooldown)
                 content = f"You may use this command again {discord.utils.format_dt(eta, 'R')}."
                 if not ctx.guild:
                     content += " (You can use it more frequently inside a server)"
-                return await ctx.response.send_message(content, ephemeral=True)
+                await ctx.response.send_message(content, ephemeral=True)
+                return
 
         if model == ImageModel.Furry_v3:
             base_prompt = await self.config.user(ctx.user).base_furry_prompt()
@@ -367,18 +373,19 @@ class NovelAI(commands.Cog):
         resolution = resolution or await self.config.user(ctx.user).resolution()
 
         if ctx.guild and not ctx.channel.nsfw and const.NSFW_TERMS.search(prompt):
-            return await ctx.response.send_message(":warning: You may not generate NSFW images in non-NSFW channels.")
+            await ctx.response.send_message(":warning: You may not generate NSFW images in non-NSFW channels.")
+            return
 
         if not ctx.guild and const.TOS_TERMS.search(prompt):
-            return await ctx.response.send_message(
+            await ctx.response.send_message(
                 ":warning: To abide by Discord terms of service, the prompt you chose may not be used in private.\n"
-                "You may use this command in a server, where your generations may be reviewed by a moderator."
-            )
+                "You may use this command in a server, where your generations may be reviewed by a moderator.")
+            return
 
         if const.NSFW_TERMS.search(prompt) and const.TOS_TERMS.search(prompt):
-            return await ctx.response.send_message(
-                ":warning: To abide by Discord terms of service, the prompt you chose may not be used."
-            )
+            await ctx.response.send_message(
+                ":warning: To abide by Discord terms of service, the prompt you chose may not be used.")
+            return
 
         if ctx.guild and not ctx.channel.nsfw and await self.config.guild(ctx.guild).nsfw_filter():
             prompt = "rating:general, " + prompt
@@ -386,7 +393,7 @@ class NovelAI(commands.Cog):
         preset = ImagePreset()
         preset.n_samples = 1
         try:
-            preset.resolution = tuple(int(num) for num in resolution.split(","))
+            preset.resolution = tuple(int(num) for num in resolution.split(","))  # type: ignore
         except (ValueError, TypeError):
             preset.resolution = (1024, 1024)
             
@@ -410,8 +417,8 @@ class NovelAI(commands.Cog):
         preset.uncond_scale = 1.0
         if "ddim" not in str(preset.sampler):
             sampler_version = sampler_version or await self.config.user(ctx.user).sampler_version()
-            preset.smea = "SMEA" in sampler_version
-            preset.smea_dyn = "DYN" in sampler_version
+            preset.smea = sampler_version is not None and "SMEA" in sampler_version
+            preset.smea_dyn = sampler_version is not None and "DYN" in sampler_version
         return prompt, preset
 
     async def fulfill_novelai_request(self,
@@ -421,6 +428,8 @@ class NovelAI(commands.Cog):
                                       model: ImageModel,
                                       requester: Optional[int] = None,
                                       callback: Optional[Coroutine] = None):
+        assert self.api and ctx.channel
+
         generation_cooldown = await self.config.generation_cooldown()
         while (seconds := (datetime.now() - self.last_generation_datetime).total_seconds()) < generation_cooldown:
             log.debug(f"Waiting on generation_cooldown... {seconds} seconds remaining.")
@@ -433,7 +442,7 @@ class NovelAI(commands.Cog):
                             action = ImageGenerationType.IMG2IMG if preset._settings.get("image", None) else ImageGenerationType.NORMAL
                             self.last_generation_datetime = datetime.now()
                             async for _, img in wrapper.api.high_level.generate_image(prompt, model, preset, action):
-                                image_bytes = img
+                                image_bytes: bytes = img  # type: ignore
                             break
                     except NovelAIError as error:
                         if error.status not in (500, 520, 408, 522, 524) or retry == 3:
@@ -497,11 +506,11 @@ class NovelAI(commands.Cog):
             msg = await ctx.edit_original_response(content=content, attachments=[file], view=view, allowed_mentions=discord.AllowedMentions.none())
             view.message = msg
 
-            imagescanner = self.bot.get_cog("ImageScanner")
+            imagescanner: Any = self.bot.get_cog("ImageScanner")
             if imagescanner:
-                if imagescanner.always_scan_generated_images or ctx.channel.id in imagescanner.scan_channels:  # noqa
-                    img_info = imagescanner.convert_novelai_info(image.info)  # noqa
-                    imagescanner.image_cache[msg.id] = ({1: img_info}, {1: image_bytes})  # noqa
+                if imagescanner.always_scan_generated_images or ctx.channel.id in imagescanner.scan_channels:
+                    img_info = imagescanner.convert_novelai_info(image.info)
+                    imagescanner.image_cache[msg.id] = ({1: img_info}, {1: image_bytes})
                     await msg.add_reaction("🔎")
         except discord.errors.NotFound:
             pass
@@ -624,7 +633,7 @@ class NovelAI(commands.Cog):
             seconds = await self.config.server_cooldown()
         else:
             await self.config.server_cooldown.set(max(0, seconds))
-        await ctx.reply(f"Users will need to wait {max(0, seconds)} seconds between generations inside a server.")
+        await ctx.reply(f"Users will need to wait {max(0, seconds or 0)} seconds between generations inside a server.")
         
     @novelaiset.command()
     @commands.is_owner()
@@ -634,7 +643,7 @@ class NovelAI(commands.Cog):
             seconds = await self.config.generation_cooldown()
         else:
             await self.config.generation_cooldown.set(max(0, seconds))
-        await ctx.reply(f"Bot will globally submit generation requests to NovelAI every {max(0, seconds)} from its queue.")
+        await ctx.reply(f"Bot will globally submit generation requests to NovelAI every {max(0, seconds or 0)} from its queue.")
 
     @novelaiset.command()
     @commands.is_owner()
@@ -644,7 +653,7 @@ class NovelAI(commands.Cog):
             seconds = await self.config.dm_cooldown()
         else:
             await self.config.dm_cooldown.set(max(0, seconds))
-        await ctx.reply(f"Users will need to wait {max(0, seconds)} seconds between generations in DMs with the bot.")
+        await ctx.reply(f"Users will need to wait {max(0, seconds or 0)} seconds between generations in DMs with the bot.")
         
     @novelaiset.command()
     @commands.is_owner()
@@ -665,13 +674,14 @@ class NovelAI(commands.Cog):
             size = await self.config.max_image_size()
         else:
             await self.config.max_image_size.set(max(1, size))
-        await ctx.reply(f"Images provided by users up to {max(1, size)} MB will be accepted.")        
+        await ctx.reply(f"Images provided by users up to {max(1, size or 1)} MB will be accepted.")        
 
     @novelaiset.command()
     @commands.guild_only()
     @commands.admin()
     async def nsfw_filter(self, ctx: commands.Context):
         """Toggles the NSFW filter for /novelai"""
+        assert ctx.guild
         new = not await self.config.guild(ctx.guild).nsfw_filter()
         await self.config.guild(ctx.guild).nsfw_filter.set(new)
         if new:

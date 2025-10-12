@@ -33,4 +33,5 @@ class NaiAPI:
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self._session.__aexit__(exc_type, exc_val, exc_tb)
+        if self._session:
+            await self._session.__aexit__(exc_type, exc_val, exc_tb)

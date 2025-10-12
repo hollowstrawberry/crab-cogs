@@ -19,7 +19,8 @@ class SetChannelConfirmation(View):
         self.message: Optional[discord.Message] = None
 
     @discord.ui.button(label='Accept', style=discord.ButtonStyle.green)
-    async def accept(self, ctx: discord.Interaction, _: discord.Button):
+    async def accept(self, ctx: discord.Interaction, _):
+        assert ctx.guild and isinstance(ctx.channel, discord.TextChannel) and isinstance(ctx.user, discord.Member) and ctx.user.resolved_permissions
         if not ctx.user.resolved_permissions.manage_guild:
             await ctx.response.send_message("You must have the Manage Guild permission to interact with this message", ephemeral=True)
             return
@@ -35,7 +36,8 @@ class SetChannelConfirmation(View):
         await ctx.response.send_message(f"Set image log channel to {ctx.channel.mention}")
 
     @discord.ui.button(label='Cancel', style=discord.ButtonStyle.red)
-    async def cancel(self, ctx: discord.Interaction, _: discord.Button):
+    async def cancel(self, ctx: discord.Interaction, _):
+        assert isinstance(ctx.user, discord.Member) and ctx.user.resolved_permissions
         if not ctx.user.resolved_permissions.manage_guild:
             await ctx.response.send_message("You must have the Manage Guild permission to interact with this message", ephemeral=True)
             return
@@ -77,10 +79,12 @@ class ImageLog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_message_delete(self, ctx: discord.RawMessageDeleteEvent):
+        assert ctx.guild_id
         message = ctx.cached_message
         if not message or not self.logchannels.get(ctx.guild_id, 0):
             return
 
+        assert message.guild and isinstance(message.author, discord.Member) and isinstance(message.channel, discord.TextChannel)
         guild = message.guild
         channel = message.channel
         log_channel = guild.get_channel(self.logchannels[guild.id])
@@ -104,7 +108,7 @@ class ImageLog(commands.Cog):
             elif channel.permissions_for(guild.me).view_audit_log:
                 deleter = None
                 async for alog in guild.audit_logs(limit=2, action=discord.AuditLogAction.message_delete):
-                    if alog.target.id == message.author.id and alog.extra.channel.id == message.channel.id:
+                    if alog.target.id == message.author.id and alog.extra.channel.id == message.channel.id:  # type: ignore
                         deleter = alog.user
                         break
                 if not deleter:
@@ -120,19 +124,21 @@ class ImageLog(commands.Cog):
                 await attachment.save(img, use_cached=True)
             except discord.DiscordException:
                 log.exception("Trying to save attachment")
-                file = None
+                file = ...
             else:
                 file = discord.File(img, filename=attachment.filename)
                 embed.set_image(url=f"attachment://{attachment.filename}")
 
+            assert isinstance(log_channel, discord.TextChannel)
             await log_channel.send(embed=embed, file=file)
 
 
-    @commands.group(invoke_without_command=True)
+    @commands.group(invoke_without_command=True)  # type: ignore
     @commands.has_permissions(manage_guild=True)
     @commands.guild_only()
     async def imagelog(self, ctx: commands.Context):
         """View the current image log channel."""
+        assert ctx.guild
         channel_id = self.logchannels.get(ctx.guild.id, 0)
         if channel_id:
             await ctx.reply(f"Deleted images are currently logged to <#{channel_id}>\nYou can change it or remove it with {ctx.prefix}imagelog setchannel")
@@ -142,6 +148,7 @@ class ImageLog(commands.Cog):
     @imagelog.command(name="setchannel")
     async def imagelog_setchannel(self, ctx: commands.Context):
         """Sets the image log channel to the current channel."""
+        assert ctx.guild
         if ctx.channel.id == self.logchannels.get(ctx.guild.id, 0):
             self.logchannels[ctx.guild.id] = 0
             await self.config.guild(ctx.guild).channel.set(0)
@@ -155,6 +162,7 @@ class ImageLog(commands.Cog):
     @imagelog.command(name="log_moderator_self_deletes")
     async def imagelog_modselfdeletes(self, ctx: commands.Context, value: Optional[bool]):
         """If disabled, users with Manage Message permission that delete their own image won't be logged. Enabled by default. True or False."""
+        assert ctx.guild
         if value is not None:
             await self.config.guild(ctx.guild).log_moderator_self_deletes.set(value)
         await ctx.send(f"`log_moderator_self_deletes: {await self.config.guild(ctx.guild).log_moderator_self_deletes()}`")

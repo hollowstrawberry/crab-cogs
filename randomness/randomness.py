@@ -42,7 +42,7 @@ class Randomness(commands.Cog):
         # Generate deterministic random value
         formatted = ''.join(ch for ch in thing if ch.isalnum()).encode('utf-8')
         hashed = abs(int(hashlib.sha512(formatted).hexdigest(), 16))
-        if server:
+        if server and ctx.guild:
             hashed += ctx.guild.id
         if author:
             hashed += ctx.author.id
@@ -81,8 +81,8 @@ class Randomness(commands.Cog):
         donut = donuts[hashed % len(donuts)]
         await ctx.send(f'{count} {donut}')
 
-    @commands.command()
     @commands.is_owner()
+    @commands.command()
     async def donutset(self, ctx: commands.Context, *emojis: str):
         """Pass space-separated emojis to use for the donut command."""
         if not emojis:

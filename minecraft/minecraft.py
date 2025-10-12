@@ -11,6 +11,7 @@ from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import pagify
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
+
 from mcstatus import JavaServer
 from aiomcrcon import Client
 from aiomcrcon.errors import IncorrectPasswordError, RCONConnectionError
@@ -37,9 +38,6 @@ class Minecraft(commands.Cog):
             "players_to_delete": [],
         }
         self.config.register_guild(**default_guild)
-
-    async def initialize(self):
-        pass
 
     async def cog_load(self):
         all_data = await self.config.all_guilds()
@@ -76,7 +74,7 @@ class Minecraft(commands.Cog):
                 resp = await client.send_cmd(command, 10)
             return True, resp[0]
         except (RCONConnectionError, TimeoutError) as error:
-            return False, error or "Couldn't connect to the server."
+            return False, str(error) or "Couldn't connect to the server."
         except IncorrectPasswordError:
             return False, "Incorrect RCON password."
         except Exception as error:  # catch everything to be able to give feedback to the user
@@ -111,7 +109,8 @@ class Minecraft(commands.Cog):
 
 
     @commands.group()
-    async def minecraft(self, ctx):
+    @commands.guild_only()
+    async def minecraft(self, _):
         """Minecraft server commands"""
         pass
 
@@ -128,6 +127,7 @@ class Minecraft(commands.Cog):
         RCON needs to be enabled and set up in your `server.properties` file.
         More information is available [here](https://minecraft.wiki/w/Server.properties)
         """
+        assert ctx.guild
         await ctx.message.delete()
         await self.config.guild(ctx.guild).host.set(host)
         await self.config.guild(ctx.guild).port.set(port)
@@ -157,6 +157,7 @@ class Minecraft(commands.Cog):
     @minecraft.command()
     async def status(self, ctx: commands.Context):
         """Display info about the Minecraft server."""
+        assert ctx.guild
         host = await self.config.guild(ctx.guild).host()
         port = await self.config.guild(ctx.guild).port()
         ip = f"{host}:{port}"
@@ -186,7 +187,7 @@ class Minecraft(commands.Cog):
             embed.add_field(name="Status", value="🟢 Online")
             if hasattr(status, "players") and status.players:
                 embed.add_field(name=f"Players ({status.players.online}/{status.players.max})",
-                                value="\n" + ", ".join([p.name for p in status.players.sample]) if status.players.online else "*None*")
+                                value="\n" + ", ".join([p.name for p in status.players.sample]) if status.players.sample else "*None*")
             if hasattr(status, "icon") and status.icon:
                 b = io.BytesIO(base64.b64decode(status.icon.removeprefix("data:image/png;base64,")))
                 filename = "server.png"
@@ -201,6 +202,7 @@ class Minecraft(commands.Cog):
     @minecraft.command()
     async def join(self, ctx: commands.Context, name: str):
         """Add yourself to the whitelist. You will be removed when leaving the guild."""
+        assert ctx.guild
         if not re_username.match(name):
             return await ctx.send(f"Invalid username.")
 
@@ -228,6 +230,7 @@ class Minecraft(commands.Cog):
     @minecraft.command()
     async def leave(self, ctx: commands.Context):
         """Remove yourself from the whitelist."""
+        assert ctx.guild
         players = await self.config.guild(ctx.guild).players()
 
         if str(ctx.author.id) not in players:
@@ -239,7 +242,7 @@ class Minecraft(commands.Cog):
         success, msg = await self.run_minecraft_command(ctx.guild, f"whitelist remove {players[str(ctx.author.id)]}")
         await ctx.send(msg)
         if not success:
-            async with self.config.guild(ctx.author.guild).players_to_delete() as players_to_delete:
+            async with self.config.guild(ctx.guild).players_to_delete() as players_to_delete:
                 players_to_delete.append(players[str(ctx.author.id)])
             return
 
@@ -253,6 +256,7 @@ class Minecraft(commands.Cog):
     @minecraft.command()
     async def add(self, ctx: commands.Context, name: str):
         """Add someone else to the whitelist by Minecraft username. They will not be removed automatically when leaving the guild."""
+        assert ctx.guild
         if not re_username.match(name):
             return await ctx.send(f"Invalid username.")
 
@@ -271,6 +275,7 @@ class Minecraft(commands.Cog):
     @minecraft.command()
     async def remove(self, ctx: commands.Context, name: str):
         """Remove someone else from the whitelist by their Minecraft username."""
+        assert ctx.guild
         if not re_username.match(name):
             return await ctx.send(f"Invalid username.")
 
@@ -289,6 +294,7 @@ class Minecraft(commands.Cog):
     @minecraft.command()
     async def whitelist(self, ctx: commands.Context):
         """See who is whitelisted on your server."""
+        assert ctx.guild
 
         success, msg = await self.run_minecraft_command(ctx.guild, "whitelist list")
         await ctx.send(msg if len(msg) <= 2000 else msg[:1997] + "...")
@@ -318,6 +324,7 @@ class Minecraft(commands.Cog):
     @minecraft.command()
     async def command(self, ctx: commands.Context, *, command: str):
         """Run a command on the Minecraft server. No validation is done."""
+        assert ctx.guild
         if len(command) > 1440:
             return await ctx.send("Command too long!")
         success, resp = await self.run_minecraft_command(ctx.guild, command)

@@ -29,7 +29,7 @@ class VoiceLog(commands.Cog):
         embed = discord.Embed(color=member.color, timestamp=datetime.now())
         if not before.channel:
             embed.set_author(name="Connected", icon_url=member.display_avatar.url)
-            embed.description = f"{member.mention} has joined {after.channel.mention}"
+            embed.description = f"{member.mention} has joined {after.channel.mention if after.channel else ''}"
         elif not after.channel:
             embed.set_author(name="Disconnected", icon_url=member.display_avatar.url)
             embed.description = f"{member.mention} has left {before.channel.mention}"
@@ -45,7 +45,7 @@ class VoiceLog(commands.Cog):
                 continue
             await channel.send(embed=embed)
 
-    @commands.group(invoke_without_command=True)
+    @commands.group(invoke_without_command=True)  # type: ignore
     @commands.has_permissions(manage_guild=True)
     @commands.guild_only()
     async def voicelog(self, ctx: commands.Context):
@@ -55,6 +55,7 @@ class VoiceLog(commands.Cog):
     @voicelog.command(name="enable")
     async def voicelog_enable(self, ctx: commands.Context):
         """Enable voice log for the whole guild."""
+        assert ctx.guild
         self.allowedguilds.add(ctx.guild.id)
         await self.config.guild(ctx.guild).enabled.set(True)
         await ctx.tick(message="Voice Log enabled")
@@ -62,6 +63,7 @@ class VoiceLog(commands.Cog):
     @voicelog.command(name="disable")
     async def voicelog_disable(self, ctx: commands.Context):
         """Disable voice log for the whole guild."""
+        assert ctx.guild
         self.allowedguilds.remove(ctx.guild.id)
         await self.config.guild(ctx.guild).enabled.set(False)
         await ctx.tick(message="Voice Log disabled")
