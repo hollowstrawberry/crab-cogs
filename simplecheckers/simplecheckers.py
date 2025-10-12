@@ -16,6 +16,7 @@ log = logging.getLogger("red.crab-cogs.simplecheckers")
 
 TIME_LIMIT = 5 # minutes
 VARIANT = "english"
+STARTING = "Starting game..."
 
 
 class SimpleCheckers(BaseCheckersCog):
@@ -107,9 +108,9 @@ class SimpleCheckers(BaseCheckersCog):
         self.games[ctx.channel.id] = game
 
         if isinstance(ctx, discord.Interaction):
-            await ctx.response.send_message("Starting game...", ephemeral=True)
+            await ctx.response.send_message(STARTING, ephemeral=True)
         elif ctx.interaction:
-            await ctx.interaction.response.send_message("Starting game...", ephemeral=True)
+            await ctx.interaction.response.send_message(STARTING, ephemeral=True)
 
         await game.update_message()
 
@@ -138,7 +139,7 @@ class SimpleCheckers(BaseCheckersCog):
         self.games[ctx.channel.id] = game
 
         if ctx.interaction:
-            await ctx.interaction.response.send_message("Starting game...", ephemeral=True)
+            await ctx.interaction.response.send_message(STARTING, ephemeral=True)
         await game.update_message()
 
 

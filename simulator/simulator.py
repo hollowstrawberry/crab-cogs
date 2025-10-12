@@ -74,7 +74,7 @@ def getsize(obj_0):
         if hasattr(obj, '__dict__'):
             size += inner(vars(obj))
         if hasattr(obj, '__slots__'):  # can have __slots__ with __dict__
-            size += sum(inner(getattr(obj, s)) for s in obj.__slots__ if hasattr(obj, s))
+            size += sum(inner(getattr(obj, s)) for s in obj.__slots__ if hasattr(obj, s))  # type: ignore
         return size
 
     return inner(obj_0)
@@ -320,13 +320,14 @@ class Simulator(commands.Cog):
     @commands.is_owner()
     async def simulator_set_inputchannels(self, ctx: commands.Context, *channels: discord.TextChannel):
         """Set a series of channels that will feed the simulator."""
+        assert ctx.guild
         if self.output_channel and self.output_channel in channels:
             await ctx.send(ERROR_CHANNELS)
             return
         await self.config.home_guild_id.set(ctx.guild.id)
         await self.config.input_channel_ids.set([channel.id for channel in channels])
         self.guild = ctx.guild
-        self.input_channels = channels
+        self.input_channels = list(channels)
         await ctx.react_quietly(EMOJI_SUCCESS)
 
     @simulator_set.command(name="outputchannel")
@@ -385,6 +386,7 @@ class Simulator(commands.Cog):
                 await message.delete()
             except discord.DiscordException:
                 pass
+            assert isinstance(message.author, discord.Member)
             if self.role in message.author.roles:
                 self.start_conversation()
 
@@ -429,10 +431,11 @@ class Simulator(commands.Cog):
                     await self.send_generated_message()
                 except Exception as error:
                     log.exception("Simulator loop")
-                    try:
-                        await self.output_channel.send(f'{type(error).__name__}: {error}')
-                    except discord.DiscordException:
-                        pass
+                    if self.output_channel:
+                        try:
+                            await self.output_channel.send(f'{type(error).__name__}: {error}')
+                        except discord.DiscordException:
+                            pass
         else:
             self.seconds = (self.seconds + 1) % 60
             if self.seconds == 0 and random.random() < self.conversation_chance:
@@ -459,16 +462,16 @@ class Simulator(commands.Cog):
             # discord entities
             self.guild = self.bot.get_guild(guild_id)
             if self.guild is None:
-                raise KeyError(self.guild.__name__)
+                raise KeyError("guild")
             self.role = self.guild.get_role(role_id)
-            self.input_channels = [self.guild.get_channel(i) for i in input_channel_ids]
-            self.output_channel = self.guild.get_channel(output_channel_id)
+            self.input_channels = [self.guild.get_channel(i) for i in input_channel_ids]  # type: ignore
+            self.output_channel = self.guild.get_channel(output_channel_id)  # type: ignore
             if self.role is None:
-                raise KeyError(self.role.__name__)
+                raise KeyError("role")
             if any(c is None for c in self.input_channels):
-                raise KeyError(self.input_channels.__name__)
+                raise KeyError("input_channels")
             if self.output_channel is None:
-                raise KeyError(self.output_channel.__name__)
+                raise KeyError("output_channel")
             webhooks = await self.output_channel.webhooks()
             webhooks = [w for w in webhooks if w.user == self.bot.user and w.name == WEBHOOK_NAME]
             self.webhook = webhooks[0] if webhooks else await self.output_channel.create_webhook(name=WEBHOOK_NAME)
@@ -476,7 +479,7 @@ class Simulator(commands.Cog):
             # database
             async with sql.connect(cog_data_path(self).joinpath(DB_FILE)) as db:
                 await db.execute(f"CREATE TABLE IF NOT EXISTS {DB_TABLE_MESSAGES} "
-                                 f"(id INTEGER PRIMARY KEY, user_id INTEGER, content TEXT NOT NULL);")
+                                 "(id INTEGER PRIMARY KEY, user_id INTEGER, content TEXT NOT NULL);")
                 await db.commit()
                 async with db.execute(f"SELECT * FROM {DB_TABLE_MESSAGES}") as cursor:
                     async for row in cursor:
@@ -490,10 +493,11 @@ class Simulator(commands.Cog):
             log.exception("Setting up simulator")
             self.simulator_loop.stop()
             self.stage = Stage.NONE
-            try:
-                await self.output_channel.send(error_msg)
-            except discord.DiscordException:
-                pass
+            if self.output_channel:
+                try:
+                    await self.output_channel.send(error_msg)
+                except discord.DiscordException:
+                    pass
             return False
 
     async def feeder(self, ctx: commands.Context, days: int):
@@ -519,7 +523,7 @@ class Simulator(commands.Cog):
             raise
         except Exception as error:
             embed.title = "⚠ Simulator - Error"
-            embed.description = f"Feeding stopped due to an error.\n"
+            embed.description = "Feeding stopped due to an error.\n"
             embed.add_field(name=type(error).__name__, value=str(error))
             self.message_count = self.message_count // COMMIT_SIZE * COMMIT_SIZE
         else:
@@ -531,6 +535,7 @@ class Simulator(commands.Cog):
             embed.add_field(name="🧠 Model Built", value=f"Analyzed {self.message_count} messages")
             await ctx.send(embed=embed)
             try:
+                assert self.bot.user
                 await ctx.message.remove_reaction(EMOJI_LOADING, self.bot.user)
                 await ctx.message.add_reaction(EMOJI_SUCCESS)
             except discord.DiscordException:
@@ -539,6 +544,7 @@ class Simulator(commands.Cog):
     # Helper Functions
 
     async def check_participant(self, ctx: commands.Context) -> bool:
+        assert isinstance(ctx.author, discord.Member)
         if self.stage == Stage.NONE:
             await ctx.send(f"The simulator is not set up yet. Configure it with `{ctx.prefix}simulator set`")
             return False
@@ -547,10 +553,10 @@ class Simulator(commands.Cog):
             return False
         if self.feeding_task and not self.feeding_task.done():
             await ctx.send(ERROR_FEEDING)
-        if self.guild != ctx.guild:
+        if self.guild and self.guild != ctx.guild:
             await ctx.send(f"The simulator only runs in the {self.guild.name} server.")
             return False
-        if self.role not in ctx.author.roles and not ctx.author.guild_permissions.administrator and not self.bot.is_owner(ctx.author):
+        if self.role and self.role not in ctx.author.roles and not ctx.author.guild_permissions.administrator and not self.bot.is_owner(ctx.author):
             await ctx.send(f"You must have the {self.role.name} role to participate in the simulator and view stats.")
             return False
         return True
@@ -565,12 +571,13 @@ class Simulator(commands.Cog):
 
     @staticmethod
     def is_valid_event_message(message: discord.Message) -> bool:
-        return message.guild and not message.author.bot and message.type == discord.MessageType.default
+        return bool(message.guild and not message.author.bot and message.type == discord.MessageType.default)
 
     def is_valid_input_message(self, message: discord.Message) -> bool:
-        return self.input_channels and message.channel in self.input_channels  \
-               and self.role and self.role in message.author.roles \
-               and message.author.id not in self.blacklisted_users
+        assert isinstance(message.author, discord.Member)
+        return bool(self.input_channels and message.channel in self.input_channels
+               and self.role and self.role in message.author.roles
+               and message.author.id not in self.blacklisted_users)
 
     async def is_valid_red_message(self, message: discord.Message) -> bool:
         return await self.bot.allowed_by_whitelist_blacklist(message.author) \
@@ -615,8 +622,8 @@ class Simulator(commands.Cog):
                     tokens.insert(i + j, subtokens[j])
         tokens.append(CHAIN_END)
         previous = ""
-        self.models.setdefault(int(user_id), UserModel(int(user_id), 0, {}))
-        user = self.models[int(user_id)]
+        self.models.setdefault(int(user_id or 0), UserModel(int(user_id or 0), 0, {}))
+        user = self.models[int(user_id or 0)]
         user.frequency += 1
         for token in tokens:
             # Add token or increment its weight by 1
@@ -630,6 +637,8 @@ class Simulator(commands.Cog):
         self.conversation_left = random.randrange(CONVERSATION_MIN, CONVERSATION_MAX + 1)
 
     async def send_generated_message(self):
+        if not self.guild or not self.webhook:
+            return
         user_id, content = self.generate_message()
         user = self.guild.get_member(int(user_id))
         if not user or not content or user.id in self.blacklisted_users:
@@ -656,7 +665,7 @@ class Simulator(commands.Cog):
         result = "".join(result[:-1]).strip()
         # formatting
         if result.count('(') != result.count(')'):
-            result = re.sub(r"((?<=\w)[)]|[(](?=\w))", "", result)  # remove them and ignore smiley faces
+            result = re.sub(r"((?<=\w)\)|\((?=\w))", "", result)  # remove them and ignore smiley faces
         for left, right in [('[', ']'), ('“', '”'), ('‘', '’'), ('«', '»')]:
             if result.count(left) != result.count(right):
                 if result.count(left) > result.count(right) and not result.endswith(left):

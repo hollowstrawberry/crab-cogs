@@ -164,13 +164,13 @@ class NovelAI(commands.Cog):
                       ):
         max_image_size = await self.config.max_image_size()
         if reference_image1:
-            if not reference_image1.content_type or "image" not in reference_image1.content_type or not reference_image1.width or not reference_image1.height or not (reference_image1.size / 1024 / 1024) <= max_image_size:
+            if not reference_image1.content_type or "image" not in reference_image1.content_type or not reference_image1.width or not reference_image1.height or (reference_image1.size / 1024 / 1024) > max_image_size:
                 return await ctx.response.send_message(f"reference_image1 must be a valid image and less than {max_image_size} MB.", ephemeral=True)
         if reference_image2:
-            if not reference_image2.content_type or "image" not in reference_image2.content_type or not reference_image2.width or not reference_image2.height or not (reference_image2.size / 1024 / 1024) <= max_image_size:
+            if not reference_image2.content_type or "image" not in reference_image2.content_type or not reference_image2.width or not reference_image2.height or (reference_image2.size / 1024 / 1024) > max_image_size:
                 return await ctx.response.send_message(f"reference_image2 must be a valid image and less than {max_image_size} MB.", ephemeral=True)
         if reference_image3:
-            if  not reference_image3.content_type or "image" not in reference_image3.content_type or not reference_image3.width or not reference_image3.height or not (reference_image3.size / 1024 / 1024) <= max_image_size:
+            if  not reference_image3.content_type or "image" not in reference_image3.content_type or not reference_image3.width or not reference_image3.height or (reference_image3.size / 1024 / 1024) > max_image_size:
                 return await ctx.response.send_message(f"reference_image3 must be a valid image and less than {max_image_size} MB.", ephemeral=True)
                       
         model = model or ImageModel(await self.config.user(ctx.user).model())
@@ -248,16 +248,16 @@ class NovelAI(commands.Cog):
                           reference_image_info_extracted3: Optional[app_commands.Range[float, 0.0, 1.0]],
                           ):
         max_image_size = await self.config.max_image_size()
-        if not image.content_type or "image" not in image.content_type or not image.width or not image.height or not (image.size / 1024 / 1024) <= max_image_size:
+        if not image.content_type or "image" not in image.content_type or not image.width or not image.height or (image.size / 1024 / 1024) > max_image_size:
             return await ctx.response.send_message(f"Attachment must be a valid image and less than {max_image_size} MB.", ephemeral=True)
         if reference_image1:
-            if not reference_image1.content_type or "image" not in reference_image1.content_type or not reference_image1.width or not reference_image1.height or not (reference_image1.size / 1024 / 1024) <= max_image_size:
+            if not reference_image1.content_type or "image" not in reference_image1.content_type or not reference_image1.width or not reference_image1.height or (reference_image1.size / 1024 / 1024) > max_image_size:
                 return await ctx.response.send_message(f"reference_image1 must be a valid image and less than {max_image_size} MB.", ephemeral=True)
         if reference_image2:
-            if not reference_image2.content_type or"image" not in reference_image2.content_type or not reference_image2.width or not reference_image2.height or not (reference_image2.size / 1024 / 1024) <= max_image_size:
+            if not reference_image2.content_type or"image" not in reference_image2.content_type or not reference_image2.width or not reference_image2.height or (reference_image2.size / 1024 / 1024) > max_image_size:
                 return await ctx.response.send_message(f"reference_image2 must be a valid image and less than {max_image_size} MB.", ephemeral=True)
         if reference_image3:
-            if not reference_image3.content_type or "image" not in reference_image3.content_type or not reference_image3.width or not reference_image3.height or not (reference_image3.size / 1024 / 1024) <= max_image_size:
+            if not reference_image3.content_type or "image" not in reference_image3.content_type or not reference_image3.width or not reference_image3.height or (reference_image3.size / 1024 / 1024) > max_image_size:
                 return await ctx.response.send_message(f"reference_image3 must be a valid image and less than {max_image_size} MB.", ephemeral=True)
 
         width, height = scale_to_size(image.width, image.height, const.MAX_FREE_IMAGE_SIZE)
@@ -696,7 +696,7 @@ class NovelAI(commands.Cog):
         if emoji is None:
             self.loading_emoji = ""
             await self.config.loading_emoji.set(self.loading_emoji)
-            await ctx.reply(f"No emoji will appear when showing position in queue.")
+            await ctx.reply("No emoji will appear when showing position in queue.")
             return
         try:
             await ctx.react_quietly(emoji)
@@ -716,7 +716,7 @@ class NovelAI(commands.Cog):
     @vip.command(name="add")
     async def vip_add(self, ctx: commands.Context, *, users: str):
         """Add a list of users to the VIP list."""
-        user_ids = [int(uid) for uid in re.findall(r"([0-9]+)", users)]
+        user_ids = [int(uid) for uid in re.findall(r"(\d+)", users)]
         if not user_ids:
             return await ctx.reply("Please enter one or more valid users.")
         vip = set(await self.config.vip())
@@ -727,7 +727,7 @@ class NovelAI(commands.Cog):
     @vip.command(name="remove")
     async def vip_remove(self, ctx: commands.Context, *, users: str):
         """Remove a list of users from the VIP list."""
-        user_ids = [int(uid) for uid in re.findall(r"([0-9]+)", users)]
+        user_ids = [int(uid) for uid in re.findall(r"(\d+)", users)]
         if not user_ids:
             return await ctx.reply("Please enter one or more valid users.")
         vip = set(await self.config.vip())

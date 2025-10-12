@@ -62,7 +62,7 @@ class ImageView(View):
         assert ctx.message and isinstance(ctx.channel, discord.TextChannel) and isinstance(ctx.user, discord.Member)
         if ctx.message.interaction:
             original_user_id = ctx.message.interaction.user.id
-        elif m := re.search(r"([0-9]+)", ctx.message.content):
+        elif m := re.search(r"(\d+)", ctx.message.content):
             original_user_id = int(m.group(1))
         else:
             original_user_id = 0

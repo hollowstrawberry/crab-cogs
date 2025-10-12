@@ -13,4 +13,5 @@ class ThinkingView(discord.ui.View):
         self.add_item(button)
 
     async def button_callback(self, interaction: discord.Interaction):
+        """Button is disabled and doesn't need to do anything"""
         pass

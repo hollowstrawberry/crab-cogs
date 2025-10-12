@@ -7,4 +7,5 @@ class ThinkingView(discord.ui.View):
 
     @discord.ui.button(emoji="♟️", label="Thinking...", style=discord.ButtonStyle.success, disabled=True)
     async def move(self, _, __):
+        """Button is disabled and doesn't need to do anything"""
         pass

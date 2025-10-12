@@ -58,7 +58,7 @@ class ConnectFourGame(Minigame):
         
         row = self.get_highest_slot(self.board, column)
         if row is None:
-            raise ValueError(f"Column is full")
+            raise ValueError("Column is full")
         
         self.last_interacted = datetime.now()
         self.time += 1
