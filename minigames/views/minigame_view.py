@@ -26,9 +26,9 @@ class MinigameView(discord.ui.View):
         assert interaction.channel and isinstance(interaction.user, discord.Member)
         if interaction.user not in self.game.players:
             return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
-        self.game.cancel(interaction.user)
-        new_view = self.game.get_view()
+        await self.game.cancel(interaction.user)
+        new_view = await self.game.get_view()
         if new_view:
             new_view.stop()
         self.stop()
-        await interaction.response.edit_message(content=self.game.get_content(), embed=self.game.get_embed(), view=new_view)
+        await interaction.response.edit_message(content=await self.game.get_content(), embed=await self.game.get_embed(), view=new_view)
