@@ -45,7 +45,7 @@ class BaseCheckersGame(ABC):
         self.view: Optional[discord.ui.View] = None
         self.board = draughts.Board(variant, initial_state or "startpos")
         self.bet = bet
-        self.init_done = False
+        self.init_done = bool(initial_state)
         self.payout_done = False
 
     @abstractmethod

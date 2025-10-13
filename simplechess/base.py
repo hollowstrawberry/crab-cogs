@@ -59,7 +59,7 @@ class BaseChessGame(ABC):
         self.board = chess.Board(initial_state or chess.STARTING_FEN)
         self.limit = chess.engine.Limit(time=1.0, depth=depth)
         self.bet = bet
-        self.init_done = False
+        self.init_done = bool(initial_state)
         self.payout_done = False
 
     @abstractmethod
