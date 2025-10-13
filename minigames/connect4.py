@@ -3,6 +3,7 @@ import discord
 from enum import Enum
 from typing import List, Optional
 from datetime import datetime
+from redbot.core import bank
 
 from minigames.base import BaseMinigameCog, Minigame
 from minigames.board import Board, find_lines
@@ -37,10 +38,10 @@ NUMBERS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7�
 
 
 class ConnectFourGame(Minigame):
-    def __init__(self, cog: BaseMinigameCog, players: List[discord.Member], channel: discord.TextChannel):
+    def __init__(self, cog: BaseMinigameCog, players: List[discord.Member], channel: discord.TextChannel, bet: int):
         if len(players) != 2:
             raise ValueError("Game must have 2 players")
-        super().__init__(cog, players, channel)
+        super().__init__(cog, players, channel, bet)
         self.accepted = False
         self.board = Board(7, 6, Player.NONE)
         self.current = Player.RED
@@ -48,7 +49,7 @@ class ConnectFourGame(Minigame):
         self.time = 0
         self.cancelled = False
 
-    def do_turn(self, player: discord.Member, column: int):
+    async def do_turn(self, player: discord.Member, column: int):
         if player != self.member(self.current):
             raise ValueError(f"It's not {player.name}'s turn")
         if self.is_finished():
@@ -65,12 +66,14 @@ class ConnectFourGame(Minigame):
         self.board[column, row] = self.current
         if self.check_win(self.board, self.current, self.time):
             self.winner = self.current
+            await self.on_win(self.member(self.winner))
         elif self.is_finished():
             self.winner = Player.TIE
+            await self.on_win(None)
         else:
             self.current = self.opponent(self.current)
 
-    def do_turn_ai(self):
+    async def do_turn_ai(self):
         moves = {}
         avoid_moves = []
         columns = self.available_columns(self.board)
@@ -95,7 +98,7 @@ class ConnectFourGame(Minigame):
         least_loses = min(moves.values())
         final_options = [col for col, val in moves.items() if val == least_loses]
         move = random.choice(final_options)
-        self.do_turn(self.member(self.current), move)
+        await self.do_turn(self.member(self.current), move)
 
     def is_finished(self) -> bool:
         return self.winner != Player.NONE or self.cancelled or self.time == len(self.board._data)
@@ -103,7 +106,7 @@ class ConnectFourGame(Minigame):
     def is_cancelled(self) -> bool:
         return self.cancelled
     
-    def cancel(self, player: discord.Member):
+    async def cancel(self, player: discord.Member):
         self.cancelled = True
         if self.time == 0:
             self.winner = Player.TIE
@@ -111,6 +114,7 @@ class ConnectFourGame(Minigame):
             self.winner = Player.NONE
         else:
             self.winner = Player.BLUE if self.players.index(player) == 0 else Player.RED
+        await self.on_win(self.member(self.winner) if self.winner.value >= 0 else None)
 
     def accept(self, _):
         self.accepted = True
@@ -172,14 +176,16 @@ class ConnectFourGame(Minigame):
         return count
 
 
-    def get_content(self) -> Optional[str]:
+    async def get_content(self) -> Optional[str]:
         if not self.accepted:
             return f"{self.players[0].mention} you've been invited to play Connect 4!"
+        elif self.is_finished() and self.winner.value >= 0 and self.bet > 0 and not self.member(self.winner).bot and await self.cog.is_economy_enabled(self.channel.guild):
+            return f"{self.member(self.winner).mention} gained {self.bet} {await bank.get_currency_name(self.channel.guild)}!"
         else:
             return None
 
 
-    def get_embed(self) -> discord.Embed:
+    async def get_embed(self) -> discord.Embed:
         title = "Pending invitation..." if not self.accepted \
                 else f"{self.member(self.current).display_name}'s turn" if not self.is_finished() \
                 else "The game was cancelled!" if self.cancelled and self.winner.value < 0 \
@@ -217,11 +223,11 @@ class ConnectFourGame(Minigame):
         return embed
 
 
-    def get_view(self) -> Optional[discord.ui.View]:
+    async def get_view(self) -> Optional[discord.ui.View]:
         if not self.accepted:
-            return InviteView(self)
+            return InviteView(self, await bank.get_currency_name(self.channel.guild))
         if self.is_finished():
-            return RematchView(self)
+            return RematchView(self, await bank.get_currency_name(self.channel.guild))
 
         view = MinigameView(self)
         options = [discord.SelectOption(label=f"{col + 1}", value=f"{col}") for col in self.available_columns(self.board)]
@@ -236,11 +242,11 @@ class ConnectFourGame(Minigame):
                 return await interaction.response.send_message("It's not your turn!", ephemeral=True)
             self.do_turn(interaction.user, int(interaction.data['values'][0])) # type: ignore
             if not self.is_finished() and self.member(self.current).bot:
-                self.do_turn_ai()
+                await self.do_turn_ai()
             if self.is_finished():
                 view.stop()
-            new_view = self.get_view()
-            await interaction.response.edit_message(content=self.get_content(), embed=self.get_embed(), view=new_view)
+            new_view = await self.get_view()
+            await interaction.response.edit_message(content=await self.get_content(), embed=await self.get_embed(), view=new_view)
             if isinstance(new_view, RematchView):
                 new_view.message = interaction.message
 

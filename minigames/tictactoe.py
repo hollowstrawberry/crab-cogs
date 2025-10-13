@@ -3,6 +3,7 @@ import discord
 from enum import Enum
 from typing import List, Optional, Tuple
 from datetime import datetime
+from redbot.core import bank
 
 from minigames.base import BaseMinigameCog, Minigame
 from minigames.board import Board, find_lines, try_complete_line
@@ -36,10 +37,10 @@ IMAGES = {
 
 
 class TicTacToeGame(Minigame):
-    def __init__(self, cog: BaseMinigameCog, players: List[discord.Member], channel: discord.TextChannel):
+    def __init__(self, cog: BaseMinigameCog, players: List[discord.Member], channel: discord.TextChannel, bet: int):
         if len(players) != 2:
             raise ValueError("Game must have 2 players")
-        super().__init__(cog, players, channel)
+        super().__init__(cog, players, channel, bet)
         self.accepted = False
         self.board = Board(3, 3, Player.NONE)
         self.current = Player.CROSS
@@ -47,7 +48,7 @@ class TicTacToeGame(Minigame):
         self.time = 0
         self.cancelled = False
 
-    def do_turn(self, player: discord.Member, slot: int):
+    async def do_turn(self, player: discord.Member, slot: int):
         if player != self.member(self.current):
             raise ValueError(f"It's not {player.name}'s turn")
         if self.is_finished():
@@ -62,16 +63,18 @@ class TicTacToeGame(Minigame):
         self.board._data[slot] = self.current
         if self.check_win():
             self.winner = self.current
+            await self.on_win(self.member(self.winner))
         elif self.is_finished():
             self.winner = Player.TIE
+            await self.on_win(None)
         else:
             self.current = self.opponent()
 
-    def do_turn_ai(self):
+    async def do_turn_ai(self):
         target = try_complete_line(self.board, self.current, Player.NONE, 3) \
             or try_complete_line(self.board, self.opponent(), Player.NONE, 3) \
             or self.get_random_unoccupied()
-        self.do_turn(self.member(self.current), target[1]*3 + target[0])
+        await self.do_turn(self.member(self.current), target[1]*3 + target[0])
 
     def is_finished(self) -> bool:
         return self.winner != Player.NONE or self.cancelled or self.time == 9
@@ -79,7 +82,7 @@ class TicTacToeGame(Minigame):
     def is_cancelled(self) -> bool:
         return self.cancelled
     
-    def cancel(self, player: discord.Member):
+    async def cancel(self, player: discord.Member):
         self.cancelled = True
         if self.time == 0:
             self.winner = Player.TIE
@@ -87,6 +90,7 @@ class TicTacToeGame(Minigame):
             self.winner = Player.NONE
         else:
             self.winner = Player.CIRCLE if self.players.index(player) == 0 else Player.CROSS
+        await self.on_win(self.member(self.winner) if self.winner.value >= 0 else None)
 
     def accept(self, _):
         self.accepted = True
@@ -113,14 +117,16 @@ class TicTacToeGame(Minigame):
         return random.choice(empty_slots)
     
 
-    def get_content(self) -> Optional[str]:
+    async def get_content(self) -> Optional[str]:
         if not self.accepted:
             return f"{self.players[0].mention} you've been invited to play Tic-Tac-Toe!"
+        elif self.is_finished() and self.winner.value >= 0 and self.bet > 0 and not self.member(self.winner).bot and await self.cog.is_economy_enabled(self.channel.guild):
+            return f"{self.member(self.winner).mention} gained {self.bet} {await bank.get_currency_name(self.channel.guild)}!"
         else:
             return None
 
 
-    def get_embed(self) -> discord.Embed:
+    async def get_embed(self) -> discord.Embed:
         title = "Pending invitation..." if not self.accepted \
                 else f"{self.member(self.current).display_name}'s turn" if not self.is_finished() \
                 else "The game was cancelled!" if self.cancelled and self.winner.value < 0 \
@@ -149,11 +155,11 @@ class TicTacToeGame(Minigame):
         return embed
 
 
-    def get_view(self) -> discord.ui.View:
+    async def get_view(self) -> discord.ui.View:
         if not self.accepted:
-            return InviteView(self)
+            return InviteView(self, await bank.get_currency_name(self.channel.guild))
 
-        view = RematchView(self) if self.is_finished() else MinigameView(self)
+        view = MinigameView(self) if not self.is_finished() else RematchView(self, await bank.get_currency_name(self.channel.guild))
         for i in range(9):
             slot: Player = self.board._data[i] # type: ignore
             button = discord.ui.Button(
@@ -171,13 +177,13 @@ class TicTacToeGame(Minigame):
                     return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
                 if interaction.user != self.member(self.current):
                     return await interaction.response.send_message("It's not your turn!", ephemeral=True)
-                self.do_turn(interaction.user, i)
+                await self.do_turn(interaction.user, i)
                 if not self.is_finished() and self.member(self.current).bot:
-                    self.do_turn_ai()
+                    await self.do_turn_ai()
                 if self.is_finished():
                     view.stop()
-                new_view = self.get_view()
-                await interaction.response.edit_message(content=self.get_content(), embed=self.get_embed(), view=new_view)
+                new_view = await self.get_view()
+                await interaction.response.edit_message(content=await self.get_content(), embed=await self.get_embed(), view=new_view)
                 if isinstance(new_view, RematchView):
                     new_view.message = interaction.message
 

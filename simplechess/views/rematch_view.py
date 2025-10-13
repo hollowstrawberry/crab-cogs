@@ -1,15 +1,23 @@
 import discord
+from typing import Optional
 
 from simplechess.base import BaseChessGame
 
+MAX_BUTTON_LABEL = 80
+
 
 class RematchView(discord.ui.View):
-    def __init__(self, game: BaseChessGame):
+    def __init__(self, game: BaseChessGame, currency_name: str):
         super().__init__(timeout=300)
         self.game = game
+        self.rematch_button = None
+        if not self.game.is_cancelled():
+            label = "Rematch" if game.bet == 0 else f"Rematch and bet {game.bet} {currency_name}"[:MAX_BUTTON_LABEL]
+            self.rematch_button = discord.ui.Button(label=label, style=discord.ButtonStyle.green, row=4)
+            self.rematch_button.callback = self.rematch
+            self.add_item(self.rematch_button)
 
-    @discord.ui.button(label="Rematch", style=discord.ButtonStyle.green)
-    async def rematch(self, interaction: discord.Interaction, _):
+    async def rematch(self, interaction: discord.Interaction):
         assert interaction.message and isinstance(interaction.user, discord.Member)
         if interaction.user not in self.game.players:
             return await interaction.response.send_message("You didn't play this game! You should start a new one.", ephemeral=True)
@@ -19,7 +27,7 @@ class RematchView(discord.ui.View):
         opponent = temp_players[0]
 
         self.stop()
-        await self.game.cog.chess_new(interaction, opponent, self.game.limit.depth)
+        await self.game.cog.chess_new(interaction, opponent, self.game.bet)
         await self.on_timeout()
         
     async def on_timeout(self):

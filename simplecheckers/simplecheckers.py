@@ -35,7 +35,7 @@ class SimpleCheckers(BaseCheckersCog):
                 players: List[discord.Member] = [channel.guild.get_member(user_id) for user_id in config["players"]] # type: ignore
                 if any(player is None for player in players):
                     continue
-                game = CheckersGame(self, players, channel, config["variant"], config["game"], config["time"])
+                game = CheckersGame(self, players, channel, config["variant"], config["game"], config["time"], config["bet"])
                 self.games[channel.id] = game
                 view = BotsView(game) if all(p.bot for p in players) else GameView(game)
                 self.bot.add_view(view)
@@ -52,14 +52,27 @@ class SimpleCheckers(BaseCheckersCog):
             if game.view:
                 game.view.stop()
 
+    async def is_economy_enabled(self, guild: discord.Guild) -> bool:
+        economy = self.bot.get_cog("Economy")
+        return economy is not None and not await self.bot.cog_disabled_in_guild(economy, guild)
 
-    async def checkers_new(self, ctx: Union[commands.Context, discord.Interaction], opponent: Optional[discord.Member]):
+
+    async def checkers_new(self, ctx: Union[commands.Context, discord.Interaction], opponent: Optional[discord.Member], bet: Optional[int]):
         author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
         assert ctx.guild and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
         
         reply = ctx.reply if isinstance(ctx, commands.Context) else ctx.response.send_message
         opponent = opponent or ctx.guild.me
         players = [author, opponent] if opponent.bot else [opponent, author]
+
+        if bet is not None and not await self.is_economy_enabled(ctx.guild):
+            return await reply("You can't bet currency as economy is not enabled in the bot. Please use this command again without a bet.", ephemeral=True)
+        if bet is not None and opponent.bot:
+            payout = await self.config.guild(ctx.guild).payout()
+            return await reply(f"You can't bet against the bot. Instead, a prize of {payout} will be issued if you win. Please use this command again without a bet.", ephemeral=True)
+
+        if opponent.bot:
+            bet = await self.config.guild(ctx.guild).payout()
 
         # Game already exists
         if ctx.channel.id in self.games and not self.games[ctx.channel.id].is_finished():
@@ -84,6 +97,7 @@ class SimpleCheckers(BaseCheckersCog):
                     game = CheckersGame(self, players, ctx.channel, VARIANT)
                     if opponent.bot:
                         game.accept()
+                        await game.init()
                     self.games[ctx.channel.id] = game
                     await game.update_message()
 
@@ -106,6 +120,7 @@ class SimpleCheckers(BaseCheckersCog):
         if opponent.bot:
             game.accept()
         self.games[ctx.channel.id] = game
+        await game.init()
 
         if isinstance(ctx, discord.Interaction):
             await ctx.response.send_message(STARTING, ephemeral=True)
@@ -145,9 +160,10 @@ class SimpleCheckers(BaseCheckersCog):
 
     @commands.command(name="checkers", aliases=["draughts"])
     @commands.guild_only()
-    async def chess_new_cmd(self, ctx: commands.Context, opponent: Optional[discord.Member] = None):
+    async def chess_new_cmd(self, ctx: commands.Context, opponent: Optional[discord.Member] = None, bet: Optional[int] = None):
         """Play a game of Checkers/Draughts against a friend or the bot."""
-        await self.checkers_new(ctx, opponent)
+        assert ctx.guild
+        await self.checkers_new(ctx, opponent, bet)
 
     @commands.command(name="checkersbots", aliases=["draughtsbots"])
     @commands.guild_only()
@@ -159,16 +175,16 @@ class SimpleCheckers(BaseCheckersCog):
     app_chess = app_commands.Group(name="checkers", description="Play Checkers/Draughts on Discord!")
 
     @app_chess.command(name="new")
-    @app_commands.describe(opponent="Invite someone to play, or play against the bot by default.")
+    @app_commands.describe(opponent="Invite someone to play, or play against the bot by default.", bet="Optionally, bet an amount of currency.")
     @app_commands.guild_only()
-    async def chess_new_app(self, interaction: discord.Interaction, opponent: Optional[discord.Member] = None):
+    async def chess_new_app(self, interaction: discord.Interaction, opponent: Optional[discord.Member] = None, bet: Optional[int] = None):
         """Play a game of Checkers against a friend or the bot."""
         ctx = await commands.Context.from_interaction(interaction)
         command = self.bot.get_command("checkers")
         assert command
         if not await command.can_run(ctx, check_all_parents=True, change_permission_state=False):
             return await interaction.response.send_message("You're not allowed to do that here.", ephemeral=True)
-        await self.checkers_new(ctx, opponent)
+        await self.checkers_new(ctx, opponent, bet)
 
     @app_chess.command(name="bots")
     @app_commands.describe(opponent="A different bot for this one to play against.")
@@ -181,3 +197,23 @@ class SimpleCheckers(BaseCheckersCog):
         if not await command.can_run(ctx, check_all_parents=True, change_permission_state=False):
             return await interaction.response.send_message("You're not allowed to do that here.", ephemeral=True)
         await self.checkers_bots(ctx, opponent)
+
+
+    @commands.group(name="setcheckers", aliases=["checkersset", "setdraughts", "draughtsset", "checkerset", "draughtset"])  # type: ignore
+    @commands.admin_or_permissions(manage_server=True)
+    async def setcheckers(self, ctx: commands.Context):
+        """Settings for Checkers."""
+        pass
+
+    @setcheckers.command(name="payout", aliases=["prize"])
+    @commands.admin_or_permissions(manage_server=True)
+    async def setcheckers_payout(self, ctx: commands.Context, payout: Optional[int]):
+        """Show or set the payout when winning Checkers against the bot."""
+        assert ctx.guild
+        if payout is None:
+            payout = await self.config.guild(ctx.guild).payout()
+            return await ctx.send(f"Current payout for Checkers is {payout} credits")
+        if payout < 0:
+            return await ctx.send("Payout must be a positive number or 0.")
+        await self.config.guild(ctx.guild).payout.set(payout)
+        await ctx.send(f"New payout for Checkers is {payout} credits")

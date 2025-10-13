@@ -6,6 +6,7 @@ import chess.svg
 from io import BytesIO
 from typing import List, Optional, Tuple
 from datetime import datetime
+from redbot.core import bank
 
 from simplechess.base import BaseChessCog, BaseChessGame
 from simplechess.utils import svg_to_png
@@ -23,8 +24,8 @@ COLOR_TIE = 0x78B159
 
 
 class ChessGame(BaseChessGame):
-    def __init__(self, cog: BaseChessCog, players: List[discord.Member], channel: discord.TextChannel, initial_state: str = None, depth: Optional[int] = None):
-        super().__init__(cog, players, channel, initial_state, depth)
+    def __init__(self, cog: BaseChessCog, players: List[discord.Member], channel: discord.TextChannel, initial_state: str = None, depth: Optional[int] = None, bet: int = 0):
+        super().__init__(cog, players, channel, initial_state, depth, bet)
         self.accepted = initial_state is not None
         self.cancelled = False
         self.surrendered: Optional[discord.Member] = None
@@ -65,10 +66,18 @@ class ChessGame(BaseChessGame):
             if self.cog.games.get(self.channel.id) == self:
                 del self.cog.games[self.channel.id]
             await self.cog.config.channel(self.channel).clear()
+            
+            if self.surrendered and not self.is_premature_surrender():
+                winner = self.players[1] if self.players.index(self.surrendered) == 0 else self.players[0]
+            else:
+                outcome = self.board.outcome()
+                winner = self.member(outcome.winner) if outcome is not None and outcome.winner is not None else None
+            await self.on_win(winner)
         else:
             await self.cog.config.channel(self.channel).game.set(self.board.fen())
             await self.cog.config.channel(self.channel).depth.set(self.limit.depth)
             await self.cog.config.channel(self.channel).players.set([player.id for player in self.players])
+            await self.cog.config.channel(self.channel).bet.set(self.bet)
 
     async def move_user(self, san_or_uci: str) -> Tuple[bool, str]:
         try:
@@ -104,20 +113,7 @@ class ChessGame(BaseChessGame):
         return BytesIO(b or b'')
 
     async def update_message(self, interaction: Optional[discord.Interaction] = None):
-        content = f"{self.players[0].mention} you're being invited to play chess." if not self.accepted else ""
         embed = discord.Embed()
-        
-        if all(m.bot for m in self.players):
-            view = BotsView(self) if not self.is_finished() \
-                else discord.ui.View(timeout=0)
-        else:
-            view = InviteView(self) if not self.accepted \
-                else RematchView(self) if self.is_finished() \
-                else ThinkingView() if self.member(self.board.turn).bot and not all(member.bot for member in self.players) \
-                else GameView(self)
-
-        filename = "board.png"
-        file = discord.File(await self.generate_board_image(), filename)
 
         outcome = self.board.outcome()
         last_capture = self.last_capture()
@@ -141,6 +137,25 @@ class ChessGame(BaseChessGame):
             embed.set_thumbnail(url=winner.display_avatar.url)
         else:
             embed.title = "The game ended in a tie!"
+
+        if not self.accepted:
+            content = f"{self.players[0].mention} you're being invited to play checkers."
+        elif self.is_finished() and winner is not None and self.bet > 0 and not winner.bot and await self.cog.is_economy_enabled(self.channel.guild):
+            content = f"{winner.mention} gained {self.bet} {await bank.get_currency_name(self.channel.guild)}!"
+        else:
+            content = ""
+        
+        if all(m.bot for m in self.players):
+            view = BotsView(self) if not self.is_finished() \
+                else discord.ui.View(timeout=0)
+        else:
+            view = InviteView(self, await bank.get_currency_name(self.channel.guild)) if not self.accepted \
+                else RematchView(self, await bank.get_currency_name(self.channel.guild)) if self.is_finished() \
+                else ThinkingView() if self.member(self.board.turn).bot and not all(member.bot for member in self.players) \
+                else GameView(self)
+
+        filename = "board.png"
+        file = discord.File(await self.generate_board_image(), filename)
 
         if outcome and outcome.winner is None or self.is_cancelled() and (winner is None or self.is_premature_surrender()):
             embed.color = COLOR_TIE

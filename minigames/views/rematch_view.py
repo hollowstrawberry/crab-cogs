@@ -3,15 +3,18 @@ from typing import Optional
 
 from minigames.base import Minigame
 
+MAX_BUTTON_LABEL = 80
+
 
 class RematchView(discord.ui.View):
-    def __init__(self, game: Minigame):
+    def __init__(self, game: Minigame, currency_name: str):
         super().__init__(timeout=300)
         self.game = game
         self.message: Optional[discord.Message] = None
         self.rematch_button = None
         if not self.game.is_cancelled():
-            self.rematch_button = discord.ui.Button(label="Rematch", style=discord.ButtonStyle.green, row=4)
+            label = "Rematch" if game.bet == 0 else f"Rematch and bet {game.bet} {currency_name}"[:MAX_BUTTON_LABEL]
+            self.rematch_button = discord.ui.Button(label=label, style=discord.ButtonStyle.green, row=4)
             self.rematch_button.callback = self.rematch
             self.add_item(self.rematch_button)
 
@@ -26,7 +29,7 @@ class RematchView(discord.ui.View):
         players = [interaction.user, opponent] if opponent.bot else [opponent, interaction.user]
 
         self.stop()
-        await self.game.cog.base_minigame_cmd(type(self.game), interaction, players, opponent.bot)
+        await self.game.cog.base_minigame_cmd(type(self.game), interaction, players, opponent.bot, self.game.bet)
         await self.on_timeout()
         
     async def on_timeout(self):

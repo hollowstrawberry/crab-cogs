@@ -1,27 +1,41 @@
 import discord
+from redbot.core import bank
 
 from minigames.base import Minigame
 
+MAX_BUTTON_LABEL = 80
+
 
 class InviteView(discord.ui.View):
-    def __init__(self, game: Minigame):
+    def __init__(self, game: Minigame, currency_name: str):
         super().__init__()
         self.game = game
+        label = "Accept" if game.bet == 0 else f"Accept and bet {game.bet} {currency_name}"[:MAX_BUTTON_LABEL]
+        accept_button = discord.ui.Button(label=label, style=discord.ButtonStyle.primary)
+        cancel_button = discord.ui.Button(label="Cancel", style=discord.ButtonStyle.secondary)
+        accept_button.callback = self.accept
+        cancel_button.callback = self.cancel
+        self.add_item(accept_button)
+        self.add_item(cancel_button)
 
-    @discord.ui.button(label="Accept", style=discord.ButtonStyle.primary)
-    async def accept(self, interaction: discord.Interaction, _):
+    async def accept(self, interaction: discord.Interaction):
         assert isinstance(interaction.user, discord.Member)
         if interaction.user != self.game.players[0]:
             return await interaction.response.send_message("You're not the target of this invitation!", ephemeral=True)
+        if self.game.bet > 0:
+            for player in self.game.players:
+                if not await bank.can_spend(player, self.game.bet):
+                    content = f"{player.mention} doesn't have enough {await bank.get_currency_name(interaction.guild)}!"
+                    return await interaction.response.send_message(content, allowed_mentions=discord.AllowedMentions.none())
         self.game.accept(interaction.user)
-        await interaction.response.edit_message(content=self.game.get_content(), embed=self.game.get_embed(), view=self.game.get_view())
+        await self.game.init()
+        await interaction.response.edit_message(content=await self.game.get_content(), embed=await self.game.get_embed(), view=await self.game.get_view())
 
-    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
-    async def cancel(self, interaction: discord.Interaction, _):
+    async def cancel(self, interaction: discord.Interaction):
         assert isinstance(interaction.user, discord.Member)
         if interaction.user not in self.game.players:
             return await interaction.response.send_message("You're not the target of this invitation!", ephemeral=True)
-        self.game.cancel(interaction.user)
+        await self.game.cancel(interaction.user)
         self.stop()
         assert interaction.message
         await interaction.message.delete()

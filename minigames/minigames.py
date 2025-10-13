@@ -2,7 +2,7 @@ import logging
 import discord
 from typing import Dict, List, Optional, Type, Union
 from datetime import datetime
-from redbot.core import commands, Config
+from redbot.core import commands, Config, app_commands
 from redbot.core.bot import Red
 
 from minigames.base import Minigame, BaseMinigameCog
@@ -24,29 +24,39 @@ class Minigames(BaseMinigameCog):
         self.allowedguilds = set()
         self.games: Dict[int, Minigame] = {}
         self.config = Config.get_conf(self, identifier=7669699620)
-        self.config.register_guild()
+        default_config = {
+            "connect4_payout": 100,
+            "tictactoe_payout": 20
+        }
+        self.config.register_guild(**default_config)
+
+    async def is_economy_enabled(self, guild: discord.Guild) -> bool:
+        economy = self.bot.get_cog("Economy")
+        return economy is not None and not await self.bot.cog_disabled_in_guild(economy, guild)
 
     @commands.hybrid_command(name="tictactoe", aliases=["ttt"])
+    @app_commands.describe(opponent="Invite another user to play.", bet="Optionally, bet an amount of currency.")
     @commands.guild_only()
-    async def tictactoe(self, ctx: commands.Context, opponent: Optional[discord.Member] = None):
+    async def tictactoe(self, ctx: commands.Context, opponent: Optional[discord.Member] = None, bet: Optional[int] = None):
         """
         Play a game of Tic-Tac-Toe against the bot or another user.
         """
         assert ctx.guild and isinstance(ctx.author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
         opponent = opponent or ctx.guild.me
         players = [ctx.author, opponent] if opponent.bot else [opponent, ctx.author]
-        await self.base_minigame_cmd(TicTacToeGame, ctx, players, opponent.bot)
+        await self.base_minigame_cmd(TicTacToeGame, ctx, players, opponent.bot, bet)
 
     @commands.hybrid_command(name="connect4", aliases=["c4"])
+    @app_commands.describe(opponent="Invite another user to play.", bet="Optionally, bet an amount of currency.")
     @commands.guild_only()
-    async def connectfour(self, ctx: commands.Context, opponent: Optional[discord.Member] = None):
+    async def connectfour(self, ctx: commands.Context, opponent: Optional[discord.Member] = None, bet: Optional[int] = None):
         """
         Play a game of Connect 4 against the bot or another user.
         """
         assert ctx.guild and isinstance(ctx.author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
         opponent = opponent or ctx.guild.me
         players = [ctx.author, opponent] if opponent.bot else [opponent, ctx.author]
-        await self.base_minigame_cmd(ConnectFourGame, ctx, players, opponent.bot)
+        await self.base_minigame_cmd(ConnectFourGame, ctx, players, opponent.bot, bet)
 
 
     async def base_minigame_cmd(self,
@@ -54,11 +64,24 @@ class Minigames(BaseMinigameCog):
                                 ctx: Union[commands.Context, discord.Interaction],
                                 players: List[discord.Member],
                                 against_bot: bool,
+                                bet: Optional[int],
                                 ):
         author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
         reply = ctx.reply if isinstance(ctx, commands.Context) else ctx.response.send_message
         assert ctx.guild and isinstance(ctx.channel, discord.TextChannel) and isinstance(author, discord.Member)
-        
+
+        if bet is not None and not await self.is_economy_enabled(ctx.guild):
+            return await reply("You can't bet currency as economy is not enabled in the bot. Please use this command again without a bet.", ephemeral=True)
+        if bet is not None and against_bot:
+            payout = await self.config.guild(ctx.guild).connect4_payout()
+            return await reply(f"You can't bet against the bot. Instead, a prize of {payout} will be issued if you win. Please use this command again without a bet.", ephemeral=True)
+
+        if against_bot:
+            if game_cls == TicTacToeGame:
+                bet = await self.config.guild(ctx.guild).tictactoe_payout()
+            elif game_cls == ConnectFourGame:
+                bet = await self.config.guild(ctx.guild).connect4_payout()
+
         # Game already exists
         if ctx.channel.id in self.games and not self.games[ctx.channel.id].is_finished():
             old_game = self.games[ctx.channel.id]
@@ -70,11 +93,13 @@ class Minigames(BaseMinigameCog):
                     async def callback():
                         nonlocal ctx, players, old_game, against_bot
                         assert isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel) 
-                        game = game_cls(self, players, ctx.channel)
+                        await old_game.cancel(author)
+                        game = game_cls(self, players, ctx.channel, bet or 0)
                         if against_bot:
                             game.accept(author)
+                            await game.init()
                         self.games[ctx.channel.id] = game
-                        message = await ctx.channel.send(content=game.get_content(), embed=game.get_embed(), view=game.get_view())
+                        message = await ctx.channel.send(content=await game.get_content(), embed=await game.get_embed(), view=await game.get_view())
                         game.message = message
                         if old_game.message:
                             try:
@@ -97,9 +122,50 @@ class Minigames(BaseMinigameCog):
                     return
         
         # New game
-        game = game_cls(self, players, ctx.channel)
+        game = game_cls(self, players, ctx.channel, bet or 0)
         if against_bot:
             game.accept(author)
+            await game.init()
         self.games[ctx.channel.id] = game
-        message = await reply(content=game.get_content(), embed=game.get_embed(), view=game.get_view())
+        message = await reply(content=await game.get_content(), embed=await game.get_embed(), view=await game.get_view())
         game.message = message if isinstance(ctx, commands.Context) else await ctx.original_response() # type: ignore
+
+
+    @commands.group(name="connect4set", aliases=["setconnect4"])  # type: ignore
+    @commands.admin_or_permissions(manage_server=True)
+    async def setconnect4(self, ctx: commands.Context):
+        """Settings for Connect 4."""
+        pass
+
+    @setconnect4.command(name="payout", aliases=["prize"])
+    @commands.admin_or_permissions(manage_server=True)
+    async def setconnect4_payout(self, ctx: commands.Context, payout: Optional[int]):
+        """Show or set the payout when winning Connect 4 against the bot."""
+        assert ctx.guild
+        if payout is None:
+            payout = await self.config.guild(ctx.guild).connect4_payout()
+            return await ctx.send(f"Current payout for Connect 4 is {payout} credits")
+        if payout < 0:
+            return await ctx.send("Payout must be a positive number or 0.")
+        await self.config.guild(ctx.guild).connect4_payout.set(payout)
+        await ctx.send(f"New payout for Connect 4 is {payout} credits")
+
+
+    @commands.group(name="tictactoeset", aliases=["settictactoe"])  # type: ignore
+    @commands.admin_or_permissions(manage_server=True)
+    async def settictactoe(self, ctx: commands.Context):
+        """Settings for Tic-Tac-Toe."""
+        pass
+
+    @settictactoe.command(name="payout", aliases=["prize"])
+    @commands.admin_or_permissions(manage_server=True)
+    async def settictactoe_payout(self, ctx: commands.Context, payout: Optional[int]):
+        """Show or set the payout when winning Tic-Tac-Toe against the bot."""
+        assert ctx.guild
+        if payout is None:
+            payout = await self.config.guild(ctx.guild).tictactoe_payout()
+            return await ctx.send(f"Current payout for Tic-Tac-Toe is {payout} credits")
+        if payout < 0:
+            return await ctx.send("Payout must be a positive number or 0.")
+        await self.config.guild(ctx.guild).tictactoe_payout.set(payout)
+        await ctx.send(f"New payout for Tic-Tac-Toe is {payout} credits")

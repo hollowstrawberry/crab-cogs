@@ -42,7 +42,7 @@ class SimpleChess(BaseChessCog):
                 players: List[discord.Member] = [channel.guild.get_member(user_id) for user_id in config["players"]] # type: ignore
                 if any(player is None for player in players):
                     continue
-                game = ChessGame(self, players, channel, config["game"], config["depth"])
+                game = ChessGame(self, players, channel, config["game"], config["depth"], config["bet"])
                 self.games[channel.id] = game
                 view = BotsView(game) if all(player.bot for player in players) else GameView(game)
                 self.bot.add_view(view)
@@ -61,16 +61,29 @@ class SimpleChess(BaseChessCog):
         if self.engine:
             await self.engine.quit()
 
+    async def is_economy_enabled(self, guild: discord.Guild) -> bool:
+        economy = self.bot.get_cog("Economy")
+        return economy is not None and not await self.bot.cog_disabled_in_guild(economy, guild)
 
-    async def chess_new(self, ctx: Union[commands.Context, discord.Interaction], opponent: Optional[discord.Member], depth: Optional[int] = None):
+
+    async def chess_new(self, ctx: Union[commands.Context, discord.Interaction], opponent: Optional[discord.Member], depth: Optional[int] = None, bet: Optional[int] = 0):
         author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
         assert ctx.guild and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
         opponent = opponent or ctx.guild.me
         players = [author, opponent] if opponent.bot else [opponent, author]
+        reply = ctx.reply if isinstance(ctx, commands.Context) else ctx.response.send_message
+
+        if bet is not None and not await self.is_economy_enabled(ctx.guild):
+            return await reply("You can't bet currency as economy is not enabled in the bot. Please use this command again without a bet.", ephemeral=True)
+        if bet is not None and opponent.bot:
+            payout = await self.config.guild(ctx.guild).payout()
+            return await reply(f"You can't bet against the bot. Instead, a prize of {payout} will be issued if you win. Please use this command again without a bet.", ephemeral=True)
+
+        if opponent.bot:
+            bet = await self.config.guild(ctx.guild).payout()
 
         # Game already exists
         if ctx.channel.id in self.games and not self.games[ctx.channel.id].is_finished():
-            reply = ctx.reply if isinstance(ctx, commands.Context) else ctx.response.send_message
             old_game = self.games[ctx.channel.id]
             try:
                 old_message = await ctx.channel.fetch_message(old_game.message.id) if old_game.message else None # re-fetch
@@ -92,6 +105,7 @@ class SimpleChess(BaseChessCog):
                     game = ChessGame(self, players, ctx.channel, depth=depth)
                     if opponent.bot:
                         game.accept()
+                        await game.init()
                     self.games[ctx.channel.id] = game
                     await game.update_message()
 
@@ -113,6 +127,7 @@ class SimpleChess(BaseChessCog):
         game = ChessGame(self, players, ctx.channel, depth=depth)
         if opponent.bot:
             game.accept()
+            await game.init()
         self.games[ctx.channel.id] = game
 
         if isinstance(ctx, discord.Interaction):
@@ -153,9 +168,9 @@ class SimpleChess(BaseChessCog):
 
     @commands.command(name="chess")
     @commands.guild_only()
-    async def chess_new_cmd(self, ctx: commands.Context, opponent: Optional[discord.Member] = None):
+    async def chess_new_cmd(self, ctx: commands.Context, opponent: Optional[discord.Member] = None, bet: Optional[int] = None):
         """Play a game of Chess against a friend or the bot."""
-        await self.chess_new(ctx, opponent, DEFAULT_DIFFICULTY)
+        await self.chess_new(ctx, opponent, DEFAULT_DIFFICULTY, bet)
 
     @commands.command(name="chessbots")
     @commands.guild_only()
@@ -168,7 +183,8 @@ class SimpleChess(BaseChessCog):
 
     @app_chess.command(name="new")
     @app_commands.describe(opponent="Invite someone to play, or play against the bot by default.",
-                           difficulty="Hard by default.")
+                           bet="Against a player, optionally bet currency.",
+                           difficulty="Against the bot. Hard by default.")
     @app_commands.choices(difficulty=[app_commands.Choice(name="Easy", value="1"),
                                       app_commands.Choice(name="Medium", value="3"),
                                       app_commands.Choice(name="Hard", value="5"),
@@ -177,6 +193,7 @@ class SimpleChess(BaseChessCog):
     async def chess_new_app(self,
                             interaction: discord.Interaction,
                             opponent: Optional[discord.Member] = None,
+                            bet: Optional[int] = None,
                             difficulty: str = f"{DEFAULT_DIFFICULTY}"):
         """Play a game of Chess against a friend or the bot."""
         ctx = await commands.Context.from_interaction(interaction)
@@ -184,7 +201,7 @@ class SimpleChess(BaseChessCog):
         assert command
         if not await command.can_run(ctx, check_all_parents=True, change_permission_state=False):
             return await interaction.response.send_message("You're not allowed to do that here.", ephemeral=True)
-        await self.chess_new(ctx, opponent, int(difficulty) or None)
+        await self.chess_new(ctx, opponent, int(difficulty) or None, bet)
 
     @app_chess.command(name="bots")
     @app_commands.describe(opponent="A different bot for this one to play against.")
@@ -197,3 +214,23 @@ class SimpleChess(BaseChessCog):
         if not await command.can_run(ctx, check_all_parents=True, change_permission_state=False):
             return await interaction.response.send_message("You're not allowed to do that here.", ephemeral=True)
         await self.chess_bots(ctx, opponent, DEFAULT_DIFFICULTY)
+
+
+    @commands.group(name="setchess", aliases=["chesset",  "chessset"])  # type: ignore
+    @commands.admin_or_permissions(manage_server=True)
+    async def setchess(self, ctx: commands.Context):
+        """Settings for Chess."""
+        pass
+
+    @setchess.command(name="payout", aliases=["prize"])
+    @commands.admin_or_permissions(manage_server=True)
+    async def setchess_payout(self, ctx: commands.Context, payout: Optional[int]):
+        """Show or set the payout when winning Chess against the bot."""
+        assert ctx.guild
+        if payout is None:
+            payout = await self.config.guild(ctx.guild).payout()
+            return await ctx.send(f"Current payout for Chess is {payout} credits")
+        if payout < 0:
+            return await ctx.send("Payout must be a positive number or 0.")
+        await self.config.guild(ctx.guild).payout.set(payout)
+        await ctx.send(f"New payout for Chess is {payout} credits")
