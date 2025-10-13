@@ -244,7 +244,7 @@ class EconomyPrettier(commands.Cog):
                 await bank.set_balance(author, exc.max_balance)
                 await ctx.send(f"{author.mention} You've reached the maximum amount of {credits_name}! You currently have {humanize_number(exc.max_balance)} {credits_name}")
                 return
-            phrase = payout["phrase"]
+            phrase = f"**{payout['phrase']}**"
         else:
             then = await bank.get_balance(author)
             await bank.withdraw_credits(author, bid)
@@ -258,7 +258,7 @@ class EconomyPrettier(commands.Cog):
         def add_fields():
             nonlocal bid, credits_name, new_balance, phrase
             embed.add_field(name="Bid", value=f"{bid} {credits_name}")
-            embed.add_field(name="Winnings", value=f"**{phrase}**")
+            embed.add_field(name="Winnings", value=phrase)
             embed.add_field(name="Balance", value=f"{new_balance} {credits_name}")
 
         if ctx.interaction:
