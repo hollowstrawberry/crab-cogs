@@ -13,7 +13,10 @@ class RematchView(discord.ui.View):
         self.message: Optional[discord.Message] = None
         self.rematch_button = None
         if not self.game.is_cancelled():
-            label = "Rematch" if game.bet == 0 else f"Rematch and bet {game.bet} {currency_name}"[:MAX_BUTTON_LABEL]
+            if game.bet == 0 or any(player.bot for player in self.game.players):
+                label = "Rematch"
+            else:
+                label = f"Rematch and bet {game.bet} {currency_name}"[:MAX_BUTTON_LABEL]
             self.rematch_button = discord.ui.Button(label=label, style=discord.ButtonStyle.green, row=4)
             self.rematch_button.callback = self.rematch
             self.add_item(self.rematch_button)
