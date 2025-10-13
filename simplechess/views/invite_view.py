@@ -27,8 +27,7 @@ class InviteView(discord.ui.View):
                 if not await bank.can_spend(player, self.game.bet):
                     content = f"{player.mention} doesn't have enough {await bank.get_currency_name(interaction.guild)}!"
                     return await interaction.response.send_message(content, allowed_mentions=discord.AllowedMentions.none())
-        self.game.accept()
-        await self.game.init()
+        await self.game.start()
         await interaction.response.pong()
         await self.game.update_message()
 

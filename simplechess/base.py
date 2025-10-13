@@ -59,7 +59,8 @@ class BaseChessGame(ABC):
         self.board = chess.Board(initial_state or chess.STARTING_FEN)
         self.limit = chess.engine.Limit(time=1.0, depth=depth)
         self.bet = bet
-        self.init_done = bool(initial_state)
+        self.accepted = initial_state is not None
+        self.init_done = initial_state is not None
         self.payout_done = False
 
     @abstractmethod
@@ -68,10 +69,6 @@ class BaseChessGame(ABC):
 
     @abstractmethod
     def is_cancelled(self) -> bool:
-        pass
-
-    @abstractmethod
-    def accept(self) -> None:
         pass
 
     @abstractmethod
@@ -97,7 +94,11 @@ class BaseChessGame(ABC):
     def member(self, color: chess.Color) -> discord.Member:
         return self.players[1] if color == chess.BLACK else self.players[0]
     
-    async def init(self) -> None:
+    async def start(self):
+        self.accepted = True
+        await self._init()
+    
+    async def _init(self) -> None:
         if self.init_done:
             return
         self.init_done = True
@@ -108,7 +109,7 @@ class BaseChessGame(ABC):
                 await bank.withdraw_credits(player, self.bet)
         await self.save_state()
 
-    async def on_win(self, winner: Optional[discord.Member]) -> None:
+    async def _on_win(self, winner: Optional[discord.Member]) -> None:
         if self.payout_done:
             return
         self.payout_done = True
@@ -117,7 +118,7 @@ class BaseChessGame(ABC):
         against_bot = any(player.bot for player in self.players)
         if winner is None and against_bot:
             return
-        await self.init() # failsafe
+        await self._init() # failsafe
         if winner is None:
             for player in self.players:
                 await bank.deposit_credits(player, self.bet)

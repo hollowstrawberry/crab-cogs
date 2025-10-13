@@ -45,7 +45,8 @@ class BaseCheckersGame(ABC):
         self.view: Optional[discord.ui.View] = None
         self.board = draughts.Board(variant, initial_state or "startpos")
         self.bet = bet
-        self.init_done = bool(initial_state)
+        self.accepted = initial_state is not None
+        self.init_done = initial_state is not None
         self.payout_done = False
 
     @abstractmethod
@@ -54,10 +55,6 @@ class BaseCheckersGame(ABC):
 
     @abstractmethod
     def is_cancelled(self) -> bool:
-        pass
-
-    @abstractmethod
-    def accept(self) -> None:
         pass
 
     @abstractmethod
@@ -83,7 +80,11 @@ class BaseCheckersGame(ABC):
     def member(self, color: int):
         return self.players[0] if color == draughts.BLACK else self.players[1]
     
-    async def init(self) -> None:
+    async def start(self) -> None:
+        self.accepted = True
+        await self._init()
+    
+    async def _init(self) -> None:
         if self.init_done:
             return
         self.init_done = True
@@ -94,7 +95,7 @@ class BaseCheckersGame(ABC):
                 await bank.withdraw_credits(player, self.bet)
         await self.save_state()
 
-    async def on_win(self, winner: Optional[discord.Member]) -> None:
+    async def _on_win(self, winner: Optional[discord.Member]) -> None:
         if self.payout_done:
             return
         self.payout_done = True
@@ -103,7 +104,7 @@ class BaseCheckersGame(ABC):
         against_bot = any(player.bot for player in self.players)
         if winner is None and against_bot:
             return
-        await self.init() # failsafe
+        await self._init() # failsafe
         if winner is None:
             for player in self.players:
                 await bank.deposit_credits(player, self.bet)

@@ -104,8 +104,7 @@ class SimpleChess(BaseChessCog):
                     await old_game.update_message()
                     game = ChessGame(self, players, ctx.channel, depth=depth, bet=bet or 0)
                     if opponent.bot:
-                        game.accept()
-                        await game.init()
+                        await game.start()
                     self.games[ctx.channel.id] = game
                     await game.update_message()
 
@@ -126,8 +125,7 @@ class SimpleChess(BaseChessCog):
         # New game
         game = ChessGame(self, players, ctx.channel, depth=depth, bet=bet or 0)
         if opponent.bot:
-            game.accept()
-            await game.init()
+            await game.start()
         self.games[ctx.channel.id] = game
 
         if isinstance(ctx, discord.Interaction):
@@ -158,7 +156,7 @@ class SimpleChess(BaseChessCog):
             return await ctx.send("There's an ongoing chess game in this channel, we can't interrupt it.")
             
         game = ChessGame(self, [ctx.guild.me, opponent], ctx.channel, depth=depth)
-        game.accept()
+        await game.start()
         self.games[ctx.channel.id] = game
 
         if ctx.interaction:

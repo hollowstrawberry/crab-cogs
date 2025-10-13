@@ -96,8 +96,7 @@ class SimpleCheckers(BaseCheckersCog):
                     await old_game.update_message()
                     game = CheckersGame(self, players, ctx.channel, VARIANT, bet=bet or 0)
                     if opponent.bot:
-                        game.accept()
-                        await game.init()
+                        await game.start()
                     self.games[ctx.channel.id] = game
                     await game.update_message()
 
@@ -118,9 +117,8 @@ class SimpleCheckers(BaseCheckersCog):
         # New game
         game = CheckersGame(self, players, ctx.channel, VARIANT, bet=bet or 0)
         if opponent.bot:
-            game.accept()
+            await game.start()
         self.games[ctx.channel.id] = game
-        await game.init()
 
         if isinstance(ctx, discord.Interaction):
             await ctx.response.send_message(STARTING, ephemeral=True)
@@ -150,7 +148,7 @@ class SimpleCheckers(BaseCheckersCog):
             return await ctx.send("There's an ongoing chess game in this channel, we can't interrupt it.")
             
         game = CheckersGame(self, [ctx.guild.me, opponent], ctx.channel, VARIANT)
-        game.accept()
+        await game.start()
         self.games[ctx.channel.id] = game
 
         if ctx.interaction:

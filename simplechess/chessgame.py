@@ -26,13 +26,9 @@ COLOR_TIE = 0x78B159
 class ChessGame(BaseChessGame):
     def __init__(self, cog: BaseChessCog, players: List[discord.Member], channel: discord.TextChannel, initial_state: str = None, depth: Optional[int] = None, bet: int = 0):
         super().__init__(cog, players, channel, initial_state, depth, bet)
-        self.accepted = initial_state is not None
         self.cancelled = False
         self.surrendered: Optional[discord.Member] = None
         self.last_board = self.board.copy()
-    
-    def accept(self):
-        self.accepted = True
 
     def is_cancelled(self):
         return self.cancelled
@@ -72,7 +68,7 @@ class ChessGame(BaseChessGame):
             else:
                 outcome = self.board.outcome()
                 winner = self.member(outcome.winner) if outcome is not None and outcome.winner is not None else None
-            await self.on_win(winner)
+            await self._on_win(winner)
             
         else:
             await self.cog.config.channel(self.channel).game.set(self.board.fen())

@@ -27,15 +27,11 @@ COLOR_TIE = 0x78B159
 class CheckersGame(BaseCheckersGame):
     def __init__(self, cog: BaseCheckersCog, players: List[discord.Member], channel: discord.TextChannel, variant: str, initial_state: str = None, initial_time: int = 0, bet: int = 0):
         super().__init__(cog, players, channel, variant, initial_state, bet)
-        self.accepted = initial_state is not None
         self.cancelled = False
         self.surrendered: Optional[discord.Member] = None
         self.time = initial_time
         self.last_arrows: List[int] = []
     
-    def accept(self):
-        self.accepted = True
-
     def is_cancelled(self):
         return self.cancelled
 
@@ -62,7 +58,7 @@ class CheckersGame(BaseCheckersGame):
             elif black_pieces <= 3 and black_pieces < white_pieces:
                 self.surrendered = self.member(draughts.BLACK)
                 self.cancelled = True
-    
+
     async def cancel(self, member: Optional[discord.Member]):
         self.cancelled = True
         if member in self.players:
@@ -80,7 +76,7 @@ class CheckersGame(BaseCheckersGame):
             else:
                 winner = self.board.winner()
                 winner_member = self.member(winner) if winner is not None else None
-            await self.on_win(winner_member)
+            await self._on_win(winner_member)
 
         else:
             await self.cog.config.channel(self.channel).game.set(self.board.fen)
