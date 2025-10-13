@@ -3,7 +3,7 @@
     "min_bot_version": "3.5.0",
     "description": "Improves the slot command, adds a configurable bonus for the payday command, and adds slash commands for those two.",
     "hidden": false,
-    "install_msg": "💵 __**EconomyTweaks**__\n```Cog installed. Instructions:\n1. Load it with [p]load economytweaks\n2. Optionally, enable slash commands with [p]slash enablecog economytweaks\n  2.1. Then do [p]slash sync\n  2.2. Then restart Discord\n3. You should be able to use [p]slot and [p]payday as usual.```",
+    "install_msg": "💵 __**EconomyTweaks**__\n```Cog installed. Instructions:\n1. Load it with [p]load economytweaks\n2. Optionally, enable slash commands with [p]slash enablecog economytweaks\n  2.1. Then do [p]slash sync\n  2.2. Then restart Discord\n3. Configure with [p]economytweakset\n4. You should be able to use [p]slot and [p]payday as usual.```",
     "required_cogs": {},
     "requirements": ["emoji"],
     "short": "Improves the slot command, adds a configurable bonus for the payday command, and adds slash commands for those two.",

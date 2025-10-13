@@ -115,76 +115,59 @@ class EconomyTweaks(commands.Cog):
 
         cur_time = calendar.timegm(ctx.message.created_at.utctimetuple())
         credits_name = await bank.get_currency_name(guild)
-        if await bank.is_global():
+        is_global = await bank.is_global()
+        if is_global:
             next_payday = await economy.config.user(author).next_payday() + await economy.config.PAYDAY_TIME()
-            next_payday_bonus = await self.config.user(author).last_payday_bonus() + await self.config.bonus_time()
-            if cur_time >= next_payday:
-                is_bonus = cur_time >= next_payday_bonus
-                if is_bonus:
-                    reward = await self.config.bonus_amount()
-                else:
-                    reward = await economy.config.PAYDAY_CREDITS()
-                try:
-                    await bank.deposit_credits(author, reward)
-                except errors.BalanceTooHigh as exc:
-                    await bank.set_balance(author, exc.max_balance)
-                    await ctx.send(f"{author.mention} You've reached the maximum amount of {credits_name}!"
-                                   f" You currently have {humanize_number(exc.max_balance)} {credits_name}", ephemeral=True)
-                    return
-                await economy.config.user(author).next_payday.set(cur_time)
-                await self.config.user(author).last_payday_bonus.set(cur_time)
-                pos = await bank.get_leaderboard_position(author)
-                position = f"#{humanize_number(pos)}" if pos else "unknown"
-                amount = humanize_number(reward)
-                new_balance = humanize_number(await bank.get_balance(author))
-                if is_bonus:
-                    relative_time = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=await self.config.bonus_time()), "R")
-                    await ctx.send(f"{author.mention} Bonus! Take {amount} {credits_name}. You now have {new_balance} {credits_name}!"
-                                    f"\nYou are currently {position} on the leaderboard."
-                                    f"\nNext bonus {relative_time}", ephemeral=True)
-                else:
-                    await ctx.send(f"{author.mention} Here, take {amount} {credits_name}. You now have {new_balance} {credits_name}!"
-                                    f"\nYou are currently {position} on the leaderboard.", ephemeral=True)
-            else:
-                relative_time = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=next_payday - cur_time), "R")
-                await ctx.send(f"{author.mention} Too soon. Your next payday is {relative_time}", ephemeral=True)
+            bonus_time = await self.config.bonus_time()
+            next_payday_bonus = await self.config.user(author).last_payday_bonus() + bonus_time
+            payday_amount = await economy.config.PAYDAY_CREDITS()
+            bonus_amount = await self.config.bonus_amount()
         else:
             next_payday = await economy.config.member(author).next_payday() + await economy.config.guild(guild).PAYDAY_TIME()
-            next_payday_bonus = await self.config.member(author).last_payday_bonus() + await self.config.guild(guild).bonus_time()
-            if cur_time >= next_payday:
-                is_bonus = cur_time >= next_payday_bonus
-                if is_bonus:
-                    reward = await self.config.guild(guild).bonus_amount()
-                else:
-                    reward = await economy.config.guild(guild).PAYDAY_CREDITS()
-                    for role in author.roles:
-                        role_credits = await economy.config.role(role).PAYDAY_CREDITS()
-                        if role_credits > reward:
-                            reward = role_credits
-                try:
-                    await bank.deposit_credits(author, reward)
-                except errors.BalanceTooHigh as exc:
-                    await bank.set_balance(author, exc.max_balance)
-                    await ctx.send(f"{author.mention} You've reached the maximum amount of {credits_name}! "
-                                   f" You currently have {humanize_number(exc.max_balance)} {credits_name}", ephemeral=True)
-                    return
-                await economy.config.member(author).next_payday.set(cur_time)
+            bonus_time = await self.config.guild(guild).bonus_time()
+            next_payday_bonus = await self.config.member(author).last_payday_bonus() + bonus_time
+            payday_amount = await economy.config.guild(guild).PAYDAY_CREDITS()
+            bonus_amount = await self.config.guild(guild).bonus_amount()
+
+        if cur_time < next_payday:
+            relative_time = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=next_payday - cur_time), "R")
+            return await ctx.send(f"{author.mention} Too soon. Your next payday is {relative_time}", ephemeral=True)
+
+        is_bonus = cur_time >= next_payday_bonus and bonus_amount > 0 and bonus_amount > payday_amount
+        reward = bonus_amount if is_bonus else payday_amount
+        if not is_global:
+            for role in author.roles:
+                role_reward = await economy.config.role(role).PAYDAY_CREDITS()
+                if role_reward > reward:
+                    reward = role_reward
+        try:
+            await bank.deposit_credits(author, reward)
+        except errors.BalanceTooHigh as exc:
+            await bank.set_balance(author, exc.max_balance)
+            return await ctx.send(f"{author.mention} You've reached the maximum amount of {credits_name}!"
+                                  f" You currently have {humanize_number(exc.max_balance)} {credits_name}", ephemeral=True)
+        
+        if is_global:
+            await economy.config.user(author).next_payday.set(cur_time)
+            if is_bonus:
+                await self.config.user(author).last_payday_bonus.set(cur_time)
+        else:
+            await economy.config.member(author).next_payday.set(cur_time)
+            if is_bonus:
                 await self.config.member(author).last_payday_bonus.set(cur_time)
-                pos = await bank.get_leaderboard_position(author)
-                position = f"#{humanize_number(pos)}" if pos else "unknown"
-                amount = humanize_number(await economy.config.PAYDAY_CREDITS())
-                new_balance = humanize_number(await bank.get_balance(author))
-                if is_bonus:
-                    relative_time = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=await self.config.guild(guild).bonus_time()), "R")
-                    await ctx.send(f"{author.mention} Bonus! Take {amount} {credits_name}. You now have {new_balance} {credits_name}!"
-                                    f"\nYou are currently {position} on the leaderboard."
-                                    f"\nNext bonus {relative_time}", ephemeral=True)
-                else:
-                    await ctx.send(f"{author.mention} Here, take {amount} {credits_name}. You now have {new_balance} {credits_name}!"
-                                    f"\nYou are currently {position} on the leaderboard.", ephemeral=True)
-            else:
-                relative_time = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=next_payday - cur_time), "R")
-                await ctx.send(f"{author.mention} Too soon. Your next payday is {relative_time}", ephemeral=True)
+
+        pos = await bank.get_leaderboard_position(author)
+        position = f"#{humanize_number(pos)}" if pos else "unknown"
+        amount = humanize_number(reward)
+        new_balance = humanize_number(await bank.get_balance(author))
+        if is_bonus:
+            relative_time = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=bonus_time), "R")
+            await ctx.send(f"{author.mention} Bonus! Take {amount} {credits_name}. You now have {new_balance} {credits_name}!"
+                           f"\nYou are currently {position} on the leaderboard."
+                           f"\nNext bonus {relative_time}", ephemeral=True)
+        else:
+            await ctx.send(f"{author.mention} Here, take {amount} {credits_name}. You now have {new_balance} {credits_name}!"
+                           f"\nYou are currently {position} on the leaderboard.", ephemeral=True)
 
 
     @commands.command(name="slot")
@@ -257,11 +240,8 @@ class EconomyTweaks(commands.Cog):
 
         payout = PAYOUTS.get(rows[1])
         if not payout:
-            # Checks for two-consecutive-symbols special rewards
             payout = PAYOUTS.get((rows[1][0], rows[1][1]), PAYOUTS.get((rows[1][1], rows[1][2])))
         if not payout:
-            # Still nothing. Let's check for 3 generic same symbols
-            # or 2 consecutive symbols
             has_three = rows[1][0] == rows[1][1] == rows[1][2]
             has_two = (rows[1][0] == rows[1][1]) or (rows[1][1] == rows[1][2])
             if has_three:
@@ -293,9 +273,9 @@ class EconomyTweaks(commands.Cog):
         third = f"{reels[0][0].value}{reels[1][0].value}{reels[2][0].value}\n{reels[0][1].value}{reels[1][1].value}{reels[2][1].value}\n{reels[0][2].value}{reels[1][2].value}{reels[2][2].value}"
         def add_fields():
             nonlocal bid, credits_name, new_balance, phrase
-            embed.add_field(name="Bid", value=f"{bid} {credits_name}")
+            embed.add_field(name="Bid", value=f"{humanize_number(bid)} {credits_name}")
             embed.add_field(name="Winnings", value=phrase)
-            embed.add_field(name="Balance", value=f"{new_balance} {credits_name}")
+            embed.add_field(name="Balance", value=f"{humanize_number(new_balance)} {credits_name}")
 
         if ctx.interaction:
             embed.description = first
@@ -328,7 +308,7 @@ class EconomyTweaks(commands.Cog):
     @economytweakset.command(name="bonusamount")
     @bank.is_owner_if_bank_global()
     async def economytweakset_bonusamount(self, ctx: commands.Context, creds: Optional[int]):
-        """Set the amount earned each with each payday bonus."""
+        """Set the amount earned with each payday bonus, must be greater than the payday amount itself, 0 to disable"""
         assert ctx.guild
         is_global = await bank.is_global()
         config_amount = self.config.bonus_amount if is_global else self.config.guild(ctx.guild).bonus_amount
