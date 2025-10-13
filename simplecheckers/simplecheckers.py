@@ -186,17 +186,17 @@ class SimpleCheckers(BaseCheckersCog):
             return await interaction.response.send_message("You're not allowed to do that here.", ephemeral=True)
         await self.checkers_new(ctx, opponent, bet)
 
-    @app_chess.command(name="bots")
-    @app_commands.describe(opponent="A different bot for this one to play against.")
+    @app_chess.command(name="only_bots")
+    @app_commands.describe(bot_opponent="A different bot for this one to play against.")
     @app_commands.guild_only()
-    async def chess_bots_app(self, interaction: discord.Interaction, opponent: discord.Member):
+    async def chess_bots_app(self, interaction: discord.Interaction, bot_opponent: discord.Member):
         """Make this bot play Checkers against another bot."""
         ctx = await commands.Context.from_interaction(interaction)
         command = self.bot.get_command("checkersbots")
         assert command
         if not await command.can_run(ctx, check_all_parents=True, change_permission_state=False):
             return await interaction.response.send_message("You're not allowed to do that here.", ephemeral=True)
-        await self.checkers_bots(ctx, opponent)
+        await self.checkers_bots(ctx, bot_opponent)
 
 
     @commands.group(name="setcheckers", aliases=["checkersset", "setdraughts", "draughtsset", "checkerset", "draughtset"])  # type: ignore
