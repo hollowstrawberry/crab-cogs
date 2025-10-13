@@ -48,23 +48,20 @@ class BaseCheckersGame(ABC):
         self.init_done = False
         self.payout_done = False
 
-    def member(self, color: int):
-        return self.players[0] if color == draughts.BLACK else self.players[1]
-
     @abstractmethod
-    def is_finished(self):
+    def is_finished(self) -> bool:
         pass
 
     @abstractmethod
-    def is_cancelled(self):
+    def is_cancelled(self) -> bool:
         pass
 
     @abstractmethod
-    def accept(self):
+    def accept(self) -> None:
         pass
 
     @abstractmethod
-    async def cancel(self, member: Optional[discord.Member]):
+    async def cancel(self, member: Optional[discord.Member]) -> None:
         pass
 
     @abstractmethod
@@ -72,13 +69,16 @@ class BaseCheckersGame(ABC):
         pass
 
     @abstractmethod
-    async def move_engine(self):
+    async def move_engine(self) -> None:
         pass
 
     @abstractmethod
-    async def update_message(self, interaction: Optional[discord.Interaction] = None):
+    async def update_message(self, interaction: Optional[discord.Interaction] = None) -> None:
         pass
 
+    def member(self, color: int):
+        return self.players[0] if color == draughts.BLACK else self.players[1]
+    
     async def init(self) -> None:
         if self.init_done:
             return
@@ -95,10 +95,14 @@ class BaseCheckersGame(ABC):
         self.payout_done = True
         if not await self.cog.is_economy_enabled(self.channel.guild):
             return
-        await self.init()
-        if winner is None and any(player.bot for player in self.players):
+        against_bot = any(player.bot for player in self.players)
+        if winner is None and against_bot:
             return
-        for player in self.players:
-            if not player.bot and (winner is None or winner == player):
-                prize = self.bet if any(player.bot for player in self.players) else self.bet * 2
-                await bank.deposit_credits(player, prize)
+        await self.init() # failsafe
+        if winner is None:
+            for player in self.players:
+                await bank.deposit_credits(player, self.bet)
+        else:
+            if not winner.bot:
+                prize = self.bet if against_bot else self.bet * 2
+                await bank.deposit_credits(winner, prize)

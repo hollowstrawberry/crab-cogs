@@ -76,10 +76,14 @@ class Minigame(ABC):
         self.payout_done = True
         if not await self.cog.is_economy_enabled(self.channel.guild):
             return
-        await self.init()
-        if winner is None and any(player.bot for player in self.players):
+        against_bot = any(player.bot for player in self.players)
+        if winner is None and against_bot:
             return
-        for player in self.players:
-            if not player.bot and (winner is None or winner == player):
-                prize = self.bet if any(player.bot for player in self.players) else self.bet * 2
-                await bank.deposit_credits(player, prize)
+        await self.init() # failsafe
+        if winner is None:
+            for player in self.players:
+                await bank.deposit_credits(player, self.bet)
+        else:
+            if not winner.bot:
+                prize = self.bet if against_bot else self.bet * 2
+                await bank.deposit_credits(winner, prize)
