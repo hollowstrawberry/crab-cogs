@@ -240,7 +240,7 @@ class ConnectFourGame(Minigame):
                 return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
             if interaction.user != self.member(self.current):
                 return await interaction.response.send_message("It's not your turn!", ephemeral=True)
-            self.do_turn(interaction.user, int(interaction.data['values'][0])) # type: ignore
+            await self.do_turn(interaction.user, int(interaction.data['values'][0])) # type: ignore
             if not self.is_finished() and self.member(self.current).bot:
                 await self.do_turn_ai()
             if self.is_finished():
