@@ -70,17 +70,20 @@ class Minigames(BaseMinigameCog):
         reply = ctx.reply if isinstance(ctx, commands.Context) else ctx.response.send_message
         assert ctx.guild and isinstance(ctx.channel, discord.TextChannel) and isinstance(author, discord.Member)
 
+        if game_cls == TicTacToeGame:
+            payout = await self.config.guild(ctx.guild).tictactoe_payout()
+        elif game_cls == ConnectFourGame:
+            payout = await self.config.guild(ctx.guild).connect4_payout()
+        else:
+            payout = None
+
         if bet is not None and not await self.is_economy_enabled(ctx.guild):
             return await reply("You can't bet currency as economy is not enabled in the bot. Please use this command again without a bet.", ephemeral=True)
         if bet is not None and against_bot:
-            payout = await self.config.guild(ctx.guild).connect4_payout()
             return await reply(f"You can't bet against the bot. Instead, a prize of {payout} will be issued if you win. Please use this command again without a bet.", ephemeral=True)
 
         if against_bot:
-            if game_cls == TicTacToeGame:
-                bet = await self.config.guild(ctx.guild).tictactoe_payout()
-            elif game_cls == ConnectFourGame:
-                bet = await self.config.guild(ctx.guild).connect4_payout()
+            bet = payout
 
         # Game already exists
         if ctx.channel.id in self.games and not self.games[ctx.channel.id].is_finished():
