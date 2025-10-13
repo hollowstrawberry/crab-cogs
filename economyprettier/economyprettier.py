@@ -260,7 +260,7 @@ class EconomyPrettier(commands.Cog):
             nonlocal bid, credits_name, new_balance, phrase
             embed.add_field(name="Bid", value=f"{bid} {credits_name}")
             embed.add_field(name="Winnings", value=phrase)
-            embed.add_field(name="New Balance", value=f"{new_balance} {credits_name}")
+            embed.add_field(name="Balance", value=f"{new_balance} {credits_name}")
 
         if ctx.interaction:
             embed.description = first
@@ -287,9 +287,19 @@ class EconomyPrettier(commands.Cog):
 async def setup(bot: Red):
     global old_slot, old_payday
     old_slot = bot.get_command("slot")
-    if old_slot:
-        bot.remove_command(old_slot.name)
     old_payday = bot.get_command("payday")
-    if old_payday:
+    if old_slot and old_payday:
+        bot.remove_command(old_slot.name)
         bot.remove_command(old_payday.name)
-    await bot.add_cog(EconomyPrettier(bot))
+        await bot.add_cog(EconomyPrettier(bot))
+    else:
+        async def add_cog():
+            global old_slot, old_payday
+            await asyncio.sleep(1)  # hopefully economy cog has finished loading
+            old_slot = bot.get_command("slot")
+            old_payday = bot.get_command("payday")
+            if old_slot and old_payday:
+                bot.remove_command(old_slot.name)
+                bot.remove_command(old_payday.name)
+            await bot.add_cog(EconomyPrettier(bot))
+        _ = asyncio.create_task(add_cog())
