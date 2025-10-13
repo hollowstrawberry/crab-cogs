@@ -102,7 +102,7 @@ class SimpleChess(BaseChessCog):
                     assert opponent and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
                     await old_game.cancel(author)
                     await old_game.update_message()
-                    game = ChessGame(self, players, ctx.channel, depth=depth)
+                    game = ChessGame(self, players, ctx.channel, depth=depth, bet=bet or 0)
                     if opponent.bot:
                         game.accept()
                         await game.init()
@@ -124,7 +124,7 @@ class SimpleChess(BaseChessCog):
                 return
         
         # New game
-        game = ChessGame(self, players, ctx.channel, depth=depth)
+        game = ChessGame(self, players, ctx.channel, depth=depth, bet=bet or 0)
         if opponent.bot:
             game.accept()
             await game.init()

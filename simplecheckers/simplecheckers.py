@@ -94,7 +94,7 @@ class SimpleCheckers(BaseCheckersCog):
                     assert opponent and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
                     await old_game.cancel(author)
                     await old_game.update_message()
-                    game = CheckersGame(self, players, ctx.channel, VARIANT)
+                    game = CheckersGame(self, players, ctx.channel, VARIANT, bet=bet or 0)
                     if opponent.bot:
                         game.accept()
                         await game.init()
@@ -116,7 +116,7 @@ class SimpleCheckers(BaseCheckersCog):
                 return
         
         # New game
-        game = CheckersGame(self, players, ctx.channel, VARIANT)
+        game = CheckersGame(self, players, ctx.channel, VARIANT, bet=bet or 0)
         if opponent.bot:
             game.accept()
         self.games[ctx.channel.id] = game
