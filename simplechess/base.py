@@ -90,7 +90,6 @@ class BaseChessGame(ABC):
         if all(not player.bot for player in self.players):  # pvp
             for player in self.players:
                 await bank.withdraw_credits(player, self.bet)
-            self.bet *= 2  # for prize
 
     async def on_win(self, winner: Optional[discord.Member]) -> None:
         if self.payout_done:
@@ -103,4 +102,5 @@ class BaseChessGame(ABC):
             return
         for player in self.players:
             if not player.bot and (winner is None or winner == player):
-                await bank.deposit_credits(player, self.bet)
+                prize = self.bet if any(player.bot for player in self.players) else self.bet * 2
+                await bank.deposit_credits(player, prize)
