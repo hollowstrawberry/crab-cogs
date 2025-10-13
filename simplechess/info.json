@@ -2,12 +2,12 @@
     "author": ["hollowstrawberry"],
     "min_bot_version": "3.5.21",
     "min_python_version": [3,9,0],
-    "description": "Play Chess against your friends or the bot, or make bots play against each other. Requires ImageMagick installed on the host machine.",
+    "description": "Play Chess against your friends or the bot, or make bots play against each other. Configure payouts and let users bet against each other. Requires ImageMagick installed on the host machine.",
     "hidden": false,
-    "install_msg": "♟️ __**SimpleChess**__\nPlay Chess against your friends or the bot, or make bots play against each other.\nUses [Sunfish](https://github.com/thomasahle/sunfish) as the chess engine, which has an ELO of around 1900, but the difficulty can be lowered when using the slash command.\nOnly one game may be active per channel, but it works in threads, and inactive games may be ended by any user. Games persist after a bot restart.\n```Cog installed. Instructions:\n1. Load it with [p]load simplechess\n2. Make sure ImageMagick is installed on the bot's host machine: https://imagemagick.org/script/download.php\n3. Optionally, enable the slash command with [p]slash enable chess\n  3.1. Then do [p]slash sync\n  3.2. Then restart Discord.\n4. Start playing with [p]chess or /chess```",
+    "install_msg": "♟️ __**SimpleChess**__\nPlay Chess against your friends or the bot, or make bots play together. Configure payouts and let users bet against each other.\nUses [Sunfish](https://github.com/thomasahle/sunfish) as the chess engine, which has an ELO of around 1900, but the difficulty can be lowered when using the slash command.\nOnly one game may be active per channel, but it works in threads, and inactive games may be ended by any user. Games persist after a bot restart.\n```Cog installed. Instructions:\n1. Load it with [p]load simplechess\n2. Make sure ImageMagick is installed on the bot's host machine: https://imagemagick.org/script/download.php\n3. Optionally, enable the slash command with [p]slash enable chess\n  3.1. Then do [p]slash sync\n  3.2. Then restart Discord.\n4. Start playing with the [p]chess or /chess commands\n5. Example to play against a friend with a bet of 100 credits: [p]chess @friend 100\n6. View commands with [p]help SimpleChess```",
     "required_cogs": {},
     "requirements": ["chess", "Wand"],
-    "short": "Play Chess against your friends or the bot, or make bots play against each other.",
+    "short": "Play Chess against your friends or the bot, with economy support.",
     "end_user_data_statement": "This cog does not store user data.",
-    "tags": ["crab", "game", "pvp", "chess", "tabletop", "ai"]
+    "tags": ["crab", "game", "pvp", "economy", "chess", "tabletop", "ai"]
 }
