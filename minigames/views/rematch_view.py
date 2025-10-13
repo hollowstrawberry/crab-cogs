@@ -30,9 +30,10 @@ class RematchView(discord.ui.View):
         temp_players.remove(interaction.user)
         opponent = temp_players[0]
         players = [interaction.user, opponent] if opponent.bot else [opponent, interaction.user]
+        bet = 0 if any(player.bot for player in self.game.players) else self.game.bet
 
         self.stop()
-        await self.game.cog.base_minigame_cmd(type(self.game), interaction, players, opponent.bot, self.game.bet)
+        await self.game.cog.base_minigame_cmd(type(self.game), interaction, players, opponent.bot, bet)
         await self.on_timeout()
         
     async def on_timeout(self):

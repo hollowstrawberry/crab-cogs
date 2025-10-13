@@ -28,9 +28,10 @@ class RematchView(discord.ui.View):
         temp_players = list(self.game.players)
         temp_players.remove(interaction.user)
         opponent = temp_players[0]
+        bet = 0 if any(player.bot for player in self.game.players) else self.game.bet
 
         self.stop()
-        await self.game.cog.chess_new(interaction, opponent, self.game.bet)
+        await self.game.cog.chess_new(interaction, opponent, bet)
         await self.on_timeout()
         
     async def on_timeout(self):
