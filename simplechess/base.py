@@ -99,6 +99,8 @@ class BaseChessGame(ABC):
         if not await self.cog.is_economy_enabled(self.channel.guild):
             return
         await self.init()
+        if winner is None and any(player.bot for player in self.players):
+            return
         for player in self.players:
             if not player.bot and (winner is None or winner == player):
                 await bank.deposit_credits(player, self.bet)
