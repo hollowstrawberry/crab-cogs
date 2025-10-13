@@ -25,11 +25,18 @@ COLOR_TIE = 0x78B159
 
 
 class CheckersGame(BaseCheckersGame):
-    def __init__(self, cog: BaseCheckersCog, players: List[discord.Member], channel: discord.TextChannel, variant: str, initial_state: str = None, initial_time: int = 0, bet: int = 0):
-        super().__init__(cog, players, channel, variant, initial_state, bet)
+    def __init__(self,
+                 cog: BaseCheckersCog,
+                 players: List[discord.Member],
+                 channel: discord.TextChannel,
+                 variant: str,
+                 initial_state: str = None,
+                 initial_time: int = 0,
+                 bet: int = 0
+                 ):
+        super().__init__(cog, players, channel, variant, initial_state, initial_time, bet)
         self.cancelled = False
         self.surrendered: Optional[discord.Member] = None
-        self.time = initial_time
         self.last_arrows: List[int] = []
     
     def is_cancelled(self):
