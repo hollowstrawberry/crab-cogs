@@ -139,9 +139,10 @@ class EconomyPrettier(commands.Cog):
                 amount = humanize_number(reward)
                 new_balance = humanize_number(await bank.get_balance(author))
                 if is_bonus:
-                    relative_time = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=next_payday_bonus - cur_time), "R")
-                    await ctx.send(f"{author.mention} Bonus! Take {amount} {credits_name}. You now have {new_balance} {credits_name}! Next bonus in {relative_time}"
-                                    f"\nYou are currently {position} on the leaderboard.")
+                    relative_time = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=await self.config.bonus_time()), "R")
+                    await ctx.send(f"{author.mention} Bonus! Take {amount} {credits_name}. You now have {new_balance} {credits_name}!"
+                                    f"\nYou are currently {position} on the leaderboard."
+                                    f"\nNext bonus in {relative_time}")
                 else:
                     await ctx.send(f"{author.mention} Here, take {amount} {credits_name}. You now have {new_balance} {credits_name}!"
                                     f"\nYou are currently {position} on the leaderboard.")
@@ -174,9 +175,10 @@ class EconomyPrettier(commands.Cog):
                 amount = humanize_number(await economy.config.PAYDAY_CREDITS())
                 new_balance = humanize_number(await bank.get_balance(author))
                 if is_bonus:
-                    relative_time = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=next_payday_bonus - cur_time), "R")
-                    await ctx.send(f"{author.mention} Bonus! Take {amount} {credits_name}. You now have {new_balance} {credits_name}! Next bonus in {relative_time}"
-                                    f"\nYou are currently {position} on the leaderboard.")
+                    relative_time = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=await self.config.guild(guild).bonus_time()), "R")
+                    await ctx.send(f"{author.mention} Bonus! Take {amount} {credits_name}. You now have {new_balance} {credits_name}!"
+                                    f"\nYou are currently {position} on the leaderboard."
+                                    f"\nNext bonus in {relative_time}")
                 else:
                     await ctx.send(f"{author.mention} Here, take {amount} {credits_name}. You now have {new_balance} {credits_name}!"
                                     f"\nYou are currently {position} on the leaderboard.")
