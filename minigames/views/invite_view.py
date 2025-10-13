@@ -1,3 +1,4 @@
+import re
 import discord
 from redbot.core import bank
 
@@ -10,6 +11,7 @@ class InviteView(discord.ui.View):
     def __init__(self, game: Minigame, currency_name: str):
         super().__init__(timeout=None)
         self.game = game
+        currency_name = re.sub(r"<a?:(\w+):\d+>", r"\1", currency_name)
         label = "Accept" if game.bet == 0 else f"Accept and bet {game.bet} {currency_name}"[:MAX_BUTTON_LABEL]
         accept_button = discord.ui.Button(label=label, style=discord.ButtonStyle.primary)
         cancel_button = discord.ui.Button(label="Cancel", style=discord.ButtonStyle.secondary)
