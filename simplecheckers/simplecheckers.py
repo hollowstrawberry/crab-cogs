@@ -200,13 +200,13 @@ class SimpleCheckers(BaseCheckersCog):
 
 
     @commands.group(name="setcheckers", aliases=["checkersset", "setdraughts", "draughtsset", "checkerset", "draughtset"])  # type: ignore
-    @commands.admin_or_permissions(manage_server=True)
+    @commands.admin_or_permissions(manage_guild=True)
     async def setcheckers(self, ctx: commands.Context):
         """Settings for Checkers."""
         pass
 
     @setcheckers.command(name="payout", aliases=["prize"])
-    @commands.admin_or_permissions(manage_server=True)
+    @commands.admin_or_permissions(manage_guild=True)
     async def setcheckers_payout(self, ctx: commands.Context, payout: Optional[int]):
         """Show or set the payout when winning Checkers against the bot."""
         assert ctx.guild

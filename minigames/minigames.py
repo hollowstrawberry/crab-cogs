@@ -132,13 +132,13 @@ class Minigames(BaseMinigameCog):
 
 
     @commands.group(name="connect4set", aliases=["setconnect4"])  # type: ignore
-    @commands.admin_or_permissions(manage_server=True)
+    @commands.admin_or_permissions(manage_guild=True)
     async def setconnect4(self, ctx: commands.Context):
         """Settings for Connect 4."""
         pass
 
     @setconnect4.command(name="payout", aliases=["prize"])
-    @commands.admin_or_permissions(manage_server=True)
+    @commands.admin_or_permissions(manage_guild=True)
     async def setconnect4_payout(self, ctx: commands.Context, payout: Optional[int]):
         """Show or set the payout when winning Connect 4 against the bot."""
         assert ctx.guild
@@ -152,13 +152,13 @@ class Minigames(BaseMinigameCog):
 
 
     @commands.group(name="tictactoeset", aliases=["settictactoe"])  # type: ignore
-    @commands.admin_or_permissions(manage_server=True)
+    @commands.admin_or_permissions(manage_guild=True)
     async def settictactoe(self, ctx: commands.Context):
         """Settings for Tic-Tac-Toe."""
         pass
 
     @settictactoe.command(name="payout", aliases=["prize"])
-    @commands.admin_or_permissions(manage_server=True)
+    @commands.admin_or_permissions(manage_guild=True)
     async def settictactoe_payout(self, ctx: commands.Context, payout: Optional[int]):
         """Show or set the payout when winning Tic-Tac-Toe against the bot."""
         assert ctx.guild
