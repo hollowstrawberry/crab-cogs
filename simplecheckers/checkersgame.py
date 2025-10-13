@@ -67,9 +67,9 @@ class CheckersGame(BaseCheckersGame):
         self.cancelled = True
         if member in self.players:
             self.surrendered = member
-        await self.update_state()
+        await self.save_state()
             
-    async def update_state(self):
+    async def save_state(self):
         if self.is_finished():
             if self.cog.games.get(self.channel.id) == self:
                 del self.cog.games[self.channel.id]
@@ -108,7 +108,7 @@ class CheckersGame(BaseCheckersGame):
         self.time += 1
         self.last_interacted = datetime.now()
         self.check_ai_surrender()
-        await self.update_state()
+        await self.save_state()
         return True, ""
     
     async def move_engine(self):

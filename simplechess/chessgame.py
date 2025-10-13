@@ -52,16 +52,16 @@ class ChessGame(BaseChessGame):
         if member in self.players:
             self.surrendered = member
         self.cancelled = True
-        await self.update_state()
+        await self.save_state()
     
     async def do_move(self, move: chess.Move):
         if self.board.move_stack:
             self.last_board.push(self.board.peek())
         self.board.push(move)
         self.last_interacted = datetime.now()
-        await self.update_state()
+        await self.save_state()
 
-    async def update_state(self):
+    async def save_state(self):
         if self.is_finished():
             if self.cog.games.get(self.channel.id) == self:
                 del self.cog.games[self.channel.id]
@@ -73,6 +73,7 @@ class ChessGame(BaseChessGame):
                 outcome = self.board.outcome()
                 winner = self.member(outcome.winner) if outcome is not None and outcome.winner is not None else None
             await self.on_win(winner)
+            
         else:
             await self.cog.config.channel(self.channel).game.set(self.board.fen())
             await self.cog.config.channel(self.channel).depth.set(self.limit.depth)

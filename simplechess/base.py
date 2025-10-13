@@ -90,6 +90,10 @@ class BaseChessGame(ABC):
     async def update_message(self, interaction: Optional[discord.Interaction] = None) -> None:
         pass
 
+    @abstractmethod
+    async def save_state(self) -> None:
+        pass
+
     def member(self, color: chess.Color) -> discord.Member:
         return self.players[1] if color == chess.BLACK else self.players[0]
     
@@ -102,6 +106,7 @@ class BaseChessGame(ABC):
         if all(not player.bot for player in self.players):  # pvp
             for player in self.players:
                 await bank.withdraw_credits(player, self.bet)
+        await self.save_state()
 
     async def on_win(self, winner: Optional[discord.Member]) -> None:
         if self.payout_done:
