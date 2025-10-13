@@ -1,3 +1,4 @@
+import re
 import discord
 from typing import Optional
 
@@ -13,6 +14,7 @@ class RematchView(discord.ui.View):
         self.message: Optional[discord.Message] = None
         self.rematch_button = None
         if not self.game.is_cancelled():
+            currency_name = re.sub(r"<a?:(\w+):\d+>", r"\1", currency_name)
             if game.bet == 0 or any(player.bot for player in self.game.players):
                 label = "Rematch"
             else:
