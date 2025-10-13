@@ -8,15 +8,17 @@ from typing import Iterable, Optional, cast
 from datetime import datetime, timedelta, timezone
 from collections import deque
 
-from redbot.core import commands, app_commands, bank, errors
+from redbot.core import Config, commands, app_commands, bank, errors
 from redbot.core.bot import Red
 from redbot.cogs.economy.economy import Economy
 from redbot.core.utils.chat_formatting import humanize_number
+from redbot.core.commands.converter import TimedeltaConverter
 
 log = logging.getLogger("red.crab-cogs.economyprettier")
 
 old_slot: Optional[commands.Command] = None
 old_payday: Optional[commands.Command] = None
+old_payouts: Optional[commands.Command] = None
 
 
 class SMReel(Enum):
@@ -68,21 +70,29 @@ class EconomyPrettier(commands.Cog):
     def __init__(self, bot: Red):
         super().__init__()
         self.bot = bot
+        default_timer = {
+            "last_payday_bonus": 0,
+        }
+        default_config = {
+            "bonus_amount": 1000,
+            "bonus_time": 86400,
+        }
+        self.config = Config.get_conf(self, identifier=557574777)
+        self.config.register_user(**default_timer)
+        self.config.register_member(**default_timer)
+        self.config.register_global(**default_config)
+        self.config.register_guild(**default_config)
 
     def cog_unload(self):
-        global old_slot, old_payday
+        global old_slot, old_payday, old_payouts
         if old_slot:
-            try:
-                self.bot.remove_command(old_slot.name)
-            except:
-                pass
+            self.bot.remove_command(old_slot.name)
             self.bot.add_command(old_slot)
         if old_payday:
-            try:
-                self.bot.remove_command(old_payday.name)
-            except:
-                pass
+            self.bot.remove_command(old_payday.name)
             self.bot.add_command(old_payday)
+        if old_payouts:
+            self.bot.add_command(old_payouts)
 
     async def get_economy_cog(self, ctx: commands.Context) -> Optional[Economy]:
         cog: Optional[Economy] = self.bot.get_cog("Economy")  # type: ignore
@@ -109,43 +119,67 @@ class EconomyPrettier(commands.Cog):
         credits_name = await bank.get_currency_name(guild)
         if await bank.is_global():
             next_payday = await economy.config.user(author).next_payday() + await economy.config.PAYDAY_TIME()
+            next_payday_bonus = await self.config.user(author).last_payday_bonus() + await self.config.bonus_time()
             if cur_time >= next_payday:
+                is_bonus = cur_time >= next_payday_bonus
+                if is_bonus:
+                    reward = await self.config.bonus_amount()
+                else:
+                    reward = await economy.config.PAYDAY_CREDITS()
                 try:
-                    await bank.deposit_credits(author, await economy.config.PAYDAY_CREDITS())
+                    await bank.deposit_credits(author, reward)
                 except errors.BalanceTooHigh as exc:
                     await bank.set_balance(author, exc.max_balance)
                     await ctx.send(f"{author.mention} You've reached the maximum amount of {credits_name}! You currently have {humanize_number(exc.max_balance)} {credits_name}")
                     return
                 await economy.config.user(author).next_payday.set(cur_time)
+                await self.config.user(author).last_payday_bonus.set(cur_time)
                 pos = await bank.get_leaderboard_position(author)
                 position = f"#{humanize_number(pos)}" if pos else "unknown"
-                amount = humanize_number(await economy.config.PAYDAY_CREDITS())
+                amount = humanize_number(reward)
                 new_balance = humanize_number(await bank.get_balance(author))
-                await ctx.send(f"{author.mention} Here, take {amount} {credits_name}. You now have {new_balance} {credits_name}!\nYou are currently {position} on the leaderboard.")
+                if is_bonus:
+                    relative_time = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=next_payday_bonus - cur_time), "R")
+                    await ctx.send(f"{author.mention} Bonus! Take {amount} {credits_name}. You now have {new_balance} {credits_name}! Next bonus in {relative_time}"
+                                    f"\nYou are currently {position} on the leaderboard.")
+                else:
+                    await ctx.send(f"{author.mention} Here, take {amount} {credits_name}. You now have {new_balance} {credits_name}!"
+                                    f"\nYou are currently {position} on the leaderboard.")
             else:
                 relative_time = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=next_payday - cur_time), "R")
                 await ctx.send(f"{author.mention} Too soon. Your next payday is {relative_time}")
         else:
             next_payday = await economy.config.member(author).next_payday() + await economy.config.guild(guild).PAYDAY_TIME()
+            next_payday_bonus = await self.config.member(author).last_payday_bonus() + await self.config.guild(guild).bonus_time()
             if cur_time >= next_payday:
-                credit_amount = await economy.config.guild(guild).PAYDAY_CREDITS()
-                for role in author.roles:
-                    role_credits = await economy.config.role(role).PAYDAY_CREDITS()
-                    if role_credits > credit_amount:
-                        credit_amount = role_credits
+                is_bonus = cur_time >= next_payday_bonus
+                if is_bonus:
+                    reward = await self.config.guild(guild).bonus_amount()
+                else:
+                    reward = await economy.config.guild(guild).PAYDAY_CREDITS()
+                    for role in author.roles:
+                        role_credits = await economy.config.role(role).PAYDAY_CREDITS()
+                        if role_credits > reward:
+                            reward = role_credits
                 try:
-                    await bank.deposit_credits(author, credit_amount)
+                    await bank.deposit_credits(author, reward)
                 except errors.BalanceTooHigh as exc:
                     await bank.set_balance(author, exc.max_balance)
                     await ctx.send(f"{author.mention} You've reached the maximum amount of {credits_name}! You currently have {humanize_number(exc.max_balance)} {credits_name}")
                     return
-                next_payday = cur_time
-                await economy.config.member(author).next_payday.set(next_payday)
+                await economy.config.member(author).next_payday.set(cur_time)
+                await self.config.member(author).last_payday_bonus.set(cur_time)
                 pos = await bank.get_leaderboard_position(author)
                 position = f"#{humanize_number(pos)}" if pos else "unknown"
                 amount = humanize_number(await economy.config.PAYDAY_CREDITS())
                 new_balance = humanize_number(await bank.get_balance(author))
-                await ctx.send(f"{author.mention} Here, take {amount} {credits_name}. You now have {new_balance} {credits_name}!\nYou are currently {position} on the leaderboard.")
+                if is_bonus:
+                    relative_time = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=next_payday_bonus - cur_time), "R")
+                    await ctx.send(f"{author.mention} Bonus! Take {amount} {credits_name}. You now have {new_balance} {credits_name}! Next bonus in {relative_time}"
+                                    f"\nYou are currently {position} on the leaderboard.")
+                else:
+                    await ctx.send(f"{author.mention} Here, take {amount} {credits_name}. You now have {new_balance} {credits_name}!"
+                                    f"\nYou are currently {position} on the leaderboard.")
             else:
                 relative_time = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=next_payday - cur_time), "R")
                 await ctx.send(f"{author.mention} Too soon. Your next payday is {relative_time}")
@@ -283,22 +317,62 @@ class EconomyPrettier(commands.Cog):
             await message.edit(embed=embed)
 
 
+    @commands.group(name="economyprettierset")  # type: ignore
+    @commands.admin_or_permissions(manage_guild=True)
+    async def economyprettierset(self, ctx: commands.Context):
+        """Settings for the economyprettier cog."""
+        pass
+
+    @economyprettierset.command(name="bonusamount")
+    @bank.is_owner_if_bank_global()
+    async def economyprettierset_bonusamount(self, ctx: commands.Context, creds: Optional[int]):
+        """Set the amount earned each with each payday bonus."""
+        assert ctx.guild
+        is_global = await bank.is_global()
+        config_amount = self.config.bonus_amount if is_global else self.config.guild(ctx.guild).bonus_amount
+        currency = await bank.get_currency_name(None if is_global else ctx.guild)
+        if creds is None:
+            creds = await config_amount()
+            return await ctx.send(f"Current payday bonus is {creds} {currency}.")
+        if creds < 0:
+            return await ctx.send("Payout must be a positive number or 0.")
+        await config_amount.set(creds)
+        await ctx.send(f"Current payday bonus is {creds} {currency}.")
+
+    @economyprettierset.command(name="bonustime")
+    @bank.is_owner_if_bank_global()
+    async def economyprettierset_bonustime(self, ctx: commands.Context, *, duration: TimedeltaConverter(default_unit="seconds")):  # type: ignore
+        """Set the time between each payday bonus. Example: 24 hours"""
+        assert ctx.guild
+        is_global = await bank.is_global()
+        config_time = self.config.bonus_time if is_global else self.config.guild(ctx.guild).bonus_time
+        if duration is None:
+            seconds = await config_time()
+            return await ctx.send(f"Current payday bonus time is {seconds} seconds.")
+        seconds = duration.total_seconds()
+        await config_time.set(seconds)
+        await ctx.send(f"Current payday bonus time is {seconds} seconds.")
+
+
 async def setup(bot: Red):
-    global old_slot, old_payday
+    global old_slot, old_payday, old_payouts
     old_slot = bot.get_command("slot")
     old_payday = bot.get_command("payday")
-    if old_slot and old_payday:
+    old_payouts = bot.get_command("payouts")
+    if old_slot and old_payday and old_payouts:
         bot.remove_command(old_slot.name)
         bot.remove_command(old_payday.name)
+        bot.remove_command(old_payouts.name)
         await bot.add_cog(EconomyPrettier(bot))
     else:
         async def add_cog():
-            global old_slot, old_payday
+            global old_slot, old_payday, old_payouts
             await asyncio.sleep(1)  # hopefully economy cog has finished loading
             old_slot = bot.get_command("slot")
             old_payday = bot.get_command("payday")
-            if old_slot and old_payday:
+            if old_slot and old_payday and old_payouts:
                 bot.remove_command(old_slot.name)
                 bot.remove_command(old_payday.name)
+                bot.remove_command(old_payouts.name)
             await bot.add_cog(EconomyPrettier(bot))
         _ = asyncio.create_task(add_cog())
