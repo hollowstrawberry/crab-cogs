@@ -36,6 +36,8 @@ class ChessGame(BaseChessGame):
         self.cancelled = False
         self.surrendered: Optional[discord.Member] = None
         self.last_board = self.board.copy()
+        self.winner: Optional[discord.Member] = None
+        self.tie = False
 
     def is_cancelled(self):
         return self.cancelled
@@ -71,11 +73,13 @@ class ChessGame(BaseChessGame):
             await self.cog.config.channel(self.channel).clear()
             
             if self.surrendered and not self.is_premature_surrender():
-                winner = self.players[1] if self.players.index(self.surrendered) == 0 else self.players[0]
+                self.winner = self.players[1] if self.players.index(self.surrendered) == 0 else self.players[0]
             else:
                 outcome = self.board.outcome()
-                winner = self.member(outcome.winner) if outcome is not None and outcome.winner is not None else None
-            await self._on_win(winner)
+                self.winner = self.member(outcome.winner) if outcome is not None and outcome.winner is not None else None
+                self.tie = outcome is not None and outcome.winner is None
+
+            await self._on_win(self.winner)
             
         else:
             await self.cog.config.channel(self.channel).game.set(self.board.fen())
@@ -117,42 +121,8 @@ class ChessGame(BaseChessGame):
         return BytesIO(b or b'')
 
     async def update_message(self, interaction: Optional[discord.Interaction] = None):
-        embed = discord.Embed()
+        content = f"{self.players[0].mention} you're being invited to play chess." if not self.accepted else ""
 
-        outcome = self.board.outcome()
-        last_capture = self.last_capture()
-        winner = None
-        if outcome is None:
-            if self.surrendered and not self.is_premature_surrender():
-                winner = self.players[1] if self.players.index(self.surrendered) == 0 else self.players[0]
-                embed.title = f"{winner.display_name} is the winner via surrender!"
-                embed.set_thumbnail(url=winner.display_avatar.url)
-            elif self.cancelled:
-                embed.title = "The game was cancelled."
-            elif self.accepted:
-                turn = self.member(self.board.turn)
-                embed.title = f"{turn.display_name}'s turn"
-                embed.set_thumbnail(url=turn.display_avatar.url)
-            else:
-                embed.title="Waiting for confirmation..."
-        elif outcome.winner is not None:
-            winner = self.member(outcome.winner)
-            embed.title = f"{winner.display_name} is the winner!"
-            embed.set_thumbnail(url=winner.display_avatar.url)
-        else:
-            embed.title = "The game ended in a tie!"
-
-        if not self.accepted:
-            content = f"{self.players[0].mention} you're being invited to play chess."
-        elif self.is_finished() and winner is not None and self.bet > 0 and not winner.bot and await self.cog.is_economy_enabled(self.channel.guild):
-            currency_name = await bank.get_currency_name(self.channel.guild)
-            opponent = [player for player in self.players if player != winner][0]
-            content = f"-# {winner.mention} gained {self.bet} {currency_name}!"
-            if not opponent.bot:
-                content += f"\n-# {opponent.mention} lost {self.bet} {currency_name}..."
-        else:
-            content = ""
-        
         if all(m.bot for m in self.players):
             view = BotsView(self) if not self.is_finished() \
                 else discord.ui.View(timeout=0)
@@ -162,28 +132,57 @@ class ChessGame(BaseChessGame):
                 else ThinkingView() if self.member(self.board.turn).bot and not all(member.bot for member in self.players) \
                 else GameView(self)
 
-        filename = "board.png"
-        file = discord.File(await self.generate_board_image(), filename)
+        embed = discord.Embed()
 
-        if outcome and outcome.winner is None or self.is_cancelled() and (winner is None or self.is_premature_surrender()):
+        if self.winner is not None:
+            if self.surrendered:
+                embed.title = f"{self.winner.display_name} is the winner via surrender!"
+            else:
+                embed.title = f"{self.winner.display_name} is the winner!"
+            embed.set_thumbnail(url=self.winner.display_avatar.url)
+        elif self.cancelled:
+            embed.title = "The game was cancelled."
+        elif self.tie:
+            embed.title = "The game ended in a tie!"
+        elif self.accepted:
+            current = self.member(self.board.turn)
+            embed.title = f"{current.display_name}'s turn"
+            embed.set_thumbnail(url=current.display_avatar.url)
+        else:
+            embed.title="Waiting for confirmation..."
+
+        if self.tie or self.is_premature_surrender():
             embed.color = COLOR_TIE
-        elif winner:
-            embed.color = COLOR_WHITE if self.players.index(winner) == 0 else COLOR_BLACK
+        elif self.winner is not None:
+            embed.color = COLOR_WHITE if self.winner == self.member(chess.WHITE) else COLOR_BLACK
         else:
             embed.color = COLOR_WHITE if self.board.turn == chess.WHITE else COLOR_BLACK
         
         embed.description = ""
-        if winner == self.players[1] or self.surrendered == self.players[0] and not self.is_premature_surrender():
+        currency_name = await bank.get_currency_name(self.channel.guild)
+        economy_enabled = await self.cog.is_economy_enabled(self.channel.guild)
+        last_capture = self.last_capture()
+
+        if self.winner == self.member(chess.BLACK):
             embed.description += "👑 "
         embed.description += f"`⬛` {self.players[1].mention}"
-        if last_capture and last_capture.color == chess.WHITE and not outcome and not self.is_cancelled():
+        if last_capture and last_capture.color == chess.WHITE and not self.is_finished():
             embed.description += f" captured **{last_capture.unicode_symbol(invert_color=True)}**"
+        elif self.winner is not None and self.bet > 0 and not self.players[1].bot and economy_enabled:
+            embed.description += f" gains {self.bet} {currency_name}!" if self.winner == self.member(chess.BLACK) else f" loses {self.bet} {currency_name}…"
 
-        if winner == self.players[0] or self.surrendered == self.players[1] and not self.is_premature_surrender():
+        embed.description += "\n"
+
+        if self.winner == self.member(chess.WHITE):
             embed.description += "👑 "
-        embed.description += f"\n`⬜` {self.players[0].mention}"
-        if last_capture and last_capture.color == chess.BLACK and not outcome and not self.is_cancelled():
+        embed.description += f"`⬜` {self.players[0].mention}"
+        if last_capture and last_capture.color == chess.BLACK and not self.is_finished():
             embed.description += f" captured **{last_capture.unicode_symbol()}**"
+        elif self.winner is not None and self.bet > 0 and not self.member(chess.WHITE).bot and economy_enabled:
+            embed.description += f" gains {self.bet} {currency_name}!" if self.winner == self.member(chess.WHITE) else f" loses {self.bet} {currency_name}…"
+
+        filename = "board.png"
+        file = discord.File(await self.generate_board_image(), filename)
 
         embed.set_image(url=f"attachment://{filename}")
         embed.set_footer(text=f"Turn {self.board.fullmove_number}")

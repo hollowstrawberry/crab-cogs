@@ -38,6 +38,8 @@ class CheckersGame(BaseCheckersGame):
         self.cancelled = False
         self.surrendered: Optional[discord.Member] = None
         self.last_arrows: List[int] = []
+        self.winner: Optional[discord.Member] = None
+        self.tie = False
     
     def is_cancelled(self):
         return self.cancelled
@@ -79,11 +81,13 @@ class CheckersGame(BaseCheckersGame):
             await self.cog.config.channel(self.channel).clear()
 
             if self.surrendered and not self.is_premature_surrender():
-                winner_member = self.players[1] if self.players.index(self.surrendered) == 0 else self.players[0]
+                self.winner = self.players[1] if self.players.index(self.surrendered) == 0 else self.players[0]
             else:
                 winner = self.board.winner()
-                winner_member = self.member(winner) if winner is not None else None
-            await self._on_win(winner_member)
+                self.winner = self.member(winner) if winner is not None and winner > 0 else None
+                self.tie = winner == 0
+
+            await self._on_win(self.winner)
 
         else:
             await self.cog.config.channel(self.channel).game.set(self.board.fen)
@@ -132,19 +136,8 @@ class CheckersGame(BaseCheckersGame):
         return BytesIO(b)
 
     async def update_message(self, interaction: Optional[discord.Interaction] = None):
-        winner = self.board.winner()
-        winner_member = self.member(winner) if winner is not None else None
-        if self.surrendered and not self.is_premature_surrender():
-            winner_member = self.players[1] if self.players.index(self.surrendered) == 0 else self.players[0]
-
         if not self.accepted:
             content = f"{self.players[0].mention} you're being invited to play checkers."
-        elif self.is_finished() and winner_member is not None and self.bet > 0 and not winner_member.bot and await self.cog.is_economy_enabled(self.channel.guild):
-            currency_name = await bank.get_currency_name(self.channel.guild)
-            opponent = [player for player in self.players if player != winner_member][0]
-            content = f"-# {winner_member.mention} gained {self.bet} {currency_name}!"
-            if not opponent.bot:
-                content += f"\n-# {opponent.mention} lost {self.bet} {currency_name}..."
         else:
             content = ""
 
@@ -162,40 +155,47 @@ class CheckersGame(BaseCheckersGame):
         filename = "board.png"
         file = discord.File(await self.generate_board_image(), filename)
 
-        if winner is None:
-            if self.surrendered and not self.is_premature_surrender():
-                assert winner_member
-                embed.title = f"{winner_member.display_name} is the winner via surrender!"
-                embed.set_thumbnail(url=winner_member.display_avatar.url)
-            elif self.cancelled:
-                embed.title = "The game was cancelled."
-            elif self.accepted:
-                turn = self.member(self.board.turn)
-                embed.title = f"{turn.display_name}'s turn"
-                embed.set_thumbnail(url=turn.display_avatar.url)
+        if self.winner is not None:
+            if self.surrendered:
+                embed.title = f"{self.winner.display_name} is the winner via surrender!"
             else:
-                embed.title="Waiting for confirmation..."
-        elif winner_member is not None:
-            embed.title = f"{winner_member.display_name} is the winner!"
-            embed.set_thumbnail(url=winner_member.display_avatar.url)
-        else:
+                embed.title = f"{self.winner.display_name} is the winner!"
+            embed.set_thumbnail(url=self.winner.display_avatar.url)
+        elif self.cancelled:
+            embed.title = "The game was cancelled."
+        elif self.tie:
             embed.title = "The game ended in a tie!"
-
-        if winner == 0 or self.is_cancelled() and (winner_member is None or self.is_premature_surrender()):
-            embed.color = COLOR_TIE
-        elif winner and winner > 0:
-            embed.color = COLOR_WHITE if winner == draughts.WHITE else COLOR_BLACK
+        elif self.accepted:
+            current = self.member(self.board.turn)
+            embed.title = f"{current.display_name}'s turn"
+            embed.set_thumbnail(url=current.display_avatar.url)
         else:
-            embed.color = COLOR_WHITE if self.board.turn == draughts.WHITE else COLOR_BLACK
+            embed.title="Waiting for confirmation..."
+
+        if self.tie or self.is_premature_surrender():
+            embed.color = COLOR_TIE
+        elif self.winner is not None:
+            embed.color = COLOR_BLACK if self.winner == self.member(draughts.BLACK) else COLOR_WHITE
+        else:
+            embed.color = COLOR_BLACK if self.board.turn == draughts.BLACK else COLOR_WHITE
         
         embed.description = ""
-        if winner == draughts.BLACK or self.surrendered == self.players[1] and not self.is_premature_surrender():
-            embed.description += "👑 "
-        embed.description += f"`⚫` {self.players[0].mention}\n"
+        currency_name = await bank.get_currency_name(self.channel.guild)
+        economy_enabled = await self.cog.is_economy_enabled(self.channel.guild)
 
-        if winner == draughts.WHITE or self.surrendered == self.players[0] and not self.is_premature_surrender():
+        if self.winner == self.member(draughts.BLACK):
             embed.description += "👑 "
-        embed.description += f"`🔴` {self.players[1].mention}"
+        embed.description += f"`⚫` {self.member(draughts.BLACK).mention}"
+        if self.winner is not None and self.bet > 0 and not self.member(draughts.BLACK).bot and economy_enabled:
+            embed.description += f" gains {self.bet} {currency_name}!" if self.winner == self.member(draughts.BLACK) else f" loses {self.bet} {currency_name}…"
+
+        embed.description += "\n"
+
+        if self.winner == self.member(draughts.WHITE):
+            embed.description += "👑 "
+        embed.description += f"`🔴` {self.member(draughts.WHITE).mention}"
+        if self.winner is not None and self.bet > 0 and not self.member(draughts.WHITE).bot and economy_enabled:
+            embed.description += f" gains {self.bet} {currency_name}!" if self.winner == self.member(draughts.WHITE) else f" loses {self.bet} {currency_name}…"
 
         embed.set_image(url=f"attachment://{filename}")
         embed.set_footer(text=f"Turn {self.time // 2 + 1}")
