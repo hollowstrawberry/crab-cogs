@@ -21,7 +21,6 @@ old_payday: Optional[commands.Command] = None
 
 class SMReel(Enum):
     cherries = "🍒"
-    cookie = "🍪"
     strawberry = "🍓"
     clover = "🍀"
     cyclone = "🌀"
