@@ -220,15 +220,6 @@ class EconomyPrettier(commands.Cog):
             (reels[0][2], reels[1][2], reels[2][2]),
         )
 
-        slot = "~~\n~~"  # Mobile friendly
-        for i, row in enumerate(rows):  # Let's build the slot to show
-            sign = "  "
-            if i == 1:
-                sign = ">"
-            slot += "{}{} {} {}\n".format(
-                sign, *[c.value for c in row]  # pylint: disable=no-member
-            )
-
         payout = PAYOUTS.get(rows[1])
         if not payout:
             # Checks for two-consecutive-symbols special rewards
@@ -261,10 +252,10 @@ class EconomyPrettier(commands.Cog):
             new_balance = then - bid
             phrase = "Nothing!"
 
-        embed = discord.Embed(title="🎰 Slot Machine", color=await self.bot.get_embed_color(ctx.channel))
-        first = f"{reels[0][0]}⬛⬛\n{reels[0][1]}⬛⬛\n{reels[0][2]}⬛⬛"
-        second = f"{reels[0][0]}{reels[1][0]}⬛\n{reels[0][1]}{reels[1][1]}⬛\n{reels[0][2]}{reels[1][2]}⬛"
-        third = f"{reels[0][0]}{reels[1][0]}{reels[2][0]}\n{reels[0][1]}{reels[1][1]}{reels[2][1]}\n{reels[0][2]}{reels[1][2]}{reels[2][2]}"
+        embed = discord.Embed(title="Slot Machine", color=await self.bot.get_embed_color(ctx.channel))
+        first = f"{reels[0][0].value}⬛⬛\n{reels[0][1].value}⬛⬛\n{reels[0][2].value}⬛⬛"
+        second = f"{reels[0][0].value}{reels[1][0].value}⬛\n{reels[0][1].value}{reels[1][1].value}⬛\n{reels[0][2].value}{reels[1][2].value}⬛"
+        third = f"{reels[0][0].value}{reels[1][0].value}{reels[2][0].value}\n{reels[0][1].value}{reels[1][1].value}{reels[2][1].value}\n{reels[0][2].value}{reels[1][2].value}{reels[2][2].value}"
         def add_fields():
             nonlocal bid, credits_name, new_balance, phrase
             embed.add_field(name="Bid", value=f"{bid} {credits_name}")
