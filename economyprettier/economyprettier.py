@@ -258,7 +258,7 @@ class EconomyPrettier(commands.Cog):
         def add_fields():
             nonlocal bid, credits_name, new_balance, phrase
             embed.add_field(name="Bid", value=f"{bid} {credits_name}")
-            embed.add_field(name="Winnings", value=phrase)
+            embed.add_field(name="Winnings", value=f"**{phrase}**")
             embed.add_field(name="Balance", value=f"{new_balance} {credits_name}")
 
         if ctx.interaction:
