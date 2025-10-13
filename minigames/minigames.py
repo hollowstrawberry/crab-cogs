@@ -2,7 +2,7 @@ import logging
 import discord
 from typing import Dict, List, Optional, Type, Union
 from datetime import datetime
-from redbot.core import commands, Config, app_commands
+from redbot.core import commands, app_commands, bank, Config
 from redbot.core.bot import Red
 
 from minigames.base import Minigame, BaseMinigameCog
@@ -134,7 +134,7 @@ class Minigames(BaseMinigameCog):
         game.message = message if isinstance(ctx, commands.Context) else await ctx.original_response() # type: ignore
 
 
-    @commands.group(name="connect4set", aliases=["setconnect4"])  # type: ignore
+    @commands.group(name="connect4set", aliases=["setconnect4", "c4set"])  # type: ignore
     @commands.admin_or_permissions(manage_guild=True)
     async def setconnect4(self, ctx: commands.Context):
         """Settings for Connect 4."""
@@ -145,16 +145,17 @@ class Minigames(BaseMinigameCog):
     async def setconnect4_payout(self, ctx: commands.Context, payout: Optional[int]):
         """Show or set the payout when winning Connect 4 against the bot."""
         assert ctx.guild
+        currency = await bank.get_currency_name(ctx.guild)
         if payout is None:
             payout = await self.config.guild(ctx.guild).connect4_payout()
-            return await ctx.send(f"Current payout for Connect 4 is {payout} credits")
+            return await ctx.send(f"Current payout for Connect 4 is {payout} {currency}.")
         if payout < 0:
             return await ctx.send("Payout must be a positive number or 0.")
         await self.config.guild(ctx.guild).connect4_payout.set(payout)
-        await ctx.send(f"New payout for Connect 4 is {payout} credits")
+        await ctx.send(f"New payout for Connect 4 is {payout} {currency}.")
 
 
-    @commands.group(name="tictactoeset", aliases=["settictactoe"])  # type: ignore
+    @commands.group(name="tictactoeset", aliases=["settictactoe", "tttset"])  # type: ignore
     @commands.admin_or_permissions(manage_guild=True)
     async def settictactoe(self, ctx: commands.Context):
         """Settings for Tic-Tac-Toe."""
@@ -165,10 +166,11 @@ class Minigames(BaseMinigameCog):
     async def settictactoe_payout(self, ctx: commands.Context, payout: Optional[int]):
         """Show or set the payout when winning Tic-Tac-Toe against the bot."""
         assert ctx.guild
+        currency = await bank.get_currency_name(ctx.guild)
         if payout is None:
             payout = await self.config.guild(ctx.guild).tictactoe_payout()
-            return await ctx.send(f"Current payout for Tic-Tac-Toe is {payout} credits")
+            return await ctx.send(f"Current payout for Tic-Tac-Toe is {payout} {currency}.")
         if payout < 0:
             return await ctx.send("Payout must be a positive number or 0.")
         await self.config.guild(ctx.guild).tictactoe_payout.set(payout)
-        await ctx.send(f"New payout for Tic-Tac-Toe is {payout} credits")
+        await ctx.send(f"New payout for Tic-Tac-Toe is {payout} {currency}.")

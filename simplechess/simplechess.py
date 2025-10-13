@@ -5,7 +5,7 @@ import chess.engine
 from typing import List, Optional, Union
 from datetime import datetime
 
-from redbot.core import commands, app_commands
+from redbot.core import commands, app_commands, bank
 from redbot.core.bot import Red
 from redbot.core.data_manager import bundled_data_path
 
@@ -227,10 +227,11 @@ class SimpleChess(BaseChessCog):
     async def setchess_payout(self, ctx: commands.Context, payout: Optional[int]):
         """Show or set the payout when winning Chess against the bot."""
         assert ctx.guild
+        currency = await bank.get_currency_name(ctx.guild)
         if payout is None:
             payout = await self.config.guild(ctx.guild).payout()
-            return await ctx.send(f"Current payout for Chess is {payout} credits")
+            return await ctx.send(f"Current payout for Chess is {payout} {currency}.")
         if payout < 0:
             return await ctx.send("Payout must be a positive number or 0.")
         await self.config.guild(ctx.guild).payout.set(payout)
-        await ctx.send(f"New payout for Chess is {payout} credits")
+        await ctx.send(f"New payout for Chess is {payout} {currency}.")
