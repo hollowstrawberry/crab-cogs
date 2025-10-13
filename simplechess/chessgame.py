@@ -168,8 +168,11 @@ class ChessGame(BaseChessGame):
         embed.description += f"`⬛` {self.players[1].mention}"
         if last_capture and last_capture.color == chess.WHITE and not self.is_finished():
             embed.description += f" captured **{last_capture.unicode_symbol(invert_color=True)}**"
-        elif self.winner is not None and self.bet > 0 and not self.players[1].bot and economy_enabled:
-            embed.description += f" gains {self.bet} {currency_name}!" if self.winner == self.member(chess.BLACK) else f" loses {self.bet} {currency_name}…"
+        elif self.winner is not None and self.bet > 0 and not self.member(chess.BLACK).bot and economy_enabled:
+            if self.winner == self.member(chess.BLACK):
+                embed.description += f" +{self.bet} {currency_name}"
+            elif not self.member(chess.WHITE).bot:
+                embed.description += f" -{self.bet} {currency_name}"
 
         embed.description += "\n"
 
@@ -179,8 +182,10 @@ class ChessGame(BaseChessGame):
         if last_capture and last_capture.color == chess.BLACK and not self.is_finished():
             embed.description += f" captured **{last_capture.unicode_symbol()}**"
         elif self.winner is not None and self.bet > 0 and not self.member(chess.WHITE).bot and economy_enabled:
-            embed.description += f" gains {self.bet} {currency_name}!" if self.winner == self.member(chess.WHITE) else f" loses {self.bet} {currency_name}…"
-
+            if self.winner == self.member(chess.WHITE):
+                embed.description += f" +{self.bet} {currency_name}"
+            elif not self.member(chess.BLACK).bot:
+                embed.description += f" -{self.bet} {currency_name}"
         filename = "board.png"
         file = discord.File(await self.generate_board_image(), filename)
 

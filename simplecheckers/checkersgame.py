@@ -187,15 +187,20 @@ class CheckersGame(BaseCheckersGame):
             embed.description += "👑 "
         embed.description += f"`⚫` {self.member(draughts.BLACK).mention}"
         if self.winner is not None and self.bet > 0 and not self.member(draughts.BLACK).bot and economy_enabled:
-            embed.description += f" gains {self.bet} {currency_name}!" if self.winner == self.member(draughts.BLACK) else f" loses {self.bet} {currency_name}…"
-
+            if self.winner == self.member(draughts.BLACK):
+                embed.description += f" +{self.bet} {currency_name}"
+            elif not self.member(draughts.WHITE).bot:
+                embed.description += f" -{self.bet} {currency_name}"
         embed.description += "\n"
 
         if self.winner == self.member(draughts.WHITE):
             embed.description += "👑 "
         embed.description += f"`🔴` {self.member(draughts.WHITE).mention}"
         if self.winner is not None and self.bet > 0 and not self.member(draughts.WHITE).bot and economy_enabled:
-            embed.description += f" gains {self.bet} {currency_name}!" if self.winner == self.member(draughts.WHITE) else f" loses {self.bet} {currency_name}…"
+            if self.winner == self.member(draughts.WHITE):
+                embed.description += f" +{self.bet} {currency_name}"
+            elif not self.member(draughts.BLACK).bot:
+                embed.description += f" -{self.bet} {currency_name}"
 
         embed.set_image(url=f"attachment://{filename}")
         embed.set_footer(text=f"Turn {self.time // 2 + 1}")
