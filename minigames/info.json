@@ -1,12 +1,12 @@
 {
     "author": ["hollowstrawberry"],
     "min_bot_version": "3.5.0",
-    "description": "Play Connect 4 and Tic-Tac-Toe against your friends or the bot.",
+    "description": "Play Connect 4 and Tic-Tac-Toe against your friends or the bot. Configure payouts and let users bet against each other",
     "hidden": false,
-    "install_msg": "🕹️ __**Minigames**__\nThe Minigames cog features **Connect 4** and **Tic-Tac-Toe**, which you can play against your friends or the bot itself.\nOnly one game may be active per channel, but it works in threads, and inactive games may be ended by any user.\n```Cog installed. Instructions:\n1. Load it with [p]load minigames\n2. Optionally, enable slash commands with [p]slash enablecog minigames\n  2.1. Then do [p]slash sync\n  2.2. Then restart Discord.\n3. Start playing with the [p]c4 and [p]ttt commands (or /connect4 and /tictactoe)```",
+    "install_msg": "🕹️ __**Minigames**__\nThe Minigames cog features **Connect 4** and **Tic-Tac-Toe**, which you can play against your friends or the bot itself. Configure payouts and let users bet against each other.\nOnly one game may be active per channel, but it works in threads, and inactive games may be ended by any user.\n```Cog installed. Instructions:\n1. Load it with [p]load minigames\n2. Optionally, enable slash commands with [p]slash enablecog minigames\n  2.1. Then do [p]slash sync\n  2.2. Then restart Discord.\n3. Start playing with the [p]c4 and [p]ttt commands (or /connect4 and /tictactoe)\n4. Example to play against a friend with a bet of 100 credits: [p]c4 @friend 100\n5. View commands with [p]help Minigames```",
     "required_cogs": {},
     "requirements": [],
-    "short": "Play Connect 4 and Tic-Tac-Toe against your friends or the bot.",
+    "short": "Play Connect 4 and Tic-Tac-Toe against your friends or the bot, with economy support.",
     "end_user_data_statement": "This cog does not store user data.",
-    "tags": ["crab", "game", "pvp", "connect4", "tictactoe", "connect 4", "tic-tac-toe"]
+    "tags": ["crab", "game", "pvp", "economy", "connect4", "tictactoe", "connect 4", "tic-tac-toe"]
 }

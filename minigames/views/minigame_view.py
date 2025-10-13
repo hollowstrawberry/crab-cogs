@@ -19,16 +19,16 @@ class MinigameView(discord.ui.View):
         assert interaction.message
         if interaction.user not in self.game.players:
             return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
-        self.message = await interaction.message.channel.send(content=self.game.get_content(), embed=self.game.get_embed(), view=self.game.get_view()) # type: ignore
+        self.message = await interaction.message.channel.send(content=await self.game.get_content(), embed=await self.game.get_embed(), view=await self.game.get_view())
         await interaction.message.delete()
     
     async def end(self, interaction: discord.Interaction):
         assert interaction.channel and isinstance(interaction.user, discord.Member)
         if interaction.user not in self.game.players:
             return await interaction.response.send_message("You're not playing this game!", ephemeral=True)
-        self.game.cancel(interaction.user)
-        new_view = self.game.get_view()
+        await self.game.cancel(interaction.user)
+        new_view = await self.game.get_view()
         if new_view:
             new_view.stop()
         self.stop()
-        await interaction.response.edit_message(content=self.game.get_content(), embed=self.game.get_embed(), view=new_view)
+        await interaction.response.edit_message(content=await self.game.get_content(), embed=await self.game.get_embed(), view=new_view)

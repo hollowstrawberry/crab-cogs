@@ -5,6 +5,7 @@ import draughts
 from io import BytesIO
 from typing import List, Optional, Tuple
 from datetime import datetime
+from redbot.core import bank
 from redbot.core.data_manager import bundled_data_path
 
 from simplecheckers.base import BaseCheckersCog, BaseCheckersGame
@@ -24,17 +25,13 @@ COLOR_TIE = 0x78B159
 
 
 class CheckersGame(BaseCheckersGame):
-    def __init__(self, cog: BaseCheckersCog, players: List[discord.Member], channel: discord.TextChannel, variant: str, initial_state: str = None, initial_time: int = 0):
-        super().__init__(cog, players, channel, variant, initial_state)
-        self.accepted = initial_state is not None
+    def __init__(self, cog: BaseCheckersCog, players: List[discord.Member], channel: discord.TextChannel, variant: str, initial_state: str = None, initial_time: int = 0, bet: int = 0):
+        super().__init__(cog, players, channel, variant, initial_state, bet)
         self.cancelled = False
         self.surrendered: Optional[discord.Member] = None
         self.time = initial_time
         self.last_arrows: List[int] = []
     
-    def accept(self):
-        self.accepted = True
-
     def is_cancelled(self):
         return self.cancelled
 
@@ -61,23 +58,32 @@ class CheckersGame(BaseCheckersGame):
             elif black_pieces <= 3 and black_pieces < white_pieces:
                 self.surrendered = self.member(draughts.BLACK)
                 self.cancelled = True
-    
+
     async def cancel(self, member: Optional[discord.Member]):
         self.cancelled = True
         if member in self.players:
             self.surrendered = member
-        await self.update_state()
+        await self.save_state()
             
-    async def update_state(self):
+    async def save_state(self):
         if self.is_finished():
             if self.cog.games.get(self.channel.id) == self:
                 del self.cog.games[self.channel.id]
             await self.cog.config.channel(self.channel).clear()
+
+            if self.surrendered and not self.is_premature_surrender():
+                winner_member = self.players[1] if self.players.index(self.surrendered) == 0 else self.players[0]
+            else:
+                winner = self.board.winner()
+                winner_member = self.member(winner) if winner is not None else None
+            await self._on_win(winner_member)
+
         else:
             await self.cog.config.channel(self.channel).game.set(self.board.fen)
             await self.cog.config.channel(self.channel).variant.set(self.board.variant)
             await self.cog.config.channel(self.channel).players.set([player.id for player in self.players])
             await self.cog.config.channel(self.channel).time.set(self.time)
+            await self.cog.config.channel(self.channel).bet.set(self.bet)
 
     async def move_user(self, move_str: str) -> Tuple[bool, str]:
         try:
@@ -98,7 +104,7 @@ class CheckersGame(BaseCheckersGame):
         self.time += 1
         self.last_interacted = datetime.now()
         self.check_ai_surrender()
-        await self.update_state()
+        await self.save_state()
         return True, ""
     
     async def move_engine(self):
@@ -119,26 +125,39 @@ class CheckersGame(BaseCheckersGame):
         return BytesIO(b)
 
     async def update_message(self, interaction: Optional[discord.Interaction] = None):
-        content = f"{self.players[0].mention} you're being invited to play checkers." if not self.accepted else ""
+        winner = self.board.winner()
+        winner_member = self.member(winner) if winner is not None else None
+        if self.surrendered and not self.is_premature_surrender():
+            winner_member = self.players[1] if self.players.index(self.surrendered) == 0 else self.players[0]
+
+        if not self.accepted:
+            content = f"{self.players[0].mention} you're being invited to play checkers."
+        elif self.is_finished() and winner_member is not None and self.bet > 0 and not winner_member.bot and await self.cog.is_economy_enabled(self.channel.guild):
+            currency_name = await bank.get_currency_name(self.channel.guild)
+            opponent = [player for player in self.players if player != winner_member][0]
+            content = f"-# {winner_member.mention} gained {self.bet} {currency_name}!"
+            if not opponent.bot:
+                content += f"\n-# {opponent.mention} lost {self.bet} {currency_name}..."
+        else:
+            content = ""
+
         embed = discord.Embed()
         
         if all(m.bot for m in self.players):
             view = BotsView(self) if not self.is_finished() \
                 else discord.ui.View(timeout=0)
         else:
-            view = InviteView(self) if not self.accepted \
-                else RematchView(self) if self.is_finished() \
+            view = InviteView(self, await bank.get_currency_name(self.channel.guild)) if not self.accepted \
+                else RematchView(self, await bank.get_currency_name(self.channel.guild)) if self.is_finished() \
                 else ThinkingView(self) if self.member(self.board.turn).bot \
                 else GameView(self)
 
         filename = "board.png"
         file = discord.File(await self.generate_board_image(), filename)
 
-        winner = self.board.winner()
-        winner_member = self.member(winner) if winner is not None else None
         if winner is None:
             if self.surrendered and not self.is_premature_surrender():
-                winner_member = self.players[1] if self.players.index(self.surrendered) == 0 else self.players[0]
+                assert winner_member
                 embed.title = f"{winner_member.display_name} is the winner via surrender!"
                 embed.set_thumbnail(url=winner_member.display_avatar.url)
             elif self.cancelled:
