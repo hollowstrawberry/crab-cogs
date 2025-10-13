@@ -14,7 +14,7 @@ from simplecheckers.views.replace_view import ReplaceView
 
 log = logging.getLogger("red.crab-cogs.simplecheckers")
 
-TIME_LIMIT = 5 # minutes
+TIME_LIMIT = 0 # minutes
 VARIANT = "english"
 STARTING = "Starting game..."
 
