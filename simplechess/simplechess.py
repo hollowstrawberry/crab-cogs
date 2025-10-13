@@ -14,7 +14,6 @@ from simplechess.chessgame import ChessGame
 from simplechess.views.bots_view import BotsView
 from simplechess.views.game_view import GameView
 from simplechess.views.replace_view import ReplaceView
-from simplechess.checks import check_global_setting_admin
 
 log = logging.getLogger("red.crab-cogs.simplechess")
 
@@ -216,7 +215,8 @@ class SimpleChess(BaseChessCog):
 
 
     @commands.group(name="setchess", aliases=["chesset",  "chessset"])  # type: ignore
-    @check_global_setting_admin()
+    @commands.admin_or_permissions(manage_guild=True)
+    @bank.is_owner_if_bank_global()
     async def setchess(self, ctx: commands.Context):
         """Settings for Chess."""
         pass
@@ -225,11 +225,13 @@ class SimpleChess(BaseChessCog):
     async def setchess_payout(self, ctx: commands.Context, payout: Optional[int]):
         """Show or set the payout when winning Chess against the bot."""
         assert ctx.guild
-        currency = await bank.get_currency_name(ctx.guild)
+        is_global = await bank.is_global()
+        config_payout = self.config.payout if is_global else self.config.guild(ctx.guild).payout
+        currency = await bank.get_currency_name(None if is_global else ctx.guild)
         if payout is None:
-            payout = await self.config.guild(ctx.guild).payout()
+            payout = await config_payout()
             return await ctx.send(f"Current payout for Chess is {payout} {currency}.")
         if payout < 0:
             return await ctx.send("Payout must be a positive number or 0.")
-        await self.config.guild(ctx.guild).payout.set(payout)
+        await config_payout.set(payout)
         await ctx.send(f"New payout for Chess is {payout} {currency}.")

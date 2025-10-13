@@ -9,7 +9,6 @@ from minigames.base import Minigame, BaseMinigameCog
 from minigames.connect4 import ConnectFourGame
 from minigames.tictactoe import TicTacToeGame
 from minigames.views.replace_view import ReplaceView
-from minigames.checks import check_global_setting_admin
 
 log = logging.getLogger("red.crab-cogs.minigames")
 
@@ -30,6 +29,7 @@ class Minigames(BaseMinigameCog):
             "tictactoe_payout": 10
         }
         self.config.register_guild(**default_config)
+        self.config.register_global(**default_config)
 
     async def is_economy_enabled(self, guild: discord.Guild) -> bool:
         economy = self.bot.get_cog("Economy")
@@ -136,7 +136,8 @@ class Minigames(BaseMinigameCog):
 
 
     @commands.group(name="connect4set", aliases=["setconnect4", "c4set"])  # type: ignore
-    @check_global_setting_admin()
+    @commands.admin_or_permissions(manage_guild=True)
+    @bank.is_owner_if_bank_global()
     async def setconnect4(self, ctx: commands.Context):
         """Settings for Connect 4."""
         pass
@@ -145,18 +146,21 @@ class Minigames(BaseMinigameCog):
     async def setconnect4_payout(self, ctx: commands.Context, payout: Optional[int]):
         """Show or set the payout when winning Connect 4 against the bot."""
         assert ctx.guild
-        currency = await bank.get_currency_name(ctx.guild)
+        is_global = await bank.is_global()
+        config_payout = self.config.connect4_payout if is_global else self.config.guild(ctx.guild).connect4_payout
+        currency = await bank.get_currency_name(None if is_global else ctx.guild)
         if payout is None:
-            payout = await self.config.guild(ctx.guild).connect4_payout()
+            payout = await config_payout()
             return await ctx.send(f"Current payout for Connect 4 is {payout} {currency}.")
         if payout < 0:
             return await ctx.send("Payout must be a positive number or 0.")
-        await self.config.guild(ctx.guild).connect4_payout.set(payout)
+        await config_payout.set(payout)
         await ctx.send(f"New payout for Connect 4 is {payout} {currency}.")
 
 
     @commands.group(name="tictactoeset", aliases=["settictactoe", "tttset"])  # type: ignore
-    @check_global_setting_admin()
+    @commands.admin_or_permissions(manage_guild=True)
+    @bank.is_owner_if_bank_global()
     async def settictactoe(self, ctx: commands.Context):
         """Settings for Tic-Tac-Toe."""
         pass
@@ -165,11 +169,13 @@ class Minigames(BaseMinigameCog):
     async def settictactoe_payout(self, ctx: commands.Context, payout: Optional[int]):
         """Show or set the payout when winning Tic-Tac-Toe against the bot."""
         assert ctx.guild
-        currency = await bank.get_currency_name(ctx.guild)
+        is_global = await bank.is_global()
+        config_payout = self.config.tictactoe_payout if is_global else self.config.guild(ctx.guild).tictactoe_payout
+        currency = await bank.get_currency_name(None if is_global else ctx.guild)
         if payout is None:
-            payout = await self.config.guild(ctx.guild).tictactoe_payout()
+            payout = await config_payout()
             return await ctx.send(f"Current payout for Tic-Tac-Toe is {payout} {currency}.")
         if payout < 0:
             return await ctx.send("Payout must be a positive number or 0.")
-        await self.config.guild(ctx.guild).tictactoe_payout.set(payout)
+        await config_payout.set(payout)
         await ctx.send(f"New payout for Tic-Tac-Toe is {payout} {currency}.")

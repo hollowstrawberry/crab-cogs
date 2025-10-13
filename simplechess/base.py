@@ -21,11 +21,12 @@ class BaseChessCog(commands.Cog):
             "depth": None,
             "bet": 0,
         }
-        default_guild = {
+        default_currency = {
             "payout": 500,
         }
         self.config.register_channel(**default_game)
-        self.config.register_guild(**default_guild)
+        self.config.register_guild(**default_currency)
+        self.config.register_global(**default_currency)
         
     @abstractmethod
     async def is_economy_enabled(self, guild: discord.Guild) -> bool:

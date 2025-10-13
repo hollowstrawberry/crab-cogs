@@ -20,11 +20,12 @@ class BaseCheckersCog(commands.Cog):
             "time": 0,
             "bet": 0,
         }
-        default_guild = {
+        default_currency = {
             "payout": 200,
         }
         self.config.register_channel(**default_game)
-        self.config.register_guild(**default_guild)
+        self.config.register_guild(**default_currency)
+        self.config.register_global(**default_currency)
 
     @abstractmethod
     async def is_economy_enabled(self, guild: discord.Guild) -> bool:
