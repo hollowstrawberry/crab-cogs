@@ -55,7 +55,13 @@ class SimpleCheckers(BaseCheckersCog):
     async def is_economy_enabled(self, guild: discord.Guild) -> bool:
         economy = self.bot.get_cog("Economy")
         return economy is not None and not await self.bot.cog_disabled_in_guild(economy, guild)
-
+    
+    async def payout(self, guild: discord.Guild):
+        if await bank.is_global():
+            return await self.config.payout()
+        else:
+            return await self.config.guild(guild).payout()
+        
 
     async def checkers_new(self, ctx: Union[commands.Context, discord.Interaction], opponent: Optional[discord.Member], bet: Optional[int]):
         author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
@@ -68,11 +74,11 @@ class SimpleCheckers(BaseCheckersCog):
         if bet is not None and not await self.is_economy_enabled(ctx.guild):
             return await reply("You can't bet currency as economy is not enabled in the bot. Please use this command again without a bet.", ephemeral=True)
         if bet is not None and opponent.bot:
-            payout = await self.config.guild(ctx.guild).payout()
+            payout = await self.payout(ctx.guild)
             return await reply(f"You can't bet against the bot. Instead, a prize of {payout} will be issued if you win. Please use this command again without a bet.", ephemeral=True)
 
         if opponent.bot:
-            bet = await self.config.guild(ctx.guild).payout()
+            bet = await self.payout(ctx.guild)
 
         # Game already exists
         if ctx.channel.id in self.games and not self.games[ctx.channel.id].is_finished():

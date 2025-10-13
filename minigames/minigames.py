@@ -72,9 +72,15 @@ class Minigames(BaseMinigameCog):
         assert ctx.guild and isinstance(ctx.channel, discord.TextChannel) and isinstance(author, discord.Member)
 
         if game_cls == TicTacToeGame:
-            payout = await self.config.guild(ctx.guild).tictactoe_payout()
+            if await bank.is_global():
+                payout = await self.config.tictactoe_payout()
+            else:
+                payout = await self.config.guild(ctx.guild).tictactoe_payout()
         elif game_cls == ConnectFourGame:
-            payout = await self.config.guild(ctx.guild).connect4_payout()
+            if await bank.is_global():
+                payout = await self.config.connect4_payout()
+            else:
+                payout = await self.config.guild(ctx.guild).connect4_payout()
         else:
             payout = None
 
