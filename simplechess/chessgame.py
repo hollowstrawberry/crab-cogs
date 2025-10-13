@@ -139,7 +139,7 @@ class ChessGame(BaseChessGame):
             embed.title = "The game ended in a tie!"
 
         if not self.accepted:
-            content = f"{self.players[0].mention} you're being invited to play checkers."
+            content = f"{self.players[0].mention} you're being invited to play chess."
         elif self.is_finished() and winner is not None and self.bet > 0 and not winner.bot and await self.cog.is_economy_enabled(self.channel.guild):
             currency_name = await bank.get_currency_name(self.channel.guild)
             opponent = [player for player in self.players if player != winner][0]
