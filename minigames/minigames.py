@@ -26,7 +26,7 @@ class Minigames(BaseMinigameCog):
         self.config = Config.get_conf(self, identifier=7669699620)
         default_config = {
             "connect4_payout": 100,
-            "tictactoe_payout": 20
+            "tictactoe_payout": 10
         }
         self.config.register_guild(**default_config)
 
