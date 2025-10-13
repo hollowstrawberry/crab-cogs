@@ -33,7 +33,8 @@ class GameView(discord.ui.View):
     def __init__(self, game: BaseChessGame):
         super().__init__(timeout=None)
         self.game = game
-        self.move_button = discord.ui.Button(custom_id=f"simplechess {game.channel.id} move", emoji="♟️", label="Enter Move", style=discord.ButtonStyle.success)
+        label = "Enter Move" if self.game.board.fullmove_number % 2 == 0 else "Enter Moveᅠ"  # hopefully prevent a discord app glitch that hides the button
+        self.move_button = discord.ui.Button(custom_id=f"simplechess {game.channel.id} move", emoji="♟️", label=label, style=discord.ButtonStyle.success)
         self.bump_button = discord.ui.Button(custom_id=f"simplechess {game.channel.id} bump", emoji="⬇️", label="Bump", style=discord.ButtonStyle.primary)
         self.end_button = discord.ui.Button(custom_id=f"simplechess {game.channel.id} end", emoji="🏳️", label="Surrender", style=discord.ButtonStyle.danger)
         self.move_button.callback = self.move

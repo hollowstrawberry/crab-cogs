@@ -32,12 +32,24 @@ class BaseCheckersCog(commands.Cog):
         pass
 
     @abstractmethod
-    async def checkers_new(self, ctx: Union[commands.Context, discord.Interaction], opponent: Optional[discord.Member], bet: Optional[int] = 0) -> None:
+    async def checkers_new(self,
+                           ctx: Union[commands.Context, discord.Interaction],
+                           opponent: Optional[discord.Member],
+                           bet: Optional[int] = 0
+                           ) -> None:
         pass
 
 
 class BaseCheckersGame(ABC):
-    def __init__(self, cog: BaseCheckersCog, players: List[discord.Member], channel: discord.TextChannel, variant: str, initial_state: str = None, bet: int = 0):
+    def __init__(self,
+                 cog: BaseCheckersCog,
+                 players: List[discord.Member],
+                 channel: discord.TextChannel,
+                 variant: str,
+                 initial_state: str = None,
+                 initial_time: int = 0,
+                 bet: int = 0
+                 ):
         self.cog = cog
         self.players = players
         self.channel = channel
@@ -45,6 +57,7 @@ class BaseCheckersGame(ABC):
         self.message: Optional[discord.Message] = None
         self.view: Optional[discord.ui.View] = None
         self.board = draughts.Board(variant, initial_state or "startpos")
+        self.time = initial_time
         self.bet = bet
         self.accepted = initial_state is not None
         self.init_done = initial_state is not None
