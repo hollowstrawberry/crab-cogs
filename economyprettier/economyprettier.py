@@ -142,7 +142,7 @@ class EconomyPrettier(commands.Cog):
                     relative_time = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=await self.config.bonus_time()), "R")
                     await ctx.send(f"{author.mention} Bonus! Take {amount} {credits_name}. You now have {new_balance} {credits_name}!"
                                     f"\nYou are currently {position} on the leaderboard."
-                                    f"\nNext bonus in {relative_time}")
+                                    f"\nNext bonus {relative_time}")
                 else:
                     await ctx.send(f"{author.mention} Here, take {amount} {credits_name}. You now have {new_balance} {credits_name}!"
                                     f"\nYou are currently {position} on the leaderboard.")
@@ -178,7 +178,7 @@ class EconomyPrettier(commands.Cog):
                     relative_time = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=await self.config.guild(guild).bonus_time()), "R")
                     await ctx.send(f"{author.mention} Bonus! Take {amount} {credits_name}. You now have {new_balance} {credits_name}!"
                                     f"\nYou are currently {position} on the leaderboard."
-                                    f"\nNext bonus in {relative_time}")
+                                    f"\nNext bonus {relative_time}")
                 else:
                     await ctx.send(f"{author.mention} Here, take {amount} {credits_name}. You now have {new_balance} {credits_name}!"
                                     f"\nYou are currently {position} on the leaderboard.")
