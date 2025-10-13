@@ -179,13 +179,6 @@ class ConnectFourGame(Minigame):
     async def get_content(self) -> Optional[str]:
         if not self.accepted:
             return f"{self.players[0].mention} you've been invited to play Connect 4!"
-        elif self.is_finished() and self.winner.value >= 0 and self.bet > 0 and not self.member(self.winner).bot and await self.cog.is_economy_enabled(self.channel.guild):
-            currency_name = await bank.get_currency_name(self.channel.guild)
-            opponent = self.member(self.opponent(self.winner))
-            content = f"-# {self.member(self.winner).mention} gained {self.bet} {currency_name}!"
-            if not opponent.bot:
-                content += f"\n-# {opponent.mention} lost {self.bet} {currency_name}..."
-            return content
         else:
             return None
 
@@ -197,14 +190,18 @@ class ConnectFourGame(Minigame):
                 else "It's a tie!" if self.winner == Player.TIE \
                 else f"{self.member(self.winner).display_name} is the winner via surrender!" if self.cancelled \
                 else f"{self.member(self.winner).display_name} is the winner!"
-        
+
         description = ""
         for i, player in enumerate(self.players):
             if self.winner.value == i:
                 description += "👑 "
             elif not self.is_finished() and self.current.value == i and self.accepted:
                 description += "►"
-            description += f"{EMOJIS[Player(i)]} - {player.mention}\n"
+            description += f"{EMOJIS[Player(i)]} - {player.mention}"
+            if self.winner.value >= 0 and self.bet > 0 and not player.bot and await self.cog.is_economy_enabled(self.channel.guild):
+                currency_name = await bank.get_currency_name(self.channel.guild)
+                description += f" {'+' if self.winner.value == i else '-'}{self.bet} {currency_name}"
+            description += "\n"
         description += "\n"
         if not self.is_finished():
             for i in range(self.board.width):
