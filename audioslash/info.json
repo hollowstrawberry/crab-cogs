@@ -9,5 +9,5 @@
     "requirements": ["yt-dlp"],
     "short": "Audio cog commands in the form of slash commands, with YouTube and playlist autocomplete.",
     "end_user_data_statement": "This cog does not store user data.",
-    "tags": ["crab", "voice", "audio", "music", "slash"]
+    "tags": ["crab", "voice", "audio", "music", "slash", "interaction"]
 }
