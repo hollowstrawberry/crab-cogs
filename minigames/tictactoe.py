@@ -68,11 +68,11 @@ class TicTacToeGame(Minigame):
             self.winner = Player.TIE
             await self.on_win(None)
         else:
-            self.current = self.opponent()
+            self.current = self.opponent(self.current)
 
     async def do_turn_ai(self):
         target = try_complete_line(self.board, self.current, Player.NONE, 3) \
-            or try_complete_line(self.board, self.opponent(), Player.NONE, 3) \
+            or try_complete_line(self.board, self.opponent(self.current), Player.NONE, 3) \
             or self.get_random_unoccupied()
         await self.do_turn(self.member(self.current), target[1]*3 + target[0])
 
@@ -103,8 +103,9 @@ class TicTacToeGame(Minigame):
             raise ValueError("Invalid player")
         return self.players[player.value]
     
-    def opponent(self) -> Player:
-        return Player.CIRCLE if self.current == Player.CROSS else Player.CROSS
+    @classmethod
+    def opponent(cls, current: Player) -> Player:
+        return Player.CIRCLE if current == Player.CROSS else Player.CROSS
     
     def get_random_unoccupied(self) -> Tuple[int, int]:
         empty_slots = []
@@ -121,7 +122,12 @@ class TicTacToeGame(Minigame):
         if not self.accepted:
             return f"{self.players[0].mention} you've been invited to play Tic-Tac-Toe!"
         elif self.is_finished() and self.winner.value >= 0 and self.bet > 0 and not self.member(self.winner).bot and await self.cog.is_economy_enabled(self.channel.guild):
-            return f"{self.member(self.winner).mention} gained {self.bet} {await bank.get_currency_name(self.channel.guild)}!"
+            currency_name = await bank.get_currency_name(self.channel.guild)
+            opponent = self.member(self.opponent(self.winner))
+            content = f"-# {self.member(self.winner).mention} gained {self.bet} {currency_name}!"
+            if not opponent.bot:
+                content += f"\n-# {opponent.mention} lost {self.bet} {currency_name}..."
+            return content
         else:
             return None
 

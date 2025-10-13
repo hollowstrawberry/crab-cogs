@@ -137,7 +137,11 @@ class CheckersGame(BaseCheckersGame):
         if not self.accepted:
             content = f"{self.players[0].mention} you're being invited to play checkers."
         elif self.is_finished() and winner_member is not None and self.bet > 0 and not winner_member.bot and await self.cog.is_economy_enabled(self.channel.guild):
-            content = f"{winner_member.mention} gained {self.bet} {await bank.get_currency_name(self.channel.guild)}!"
+            currency_name = await bank.get_currency_name(self.channel.guild)
+            opponent = [player for player in self.players if player != winner_member][0]
+            content = f"-# {winner_member.mention} gained {self.bet} {currency_name}!"
+            if not opponent.bot:
+                content += f"\n-# {opponent.mention} lost {self.bet} {currency_name}..."
         else:
             content = ""
 

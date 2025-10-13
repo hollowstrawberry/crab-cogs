@@ -28,9 +28,7 @@ class RematchView(discord.ui.View):
         if interaction.user not in self.game.players:
             return await interaction.response.send_message("You didn't play this game! You should start a new one.", ephemeral=True)
         
-        temp_players = list(self.game.players)
-        temp_players.remove(interaction.user)
-        opponent = temp_players[0]
+        opponent = [player for player in self.game.players if player != interaction.user][0]
         players = [interaction.user, opponent] if opponent.bot else [opponent, interaction.user]
         bet = None if opponent.bot else self.game.bet
 

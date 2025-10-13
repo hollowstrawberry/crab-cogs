@@ -180,7 +180,12 @@ class ConnectFourGame(Minigame):
         if not self.accepted:
             return f"{self.players[0].mention} you've been invited to play Connect 4!"
         elif self.is_finished() and self.winner.value >= 0 and self.bet > 0 and not self.member(self.winner).bot and await self.cog.is_economy_enabled(self.channel.guild):
-            return f"{self.member(self.winner).mention} gained {self.bet} {await bank.get_currency_name(self.channel.guild)}!"
+            currency_name = await bank.get_currency_name(self.channel.guild)
+            opponent = self.member(self.opponent(self.winner))
+            content = f"-# {self.member(self.winner).mention} gained {self.bet} {currency_name}!"
+            if not opponent.bot:
+                content += f"\n-# {opponent.mention} lost {self.bet} {currency_name}..."
+            return content
         else:
             return None
 
