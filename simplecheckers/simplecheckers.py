@@ -11,6 +11,7 @@ from simplecheckers.checkersgame import CheckersGame
 from simplecheckers.views.bots_view import BotsView
 from simplecheckers.views.game_view import GameView
 from simplecheckers.views.replace_view import ReplaceView
+from simplecheckers.checks import check_global_setting_admin
 
 log = logging.getLogger("red.crab-cogs.simplecheckers")
 
@@ -197,14 +198,13 @@ class SimpleCheckers(BaseCheckersCog):
         await self.checkers_bots(ctx, bot_opponent)
 
 
-    @commands.group(name="setcheckers", aliases=["checkersset", "setdraughts", "draughtsset", "checkerset", "draughtset"])  # type: ignore
-    @commands.admin_or_permissions(manage_guild=True)
+    @commands.group(name="setcheckers", aliases=["checkersset", "setdraughts", "draughtsset", "checkerset", "draughtset"])
+    @check_global_setting_admin()
     async def setcheckers(self, ctx: commands.Context):
         """Settings for Checkers."""
         pass
 
     @setcheckers.command(name="payout", aliases=["prize"])
-    @commands.admin_or_permissions(manage_guild=True)
     async def setcheckers_payout(self, ctx: commands.Context, payout: Optional[int]):
         """Show or set the payout when winning Checkers against the bot."""
         assert ctx.guild

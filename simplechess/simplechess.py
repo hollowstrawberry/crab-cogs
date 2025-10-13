@@ -14,6 +14,7 @@ from simplechess.chessgame import ChessGame
 from simplechess.views.bots_view import BotsView
 from simplechess.views.game_view import GameView
 from simplechess.views.replace_view import ReplaceView
+from simplechess.checks import check_global_setting_admin
 
 log = logging.getLogger("red.crab-cogs.simplechess")
 
@@ -215,13 +216,12 @@ class SimpleChess(BaseChessCog):
 
 
     @commands.group(name="setchess", aliases=["chesset",  "chessset"])  # type: ignore
-    @commands.admin_or_permissions(manage_guild=True)
+    @check_global_setting_admin()
     async def setchess(self, ctx: commands.Context):
         """Settings for Chess."""
         pass
 
     @setchess.command(name="payout", aliases=["prize"])
-    @commands.admin_or_permissions(manage_guild=True)
     async def setchess_payout(self, ctx: commands.Context, payout: Optional[int]):
         """Show or set the payout when winning Chess against the bot."""
         assert ctx.guild
