@@ -204,24 +204,25 @@ class EconomyTweaks(commands.Cog):
             slot_time = await economy.config.guild(guild).SLOT_TIME()
             last_slot = await economy.config.member(author).last_slot()
         
-        new_balance = calendar.timegm(ctx.message.created_at.utctimetuple())
+        cur_time = calendar.timegm(ctx.message.created_at.utctimetuple())
+        currency_name = await bank.get_currency_name(ctx.guild)
 
-        if (new_balance - last_slot) < slot_time:
-            await ctx.send("You're on cooldown, try again in a bit.")
+        if (cur_time - last_slot) < max(3, slot_time):
+            await ctx.send("You're on cooldown, try again in a few seconds.")
             return
         if bid < min_bid:
-            await ctx.send(f"Your bid must be at least {min_bid}")
+            await ctx.send(f"Your bid must be at least {min_bid} {currency_name}")
             return
         if bid > max_bid:
-            await ctx.send(f"Your bid cannot be greater than {max_bid}")
+            await ctx.send(f"Your bid cannot be greater than {max_bid} {currency_name}")
             return
         if not await bank.can_spend(author, bid):
             await ctx.send("You ain't got enough money, friend.")
             return
         if await bank.is_global():
-            await economy.config.user(author).last_slot.set(new_balance)
+            await economy.config.user(author).last_slot.set(cur_time)
         else:
-            await economy.config.member(author).last_slot.set(new_balance)
+            await economy.config.member(author).last_slot.set(cur_time)
 
         credits_name = await bank.get_currency_name(guild)
 
