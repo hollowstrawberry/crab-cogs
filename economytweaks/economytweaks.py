@@ -32,38 +32,14 @@ class SlotMachine(Enum):
     grapes = "🍇"
 
 PAYOUTS = {
-    (SlotMachine.seven, SlotMachine.seven, SlotMachine.seven): {
-        "payout": lambda x: x * 50,
-        "phrase": "JACKPOT! ×50",
-    },
-    (SlotMachine.clover, SlotMachine.clover, SlotMachine.clover): {
-        "payout": lambda x: x * 25,
-        "phrase": "×25",
-    },
-    (SlotMachine.cherries, SlotMachine.cherries, SlotMachine.cherries): {
-        "payout": lambda x: x * 20,
-        "phrase": "×20",
-    },
-    (SlotMachine.seven, SlotMachine.seven): {
-        "payout": lambda x: x * 5,
-        "phrase": "×5",
-    },
-    (SlotMachine.clover, SlotMachine.clover): {
-        "payout": lambda x: x * 4,
-        "phrase": "×4",
-    },
-    (SlotMachine.cherries, SlotMachine.cherries): {
-        "payout": lambda x: x * 3,
-        "phrase": "×3",
-    },
-    "3 symbols": {
-        "payout": lambda x: x * 10,
-        "phrase": "×10",
-    },
-    "2 symbols": {
-        "payout": lambda x: x * 2,
-        "phrase": "×2",
-    },
+    (SlotMachine.seven, SlotMachine.seven, SlotMachine.seven): 100,
+    (SlotMachine.clover, SlotMachine.clover, SlotMachine.clover): 25,
+    (SlotMachine.cherries, SlotMachine.cherries, SlotMachine.cherries): 20,
+    (SlotMachine.seven, SlotMachine.seven): 5,
+    (SlotMachine.clover, SlotMachine.clover): 4,
+    (SlotMachine.cherries, SlotMachine.cherries): 3,
+    "3 symbols": 10,
+    "2 symbols": 2,
 }
 
 
@@ -251,54 +227,48 @@ class EconomyTweaks(commands.Cog):
         reels = []
         for _ in range(3):
             default_reel.rotate(random.randint(-999, 999))  # weeeeee
-            new_reel = deque(default_reel, maxlen=3)  # we need only 3 symbols
-            reels.append(new_reel)  # for each reel
+            new_reel = deque(default_reel, maxlen=3)
+            reels.append(new_reel)
 
-        rows = (
-            (reels[0][0], reels[1][0], reels[2][0]),
-            (reels[0][1], reels[1][1], reels[2][1]),
-            (reels[0][2], reels[1][2], reels[2][2]),
-        )
+        multiplier = PAYOUTS.get((reels[0][1], reels[1][1], reels[2][1]),  # AAA
+                        PAYOUTS.get((reels[0][1], reels[1][1]),            # AAx
+                        PAYOUTS.get((reels[1][1], reels[2][1]),            # xAA
+                        PAYOUTS.get((reels[0][1], reels[2][1])))))         # AxA
 
-        payout = PAYOUTS.get(rows[1])
-        if not payout:
-            payout = PAYOUTS.get((rows[1][0], rows[1][1]), PAYOUTS.get((rows[1][1], rows[1][2])))
-        if not payout:
-            has_three = rows[1][0] == rows[1][1] == rows[1][2]
-            has_two = (rows[1][0] == rows[1][1]) or (rows[1][1] == rows[1][2])
+        if not multiplier:
+            has_three = reels[0][1] == reels[1][1] == reels[2][1]
+            has_two = reels[0][1] == reels[1][1] or reels[1][1] == reels[2][1] or reels[0][1] == reels[2][1]
             if has_three:
-                payout = PAYOUTS["3 symbols"]
+                multiplier = PAYOUTS["3 symbols"]
             elif has_two:
-                payout = PAYOUTS["2 symbols"]
+                multiplier = PAYOUTS["2 symbols"]
 
-        pay = 0
-        if payout:
-            then = await bank.get_balance(author)
-            pay = payout["payout"](bid)  # type: ignore
-            new_balance = then - bid + pay
+        if multiplier:
+            old_balance = await bank.get_balance(author)
+            new_balance = old_balance + (bid * (multiplier - 1))
             try:
                 await bank.set_balance(author, new_balance)
             except errors.BalanceTooHigh as exc:
                 await bank.set_balance(author, exc.max_balance)
                 await ctx.send(f"{author.mention} You've reached the maximum amount of {credits_name}! You currently have {humanize_number(exc.max_balance)} {credits_name}")
                 return
-            phrase = f"**{payout['phrase']}**"
+            phrase = f"**JACKPOT! ×{multiplier}**" if multiplier >= 100 else f"**×{multiplier}**"
         else:
-            then = await bank.get_balance(author)
+            old_balance = await bank.get_balance(author)
             await bank.withdraw_credits(author, bid)
-            new_balance = then - bid
-            phrase = "Nothing!"
+            new_balance = old_balance - bid
+            phrase = "*None*"
 
         embed = discord.Embed(title="Slot Machine", color=await self.bot.get_embed_color(ctx.channel))
-        first = f"┃ {reels[0][0].value}⬛⬛ ┃\n" \
-                f"┣ {reels[0][1].value}⬛⬛ ┫\n" \
-                f"┃ {reels[0][2].value}⬛⬛ ┃"
-        second = f"┃ {reels[0][0].value}{reels[1][0].value}⬛ ┃\n" \
-                 f"┣ {reels[0][1].value}{reels[1][1].value}⬛ ┫\n" \
-                 f"┃ {reels[0][2].value}{reels[1][2].value}⬛ ┃"
-        third = f"┃ {reels[0][0].value}{reels[1][0].value}{reels[2][0].value} ┃\n" \
-                f"┣ {reels[0][1].value}{reels[1][1].value}{reels[2][1].value} ┫\n" \
-                f"┃ {reels[0][2].value}{reels[1][2].value}{reels[2][2].value} ┃"
+        first = f"┃ {reels[0][0].value} ⬛ ⬛ ┃\n" \
+                f"┣ {reels[0][1].value} ⬛ ⬛ ┫\n" \
+                f"┃ {reels[0][2].value} ⬛ ⬛ ┃"
+        second = f"┃ {reels[0][0].value} {reels[1][0].value} ⬛ ┃\n" \
+                 f"┣ {reels[0][1].value} {reels[1][1].value} ⬛ ┫\n" \
+                 f"┃ {reels[0][2].value} {reels[1][2].value} ⬛ ┃"
+        third = f"┃ {reels[0][0].value} {reels[1][0].value} {reels[2][0].value} ┃\n" \
+                f"┣ {reels[0][1].value} {reels[1][1].value} {reels[2][1].value} ┫\n" \
+                f"┃ {reels[0][2].value} {reels[1][2].value} {reels[2][2].value} ┃"
         def add_fields():
             nonlocal bid, credits_name, new_balance, phrase
             embed.add_field(name="Bid", value=f"{humanize_number(bid)} {credits_name}")
