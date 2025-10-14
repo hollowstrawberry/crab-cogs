@@ -19,35 +19,35 @@ old_payday: Optional[commands.Command] = None
 old_payouts: Optional[commands.Command] = None
 
 
-class SMReel(Enum):
+class SlotMachine(Enum):
     cherries = "🍒"
-    strawberry = "🍓"
+    bell = "🔔"
     clover = "🍀"
-    cyclone = "🌀"
-    sunflower = "🌻"
+    apple = "🍎"
+    lemon = "🍋"
     seven = "7️⃣"
-    mushroom = "🍄"
+    watermelon = "🍉"
     heart = "❤️"
-    snowflake = "❄️"
+    grapes = "🍇"
 
 PAYOUTS = {
-    (SMReel.seven, SMReel.seven, SMReel.seven): {
+    (SlotMachine.seven, SlotMachine.seven, SlotMachine.seven): {
         "payout": lambda x: x * 50,
         "phrase": "JACKPOT! ×50",
     },
-    (SMReel.clover, SMReel.clover, SMReel.clover): {
+    (SlotMachine.clover, SlotMachine.clover, SlotMachine.clover): {
         "payout": lambda x: x * 25,
         "phrase": "×25",
     },
-    (SMReel.cherries, SMReel.cherries, SMReel.cherries): {
+    (SlotMachine.cherries, SlotMachine.cherries, SlotMachine.cherries): {
         "payout": lambda x: x * 20,
         "phrase": "×20",
     },
-    (SMReel.seven, SMReel.seven): {
+    (SlotMachine.seven, SlotMachine.seven): {
         "payout": lambda x: x * 5,
         "phrase": "×5",
     },
-    (SMReel.cherries, SMReel.cherries): {
+    (SlotMachine.cherries, SlotMachine.cherries): {
         "payout": lambda x: x * 3,
         "phrase": "×3",
     },
@@ -225,7 +225,7 @@ class EconomyTweaks(commands.Cog):
 
         credits_name = await bank.get_currency_name(guild)
 
-        default_reel = deque(cast(Iterable, SMReel))
+        default_reel = deque(cast(Iterable, SlotMachine))
         reels = []
         for i in range(3):
             default_reel.rotate(random.randint(-999, 999))  # weeeeee
