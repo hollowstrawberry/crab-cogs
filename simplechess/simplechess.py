@@ -83,7 +83,11 @@ class SimpleChess(BaseChessCog):
             return await reply("You can't bet currency as economy is not enabled in the bot. Please use this command again without a bet.", ephemeral=True)
         if bet is not None and opponent.bot:
             payout = await self.payout(ctx.guild)
-            return await reply(f"You can't bet against the bot. Instead, a prize of {payout} will be issued if you win. Please use this command again without a bet.", ephemeral=True)
+            currency_name = await bank.get_currency_name(ctx.guild)
+            return await reply(f"You can't bet against the bot. Instead, a prize of {payout} {currency_name} will be issued if you win. Please use this command again without a bet.", ephemeral=True)
+        if bet is not None and not await bank.can_spend(author, bet):
+            currency_name = await bank.get_currency_name(ctx.guild)
+            return await reply(f"You don't have enough {currency_name} to make that bet.")
 
         if opponent.bot:
             bet = await self.payout(ctx.guild)
