@@ -27,7 +27,7 @@ class SlotMachine(Enum):
     lemon = "🍋"
     seven = "7️⃣"
     watermelon = "🍉"
-    heart = "❤️"
+    heart = "🩷"
     grapes = "🍇"
 
 PAYOUTS = {
@@ -273,9 +273,15 @@ class EconomyTweaks(commands.Cog):
             phrase = "Nothing!"
 
         embed = discord.Embed(title="Slot Machine", color=await self.bot.get_embed_color(ctx.channel))
-        first = f"┃ {reels[0][0].value}⬛⬛ ┃\n┣ {reels[0][1].value}⬛⬛ ┫\n┃ {reels[0][2].value}⬛⬛ ┃"
-        second = f"┃ {reels[0][0].value}{reels[1][0].value}⬛ ┃\n┣ {reels[0][1].value}{reels[1][1].value}⬛ ┫\n┃ {reels[0][2].value}{reels[1][2].value}⬛ ┃"
-        third = f"┃ {reels[0][0].value}{reels[1][0].value}{reels[2][0].value} ┃\n┣ {reels[0][1].value}{reels[1][1].value}{reels[2][1].value} ┫\n┃ {reels[0][2].value}{reels[1][2].value}{reels[2][2].value} ┃"
+        first = f"┃ {reels[0][0].value}⬛⬛ ┃\n" \
+                f"┣ {reels[0][1].value}⬛⬛ ┫\n" \
+                f"┃ {reels[0][2].value}⬛⬛ ┃"
+        second = f"┃ {reels[0][0].value}{reels[1][0].value}⬛ ┃\n" \
+                 f"┣ {reels[0][1].value}{reels[1][1].value}⬛ ┫\n" \
+                 f"┃ {reels[0][2].value}{reels[1][2].value}⬛ ┃"
+        third = f"┃ {reels[0][0].value}{reels[1][0].value}{reels[2][0].value} ┃\n" \
+                f"┣ {reels[0][1].value}{reels[1][1].value}{reels[2][1].value} ┫\n" \
+                f"┃ {reels[0][2].value}{reels[1][2].value}{reels[2][2].value} ┃"
         def add_fields():
             nonlocal bid, credits_name, new_balance, phrase
             embed.add_field(name="Bid", value=f"{humanize_number(bid)} {credits_name}")
