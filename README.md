@@ -62,6 +62,12 @@ Play Checkers/Draughts against your friends or the bot itself. Configure payouts
 
 # Other cogs
 
+### 💵 EconomyTweaks
+
+Improves the `[p]slot` command by quickly editing the message, adding suspense as the slots spin. Also adds a configurable bonus for the `[p]payday` command, which activates at a greater time interval. Also adds `/slots` and `/payday` slash commands.
+
+![demonstration](https://i.imgur.com/JatNXVy.gif)
+
 ### 🎤 VoiceLog
 
 Logs users joining and leaving voicechat, inside the text chat embedded in the voicechat channel itself. Finally gives a use to those things.
