@@ -5,7 +5,7 @@
     "hidden": false,
     "install_msg": "🖼 __**GPT Image**__\n:warning: **Important:** OpenAI's models cost money every time they are used. Please check <https://openai.com/api/pricing/> and use this cog with care.\n**Also, as of the time of writing, you need to verify the identity of your OpenAI account in order to use the gpt-image-1 models, but not for dall-e.**\n```Cog installed. Instructions:\n1. Load it with [p]load gptimage\n2. Add your OpenAI API key with [p]set api openai api_key,INSERT_API_KEY\n3. Enable slash commands with [p]slash enablecog gptimage\n4. Sync slash commands with [p]slash sync\n5. You may need to restart Discord to see the new commands.\n5. Use /imagine to start generating images.```",
     "required_cogs": {},
-    "requirements": ["openai"],
+    "requirements": ["openai==1.109.1"],
     "short": "Generate images with OpenAI",
     "end_user_data_statement": "This cog does not store user data.",
     "tags": ["crab", "image", "ai", "generation", "imagine", "dalle", "dall-e", "openai"]
