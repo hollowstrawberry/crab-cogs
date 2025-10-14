@@ -47,6 +47,10 @@ PAYOUTS = {
         "payout": lambda x: x * 5,
         "phrase": "×5",
     },
+    (SlotMachine.clover, SlotMachine.clover): {
+        "payout": lambda x: x * 4,
+        "phrase": "×4",
+    },
     (SlotMachine.cherries, SlotMachine.cherries): {
         "payout": lambda x: x * 3,
         "phrase": "×3",
