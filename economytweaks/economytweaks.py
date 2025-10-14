@@ -206,9 +206,8 @@ class EconomyTweaks(commands.Cog):
             return
         
         if self.concurrent_slots > MAX_CONCURRENT_SLOTS and not ctx.interaction:
-            slash_command = self.bot.tree.get_command("slots")
             content = f"Too many people are using the slot machine right now. "
-            if slash_command is None:
+            if self.bot.tree.get_command("slots") is None:
                 content += "The bot owner could enable the `/slots` slash command, which would allow more people to use it at the same time."
             else:
                 content += "Consider using the `/slots` slash command instead, which allows more people to use it at the same time."
