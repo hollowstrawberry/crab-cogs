@@ -200,7 +200,10 @@ class ConnectFourGame(Minigame):
             description += f"{EMOJIS[Player(i)]} - {player.mention}"
             if self.winner.value >= 0 and self.bet > 0 and not player.bot and await self.cog.is_economy_enabled(self.channel.guild):
                 currency_name = await bank.get_currency_name(self.channel.guild)
-                description += f" {'+' if self.winner.value == i else '-'}{self.bet} {currency_name}"
+                if self.winner == player:
+                    description += f" +{self.bet} {currency_name}"
+                elif not self.member(self.opponent(Player(i))).bot:
+                    description += f" -{self.bet} {currency_name}"
             description += "\n"
         description += "\n"
         if not self.is_finished():

@@ -1,5 +1,4 @@
 import random
-import logging
 import calendar
 import asyncio
 import discord
