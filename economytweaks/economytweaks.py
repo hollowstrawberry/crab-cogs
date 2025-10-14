@@ -138,7 +138,8 @@ class EconomyTweaks(commands.Cog):
 
         if cur_time < next_payday:
             relative_time = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=next_payday - cur_time), "R")
-            return await ctx.send(f"{mention}Too soon. Your next payday is {relative_time}", ephemeral=True)
+            relative_bonus = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=max(0, next_payday_bonus - cur_time)), "R")
+            return await ctx.send(f"{mention}Too soon. Your next payday is {relative_time}. Your next bonus is {relative_bonus}", ephemeral=True)
 
         is_bonus = cur_time >= next_payday_bonus and bonus_amount > 0 and bonus_amount > payday_amount
         reward = bonus_amount if is_bonus else payday_amount
@@ -248,7 +249,7 @@ class EconomyTweaks(commands.Cog):
 
         default_reel = deque(cast(Iterable, SlotMachine))
         reels = []
-        for i in range(3):
+        for _ in range(3):
             default_reel.rotate(random.randint(-999, 999))  # weeeeee
             new_reel = deque(default_reel, maxlen=3)  # we need only 3 symbols
             reels.append(new_reel)  # for each reel
