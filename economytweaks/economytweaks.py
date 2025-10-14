@@ -17,6 +17,8 @@ old_slot: Optional[commands.Command] = None
 old_payday: Optional[commands.Command] = None
 old_payouts: Optional[commands.Command] = None
 
+MAX_CONCURRENT_SLOTS = 3
+
 
 class SlotMachine(Enum):
     cherries = "🍒"
@@ -71,6 +73,7 @@ class EconomyTweaks(commands.Cog):
     def __init__(self, bot: Red):
         super().__init__()
         self.bot = bot
+        self.concurrent_slots = 0
         default_timer = {
             "last_payday_bonus": 0,
         }
@@ -112,6 +115,7 @@ class EconomyTweaks(commands.Cog):
         assert ctx.guild and isinstance(ctx.author, discord.Member)
         guild = ctx.guild
         author = ctx.author
+        mention = "" if ctx.interaction else f"{author.mention} "
 
         if not (economy := await self.get_economy_cog(ctx)):
             return
@@ -134,7 +138,7 @@ class EconomyTweaks(commands.Cog):
 
         if cur_time < next_payday:
             relative_time = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=next_payday - cur_time), "R")
-            return await ctx.send(f"{author.mention} Too soon. Your next payday is {relative_time}", ephemeral=True)
+            return await ctx.send(f"{mention}Too soon. Your next payday is {relative_time}", ephemeral=True)
 
         is_bonus = cur_time >= next_payday_bonus and bonus_amount > 0 and bonus_amount > payday_amount
         reward = bonus_amount if is_bonus else payday_amount
@@ -143,13 +147,7 @@ class EconomyTweaks(commands.Cog):
                 role_reward = await economy.config.role(role).PAYDAY_CREDITS()
                 if role_reward > reward:
                     reward = role_reward
-        try:
-            await bank.deposit_credits(author, reward)
-        except errors.BalanceTooHigh as exc:
-            await bank.set_balance(author, exc.max_balance)
-            return await ctx.send(f"{author.mention} You've reached the maximum amount of {credits_name}!"
-                                  f" You currently have {humanize_number(exc.max_balance)} {credits_name}", ephemeral=True)
-        
+
         if is_global:
             await economy.config.user(author).next_payday.set(cur_time)
             if is_bonus:
@@ -159,17 +157,24 @@ class EconomyTweaks(commands.Cog):
             if is_bonus:
                 await self.config.member(author).last_payday_bonus.set(cur_time)
 
+        try:
+            await bank.deposit_credits(author, reward)
+        except errors.BalanceTooHigh as exc:
+            await bank.set_balance(author, exc.max_balance)
+            return await ctx.send(f"{mention}You've reached the maximum amount of {credits_name}!"
+                                  f" You currently have {humanize_number(exc.max_balance)} {credits_name}", ephemeral=True)
+
         pos = await bank.get_leaderboard_position(author)
         position = f"#{humanize_number(pos)}" if pos else "unknown"
         amount = humanize_number(reward)
         new_balance = humanize_number(await bank.get_balance(author))
         if is_bonus:
             relative_time = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=bonus_time), "R")
-            await ctx.send(f"{author.mention} Bonus! Take {amount} {credits_name}. You now have {new_balance} {credits_name}!"
+            await ctx.send(f"{mention}Bonus! Take {amount} {credits_name}. You now have {new_balance} {credits_name}!"
                            f"\nYou are currently {position} on the leaderboard."
                            f"\nNext bonus {relative_time}", ephemeral=True)
         else:
-            await ctx.send(f"{author.mention} Here, take {amount} {credits_name}. You now have {new_balance} {credits_name}!"
+            await ctx.send(f"{mention}Here, take {amount} {credits_name}. You now have {new_balance} {credits_name}!"
                            f"\nYou are currently {position} on the leaderboard.", ephemeral=True)
 
 
@@ -177,7 +182,11 @@ class EconomyTweaks(commands.Cog):
     @commands.guild_only()
     async def slot_cmd(self, ctx: commands.Context, bid: int):
         """Play the slot machine."""
-        await self.slot(ctx, bid)
+        try:
+            self.concurrent_slots += 1
+            await self.slot(ctx, bid)
+        finally:
+            self.concurrent_slots -= 1
 
     @app_commands.command(name="slots")
     @app_commands.describe(bid="How much currency to put in the slot machine.")
@@ -195,6 +204,15 @@ class EconomyTweaks(commands.Cog):
 
         if not (economy := await self.get_economy_cog(ctx)):
             return
+        
+        if self.concurrent_slots > MAX_CONCURRENT_SLOTS and not ctx.interaction:
+            slash_command = self.bot.tree.get_command("slots")
+            content = f"Too many people are using the slot machine right now. "
+            if slash_command is None:
+                content += "The bot owner could enable the `/slots` slash command, which would allow more people to use it at the same time."
+            else:
+                content += "Consider using the `/slots` slash command instead, which allows more people to use it at the same time."
+            return await ctx.send(content)
         
         if await bank.is_global():
             min_bid = await economy.config.SLOT_MIN()
