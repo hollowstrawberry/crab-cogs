@@ -29,6 +29,7 @@ class SlotMachine(Enum):
     seven = "7️⃣"
     watermelon = "🍉"
     heart = "🩷"
+    strawberry = "🍓"
     grapes = "🍇"
 
 PAYOUTS = {
