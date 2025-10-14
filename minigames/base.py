@@ -2,7 +2,7 @@ import discord
 from abc import ABC, abstractmethod
 from typing import List, Optional, Type, Union
 from datetime import datetime
-from redbot.core import commands, bank
+from redbot.core import commands, bank, errors
 
 
 class BaseMinigameCog(commands.Cog):
@@ -68,7 +68,10 @@ class Minigame(ABC):
             return
         if all(not player.bot for player in self.players):  # pvp
             for player in self.players:
-                await bank.withdraw_credits(player, self.bet)
+                try:
+                    await bank.withdraw_credits(player, self.bet)
+                except ValueError:
+                    pass  # Shouldn't happen, but I choose to let it continue if it breaks
 
     async def on_win(self, winner: Optional[discord.Member]) -> None:
         if self.payout_done:
@@ -82,8 +85,14 @@ class Minigame(ABC):
         await self.init() # failsafe
         if winner is None:
             for player in self.players:
-                await bank.deposit_credits(player, self.bet)
+                try:
+                    await bank.deposit_credits(player, self.bet)
+                except errors.BalanceTooHigh as error:
+                    await bank.set_balance(player, error.max_balance)
         else:
             if not winner.bot:
                 prize = self.bet if against_bot else self.bet * 2
-                await bank.deposit_credits(winner, prize)
+                try:
+                    await bank.deposit_credits(winner, prize)
+                except errors.BalanceTooHigh as error:
+                    await bank.set_balance(winner, error.max_balance)
