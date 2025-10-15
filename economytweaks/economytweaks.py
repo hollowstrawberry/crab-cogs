@@ -318,12 +318,42 @@ class EconomyTweaks(commands.Cog):
     @app_commands.command(name="leaderboard")
     @app_commands.describe(top="How many positions on the leaderboard to show. 10 by default.",
                            show_global="Whether to include results from all servers. False by default.")
-    async def leaderboard_app(self, interaction: discord.Interaction, top: int = 10, show_global: bool = False):
+    @app_commands.guild_only()
+    async def leaderboard_app(self, interaction: discord.Interaction, top: app_commands.Range[int, 1, 1000] = 10, show_global: bool = False):
         """Views the economy leaderboard."""
         ctx = await commands.Context.from_interaction(interaction)
         if not (economy := await self.get_economy_cog(ctx)):
             return
         await economy.leaderboard(ctx, top=top, show_global=show_global)
+
+
+    bank_app = app_commands.Group(name="bank", description="Manage your currency with the bot.", guild_only=True)
+
+    @bank_app.command(name="balance")
+    @app_commands.describe(user="The user to check the balance of. If omitted, defaults to your own balance.")
+    @app_commands.guild_only()
+    async def balance_app(self, interaction: discord.Interaction, user: Optional[discord.Member] = None):
+        """Show the user's account balance."""
+        assert isinstance(interaction.user, discord.Member)
+        user = user or interaction.user
+        bal = humanize_number(await bank.get_balance(user))
+        currency = await bank.get_currency_name(interaction.guild)
+        content = f"Your balance is {bal} {currency}." if user == interaction.user else f"{user.mention}'s balance is {bal} {currency}."
+        await interaction.response.send_message(content, ephemeral=True)
+
+    @bank_app.command(name="transfer")
+    @app_commands.describe(to="The user to give currency to.",
+                           amount="The amount of currency to give.")
+    @app_commands.guild_only()
+    async def transfer_app(self, interaction: discord.Interaction, to: discord.Member, amount: app_commands.Range[int, 1]):
+        """Transfer currency to other users."""
+        try:
+            await bank.transfer_credits(interaction.user, to, amount)
+        except (ValueError, errors.BalanceTooHigh) as e:
+            return await interaction.response.send_message(str(e), ephemeral=True)
+        currency = await bank.get_currency_name(interaction.guild)
+        await interaction.response.send_message(f"Transferred {humanize_number(amount)} {currency} to {to.mention}")
+
 
     @commands.group(name="economytweakset", aliases=["economytweaksset"])  # type: ignore
     @commands.admin_or_permissions(manage_guild=True)
