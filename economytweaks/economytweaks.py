@@ -274,15 +274,15 @@ class EconomyTweaks(commands.Cog):
         else:
             embed.title = "Slot Machine"
 
-        first = f"┃{reels[0][0].value}┃⬛┃⬛┃\n" \
-                f"┣{reels[0][1].value}╋⬛╋⬛┫\n" \
-                f"┃{reels[0][2].value}┃⬛┃⬛┃"
-        second = f"┃{reels[0][0].value}┃{reels[1][0].value}┃⬛┃\n" \
-                 f"┣{reels[0][1].value}╋{reels[1][1].value}╋⬛┫\n" \
-                 f"┃{reels[0][2].value}┃{reels[1][2].value}┃⬛┃"
-        third = f"┃{reels[0][0].value}┃{reels[1][0].value}┃{reels[2][0].value}┃\n" \
-                f"┣{reels[0][1].value}╋{reels[1][1].value}╋{reels[2][1].value}┫\n" \
-                f"┃{reels[0][2].value}┃{reels[1][2].value}┃{reels[2][2].value}┃"
+        first = f"┃ {reels[0][0].value} ⬛ ⬛ ┃\n" \
+                f"┣ {reels[0][1].value} ⬛ ⬛ ┫\n" \
+                f"┃ {reels[0][2].value} ⬛ ⬛ ┃"
+        second = f"┃ {reels[0][0].value} {reels[1][0].value} ⬛ ┃\n" \
+                 f"┣ {reels[0][1].value} {reels[1][1].value} ⬛ ┫\n" \
+                 f"┃ {reels[0][2].value} {reels[1][2].value} ⬛ ┃"
+        third = f"┃ {reels[0][0].value} {reels[1][0].value} {reels[2][0].value} ┃\n" \
+                f"┣ {reels[0][1].value} {reels[1][1].value} {reels[2][1].value} ┫\n" \
+                f"┃ {reels[0][2].value} {reels[1][2].value} {reels[2][2].value} ┃"
         
         def add_fields():
             nonlocal bid, credits_name, new_balance, phrase
