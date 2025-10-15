@@ -18,7 +18,9 @@ old_payday: Optional[commands.Command] = None
 old_payouts: Optional[commands.Command] = None
 
 MAX_CONCURRENT_SLOTS = 3
-
+JACKPOT_AMOUNT = 100
+TRIPLE = 3
+DOUBLE = 2
 
 class SlotMachine(Enum):
     cherries = "🍒"
@@ -29,18 +31,18 @@ class SlotMachine(Enum):
     seven = "7️⃣"
     watermelon = "🍉"
     heart = "🩷"
-    strawberry = "🍓"
+    coin = "🪙"
     grapes = "🍇"
 
 PAYOUTS = {
-    (SlotMachine.seven, SlotMachine.seven, SlotMachine.seven): 100,
+    (SlotMachine.seven, SlotMachine.seven, SlotMachine.seven): JACKPOT_AMOUNT,
     (SlotMachine.clover, SlotMachine.clover, SlotMachine.clover): 25,
     (SlotMachine.cherries, SlotMachine.cherries, SlotMachine.cherries): 20,
     (SlotMachine.seven, SlotMachine.seven): 5,
     (SlotMachine.clover, SlotMachine.clover): 4,
     (SlotMachine.cherries, SlotMachine.cherries): 3,
-    "3 symbols": 10,
-    "2 symbols": 2,
+    TRIPLE: 10,
+    DOUBLE: 2,
 }
 
 
@@ -231,18 +233,20 @@ class EconomyTweaks(commands.Cog):
             new_reel = deque(default_reel, maxlen=3)
             reels.append(new_reel)
 
-        multiplier = PAYOUTS.get((reels[0][1], reels[1][1], reels[2][1]),  # AAA
-                        PAYOUTS.get((reels[0][1], reels[1][1]),            # AAx
-                        PAYOUTS.get((reels[1][1], reels[2][1]),            # xAA
-                        PAYOUTS.get((reels[0][1], reels[2][1])))))         # AxA
+        multiplier = PAYOUTS.get((reels[0][1], reels[1][1], reels[2][1]),
+                        PAYOUTS.get((reels[0][1], reels[1][1]),
+                        PAYOUTS.get((reels[1][1], reels[2][1]))))
 
         if not multiplier:
             has_three = reels[0][1] == reels[1][1] == reels[2][1]
-            has_two = reels[0][1] == reels[1][1] or reels[1][1] == reels[2][1] or reels[0][1] == reels[2][1]
+            has_two = reels[0][1] == reels[1][1] or reels[1][1] == reels[2][1]
             if has_three:
-                multiplier = PAYOUTS["3 symbols"]
+                multiplier = PAYOUTS[TRIPLE]
             elif has_two:
-                multiplier = PAYOUTS["2 symbols"]
+                multiplier = PAYOUTS[DOUBLE]
+        
+        if not multiplier and SlotMachine.coin in (reels[0][1], reels[1][1], reels[2][1]):
+            multiplier = 1
 
         if multiplier:
             old_balance = await bank.get_balance(author)
@@ -253,14 +257,23 @@ class EconomyTweaks(commands.Cog):
                 await bank.set_balance(author, exc.max_balance)
                 await ctx.send(f"{author.mention} You've reached the maximum amount of {credits_name}! You currently have {humanize_number(exc.max_balance)} {credits_name}")
                 return
-            phrase = f"**JACKPOT! ×{multiplier}**" if multiplier >= 100 else f"**×{multiplier}**"
+            if multiplier == 1:
+                phrase = "Free spin"
+            else:
+                phrase = f"**×{multiplier}**"
         else:
             old_balance = await bank.get_balance(author)
             await bank.withdraw_credits(author, bid)
             new_balance = old_balance - bid
             phrase = "*None*"
 
-        embed = discord.Embed(title="Slot Machine", color=await self.bot.get_embed_color(ctx.channel))
+        embed = discord.Embed(color=await self.bot.get_embed_color(ctx.channel))
+
+        if multiplier and  multiplier >= JACKPOT_AMOUNT:
+            embed.title = "🎆 JACKPOT!!! 🎆"
+        else:
+            embed.title = "Slot Machine"
+
         first = f"┃ {reels[0][0].value} ⬛ ⬛ ┃\n" \
                 f"┣ {reels[0][1].value} ⬛ ⬛ ┫\n" \
                 f"┃ {reels[0][2].value} ⬛ ⬛ ┃"
@@ -270,6 +283,7 @@ class EconomyTweaks(commands.Cog):
         third = f"┃ {reels[0][0].value} {reels[1][0].value} {reels[2][0].value} ┃\n" \
                 f"┣ {reels[0][1].value} {reels[1][1].value} {reels[2][1].value} ┫\n" \
                 f"┃ {reels[0][2].value} {reels[1][2].value} {reels[2][2].value} ┃"
+        
         def add_fields():
             nonlocal bid, credits_name, new_balance, phrase
             embed.add_field(name="Bid", value=f"{humanize_number(bid)} {credits_name}")
