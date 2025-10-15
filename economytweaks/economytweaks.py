@@ -18,7 +18,9 @@ old_payday: Optional[commands.Command] = None
 old_payouts: Optional[commands.Command] = None
 
 MAX_CONCURRENT_SLOTS = 3
-
+JACKPOT_AMOUNT = 100
+TRIPLE = 3
+DOUBLE = 2
 
 class SlotMachine(Enum):
     cherries = "🍒"
@@ -29,41 +31,18 @@ class SlotMachine(Enum):
     seven = "7️⃣"
     watermelon = "🍉"
     heart = "🩷"
+    coin = "🪙"
     grapes = "🍇"
 
 PAYOUTS = {
-    (SlotMachine.seven, SlotMachine.seven, SlotMachine.seven): {
-        "payout": lambda x: x * 50,
-        "phrase": "JACKPOT! ×50",
-    },
-    (SlotMachine.clover, SlotMachine.clover, SlotMachine.clover): {
-        "payout": lambda x: x * 25,
-        "phrase": "×25",
-    },
-    (SlotMachine.cherries, SlotMachine.cherries, SlotMachine.cherries): {
-        "payout": lambda x: x * 20,
-        "phrase": "×20",
-    },
-    (SlotMachine.seven, SlotMachine.seven): {
-        "payout": lambda x: x * 5,
-        "phrase": "×5",
-    },
-    (SlotMachine.clover, SlotMachine.clover): {
-        "payout": lambda x: x * 4,
-        "phrase": "×4",
-    },
-    (SlotMachine.cherries, SlotMachine.cherries): {
-        "payout": lambda x: x * 3,
-        "phrase": "×3",
-    },
-    "3 symbols": {
-        "payout": lambda x: x * 10,
-        "phrase": "×10",
-    },
-    "2 symbols": {
-        "payout": lambda x: x * 2,
-        "phrase": "×2",
-    },
+    (SlotMachine.seven, SlotMachine.seven, SlotMachine.seven): JACKPOT_AMOUNT,
+    (SlotMachine.clover, SlotMachine.clover, SlotMachine.clover): 25,
+    (SlotMachine.cherries, SlotMachine.cherries, SlotMachine.cherries): 20,
+    (SlotMachine.seven, SlotMachine.seven): 5,
+    (SlotMachine.clover, SlotMachine.clover): 4,
+    (SlotMachine.cherries, SlotMachine.cherries): 3,
+    TRIPLE: 10,
+    DOUBLE: 2,
 }
 
 
@@ -80,6 +59,7 @@ class EconomyTweaks(commands.Cog):
         default_config = {
             "bonus_amount": 1000,
             "bonus_time": 86400,
+            "coinfreespin": True,
         }
         self.config = Config.get_conf(self, identifier=557574777)
         self.config.register_user(**default_timer)
@@ -137,9 +117,13 @@ class EconomyTweaks(commands.Cog):
             bonus_amount = await self.config.guild(guild).bonus_amount()
 
         if cur_time < next_payday:
-            relative_time = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=next_payday - cur_time), "R")
-            relative_bonus = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=max(0, next_payday_bonus - cur_time)), "R")
-            return await ctx.send(f"{mention}Too soon. Your next payday is {relative_time}. Your next bonus is {relative_bonus}.", ephemeral=True)
+            now = datetime.now(timezone.utc)
+            relative_time = discord.utils.format_dt(now + timedelta(seconds=next_payday - cur_time), "R")
+            relative_bonus = discord.utils.format_dt(now + timedelta(seconds=max(next_payday - cur_time, next_payday_bonus - cur_time)), "R")
+            content = f"{mention}Too soon. Your next payday is {relative_time}."
+            if bonus_amount > 0 and bonus_amount > payday_amount:
+                content += f" Your next bonus is {relative_bonus}."
+            return await ctx.send(content, ephemeral=True)
 
         is_bonus = cur_time >= next_payday_bonus and bonus_amount > 0 and bonus_amount > payday_amount
         reward = bonus_amount if is_bonus else payday_amount
@@ -227,6 +211,7 @@ class EconomyTweaks(commands.Cog):
         
         cur_time = calendar.timegm(ctx.message.created_at.utctimetuple())
         currency_name = await bank.get_currency_name(ctx.guild)
+        is_global = await bank.is_global()
 
         if (cur_time - last_slot) < max(3, slot_time):
             await ctx.send("You're on cooldown, try again in a few seconds.")
@@ -240,70 +225,73 @@ class EconomyTweaks(commands.Cog):
         if not await bank.can_spend(author, bid):
             await ctx.send("You ain't got enough money, friend.")
             return
-        if await bank.is_global():
+        
+        if is_global:
             await economy.config.user(author).last_slot.set(cur_time)
         else:
             await economy.config.member(author).last_slot.set(cur_time)
-
-        credits_name = await bank.get_currency_name(guild)
 
         default_reel = deque(cast(Iterable, SlotMachine))
         reels = []
         for _ in range(3):
             default_reel.rotate(random.randint(-999, 999))  # weeeeee
-            new_reel = deque(default_reel, maxlen=3)  # we need only 3 symbols
-            reels.append(new_reel)  # for each reel
+            new_reel = deque(default_reel, maxlen=3)
+            reels.append(new_reel)
 
-        rows = (
-            (reels[0][0], reels[1][0], reels[2][0]),
-            (reels[0][1], reels[1][1], reels[2][1]),
-            (reels[0][2], reels[1][2], reels[2][2]),
-        )
+        multiplier = PAYOUTS.get((reels[0][1], reels[1][1], reels[2][1]),
+                        PAYOUTS.get((reels[0][1], reels[1][1]),
+                        PAYOUTS.get((reels[1][1], reels[2][1]))))
 
-        payout = PAYOUTS.get(rows[1])
-        if not payout:
-            payout = PAYOUTS.get((rows[1][0], rows[1][1]), PAYOUTS.get((rows[1][1], rows[1][2])))
-        if not payout:
-            has_three = rows[1][0] == rows[1][1] == rows[1][2]
-            has_two = (rows[1][0] == rows[1][1]) or (rows[1][1] == rows[1][2])
+        if not multiplier:
+            has_three = reels[0][1] == reels[1][1] == reels[2][1]
+            has_two = reels[0][1] == reels[1][1] or reels[1][1] == reels[2][1]
             if has_three:
-                payout = PAYOUTS["3 symbols"]
+                multiplier = PAYOUTS[TRIPLE]
             elif has_two:
-                payout = PAYOUTS["2 symbols"]
+                multiplier = PAYOUTS[DOUBLE]
+        
+        coinfreespin = await self.config.coinfreespin() if is_global else await self.config.guild(guild).coinfreespin()
+        if coinfreespin and not multiplier and SlotMachine.coin in (reels[0][1], reels[1][1], reels[2][1]):
+            multiplier = 1
 
-        pay = 0
-        if payout:
-            then = await bank.get_balance(author)
-            pay = payout["payout"](bid)  # type: ignore
-            new_balance = then - bid + pay
-            try:
-                await bank.set_balance(author, new_balance)
-            except errors.BalanceTooHigh as exc:
-                await bank.set_balance(author, exc.max_balance)
-                await ctx.send(f"{author.mention} You've reached the maximum amount of {credits_name}! You currently have {humanize_number(exc.max_balance)} {credits_name}")
-                return
-            phrase = f"**{payout['phrase']}**"
+        if multiplier:
+            if multiplier == 1:
+                phrase = "Free spin"
+                balance = await bank.get_balance(author)
+            else:
+                phrase = f"**×{multiplier}**"
+                old_balance = await bank.get_balance(author)
+                winnings = bid * (multiplier - 1)
+                balance = old_balance + winnings
+                try:
+                    await bank.deposit_credits(author, winnings)
+                except errors.BalanceTooHigh as exc:
+                    await bank.set_balance(author, exc.max_balance)
         else:
-            then = await bank.get_balance(author)
+            old_balance = await bank.get_balance(author)
             await bank.withdraw_credits(author, bid)
-            new_balance = then - bid
-            phrase = "Nothing!"
+            balance = old_balance - bid
+            phrase = "*None*"
 
         embed = discord.Embed(title="Slot Machine", color=await self.bot.get_embed_color(ctx.channel))
-        first = f"┃ {reels[0][0].value}⬛⬛ ┃\n" \
-                f"┣ {reels[0][1].value}⬛⬛ ┫\n" \
-                f"┃ {reels[0][2].value}⬛⬛ ┃"
-        second = f"┃ {reels[0][0].value}{reels[1][0].value}⬛ ┃\n" \
-                 f"┣ {reels[0][1].value}{reels[1][1].value}⬛ ┫\n" \
-                 f"┃ {reels[0][2].value}{reels[1][2].value}⬛ ┃"
-        third = f"┃ {reels[0][0].value}{reels[1][0].value}{reels[2][0].value} ┃\n" \
-                f"┣ {reels[0][1].value}{reels[1][1].value}{reels[2][1].value} ┫\n" \
-                f"┃ {reels[0][2].value}{reels[1][2].value}{reels[2][2].value} ┃"
-        def add_fields():
-            nonlocal bid, credits_name, new_balance, phrase
-            embed.add_field(name="Bid", value=f"{humanize_number(bid)} {credits_name}")
+        embed.add_field(name="Bid", value=f"{humanize_number(bid)} {currency_name}")
+
+        first = f"┃ {reels[0][0].value} ⬛ ⬛ ┃\n" \
+                f"┣ {reels[0][1].value} ⬛ ⬛ ┫\n" \
+                f"┃ {reels[0][2].value} ⬛ ⬛ ┃"
+        second = f"┃ {reels[0][0].value} {reels[1][0].value} ⬛ ┃\n" \
+                 f"┣ {reels[0][1].value} {reels[1][1].value} ⬛ ┫\n" \
+                 f"┃ {reels[0][2].value} {reels[1][2].value} ⬛ ┃"
+        third = f"┃ {reels[0][0].value} {reels[1][0].value} {reels[2][0].value} ┃\n" \
+                f"┣ {reels[0][1].value} {reels[1][1].value} {reels[2][1].value} ┫\n" \
+                f"┃ {reels[0][2].value} {reels[1][2].value} {reels[2][2].value} ┃"
+        
+        def prepare_final_embed():
+            nonlocal currency_name, balance, phrase
             embed.add_field(name="Winnings", value=phrase)
-            embed.add_field(name="Balance", value=f"{humanize_number(new_balance)} {credits_name}")
+            embed.add_field(name="Balance", value=f"{humanize_number(balance)} {currency_name}")
+            if multiplier and multiplier >= JACKPOT_AMOUNT:
+                embed.title = "🎆 JACKPOT!!! 🎆"
 
         if ctx.interaction:
             embed.description = first
@@ -313,7 +301,7 @@ class EconomyTweaks(commands.Cog):
             await ctx.interaction.edit_original_response(embed=embed)
             await asyncio.sleep(1)
             embed.description = third
-            add_fields()
+            prepare_final_embed()
             await ctx.interaction.edit_original_response(embed=embed)
         else:
             embed.description = first
@@ -323,7 +311,7 @@ class EconomyTweaks(commands.Cog):
             await message.edit(embed=embed)
             await asyncio.sleep(1)
             embed.description = third
-            add_fields()
+            prepare_final_embed()
             await message.edit(embed=embed)
 
 
@@ -332,6 +320,23 @@ class EconomyTweaks(commands.Cog):
     async def economytweakset(self, ctx: commands.Context):
         """Settings for the economytweaks cog."""
         pass
+
+    @economytweakset.command(name="coinfreespin")
+    @bank.is_owner_if_bank_global()
+    async def economytweakset_coinfreespin(self, ctx: commands.Context):
+        """
+        Toggles whether a coin in the slot machine will give a free spin.
+        This increases the expected player returns from 68% to 91%, which is similar to real slot machines.
+        """
+        assert ctx.guild
+        is_global = await bank.is_global()
+        config_value = self.config.coinfreespin if is_global else self.config.guild(ctx.guild).coinfreespin
+        value = await config_value()
+        await config_value.set(not value)
+        if not value:
+            await ctx.send(f"Coins will give free spins. Expected player returns: 91%")
+        else:
+            await ctx.send(f"Coins won't give free spins. Expected player returns: 68%")
 
     @economytweakset.command(name="bonusamount")
     @bank.is_owner_if_bank_global()
