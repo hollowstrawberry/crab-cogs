@@ -336,7 +336,7 @@ class EconomyTweaks(commands.Cog):
         """Show the user's account balance."""
         assert isinstance(interaction.user, discord.Member)
         user = user or interaction.user
-        bal = await bank.get_balance(user)
+        bal = humanize_number(await bank.get_balance(user))
         currency = await bank.get_currency_name(interaction.guild)
         content = f"Your balance is {bal} {currency}." if user == interaction.user else f"{user.mention}'s balance is {bal} {currency}."
         await interaction.response.send_message(content, ephemeral=True)
