@@ -38,6 +38,16 @@ A simple and unobtrusive translation cog with support for context menus and auto
 
 ![demonstration](https://i.imgur.com/zlc5BVJ.gif)
 
+### 💵 EconomyTweaks
+
+* Adds slash commands for economy commands.
+* Adds a configurable bonus for the `[p]payday` command, which activates at a greater time interval.
+* Improves the `[p]slot` command by quickly editing the message, adding suspense as the slots spin.
+* Adds a toggleable option for a free spin, which brings the expected player returns from 68% to 91%, which is similar to real slot machines. This should let your users play longer and gain more satisfaction.
+* Makes the jackpot x100 instead of x50.
+
+![demonstration](https://i.imgur.com/JatNXVy.gif)
+
 # Game cogs
 
 Interactive games for your users, with economy support. Only one game of each type may be active per channel, but it works in threads, and inactive games may be ended by any user. Chess and Checkers games persist after a bot restart.
@@ -61,18 +71,6 @@ Play Checkers/Draughts against your friends or the bot itself. Configure payouts
 ![demonstration](https://i.imgur.com/bhhBB5d.png)
 
 # Other cogs
-
-### 💵 EconomyTweaks
-
-Makes changes to the economy cog.
-
-* Improves the `[p]slot` command by quickly editing the message, adding suspense as the slots spin.
-* If you get a coin symbol in the slot machine, you get a free spin, which brings the expected player returns from 68% to 91%, which is similar to real slot machines. You can turn this off if you like.
-* Makes the jackpot x100 instead of x50
-* Adds a configurable bonus for the `[p]payday` command, which activates at a greater time interval.
-* Adds slash commands for `/slots`, `/payday` and `/leaderboard`
-
-![demonstration](https://i.imgur.com/JatNXVy.gif)
 
 ### 🎤 VoiceLog
 
