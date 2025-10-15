@@ -315,6 +315,16 @@ class EconomyTweaks(commands.Cog):
             await message.edit(embed=embed)
 
 
+    @app_commands.command(name="leaderboard")
+    @app_commands.describe(top="How many positions on the leaderboard to show. 10 by default.",
+                           show_global="Whether to include results from all servers. False by default.")
+    async def leaderboard_app(self, interaction: discord.Interaction, top: int = 10, show_global: bool = False):
+        """Views the economy leaderboard."""
+        ctx = await commands.Context.from_interaction(interaction)
+        if not (economy := await self.get_economy_cog(ctx)):
+            return
+        await economy.leaderboard(ctx, top=top, show_global=show_global)
+
     @commands.group(name="economytweakset", aliases=["economytweaksset"])  # type: ignore
     @commands.admin_or_permissions(manage_guild=True)
     async def economytweakset(self, ctx: commands.Context):
