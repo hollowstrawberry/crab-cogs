@@ -64,7 +64,12 @@ Play Checkers/Draughts against your friends or the bot itself. Configure payouts
 
 ### 💵 EconomyTweaks
 
-Improves the `[p]slot` command by quickly editing the message, adding suspense as the slots spin. Also adds a configurable bonus for the `[p]payday` command, which activates at a greater time interval. Also adds `/slots` and `/payday` slash commands.
+Makes changes to the economy cog.
+
+* Improves the `[p]slot` command by quickly editing the message, adding suspense as the slots spin.
+* If you get a coin symbol in the slot machine, you get a free spin, which brings the expected player returns from 68% to 91%, which is similar to real slot machines. You can turn this off if you like.
+* Adds a configurable bonus for the `[p]payday` command, which activates at a greater time interval.
+* Adds slash commands for `/slots`, `/payday` and `/leaderboard`
 
 ![demonstration](https://i.imgur.com/JatNXVy.gif)
 
