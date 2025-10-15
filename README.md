@@ -68,6 +68,7 @@ Makes changes to the economy cog.
 
 * Improves the `[p]slot` command by quickly editing the message, adding suspense as the slots spin.
 * If you get a coin symbol in the slot machine, you get a free spin, which brings the expected player returns from 68% to 91%, which is similar to real slot machines. You can turn this off if you like.
+* Makes the jackpot x100 instead of x50
 * Adds a configurable bonus for the `[p]payday` command, which activates at a greater time interval.
 * Adds slash commands for `/slots`, `/payday` and `/leaderboard`
 
