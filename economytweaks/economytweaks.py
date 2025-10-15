@@ -117,9 +117,13 @@ class EconomyTweaks(commands.Cog):
             bonus_amount = await self.config.guild(guild).bonus_amount()
 
         if cur_time < next_payday:
-            relative_time = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=next_payday - cur_time), "R")
-            relative_bonus = discord.utils.format_dt(datetime.now(timezone.utc) + timedelta(seconds=max(0, next_payday_bonus - cur_time)), "R")
-            return await ctx.send(f"{mention}Too soon. Your next payday is {relative_time}. Your next bonus is {relative_bonus}.", ephemeral=True)
+            now = datetime.now(timezone.utc)
+            relative_time = discord.utils.format_dt(now + timedelta(seconds=next_payday - cur_time), "R")
+            relative_bonus = discord.utils.format_dt(now + timedelta(seconds=max(next_payday - cur_time, next_payday_bonus - cur_time)), "R")
+            content = f"{mention}Too soon. Your next payday is {relative_time}."
+            if bonus_amount > 0 and bonus_amount > payday_amount:
+                content += f" Your next bonus is {relative_bonus}."
+            return await ctx.send(content, ephemeral=True)
 
         is_bonus = cur_time >= next_payday_bonus and bonus_amount > 0 and bonus_amount > payday_amount
         reward = bonus_amount if is_bonus else payday_amount
@@ -253,11 +257,12 @@ class EconomyTweaks(commands.Cog):
         if multiplier:
             if multiplier == 1:
                 phrase = "Free spin"
+                balance = await bank.get_balance(author)
             else:
                 phrase = f"**×{multiplier}**"
                 old_balance = await bank.get_balance(author)
                 winnings = bid * (multiplier - 1)
-                new_balance = old_balance + winnings
+                balance = old_balance + winnings
                 try:
                     await bank.deposit_credits(author, winnings)
                 except errors.BalanceTooHigh as exc:
@@ -265,7 +270,7 @@ class EconomyTweaks(commands.Cog):
         else:
             old_balance = await bank.get_balance(author)
             await bank.withdraw_credits(author, bid)
-            new_balance = old_balance - bid
+            balance = old_balance - bid
             phrase = "*None*"
 
         embed = discord.Embed(title="Slot Machine", color=await self.bot.get_embed_color(ctx.channel))
@@ -282,9 +287,9 @@ class EconomyTweaks(commands.Cog):
                 f"┃ {reels[0][2].value} {reels[1][2].value} {reels[2][2].value} ┃"
         
         def prepare_final_embed():
-            nonlocal currency_name, new_balance, phrase
+            nonlocal currency_name, balance, phrase
             embed.add_field(name="Winnings", value=phrase)
-            embed.add_field(name="Balance", value=f"{humanize_number(new_balance)} {currency_name}")
+            embed.add_field(name="Balance", value=f"{humanize_number(balance)} {currency_name}")
             if multiplier and multiplier >= JACKPOT_AMOUNT:
                 embed.title = "🎆 JACKPOT!!! 🎆"
 
