@@ -267,12 +267,7 @@ class EconomyTweaks(commands.Cog):
             new_balance = old_balance - bid
             phrase = "*None*"
 
-        embed = discord.Embed(color=await self.bot.get_embed_color(ctx.channel))
-
-        if multiplier and  multiplier >= JACKPOT_AMOUNT:
-            embed.title = "🎆 JACKPOT!!! 🎆"
-        else:
-            embed.title = "Slot Machine"
+        embed = discord.Embed(title="Slot Machine", color=await self.bot.get_embed_color(ctx.channel))
 
         first = f"┃ {reels[0][0].value} ⬛ ⬛ ┃\n" \
                 f"┣ {reels[0][1].value} ⬛ ⬛ ┫\n" \
