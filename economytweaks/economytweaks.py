@@ -259,8 +259,6 @@ class EconomyTweaks(commands.Cog):
                 return
             if multiplier == 1:
                 phrase = "Free spin"
-            elif multiplier >= JACKPOT_AMOUNT:
-                phrase = f"🎆 **JACKPOT!!! ×{multiplier}**"
             else:
                 phrase = f"**×{multiplier}**"
         else:
@@ -291,6 +289,8 @@ class EconomyTweaks(commands.Cog):
             embed.add_field(name="Bid", value=f"{humanize_number(bid)} {credits_name}")
             embed.add_field(name="Winnings", value=phrase)
             embed.add_field(name="Balance", value=f"{humanize_number(new_balance)} {credits_name}")
+            if multiplier and multiplier >= JACKPOT_AMOUNT:
+                embed.title = "🎆 JACKPOT!!! 🎆"
 
         if ctx.interaction:
             embed.description = first
