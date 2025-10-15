@@ -259,6 +259,8 @@ class EconomyTweaks(commands.Cog):
                 return
             if multiplier == 1:
                 phrase = "Free spin"
+            elif multiplier >= JACKPOT_AMOUNT:
+                phrase = f"🎆 **JACKPOT!!! ×{multiplier}**"
             else:
                 phrase = f"**×{multiplier}**"
         else:
