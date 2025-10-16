@@ -113,7 +113,7 @@ class SimpleCheckers(BaseCheckersCog):
                 content = f"Someone else is playing Checkers in this channel, here: {old_message.jump_url}, but {minutes_passed} minutes have passed since their last interaction. Do you want to start a new game?"
                 embed = discord.Embed(title="Confirmation", description=content, color=await self.bot.get_embed_color(ctx.channel))
                 view = ReplaceView(self, callback, author)
-                message = await reply(embed=embed, view=view, ephemeral=True)
+                message = await reply(embed=embed, view=view)
                 view.message = message if isinstance(ctx, commands.Context) else await ctx.original_response() # type: ignore
                 return
             
