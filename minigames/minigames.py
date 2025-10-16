@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Type, Union
 from datetime import datetime
 from redbot.core import commands, app_commands, bank, Config
 from redbot.core.bot import Red
+from redbot.core.utils.chat_formatting import humanize_timedelta
 
 from minigames.base import Minigame, BaseMinigameCog
 from minigames.connect4 import ConnectFourGame
@@ -102,8 +103,8 @@ class Minigames(BaseMinigameCog):
             old_message = await ctx.channel.fetch_message(old_game.message.id) if old_game.message else None # re-fetch
             # Games only exist as long as their message is alive
             if old_message:
-                minutes_passed = int((datetime.now() - old_game.last_interacted).total_seconds() // 60)
-                if minutes_passed >= TIME_LIMIT:
+                seconds_passed = int((datetime.now() - old_game.last_interacted).total_seconds())
+                if seconds_passed // 60 >= TIME_LIMIT:
                     async def callback():
                         nonlocal ctx, players, old_game, against_bot
                         assert isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel) 
@@ -121,10 +122,11 @@ class Minigames(BaseMinigameCog):
                             except discord.NotFound:
                                 pass
 
-                    content = f"Someone else is playing a game in this channel, here: {old_message.jump_url}, but {minutes_passed} minutes have passed since their last interaction. Do you want to start a new game?"
+                    content = f"Someone else is playing a game in this channel, here: {old_message.jump_url}, " \
+                              f"but {humanize_timedelta(seconds=seconds_passed)} have passed since their last interaction. Do you want to start a new game?"
                     embed = discord.Embed(title="Confirmation", description=content, color=await self.bot.get_embed_color(ctx.channel))
                     view = ReplaceView(self, callback, author)
-                    message = await reply(embed=embed, view=view, ephemeral=True)
+                    message = await reply(embed=embed, view=view)
                     view.message = message if isinstance(ctx, commands.Context) else await ctx.original_response() # type: ignore
                     return
                 

@@ -8,6 +8,7 @@ from datetime import datetime
 from redbot.core import commands, app_commands, bank
 from redbot.core.bot import Red
 from redbot.core.data_manager import bundled_data_path
+from redbot.core.utils.chat_formatting import humanize_timedelta
 
 from simplechess.base import BaseChessCog
 from simplechess.chessgame import ChessGame
@@ -105,8 +106,8 @@ class SimpleChess(BaseChessCog):
                 old_message = old_game.message
                 assert old_message
 
-            minutes_passed = int((datetime.now() - old_game.last_interacted).total_seconds() // 60)
-            if minutes_passed >= TIME_LIMIT:
+            seconds_passed = int((datetime.now() - old_game.last_interacted).total_seconds())
+            if seconds_passed // 60 >= TIME_LIMIT:
                 async def callback():
                     nonlocal ctx, players, author, old_game, old_message, opponent
                     assert opponent and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
@@ -118,10 +119,11 @@ class SimpleChess(BaseChessCog):
                     self.games[ctx.channel.id] = game
                     await game.update_message()
 
-                content = f"Someone else is playing Chess in this channel, here: {old_message.jump_url}, but {minutes_passed} minutes have passed since their last interaction. Do you want to start a new game?"
+                content = f"Someone else is playing Chess in this channel, here: {old_message.jump_url}, " \
+                          f"but {humanize_timedelta(seconds=seconds_passed)} have passed since their last interaction. Do you want to start a new game?"
                 embed = discord.Embed(title="Confirmation", description=content, color=await self.bot.get_embed_color(ctx.channel))
                 view = ReplaceView(self, callback, author)
-                message = await reply(embed=embed, view=view, ephemeral=True)
+                message = await reply(embed=embed, view=view)
                 view.message = message if isinstance(ctx, commands.Context) else await ctx.original_response() # type: ignore
                 return
             

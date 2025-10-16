@@ -15,7 +15,11 @@ class ReplaceView(discord.ui.View):
         assert interaction.message
         if interaction.user != self.author:
             return await interaction.response.send_message("This confirmation message is not directed at you!", ephemeral=True)
-        await interaction.message.delete()
+        self.stop()
+        try:
+            await interaction.message.delete()
+        except discord.NotFound:
+            pass
         await self.callback()
 
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
