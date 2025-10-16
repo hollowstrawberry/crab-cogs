@@ -47,7 +47,7 @@ PAYOUTS = {
 
 
 class EconomyTweaks(commands.Cog):
-    """Improves the slot command, adds a configurable bonus for the payday command, and adds slash commands for those two."""
+    """Adds slash commands for the economy cog, improves the slot command, and adds a configurable bonus for the payday command."""
 
     def __init__(self, bot: Red):
         super().__init__()
