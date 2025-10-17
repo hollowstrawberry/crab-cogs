@@ -112,8 +112,8 @@ class Blackjack(discord.ui.View):
         hand_str = " ".join(EMOJI[card.value] for card in self.hand)
 
         embed = discord.Embed(color=self.embed_color)
-        embed.add_field(name=f"Dealer ({get_hand_value(self.dealer)})", value=dealer_str, inline=False)
-        embed.add_field(name=f"Hand ({'?' if self.facedown else get_hand_value(self.hand)})", value=hand_str, inline=False)
+        embed.add_field(name=f"Dealer ({'?' if self.facedown else get_hand_value(self.dealer)})", value=dealer_str, inline=False)
+        embed.add_field(name=f"Hand ({get_hand_value(self.hand)})", value=hand_str, inline=False)
         embed.add_field(name="Bid", value=f"{self.bid} {currency_name}")
         if not self.facedown and self.is_over():
             embed.add_field(name="Winnings", value=f"**×{self.winnings_multiplier()}**" if self.is_win() or self.is_tie() else "*None*")
