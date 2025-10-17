@@ -6,9 +6,6 @@ from redbot.core import bank, errors
 
 from casino.card import Card, CardValue, make_deck
 
-WIN_COLOR = 0x78B159
-LOSS_COLOR = 0xDD2E44
-TIE_COLOR = 0x3B88C3
 TWENTYONE = 21
 DEALER_STAND = 17
 
@@ -44,11 +41,12 @@ def get_hand_value(hand: List[Card]) -> int:
 
 
 class Blackjack(discord.ui.View):
-    def __init__(self, player: discord.Member, channel: discord.TextChannel, bid: int):
+    def __init__(self, player: discord.Member, channel: discord.TextChannel, bid: int, embed_color: discord.Color):
         super().__init__(timeout=None)
         self.player = player
         self.channel = channel
         self.bid = bid
+        self.embed_color = embed_color
         self.dealer: List[Card] = []
         self.hand: List[Card] = []
         self.deck = make_deck()
@@ -113,25 +111,21 @@ class Blackjack(discord.ui.View):
         dealer_str = " ".join("⬇️" if self.facedown and i == 1 else EMOJI[card.value] for i, card in enumerate(self.dealer))
         hand_str = " ".join(EMOJI[card.value] for card in self.hand)
 
-        embed = discord.Embed()
-        embed.add_field(name="Dealer", value=dealer_str, inline=False)
-        embed.add_field(name="Hand", value=hand_str, inline=False)
+        embed = discord.Embed(color=self.embed_color)
+        embed.add_field(name=f"Dealer ({get_hand_value(self.dealer)})", value=dealer_str, inline=False)
+        embed.add_field(name=f"Hand ({get_hand_value(self.hand)})", value=hand_str, inline=False)
         embed.add_field(name="Bid", value=f"{self.bid} {currency_name}")
         if not self.facedown and self.is_over():
             embed.add_field(name="Winnings", value=f"**×{self.winnings_multiplier()}**" if self.is_win() or self.is_tie() else "*None*")
             embed.add_field(name="Balance", value=f"{await bank.get_balance(self.player)} {currency_name}")
             if self.is_win():
                 embed.title = "Blackjack (Win)"
-                embed.color = WIN_COLOR
             elif self.is_tie():
                 embed.title = "Blackjack (Tie)"
-                embed.color = TIE_COLOR
             else:
                 embed.title = "Blackjack (Loss)"
-                embed.color = LOSS_COLOR
         else:
             embed.title = "Blackjack"
-            embed.color = TIE_COLOR
         return embed
     
     async def dealer_turn(self, interaction: discord.Interaction):

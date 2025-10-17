@@ -43,7 +43,7 @@ class Casino(BaseCasinoCog):
         
         await bank.withdraw_credits(ctx.author, bid)
         try:
-            blackjack = Blackjack(ctx.author, ctx.channel, bid)
+            blackjack = Blackjack(ctx.author, ctx.channel, bid, await self.bot.get_embed_color(ctx.channel))
             await blackjack.check_payout()
             await ctx.reply(embed=await blackjack.get_embed(), view=discord.ui.View() if blackjack.is_over() else blackjack)
         except Exception:
