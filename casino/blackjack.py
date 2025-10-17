@@ -3,6 +3,7 @@ import random
 import discord
 from typing import List
 from redbot.core import bank, errors
+from redbot.core.utils.chat_formatting import humanize_number
 
 from casino.base import BaseCasinoCog
 from casino.card import Card, CardValue, make_deck
@@ -107,7 +108,7 @@ class Blackjack(discord.ui.View):
         is_player_natural = len(self.hand) == 2 and player_total == TWENTYONE
         is_dealer_natural = len(self.dealer) == 2 and get_hand_value(self.dealer) == TWENTYONE
         if is_player_natural and not is_dealer_natural:
-            return 3 * self.bid
+            return self.bid * 5 // 2
         else:
             return 2 * self.bid
 
@@ -121,8 +122,9 @@ class Blackjack(discord.ui.View):
         embed.add_field(name=f"Hand ({get_hand_value(self.hand)})", value=hand_str, inline=False)
         embed.add_field(name="Bid", value=f"{self.bid} {currency_name}")
         if not self.facedown and self.is_over():
-            embed.add_field(name="Winnings", value=f"**×{self.winnings_multiplier()}**" if self.is_win() or self.is_tie() else "*None*")
-            embed.add_field(name="Balance", value=f"{await bank.get_balance(self.player)} {currency_name}")
+            payout = self.payout_amount()
+            embed.add_field(name="Payout", value=f"{humanize_number(payout)} {currency_name}" if self.is_win() or self.is_tie() else "*None*")
+            embed.add_field(name="Balance", value=f"{humanize_number(await bank.get_balance(self.player))} {currency_name}")
             if self.is_win():
                 embed.title = "🎉 Blackjack"
             elif self.is_tie():
