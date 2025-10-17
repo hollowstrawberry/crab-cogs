@@ -152,7 +152,7 @@ class Blackjack(discord.ui.View):
             await interaction.edit_original_response(embed=await self.get_embed(), view=view)
 
     async def check_payout(self):
-        if not self.payout_done and self.is_over() and self.is_win() or self.is_tie():
+        if not self.payout_done and self.is_over() and (self.is_win() or self.is_tie()):
             self.payout_done = True
             try:
                 await bank.deposit_credits(self.player, self.payout_amount())
