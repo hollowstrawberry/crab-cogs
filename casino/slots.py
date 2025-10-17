@@ -3,12 +3,13 @@ import random
 import asyncio
 import discord
 from enum import Enum
-from typing import Iterable, cast
+from typing import Iterable, Union, cast
 from collections import deque
 from redbot.core import commands, bank, errors
 from redbot.core.utils.chat_formatting import humanize_number
 
 from casino.base import BaseCasinoCog
+from casino.views.again_view import AgainView
 
 JACKPOT_AMOUNT = 100
 TRIPLE = 3
@@ -37,10 +38,9 @@ PAYOUTS = {
     DOUBLE: 2,
 }
 
-async def slots(cog: BaseCasinoCog, ctx: commands.Context, bid: int):
-    assert ctx.guild and isinstance(ctx.author, discord.Member)
-    guild = ctx.guild
-    author = ctx.author
+async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Context], bid: int):
+    author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
+    assert ctx.guild and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
     currency_name = await bank.get_currency_name(ctx.guild)
 
     default_reel = deque(cast(Iterable, SlotMachine))
@@ -62,7 +62,7 @@ async def slots(cog: BaseCasinoCog, ctx: commands.Context, bid: int):
         elif has_two:
             multiplier = PAYOUTS[DOUBLE]
     
-    coinfreespin = await cog.config.coinfreespin() if await bank.is_global() else await cog.config.guild(guild).coinfreespin()
+    coinfreespin = await cog.config.coinfreespin() if await bank.is_global() else await cog.config.guild(ctx.guild).coinfreespin()
     if coinfreespin and not multiplier and SlotMachine.coin in (reels[0][1], reels[1][1], reels[2][1]):
         multiplier = 1
 
@@ -105,23 +105,26 @@ async def slots(cog: BaseCasinoCog, ctx: commands.Context, bid: int):
         if multiplier and multiplier >= JACKPOT_AMOUNT:
             embed.title = "🎆 JACKPOT!!! 🎆"
 
-    if ctx.interaction:
+    interaction = ctx if isinstance(ctx, discord.Interaction) else ctx.interaction
+    if interaction:
         embed.description = first
-        await ctx.interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed)
         await asyncio.sleep(1)
         embed.description = second
-        await ctx.interaction.edit_original_response(embed=embed)
+        await interaction.edit_original_response(embed=embed)
         await asyncio.sleep(1)
         embed.description = third
         prepare_final_embed()
-        await ctx.interaction.edit_original_response(embed=embed)
+        view = AgainView(cog.slot, bid, await interaction.original_response())
+        await interaction.edit_original_response(embed=embed, view=view)
     else:
         embed.description = first
-        message = await ctx.reply(embed=embed, allowed_mentions=discord.AllowedMentions.none())
+        message = await ctx.reply(embed=embed, allowed_mentions=discord.AllowedMentions.none())  # type: ignore
         await asyncio.sleep(1)
         embed.description = second
         await message.edit(embed=embed)
         await asyncio.sleep(1)
         embed.description = third
         prepare_final_embed()
-        await message.edit(embed=embed)
+        view = AgainView(cog.slot, bid, message)
+        await message.edit(embed=embed, view=view)

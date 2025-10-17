@@ -1,3 +1,6 @@
+import discord
+from abc import abstractmethod
+from typing import Union
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 
@@ -14,3 +17,9 @@ class BaseCasinoCog(commands.Cog):
         }
         self.config.register_guild(**default_config)
         self.config.register_global(**default_config)
+
+    @abstractmethod
+    async def slot(self, ctx: Union[discord.Interaction, commands.Context], bid: int):
+        pass
+
+    
