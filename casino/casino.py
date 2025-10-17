@@ -32,7 +32,7 @@ class Casino(BaseCasinoCog):
         assert ctx.guild and isinstance(ctx.author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
 
         minimum_bid = await self.config.bjmin() if await bank.is_global() else await self.config.guild(ctx.guild).bjmin()
-        maximum_bid = await self.config.bjmin() if await bank.is_global() else await self.config.guild(ctx.guild).bjmin()
+        maximum_bid = await self.config.bjmax() if await bank.is_global() else await self.config.guild(ctx.guild).bjmax()
         currency_name = await bank.get_currency_name(ctx.guild)
         if bid < 1 or bid < minimum_bid:
             return await ctx.reply(f"Your bid must be at least {minimum_bid} {currency_name}", ephemeral=True)
