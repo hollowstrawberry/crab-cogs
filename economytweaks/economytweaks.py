@@ -217,10 +217,10 @@ class EconomyTweaks(commands.Cog):
             await ctx.send("You're on cooldown, try again in a few seconds.")
             return
         if bid < min_bid:
-            await ctx.send(f"Your bid must be at least {min_bid} {currency_name}")
+            await ctx.send(f"Your bid must be at least {humanize_number(min_bid)} {currency_name}")
             return
         if bid > max_bid:
-            await ctx.send(f"Your bid cannot be greater than {max_bid} {currency_name}")
+            await ctx.send(f"Your bid cannot be greater than {humanize_number(max_bid)} {currency_name}")
             return
         if not await bank.can_spend(author, bid):
             await ctx.send("You ain't got enough money, friend.")
