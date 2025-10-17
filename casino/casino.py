@@ -67,8 +67,7 @@ class Casino(BaseCasinoCog):
         if not await bank.can_spend(author, bid):
             return await reply("You ain't got enough money, friend.", ephemeral=True)
         
-        balance = await bank.withdraw_credits(author, bid)
-        log.info(f"Withdrew credits, {balance=}")
+        await bank.withdraw_credits(author, bid)
         blackjack = Blackjack(self, author, ctx.channel, bid, await self.bot.get_embed_color(ctx.channel))
         await blackjack.check_payout()
         view = AgainView(self.blackjack, bid, None, currency_name) if blackjack.is_over() else blackjack
@@ -146,7 +145,7 @@ class Casino(BaseCasinoCog):
     @commands.group(name="casinoset", aliases=["setcasino"])  # type: ignore
     @commands.admin_or_permissions(manage_guild=True)
     @bank.is_owner_if_bank_global()
-    async def casinoset(self, ctx: commands.Context):
+    async def casinoset(self, _: commands.Context):
         """Settings for the Casino cog."""
         pass
 

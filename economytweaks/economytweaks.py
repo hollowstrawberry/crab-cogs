@@ -165,7 +165,7 @@ class EconomyTweaks(commands.Cog):
 
     @commands.group(name="economytweakset", aliases=["economytweaksset"])  # type: ignore
     @commands.admin_or_permissions(manage_guild=True)
-    async def economytweakset(self, ctx: commands.Context):
+    async def economytweakset(self, _: commands.Context):
         """Settings for the economytweaks cog."""
         pass
 

@@ -1,5 +1,4 @@
 import random
-import logging
 import asyncio
 import discord
 from typing import List
@@ -10,7 +9,6 @@ from casino.base import BaseCasinoCog
 from casino.card import Card, CardValue, make_deck
 from casino.views.again_view import AgainView
 
-log = logging.getLogger("red.crab-cogs.casino")
 
 TWENTYONE = 21
 DEALER_STAND = 17
@@ -158,8 +156,7 @@ class Blackjack(discord.ui.View):
         if not self.payout_done and self.is_over() and (self.is_win() or self.is_tie()):
             self.payout_done = True
             try:
-                balance = await bank.deposit_credits(self.player, self.payout_amount())
-                log.info(f"Deposited credits, {balance=}")
+                await bank.deposit_credits(self.player, self.payout_amount())
             except errors.BalanceTooHigh:
                 await bank.deposit_credits(self.player, await bank.get_max_balance(self.channel.guild))
 
