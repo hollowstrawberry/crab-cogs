@@ -69,7 +69,7 @@ class Casino(BaseCasinoCog):
         
         await bank.withdraw_credits(author, bid)
         try:
-            blackjack = Blackjack(author, ctx.channel, bid, await self.bot.get_embed_color(ctx.channel))
+            blackjack = Blackjack(self, author, ctx.channel, bid, await self.bot.get_embed_color(ctx.channel))
             await blackjack.check_payout()
             view = AgainView(self.blackjack, bid, None) if blackjack.is_over() else blackjack
             message = await reply(embed=await blackjack.get_embed(), view=view)
