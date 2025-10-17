@@ -15,7 +15,7 @@ from casino.blackjack import Blackjack
 log = logging.getLogger("red.crab-cogs.casino")
 
 old_slot: Optional[commands.Command] = None
-old_payout: Optional[commands.Command] = None
+old_payouts: Optional[commands.Command] = None
 
 MAX_CONCURRENT_SLOTS = 3
 
@@ -27,13 +27,13 @@ class Casino(BaseCasinoCog):
         super().__init__(bot)
 
     def cog_unload(self):
-        global old_slot, old_payout
+        global old_slot, old_payouts
         if old_slot:
             self.bot.remove_command(old_slot.name)
             self.bot.add_command(old_slot)
-        if old_payout:
-            self.bot.remove_command(old_payout.name)
-            self.bot.add_command(old_payout)
+        if old_payouts:
+            self.bot.remove_command(old_payouts.name)
+            self.bot.add_command(old_payouts)
 
     async def get_economy_cog(self, ctx: commands.Context) -> Optional[Economy]:
         cog: Optional[Economy] = self.bot.get_cog("Economy")  # type: ignore
@@ -188,21 +188,21 @@ class Casino(BaseCasinoCog):
 
 
 async def setup(bot: Red):
-    global old_slot, old_payout
+    global old_slot, old_payouts
     old_slot = bot.get_command("slot")
-    old_payout = bot.get_command("payout")
-    if old_slot and old_payout:
+    old_payouts = bot.get_command("payouts")
+    if old_slot and old_payouts:
         bot.remove_command(old_slot.name)
-        bot.remove_command(old_payout.name)
+        bot.remove_command(old_payouts.name)
         await bot.add_cog(Casino(bot))
     else:
         async def add_cog():
-            global old_slot, old_payout
+            global old_slot, old_payouts
             await asyncio.sleep(1)  # hopefully economy cog has finished loading
             old_slot = bot.get_command("slot")
-            old_payout = bot.get_command("payout")
-            if old_slot and old_payout:
+            old_payouts = bot.get_command("payouts")
+            if old_slot and old_payouts:
                 bot.remove_command(old_slot.name)
-                bot.remove_command(old_payout.name)
+                bot.remove_command(old_payouts.name)
             await bot.add_cog(Casino(bot))
         _ = asyncio.create_task(add_cog())
