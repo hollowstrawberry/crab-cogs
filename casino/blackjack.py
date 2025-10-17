@@ -1,0 +1,167 @@
+import asyncio
+import random
+import discord
+from typing import List
+from redbot.core import bank, errors
+
+from casino.card import Card, CardValue, make_deck
+
+WIN_COLOR = 0x78B159
+LOSS_COLOR = 0xDD2E44
+TIE_COLOR = 0x3B88C3
+TWENTYONE = 21
+DEALER_STAND = 17
+
+EMOJI = {
+    CardValue.ACE: "🇦",
+    CardValue.TWO: "2️⃣",
+    CardValue.THREE: "3️⃣",
+    CardValue.FOUR: "4️⃣",
+    CardValue.FIVE: "5️⃣",
+    CardValue.SIX: "6️⃣",
+    CardValue.SEVEN: "7️⃣",
+    CardValue.EIGHT: "8️⃣",
+    CardValue.NINE: "9️⃣",
+    CardValue.TEN: "🔟",
+    CardValue.JACK: "🔟",
+    CardValue.QUEEN: "🔟",
+    CardValue.KING: "🔟",
+}
+
+def get_hand_value(hand: List[Card]) -> int:
+    total = 0
+    aces = 0
+    for card in hand:
+        if card.value == CardValue.ACE:
+            aces += 1
+            total += 11  # assume Ace is 11 for now
+        else:
+            total += min(10, card.value.value)
+    while total > 21 and aces > 0:
+        total -= 10
+        aces -= 1
+    return total
+
+
+class Blackjack(discord.ui.View):
+    def __init__(self, player: discord.Member, channel: discord.TextChannel, bid: int):
+        super().__init__(timeout=None)
+        self.player = player
+        self.channel = channel
+        self.bid = bid
+        self.dealer: List[Card] = []
+        self.hand: List[Card] = []
+        self.deck = make_deck()
+        random.shuffle(self.deck)
+        self.hand.append(self.deck.pop())
+        self.hand.append(self.deck.pop())
+        self.dealer.append(self.deck.pop())
+        self.dealer.append(self.deck.pop())
+        self.facedown = True
+        self.dealer_turn_done = False
+        self.payout_done = False
+
+        hit_button = discord.ui.Button(label="Hit", style=discord.ButtonStyle.green)
+        stand_button = discord.ui.Button(label="Stand", style=discord.ButtonStyle.red)
+        hit_button.callback = self.hit
+        stand_button.callback = self.stand
+        if get_hand_value(self.hand) < TWENTYONE:
+            self.add_item(hit_button)
+            self.add_item(stand_button)
+
+    def is_over(self) -> bool:
+        player_total = get_hand_value(self.hand)
+        dealer_total = get_hand_value(self.dealer)
+        return player_total > TWENTYONE \
+            or dealer_total > TWENTYONE \
+            or len(self.hand) == 2 and player_total == TWENTYONE \
+            or len(self.dealer) == 2 and dealer_total == TWENTYONE \
+            or self.dealer_turn_done and dealer_total >= DEALER_STAND
+
+    def is_tie(self) -> bool:
+        player_total = get_hand_value(self.hand)
+        dealer_total = get_hand_value(self.dealer)
+        return player_total <= TWENTYONE and dealer_total <= TWENTYONE and player_total == dealer_total
+
+    def is_win(self) -> bool:
+        player_total = get_hand_value(self.hand)
+        dealer_total = get_hand_value(self.dealer)
+        if player_total > TWENTYONE:
+            return False
+        if dealer_total > TWENTYONE:
+            return True
+        return player_total > dealer_total        
+        
+    def winnings_multiplier(self) -> int:
+        return 3 if get_hand_value(self.hand) == TWENTYONE else 2
+    
+    def payout_amount(self) -> int:
+        if self.is_tie():
+            return self.bid 
+        if not self.is_win():
+            return 0
+        player_total = get_hand_value(self.hand)
+        is_player_natural = len(self.hand) == 2 and player_total == TWENTYONE
+        is_dealer_natural = len(self.dealer) == 2 and get_hand_value(self.dealer) == TWENTYONE
+        if is_player_natural and not is_dealer_natural:
+            return 3 * self.bid
+        else:
+            return 2 * self.bid
+
+    async def get_embed(self) -> discord.Embed:
+        currency_name = await bank.get_currency_name(self.channel.guild)
+        dealer_str = " ".join("⬇️" if self.facedown and i == 1 else EMOJI[card.value] for i, card in enumerate(self.dealer))
+        hand_str = " ".join(EMOJI[card.value] for card in self.hand)
+
+        embed = discord.Embed()
+        embed.add_field(name="Dealer", value=dealer_str, inline=True)
+        embed.add_field(name="Hand", value=hand_str, inline=True)
+        embed.add_field(name="Bid", value=f"{self.bid} {currency_name}")
+        if not self.facedown and self.is_over():
+            embed.add_field(name="Winnings", value=f"**×{self.winnings_multiplier()}**" if self.is_win() or self.is_tie() else "*None*")
+            embed.add_field(name="Balance", value=f"{await bank.get_balance(self.player)} {currency_name}")
+            if self.is_win():
+                embed.title = "Blackjack (Win)"
+                embed.color = WIN_COLOR
+            elif self.is_tie():
+                embed.title = "Blackjack (Tie)"
+                embed.color = TIE_COLOR
+            else:
+                embed.title = "Blackjack (Loss)"
+                embed.color = LOSS_COLOR
+        else:
+            embed.title = "Blackjack"
+            embed.color = TIE_COLOR
+        return embed
+    
+    async def dealer_turn(self, interaction: discord.Interaction):
+        self.facedown = False
+        await self.check_payout()
+        await interaction.response.edit_message(embed=await self.get_embed(), view=None)
+        while not self.is_over():
+            self.dealer.append(self.deck.pop())
+            await asyncio.sleep(1)
+            await self.check_payout()
+            await interaction.response.edit_message(embed=await self.get_embed())
+
+    async def check_payout(self):
+        if not self.payout_done and self.is_over() and self.is_win() or self.is_tie():
+            self.payout_done = True
+            try:
+                await bank.deposit_credits(self.player, self.bid * self.winnings_multiplier())
+            except errors.BalanceTooHigh:
+                await bank.deposit_credits(self.player, await bank.get_max_balance(self.channel.guild))
+
+    async def hit(self, interaction: discord.Interaction):
+        if interaction.user != self.player:
+            return await interaction.response.send_message("You're not the one playing!", ephemeral=True)
+        self.hand.append(self.deck.pop())
+        if get_hand_value(self.hand) >= TWENTYONE:
+            await self.dealer_turn(interaction)
+        else:
+            await interaction.response.edit_message(embed=await self.get_embed())
+        
+    async def stand(self, interaction: discord.Interaction):
+        if interaction.user != self.player:
+            return await interaction.response.send_message("You're not the one playing!", ephemeral=True)
+        await self.dealer_turn(interaction)
