@@ -17,7 +17,10 @@ TIME_LIMIT = 5 # minutes
 
 
 class Minigames(BaseMinigameCog):
-    """Play Connect 4 and Tic-Tac-Toe against your friends or the bot."""
+    """
+    Play Connect 4 and Tic-Tac-Toe against your friends or the bot.
+    Earn currency and make bets with other players.
+    """
 
     def __init__(self, bot: Red):
         super().__init__()

@@ -24,7 +24,10 @@ STARTING = "Starting game..."
 
 
 class SimpleChess(BaseChessCog):
-    """Play Chess against your friends or the bot, or make bots play against each other."""
+    """
+    Play Chess against your friends or the bot, or make bots play together.
+    Earn currency and make bets with other players.
+    """
 
     def __init__(self, bot: Red):
         super().__init__(bot)
