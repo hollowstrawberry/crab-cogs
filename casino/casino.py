@@ -61,13 +61,14 @@ class Casino(BaseCasinoCog):
         maximum_bid = await self.config.bjmax() if await bank.is_global() else await self.config.guild(ctx.guild).bjmax()
         currency_name = await bank.get_currency_name(ctx.guild)
         if bid < 1 or bid < minimum_bid:
-            return await reply(f"Your bid must be at least {minimum_bid} {currency_name}", ephemeral=True)
+            return await reply(f"Your bid must be at least {humanize_number(minimum_bid)} {currency_name}", ephemeral=True)
         elif bid > maximum_bid:
-            return await reply(f"Your bid cannot be greater than {maximum_bid} {currency_name}", ephemeral=True)
+            return await reply(f"Your bid cannot be greater than {humanize_number(maximum_bid)} {currency_name}", ephemeral=True)
         if not await bank.can_spend(author, bid):
             return await reply("You ain't got enough money, friend.", ephemeral=True)
         
-        await bank.withdraw_credits(author, bid)
+        balance = await bank.withdraw_credits(author, bid)
+        log.info(f"Withdrew credits, {balance=}")
         blackjack = Blackjack(self, author, ctx.channel, bid, await self.bot.get_embed_color(ctx.channel))
         await blackjack.check_payout()
         view = AgainView(self.blackjack, bid, None, currency_name) if blackjack.is_over() else blackjack
