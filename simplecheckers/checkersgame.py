@@ -7,6 +7,7 @@ from typing import List, Optional, Tuple
 from datetime import datetime
 from redbot.core import bank
 from redbot.core.data_manager import bundled_data_path
+from redbot.core.utils.chat_formatting import humanize_number
 
 from simplecheckers.base import BaseCheckersCog, BaseCheckersGame
 from simplecheckers.agent import MinimaxAgent
@@ -188,9 +189,9 @@ class CheckersGame(BaseCheckersGame):
         embed.description += f"`⚫` {self.member(draughts.BLACK).mention}"
         if self.winner is not None and self.bet > 0 and not self.member(draughts.BLACK).bot and economy_enabled:
             if self.winner == self.member(draughts.BLACK):
-                embed.description += f" +{self.bet} {currency_name}"
+                embed.description += f" +{humanize_number(self.bet)} {currency_name}"
             elif not self.member(draughts.WHITE).bot:
-                embed.description += f" -{self.bet} {currency_name}"
+                embed.description += f" -{humanize_number(self.bet)} {currency_name}"
         embed.description += "\n"
 
         if self.winner == self.member(draughts.WHITE):
@@ -198,9 +199,9 @@ class CheckersGame(BaseCheckersGame):
         embed.description += f"`🔴` {self.member(draughts.WHITE).mention}"
         if self.winner is not None and self.bet > 0 and not self.member(draughts.WHITE).bot and economy_enabled:
             if self.winner == self.member(draughts.WHITE):
-                embed.description += f" +{self.bet} {currency_name}"
+                embed.description += f" +{humanize_number(self.bet)} {currency_name}"
             elif not self.member(draughts.BLACK).bot:
-                embed.description += f" -{self.bet} {currency_name}"
+                embed.description += f" -{humanize_number(self.bet)} {currency_name}"
 
         embed.set_image(url=f"attachment://{filename}")
         embed.set_footer(text=f"Turn {self.time // 2 + 1}")
