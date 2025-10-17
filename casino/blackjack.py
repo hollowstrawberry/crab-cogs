@@ -78,7 +78,7 @@ class Blackjack(discord.ui.View):
         return player_total > TWENTYONE \
             or dealer_total > TWENTYONE \
             or len(self.hand) == 2 and player_total == TWENTYONE \
-            or len(self.dealer) == 2 and dealer_total == TWENTYONE \
+            or self.dealer_turn_started and len(self.dealer) == 2 and dealer_total == TWENTYONE \
             or self.dealer_turn_started and dealer_total >= DEALER_STAND
 
     def is_tie(self) -> bool:
