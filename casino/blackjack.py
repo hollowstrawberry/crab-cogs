@@ -114,8 +114,7 @@ class Blackjack(discord.ui.View):
         hand_str = " ".join(EMOJI[card.value] for card in self.hand)
 
         embed = discord.Embed()
-        embed.add_field(name="Dealer", value=dealer_str, inline=True)
-        embed.add_field(name="Hand", value=hand_str, inline=True)
+        embed.description = f"**Dealer**\n{dealer_str}\n\nHand\n{hand_str}"
         embed.add_field(name="Bid", value=f"{self.bid} {currency_name}")
         if not self.facedown and self.is_over():
             embed.add_field(name="Winnings", value=f"**×{self.winnings_multiplier()}**" if self.is_win() or self.is_tie() else "*None*")
@@ -137,12 +136,12 @@ class Blackjack(discord.ui.View):
     async def dealer_turn(self, interaction: discord.Interaction):
         self.facedown = False
         await self.check_payout()
-        await interaction.response.edit_message(embed=await self.get_embed(), view=None)
+        await interaction.edit_original_response(embed=await self.get_embed(), view=None)
         while not self.is_over():
             self.dealer.append(self.deck.pop())
             await asyncio.sleep(1)
             await self.check_payout()
-            await interaction.response.edit_message(embed=await self.get_embed())
+            await interaction.edit_original_response(embed=await self.get_embed())
 
     async def check_payout(self):
         if not self.payout_done and self.is_over() and self.is_win() or self.is_tie():
@@ -159,7 +158,7 @@ class Blackjack(discord.ui.View):
         if get_hand_value(self.hand) >= TWENTYONE:
             await self.dealer_turn(interaction)
         else:
-            await interaction.response.edit_message(embed=await self.get_embed())
+            await interaction.edit_original_response(embed=await self.get_embed())
         
     async def stand(self, interaction: discord.Interaction):
         if interaction.user != self.player:
