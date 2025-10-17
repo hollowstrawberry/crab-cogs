@@ -67,9 +67,10 @@ class Blackjack(discord.ui.View):
         hit_button.callback = self.hit
         stand_button.callback = self.stand
         if get_hand_value(self.hand) < TWENTYONE:
-            self.facedown = False
             self.add_item(hit_button)
             self.add_item(stand_button)
+        else:
+            self.facedown = False
 
     def is_over(self) -> bool:
         player_total = get_hand_value(self.hand)
