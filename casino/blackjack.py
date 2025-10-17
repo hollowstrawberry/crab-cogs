@@ -142,7 +142,8 @@ class Blackjack(discord.ui.View):
             self.dealer.append(self.deck.pop())
             await asyncio.sleep(1)
             await self.check_payout()
-            await interaction.edit_original_response(embed=await self.get_embed())
+            view = AgainView(self.cog.blackjack, self.bid, interaction.message) if self.is_over() else discord.ui.View()
+            await interaction.edit_original_response(embed=await self.get_embed(), view=view)
 
     async def check_payout(self):
         if not self.payout_done and self.is_over() and self.is_win() or self.is_tie():
