@@ -13,7 +13,7 @@ class AgainView(discord.ui.View):
         self.bid = bid
         self.message = message
         currency_name = re.sub(r"<a?:(\w+):\d+>", r"\1", currency_name)
-        label = f"Bid {humanize_number(bid)} {currency_name} again"[:MAX_BUTTON_LENGTH]
+        label = f"Bid {humanize_number(bid)} {currency_name}"[:MAX_BUTTON_LENGTH]
         self.again_button = discord.ui.Button(label=label, style=discord.ButtonStyle.green)
         self.again_button.callback = self.again
         self.add_item(self.again_button)
