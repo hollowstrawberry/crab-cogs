@@ -1,9 +1,12 @@
+import time
+import asyncio
 import discord
 import draughts
 
 from simplecheckers.base import BaseCheckersGame
 from simplecheckers.constants import INSTRUCTIONS
 
+MIN_TURN_TIME = 1.0  # seconds
 NOT_PLAYING = "You're not playing this game!"
 
 
@@ -27,7 +30,11 @@ class GameMoveModal(discord.ui.Modal, title="Checkers Move"):
         await self.game.update_message(self.parent_interaction)
 
         if self.game.member(self.game.board.turn).bot:
+            start_time = time.time()
             await self.game.move_engine()
+            elapsed = time.time() - start_time
+            if elapsed < MIN_TURN_TIME:
+                await asyncio.sleep(MIN_TURN_TIME - elapsed)
             await self.game.update_message(self.parent_interaction)
 
 

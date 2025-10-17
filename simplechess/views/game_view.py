@@ -1,7 +1,10 @@
+import time
+import asyncio
 import discord
 
 from simplechess.base import BaseChessGame
 
+MIN_TURN_TIME = 1.0  # seconds
 NOT_PLAYING = "You're not playing this game!"
 
 
@@ -25,7 +28,11 @@ class GameMoveModal(discord.ui.Modal, title="Chess Move"):
         await self.game.update_message(self.parent_interaction)
 
         if self.game.member(self.game.board.turn).bot and not self.game.is_finished():
+            start_time = time.time()
             await self.game.move_engine()
+            elapsed = time.time() - start_time
+            if elapsed < MIN_TURN_TIME:
+                await asyncio.sleep(MIN_TURN_TIME - elapsed)
             await self.game.update_message(self.parent_interaction)
 
 
