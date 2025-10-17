@@ -19,7 +19,6 @@ class EconomyTweaks(commands.Cog):
     def __init__(self, bot: Red):
         super().__init__()
         self.bot = bot
-        self.concurrent_slots = 0
         default_timer = {
             "last_payday_bonus": 0,
         }

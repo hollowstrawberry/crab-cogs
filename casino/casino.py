@@ -25,6 +25,7 @@ class Casino(BaseCasinoCog):
 
     def __init__(self, bot: Red):
         super().__init__(bot)
+        self.concurrent_slots = 0
 
     def cog_unload(self):
         global old_slot, old_payouts
