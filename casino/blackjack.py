@@ -114,6 +114,8 @@ class Blackjack(discord.ui.View):
         hand_str = " ".join(EMOJI[card.value] for card in self.hand)
 
         embed = discord.Embed()
+        embed.add_field(name="Dealer", value=dealer_str, inline=False)
+        embed.add_field(name="Hand", value=hand_str, inline=False)
         embed.add_field(name="Bid", value=f"{self.bid} {currency_name}")
         if not self.facedown and self.is_over():
             embed.add_field(name="Winnings", value=f"**×{self.winnings_multiplier()}**" if self.is_win() or self.is_tie() else "*None*")
@@ -130,8 +132,6 @@ class Blackjack(discord.ui.View):
         else:
             embed.title = "Blackjack"
             embed.color = TIE_COLOR
-        embed.add_field(name="Dealer", value=dealer_str, inline=True)
-        embed.add_field(name="Hand", value=hand_str, inline=True)
         return embed
     
     async def dealer_turn(self, interaction: discord.Interaction):
