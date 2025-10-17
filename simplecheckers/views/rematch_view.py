@@ -1,5 +1,6 @@
 import re
 import discord
+from redbot.core.utils.chat_formatting import humanize_number
 
 from simplecheckers.base import BaseCheckersGame
 
@@ -16,7 +17,7 @@ class RematchView(discord.ui.View):
             if game.bet == 0 or any(player.bot for player in self.game.players):
                 label = "Rematch"
             else:
-                label = f"Rematch and bet {game.bet} {currency_name}"[:MAX_BUTTON_LABEL]
+                label = f"Rematch and bet {humanize_number(game.bet)} {currency_name}"[:MAX_BUTTON_LABEL]
             self.rematch_button = discord.ui.Button(label=label, style=discord.ButtonStyle.green, row=4)
             self.rematch_button.callback = self.rematch
             self.add_item(self.rematch_button)
