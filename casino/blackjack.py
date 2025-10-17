@@ -63,13 +63,13 @@ class Blackjack(discord.ui.View):
         self.dealer_turn_started = False
         self.payout_done = False
 
-        hit_button = discord.ui.Button(label="Hit", style=discord.ButtonStyle.green)
-        stand_button = discord.ui.Button(label="Stand", style=discord.ButtonStyle.red)
-        hit_button.callback = self.hit
-        stand_button.callback = self.stand
+        self.hit_button = discord.ui.Button(label="Hit", style=discord.ButtonStyle.green)
+        self.stand_button = discord.ui.Button(label="Stand", style=discord.ButtonStyle.red)
+        self.hit_button.callback = self.hit
+        self.stand_button.callback = self.stand
         if get_hand_value(self.hand) < TWENTYONE:
-            self.add_item(hit_button)
-            self.add_item(stand_button)
+            self.add_item(self.hit_button)
+            self.add_item(self.stand_button)
         else:
             self.facedown = False
 
@@ -126,11 +126,11 @@ class Blackjack(discord.ui.View):
             embed.add_field(name="Payout", value=f"{humanize_number(payout)} {currency_name}" if self.is_win() or self.is_tie() else "*None*")
             embed.add_field(name="Balance", value=f"{humanize_number(await bank.get_balance(self.player))} {currency_name}")
             if self.is_win():
-                embed.title = "🎉 Blackjack"
+                embed.title = "🎉 Blackjack (Win)"
             elif self.is_tie():
-                embed.title = "👔 Blackjack"
+                embed.title = "👔 Blackjack (Tie)"
             else:
-                embed.title = "❌ Blackjack"
+                embed.title = "💀 Blackjack (Lost)"
         else:
             embed.title = "Blackjack"
         return embed
@@ -138,14 +138,17 @@ class Blackjack(discord.ui.View):
     async def dealer_turn(self, interaction: discord.Interaction):
         self.facedown = False
         self.dealer_turn_started = True
+        self.hit_button.disabled = True
+        self.stand_button.disabled = True
         await self.check_payout()
-        view = AgainView(self.cog.blackjack, self.bid, interaction.message) if self.is_over() else discord.ui.View()
+        currency_name = await bank.get_currency_name(interaction.guild)
+        view = AgainView(self.cog.blackjack, self.bid, interaction.message, currency_name) if self.is_over() else self
         await interaction.response.edit_message(embed=await self.get_embed(), view=view)
         while not self.is_over():
             self.dealer.append(self.deck.pop())
             await asyncio.sleep(1)
             await self.check_payout()
-            view = AgainView(self.cog.blackjack, self.bid, interaction.message) if self.is_over() else discord.ui.View()
+            view = AgainView(self.cog.blackjack, self.bid, interaction.message, currency_name) if self.is_over() else self
             await interaction.edit_original_response(embed=await self.get_embed(), view=view)
 
     async def check_payout(self):

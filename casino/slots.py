@@ -115,7 +115,7 @@ async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Con
         await asyncio.sleep(1)
         embed.description = third
         prepare_final_embed()
-        view = AgainView(cog.slot, bid, await interaction.original_response())
+        view = AgainView(cog.slot, bid, await interaction.original_response(), currency_name)
         await interaction.edit_original_response(embed=embed, view=view)
     else:
         embed.description = first
@@ -126,5 +126,5 @@ async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Con
         await asyncio.sleep(1)
         embed.description = third
         prepare_final_embed()
-        view = AgainView(cog.slot, bid, message)
+        view = AgainView(cog.slot, bid, message, currency_name)
         await message.edit(embed=embed, view=view)

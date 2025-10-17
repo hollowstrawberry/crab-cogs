@@ -1,15 +1,21 @@
+import re
 import discord
 from typing import Any, Awaitable, Callable, Optional
+from redbot.core.utils.chat_formatting import humanize_number
+
+MAX_BUTTON_LENGTH = 80
 
 
 class AgainView(discord.ui.View):
-    def __init__(self, callback: Callable[[discord.Interaction, int], Awaitable[Any]], bid: int, message: Optional[discord.Message]):
+    def __init__(self, callback: Callable[[discord.Interaction, int], Awaitable[Any]], bid: int, message: Optional[discord.Message], currency_name: str):
         super().__init__(timeout=60)
         self.callback = callback
         self.bid = bid
         self.message = message
+        currency_name = re.sub(r"<a?:(\w+):\d+>", r"\1", currency_name)
+        label = f"Again (Bid {humanize_number(bid)} {currency_name})"[:MAX_BUTTON_LENGTH]
+        self.again_button = discord.ui.Button(label=label, style=discord.ButtonStyle.green)
 
-    @discord.ui.button(label="Again", style=discord.ButtonStyle.green)
     async def again(self, interaction: discord.Interaction, _):
         await self.callback(interaction, self.bid)
         
