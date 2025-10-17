@@ -119,11 +119,11 @@ class Blackjack(discord.ui.View):
             embed.add_field(name="Winnings", value=f"**×{self.winnings_multiplier()}**" if self.is_win() or self.is_tie() else "*None*")
             embed.add_field(name="Balance", value=f"{await bank.get_balance(self.player)} {currency_name}")
             if self.is_win():
-                embed.title = "Blackjack (Win)"
+                embed.title = "🎉 Blackjack"
             elif self.is_tie():
-                embed.title = "Blackjack (Tie)"
+                embed.title = "👔 Blackjack"
             else:
-                embed.title = "Blackjack (Loss)"
+                embed.title = "❌ Blackjack"
         else:
             embed.title = "Blackjack"
         return embed
