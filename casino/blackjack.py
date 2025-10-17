@@ -4,7 +4,9 @@ import discord
 from typing import List
 from redbot.core import bank, errors
 
+from casino.base import BaseCasinoCog
 from casino.card import Card, CardValue, make_deck
+from casino.views.again_view import AgainView
 
 TWENTYONE = 21
 DEALER_STAND = 17
@@ -41,8 +43,9 @@ def get_hand_value(hand: List[Card]) -> int:
 
 
 class Blackjack(discord.ui.View):
-    def __init__(self, player: discord.Member, channel: discord.TextChannel, bid: int, embed_color: discord.Color):
+    def __init__(self, cog: BaseCasinoCog, player: discord.Member, channel: discord.TextChannel, bid: int, embed_color: discord.Color):
         super().__init__(timeout=None)
+        self.cog = cog
         self.player = player
         self.channel = channel
         self.bid = bid
@@ -133,7 +136,8 @@ class Blackjack(discord.ui.View):
         self.facedown = False
         self.dealer_turn_started = True
         await self.check_payout()
-        await interaction.response.edit_message(embed=await self.get_embed(), view=None)
+        view = AgainView(self.cog.blackjack, self.bid, interaction.message) if self.is_over() else discord.ui.View()
+        await interaction.response.edit_message(embed=await self.get_embed(), view=view)
         while not self.is_over():
             self.dealer.append(self.deck.pop())
             await asyncio.sleep(1)

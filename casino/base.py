@@ -22,4 +22,6 @@ class BaseCasinoCog(commands.Cog):
     async def slot(self, ctx: Union[discord.Interaction, commands.Context], bid: int):
         pass
 
-    
+    @abstractmethod
+    async def blackjack(self, ctx: Union[discord.Interaction, commands.Context], bid: int):
+        pass
