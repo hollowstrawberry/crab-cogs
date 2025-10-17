@@ -23,9 +23,9 @@ EMOJI = {
     CardValue.EIGHT: "8️⃣",
     CardValue.NINE: "9️⃣",
     CardValue.TEN: "🔟",
-    CardValue.JACK: "🔟",
-    CardValue.QUEEN: "🔟",
-    CardValue.KING: "🔟",
+    CardValue.JACK: "🇯",
+    CardValue.QUEEN: "🇶",
+    CardValue.KING: "🇰",
 }
 
 def get_hand_value(hand: List[Card]) -> int:
@@ -136,7 +136,7 @@ class Blackjack(discord.ui.View):
     async def dealer_turn(self, interaction: discord.Interaction):
         self.facedown = False
         await self.check_payout()
-        await interaction.edit_original_response(embed=await self.get_embed(), view=None)
+        await interaction.response.edit_message(embed=await self.get_embed(), view=None)
         while not self.is_over():
             self.dealer.append(self.deck.pop())
             await asyncio.sleep(1)
@@ -158,7 +158,7 @@ class Blackjack(discord.ui.View):
         if get_hand_value(self.hand) >= TWENTYONE:
             await self.dealer_turn(interaction)
         else:
-            await interaction.edit_original_response(embed=await self.get_embed())
+            await interaction.response.edit_message(embed=await self.get_embed())
         
     async def stand(self, interaction: discord.Interaction):
         if interaction.user != self.player:
