@@ -132,7 +132,7 @@ class Blackjack(discord.ui.View):
         self.facedown = False
         await self.check_payout()
         await interaction.response.edit_message(embed=await self.get_embed(), view=None)
-        while not self.is_over():
+        while not self.is_over() and get_hand_value(self.dealer) < DEALER_STAND:
             self.dealer.append(self.deck.pop())
             await asyncio.sleep(1)
             await self.check_payout()
