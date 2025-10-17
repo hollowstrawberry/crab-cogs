@@ -21,7 +21,10 @@ STARTING = "Starting game..."
 
 
 class SimpleCheckers(BaseCheckersCog):
-    """Play Checkers/Draughts against your friends or the bot."""
+    """
+    Play Checkers against your friends or the bot, or make bots play together.
+    Earn currency and make bets with other players.
+    """
 
     def __init__(self, bot: Red):
         super().__init__(bot)

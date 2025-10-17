@@ -60,7 +60,7 @@ Features **Connect 4** and **Tic-Tac-Toe**, which you can play against your frie
 
 ### ♟️ SimpleChess
 
-Play Chess against your friends or the bot itself. Configure payouts and let users bet against each other. You can also make your bots play together. Uses [Sunfish](https://github.com/thomasahle/sunfish) as the chess engine (AI), which has an ELO of around 1900, but the difficulty can be lowered when using the slash command.
+Play Chess against your friends or the bot itself. Configure payouts and let users bet against each other. You can also make your bots play together. Uses [Sunfish](https://github.com/thomasahle/sunfish) as the chess engine (AI); the hardest setting has an ELO of around 1900, and the default setting is much lower, but still challenging for most players. The difficulty can be selected with the slash command.
 
 ![demonstration](https://i.imgur.com/6IleFWa.png)
 
