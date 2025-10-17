@@ -56,7 +56,7 @@ class Blackjack(discord.ui.View):
         self.dealer.append(self.deck.pop())
         self.dealer.append(self.deck.pop())
         self.facedown = True
-        self.dealer_turn_done = False
+        self.dealer_turn_started = False
         self.payout_done = False
 
         hit_button = discord.ui.Button(label="Hit", style=discord.ButtonStyle.green)
@@ -74,7 +74,7 @@ class Blackjack(discord.ui.View):
             or dealer_total > TWENTYONE \
             or len(self.hand) == 2 and player_total == TWENTYONE \
             or len(self.dealer) == 2 and dealer_total == TWENTYONE \
-            or self.dealer_turn_done and dealer_total >= DEALER_STAND
+            or self.dealer_turn_started and dealer_total >= DEALER_STAND
 
     def is_tie(self) -> bool:
         player_total = get_hand_value(self.hand)
@@ -130,9 +130,10 @@ class Blackjack(discord.ui.View):
     
     async def dealer_turn(self, interaction: discord.Interaction):
         self.facedown = False
+        self.dealer_turn_started = True
         await self.check_payout()
         await interaction.response.edit_message(embed=await self.get_embed(), view=None)
-        while not self.is_over() and get_hand_value(self.dealer) < DEALER_STAND:
+        while not self.is_over():
             self.dealer.append(self.deck.pop())
             await asyncio.sleep(1)
             await self.check_payout()
