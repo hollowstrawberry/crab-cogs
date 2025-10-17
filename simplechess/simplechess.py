@@ -19,7 +19,7 @@ from simplechess.views.replace_view import ReplaceView
 log = logging.getLogger("red.crab-cogs.simplechess")
 
 TIME_LIMIT = 5 # minutes
-DEFAULT_DIFFICULTY = 5 # depth
+DEFAULT_DIFFICULTY = 1 # depth
 STARTING = "Starting game..."
 
 
@@ -194,11 +194,11 @@ class SimpleChess(BaseChessCog):
     @app_chess.command(name="new")
     @app_commands.describe(opponent="Invite someone to play, or play against the bot by default.",
                            bet="Against a player, optionally bet currency.",
-                           difficulty="Against the bot. Hard by default.")
-    @app_commands.choices(difficulty=[app_commands.Choice(name="Easy", value="1"),
-                                      app_commands.Choice(name="Medium", value="3"),
-                                      app_commands.Choice(name="Hard", value="5"),
-                                      app_commands.Choice(name="Hardest", value="0")])
+                           difficulty="Against the bot. Normal by default.")
+    @app_commands.choices(difficulty=[app_commands.Choice(name="Normal", value="1"),
+                                      app_commands.Choice(name="Hard", value="3"),
+                                      app_commands.Choice(name="Very Hard", value="5"),
+                                      app_commands.Choice(name="Impossible", value="0")])
     @app_commands.guild_only()
     async def chess_new_app(self,
                             interaction: discord.Interaction,
