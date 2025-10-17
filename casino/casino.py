@@ -68,16 +68,12 @@ class Casino(BaseCasinoCog):
             return await reply("You ain't got enough money, friend.", ephemeral=True)
         
         await bank.withdraw_credits(author, bid)
-        try:
-            blackjack = Blackjack(self, author, ctx.channel, bid, await self.bot.get_embed_color(ctx.channel))
-            await blackjack.check_payout()
-            view = AgainView(self.blackjack, bid, None) if blackjack.is_over() else blackjack
-            message = await reply(embed=await blackjack.get_embed(), view=view)
-            if isinstance(view, AgainView):
-                view.message = message if isinstance(ctx, commands.Context) else await ctx.original_response()  # type: ignore
-        except Exception:
-            await bank.deposit_credits(author, bid)
-            raise
+        blackjack = Blackjack(self, author, ctx.channel, bid, await self.bot.get_embed_color(ctx.channel))
+        await blackjack.check_payout()
+        view = AgainView(self.blackjack, bid, None) if blackjack.is_over() else blackjack
+        message = await reply(embed=await blackjack.get_embed(), view=view)
+        if isinstance(view, AgainView):
+            view.message = message if isinstance(ctx, commands.Context) else await ctx.original_response()  # type: ignore
 
 
     @commands.hybrid_command(name="slot")
