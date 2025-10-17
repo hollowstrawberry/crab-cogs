@@ -1,9 +1,12 @@
+import time
+import asyncio
 import discord
 import draughts
 
 from simplecheckers.base import BaseCheckersGame
 from simplecheckers.constants import INSTRUCTIONS
 
+MIN_TURN_TIME = 1.0  # seconds
 NOT_PLAYING = "You're not playing this game!"
 
 
@@ -27,7 +30,11 @@ class GameMoveModal(discord.ui.Modal, title="Checkers Move"):
         await self.game.update_message(self.parent_interaction)
 
         if self.game.member(self.game.board.turn).bot:
+            start_time = time.time()
             await self.game.move_engine()
+            elapsed = time.time() - start_time
+            if elapsed < MIN_TURN_TIME:
+                await asyncio.sleep(MIN_TURN_TIME - elapsed)
             await self.game.update_message(self.parent_interaction)
 
 
@@ -36,8 +43,7 @@ class GameView(discord.ui.View):
         super().__init__(timeout=None)
         self.game = game
         emoji = "🔴" if game.board.turn == draughts.WHITE else "⚫"
-        label = "Enter Move" if self.game.time % 4 < 2 else "Enter Moveᅠ"  # hopefully prevent a discord app glitch that hides the button
-        self.move_button = discord.ui.Button(custom_id=f"simplecheckers {game.channel.id} move", emoji=emoji, label=label, style=discord.ButtonStyle.success)
+        self.move_button = discord.ui.Button(custom_id=f"simplecheckers {game.channel.id} move", emoji=emoji, label="Enter Move", style=discord.ButtonStyle.success)
         self.help_button = discord.ui.Button(custom_id=f"simplecheckers {game.channel.id} help", emoji="❓", label="Instructions", style=discord.ButtonStyle.secondary)
         self.bump_button = discord.ui.Button(custom_id=f"simplecheckers {game.channel.id} bump", emoji="⬇️", label="Bump", style=discord.ButtonStyle.primary)
         self.end_button = discord.ui.Button(custom_id=f"simplecheckers {game.channel.id} end", emoji="🏳️", label="Surrender", style=discord.ButtonStyle.danger)

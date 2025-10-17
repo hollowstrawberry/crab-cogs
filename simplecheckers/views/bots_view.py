@@ -1,9 +1,12 @@
+import time
 import asyncio
 import discord
 import draughts
 
 from simplecheckers.base import BaseCheckersGame
 from simplecheckers.views.thinking_view import ThinkingView
+
+MIN_TURN_TIME = 1.5  # seconds
 
 
 class BotsView(discord.ui.View):
@@ -24,8 +27,11 @@ class BotsView(discord.ui.View):
     async def move(self, interaction: discord.Interaction):
         self.stop()
         await interaction.response.edit_message(view=ThinkingView(self.game))
+        start_time = time.time()
         await self.game.move_engine()
-        await asyncio.sleep(0.5) # slow down spam clicking
+        elapsed = time.time() - start_time
+        if elapsed < MIN_TURN_TIME:
+            await asyncio.sleep(MIN_TURN_TIME - elapsed)
         await self.game.update_message(interaction)
 
     async def bump(self, interaction: discord.Interaction):
