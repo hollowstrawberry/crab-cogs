@@ -112,6 +112,7 @@ class PokerGame(BasePokerGame):
         game.deck = [Card.from_dict(c) for c in json.loads(config["deck"])]
         game.state = PokerState(config["state"])
         game.current_bet = config["current_bet"]
+        game.pot = config["pot"]
         game.turn = config["turn"]
         game.winners = config["winners"]
         game.all_hands_finished = config["finished"]
