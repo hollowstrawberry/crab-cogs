@@ -66,14 +66,15 @@ class PokerView(discord.ui.View):
         raise_values = [game.minimum_bet * (RAISE_BET_FACTOR ** x) for x in range(MAX_OPTIONS)]  # multiply each consecutive step by the factor
         raise_values = [int(val // 10) * 10 if val > 100 else int(val) for val in raise_values if val > game.current_bet and val < cur_player_money]  # round to tens and only include what the user can pay
         raise_options = [discord.SelectOption(label=f"{humanize_number(val)} {currency_name}", value=f"{val}") for val in raise_values]
-        self.raise_select = discord.ui.Select(
-            custom_id=f"poker {game.channel.id} raise",
-            options=raise_options,
-            placeholder="Raise Bet",
-            disabled=cur_player_money < game.minimum_bet
-        )
-        self.raise_select.callback = self.raisebet
-        self.add_item(self.raise_select)
+        if raise_options:
+            self.raise_select = discord.ui.Select(
+                custom_id=f"poker {game.channel.id} raise",
+                options=raise_options,
+                placeholder="Raise Bet",
+                disabled=cur_player_money < game.minimum_bet
+            )
+            self.raise_select.callback = self.raisebet
+            self.add_item(self.raise_select)
 
     async def fold(self, interaction: discord.Interaction):
         assert self.game.turn is not None
