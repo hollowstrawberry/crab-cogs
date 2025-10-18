@@ -26,7 +26,7 @@ old_slot: Optional[commands.Command] = None
 old_payouts: Optional[commands.Command] = None
 
 MAX_CONCURRENT_SLOTS = 3
-POKER_AFK_LIMIT = 0  # minutes
+POKER_AFK_LIMIT = 5  # minutes
 STARTING = "Starting game..."
 
 
@@ -57,32 +57,15 @@ class Casino(BaseCasinoCog):
             except Exception:
                 log.error(f"Loading game in {cid}", exc_info=True)
 
-        # Load custom emojis into the current application. I don't want to touch this honestly.
-        if not await self.config.emoji_dealer():
-            async with aiofiles.open(bundled_data_path(self) / "dealer.png", "rb") as fp:
-                image_dealer = await fp.read()
-            emoji_dealer = await self.bot.create_application_emoji(name="dealer", image=image_dealer)
-            await self.config.emoji_dealer.set(str(emoji_dealer))
-        if not await self.config.emoji_smallblind():
-            async with aiofiles.open(bundled_data_path(self) / "smallblind.png", "rb") as fp:
-                image_smallblind = await fp.read()
-            emoji_smallblind = await self.bot.create_application_emoji(name="smallblind", image=image_smallblind)
-            await self.config.emoji_smallblind.set(str(emoji_smallblind))
-        if not await self.config.emoji_bigblind():
-            async with aiofiles.open(bundled_data_path(self) / "bigblind.png", "rb") as fp:
-                image_bigblind = await fp.read()
-            emoji_bigblind = await self.bot.create_application_emoji(name="bigblind", image=image_bigblind)
-            await self.config.emoji_bigblind.set(str(emoji_bigblind))
-        if not await self.config.emoji_spades():
-            async with aiofiles.open(bundled_data_path(self) / "spades.png", "rb") as fp:
-                image_spades = await fp.read()
-            emoji_spades = await self.bot.create_application_emoji(name="spades", image=image_spades)
-            await self.config.emoji_spades.set(str(emoji_spades))
-        if not await self.config.emoji_clubs():
-            async with aiofiles.open(bundled_data_path(self) / "clubs.png", "rb") as fp:
-                image_clubs = await fp.read()
-            emoji_clubs = await self.bot.create_application_emoji(name="clubs", image=image_clubs)
-            await self.config.emoji_clubs.set(str(emoji_clubs))
+        # Load custom emojis into the current application.
+        all_emojis = await self.bot.fetch_application_emojis()
+        for emoji_name in ("dealer", "smallblind", "bigblind", "spades", "clubs"):
+            if not any(emoji.name == emoji_name for emoji in all_emojis) or not await self.config.__getattr__(emoji_name)():
+                async with aiofiles.open(bundled_data_path(self) / f"{emoji_name}.png", "rb") as fp:
+                    image = await fp.read()
+                emoji = await self.bot.create_application_emoji(name=emoji_name, image=image)
+                await self.config.__getattr__(emoji_name).set(str(emoji))
+
 
     def cog_unload(self):
         global old_slot, old_payouts
