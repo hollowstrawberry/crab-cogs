@@ -333,15 +333,16 @@ class PokerGame(BasePokerGame):
 
         if self.turn is None:
             self.turn = 0
-            return
-        
-        start = self.turn
-        n = len(self.players)
-        for i in range(1, n + 1):
-            idx = (start + i) % n
-            if self.players[idx].state == PlayerState.Pending:
-                self.turn = idx
-                return
+        else:
+            start = self.turn
+            n = len(self.players)
+            for i in range(1, n + 1):
+                idx = (start + i) % n
+                if self.players[idx].state == PlayerState.Pending:
+                    self.turn = idx
+                    break
+
+        await self.save_state()
 
     async def end_hand(self, *winners_indices: int) -> None:
         if not winners_indices:

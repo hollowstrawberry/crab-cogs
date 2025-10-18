@@ -235,10 +235,14 @@ class Casino(BaseCasinoCog):
             seconds_passed = int((datetime.now() - old_game.last_interacted).total_seconds())
             if seconds_passed // 60 >= POKER_AFK_LIMIT:
                 async def callback():
-                    nonlocal ctx, author, old_game
+                    nonlocal ctx, author, old_game, old_message
                     assert isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
                     await old_game.cancel()
-                    await old_game.update_message()
+                    if old_message:
+                        try:
+                            await old_message.delete()
+                        except discord.NotFound:
+                            pass
                     game = PokerGame(self, [author], ctx.channel, starting_bet)
                     self.poker_games[ctx.channel.id] = game
                     await game.update_message()
