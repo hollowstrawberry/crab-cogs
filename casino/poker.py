@@ -1,4 +1,3 @@
-import json
 import discord
 from typing import List, Optional, Tuple, Dict
 from datetime import datetime
@@ -109,19 +108,21 @@ class PokerGame(BasePokerGame):
             return None
         assert self.turn is not None
         t = self.turn
-        while True:
+        for _ in range(len(self.players)):
             t = t - 1 if t > 0 else len(self.players) - 1
             if self.players[t].state != PlayerState.Folded:
                 return self.players[t]
+        return None
 
     def get_next_player(self) -> Optional[PokerPlayer]:
         if not (self.turn is not None and 0 <= self.turn < len(self.players)):
             return None
         t = self.turn
-        while True:
+        for _ in range(len(self.players)):
             t = t + 1 if t < len(self.players) - 1 else 0
             if self.players[t].state != PlayerState.Folded:
                 return self.players[t]
+        return None
 
     @property
     def can_check(self) -> bool:
@@ -315,10 +316,12 @@ class PokerGame(BasePokerGame):
         self.turn = None
 
         per = self.pot // len(self.winners)
-        for idx in self.winners:
+        remainder = self.pot % len(self.winners)
+        for i, idx in enumerate(self.winners):
             member = self.players[idx].member(self)
+            amount = per + (1 if i < remainder else 0)
             try:
-                await bank.deposit_credits(member, per)
+                await bank.deposit_credits(member, amount)
             except errors.BalanceTooHigh as err:
                     await bank.set_balance(member, err.max_balance)
 

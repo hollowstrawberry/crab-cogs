@@ -37,7 +37,7 @@ class PokerView(discord.ui.View):
             custom_id=f"poker {game.channel.id} call",
             label="Call",
             style=discord.ButtonStyle.primary,
-            disabled=cur_player_money < game.current_bet - cur_player_bet or cur_player_bet > game.current_bet
+            disabled=cur_player_money < game.current_bet - cur_player_bet or cur_player_bet >= game.current_bet
         )
         self.view_button = discord.ui.Button(
             custom_id=f"poker {game.channel.id} view",
@@ -64,7 +64,8 @@ class PokerView(discord.ui.View):
 
         currency_name = re.sub(r"<a?:(\w+):\d+>", r"\1", currency_name)  # extract emoji name
         raise_values = [game.minimum_bet * (RAISE_BET_FACTOR ** x) for x in range(MAX_OPTIONS)]  # multiply each consecutive step by the factor
-        raise_values = [int(val // 10) * 10 if val > 100 else int(val) for val in raise_values if val > game.current_bet and val < cur_player_money]  # round to tens and only include what the user can pay
+        raise_values = [int(val // 10) * 10 if val > 100 else int(val) for val in raise_values ]  # round to tens
+        raise_values = [val for val in raise_values if val > game.current_bet and val <= cur_player_money]  # only valid amounts
         raise_options = [discord.SelectOption(label=f"{humanize_number(val)} {currency_name}", value=f"{val}") for val in raise_values]
         if raise_options:
             self.raise_select = discord.ui.Select(
