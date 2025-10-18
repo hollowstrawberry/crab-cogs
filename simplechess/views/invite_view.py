@@ -11,7 +11,7 @@ class InviteView(discord.ui.View):
     def __init__(self, game: BaseChessGame, currency_name: str):
         super().__init__(timeout=None)
         self.game = game
-        currency_name = re.sub(r"<a?:(\w+):\d+>", r"\1", currency_name)
+        currency_name = re.sub(r"<a?:(\w+):\d+>", r"\1", currency_name)  # extract emoji name
         label = "Accept" if game.bet == 0 else f"Accept and bet {game.bet} {currency_name}"[:MAX_BUTTON_LABEL]
         accept_button = discord.ui.Button(label=label, style=discord.ButtonStyle.primary)
         cancel_button = discord.ui.Button(label="Cancel", style=discord.ButtonStyle.secondary)
