@@ -323,7 +323,7 @@ class SimpleCasino(BaseCasinoCog):
             bet = await config_pokermin()
             return await ctx.send(f"Current minimum bet in Poker is {bet} {currency}.")
         if bet < POKER_MINIMUM_BET:
-            return await ctx.send("Bid must be a positive number.")
+            return await ctx.send(f"You cannot set a minimum Poker bet lower than {POKER_MINIMUM_BET} {currency}.")
         await config_pokermin.set(bet)
         await ctx.send(f"New minimum bet in Poker is {bet} {currency}.")
 
