@@ -36,7 +36,7 @@ class Blackjack(discord.ui.View):
                  channel: discord.TextChannel,
                  bid: int,
                  embed_color: discord.Color,
-                 include_footer: bool,
+                 include_author: bool,
                  ):
         super().__init__(timeout=None)
         self.cog = cog
@@ -44,7 +44,7 @@ class Blackjack(discord.ui.View):
         self.channel = channel
         self.bid = bid
         self.embed_color = embed_color
-        self.include_footer = include_footer
+        self.include_author = include_author
         self.dealer: List[Card] = []
         self.hand: List[Card] = []
         self.deck = make_deck()
@@ -128,9 +128,9 @@ class Blackjack(discord.ui.View):
         else:
             embed.title = "Blackjack"
 
-        if self.include_footer:
-            embed.set_footer(text=self.player.display_name, icon_url=self.player.display_avatar.url)
-            
+        if self.include_author:
+            embed.set_author(name=self.player.display_name, icon_url=self.player.display_avatar.url)
+
         return embed
     
     async def dealer_turn(self, interaction: discord.Interaction):

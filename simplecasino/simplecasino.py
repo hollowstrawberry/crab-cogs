@@ -119,8 +119,8 @@ class SimpleCasino(BaseCasinoCog):
             return await reply("You ain't got enough money, friend.", ephemeral=True)
         
         await bank.withdraw_credits(author, bid)
-        include_footer = isinstance(ctx, discord.Interaction) and ctx.type == discord.InteractionType.component
-        blackjack = Blackjack(self, author, ctx.channel, bid, await self.bot.get_embed_color(ctx.channel), include_footer)
+        include_author = isinstance(ctx, discord.Interaction) and ctx.type == discord.InteractionType.component
+        blackjack = Blackjack(self, author, ctx.channel, bid, await self.bot.get_embed_color(ctx.channel), include_author)
         await blackjack.check_payout()
         view = AgainView(self.blackjack, bid, None, currency_name) if blackjack.is_over() else blackjack
         message = await reply(embed=await blackjack.get_embed(), view=view, allowed_mentions=discord.AllowedMentions.none())
