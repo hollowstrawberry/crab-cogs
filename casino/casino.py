@@ -31,7 +31,7 @@ STARTING = "Starting game..."
 
 
 class Casino(BaseCasinoCog):
-    """Improves the builtin slot command and adds blackjack."""
+    """Gamble virtual currency with Poker, Blackjack, and Slots."""
 
     def __init__(self, bot: Red):
         super().__init__(bot)
