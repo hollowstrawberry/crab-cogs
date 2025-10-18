@@ -16,12 +16,15 @@ class PokerWaitingView(View):
         self.join_button = Button(custom_id=f"poker {game.channel.id} join", label="Join", style=discord.ButtonStyle.success)
         self.leave_button = Button(custom_id=f"poker {game.channel.id} leave", label="Leave", style=discord.ButtonStyle.secondary, disabled=len(game.players_ids) == 1)
         self.start_button = Button(custom_id=f"poker {game.channel.id} start", label="Start", style=discord.ButtonStyle.primary)
+        self.cancel_button = Button(custom_id=f"poker {game.channel.id} cancel", label="Cancel", style=discord.ButtonStyle.danger)
         self.join_button.callback = self.join
         self.leave_button.callback = self.leave
         self.start_button.callback = self.start
+        self.cancel_button.callback = self.cancel
         self.add_item(self.join_button)
         self.add_item(self.leave_button)
         self.add_item(self.start_button)
+        self.add_item(self.cancel_button)
 
     async def join(self, interaction: discord.Interaction):
         assert isinstance(interaction.user, discord.Member)
@@ -59,3 +62,13 @@ class PokerWaitingView(View):
         self.stop()
         await self.game.start_hand()
         await self.game.update_message(interaction)
+
+    async def cancel(self, interaction: discord.Interaction):
+        assert interaction.message and isinstance(interaction.user, discord.Member)
+        if interaction.user.id != self.game.players_ids[0]:
+            return await interaction.response.send_message("Only the dealer can cancel the game.", ephemeral=True)
+        if self.game.state != PokerState.WaitingForPlayers:
+            return await interaction.response.send_message("The game already started.", ephemeral=True)
+        self.stop()
+        await self.game.cancel(interaction.user)
+        await interaction.message.delete()

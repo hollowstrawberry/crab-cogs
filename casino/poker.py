@@ -1,7 +1,7 @@
 import discord
 from typing import List, Optional, Tuple, Dict
 from dataclasses import dataclass, field
-from redbot.core import bank
+from redbot.core import bank, errors
 from redbot.core.utils.chat_formatting import humanize_number
 
 from casino.base import BaseCasinoCog, BasePokerGame
@@ -76,8 +76,7 @@ class PokerGame(BasePokerGame):
         self.players: List[PokerPlayer] = [PokerPlayer(id=p, index=i) for i, p in enumerate(self.players_ids)]
 
     async def save_state(self) -> None:
-        if not self.cog.config:
-            return
+        return
         channel_conf = self.cog.config.channel(self.channel)
         await channel_conf.game.set({
             "table": [str(c) for c in self.table],
@@ -93,7 +92,7 @@ class PokerGame(BasePokerGame):
 
     @property
     def is_finished(self) -> bool:
-        return self.all_hands_finished
+        return self.all_hands_finished or self.is_cancelled
 
     def current_player(self) -> Optional[PokerPlayer]:
         return self.players[self.turn] if self.turn is not None and 0 <= self.turn < len(self.players) else None
@@ -144,6 +143,23 @@ class PokerGame(BasePokerGame):
             return False, "You're already playing."
         self.players.append(PokerPlayer(id=user_id, index=len(self.players)))
         return True, ""
+    
+    async def cancel(self) -> None:
+        if self.is_cancelled:
+            return
+        self.is_cancelled = True
+        if self.message:
+            try:
+                await self.message.delete()
+            except discord.NotFound:
+                pass
+        for player in self.players:
+            if player.total_betted > 0:
+                member = player.member(self)
+                try:
+                    await bank.deposit_credits(member, player.total_betted)
+                except errors.BalanceTooHigh as err:
+                    await bank.set_balance(member, err.max_balance)
 
     def try_remove_player(self, user_id: int) -> Tuple[bool, str]:
         if len(self.players) == 1:
@@ -293,7 +309,11 @@ class PokerGame(BasePokerGame):
 
         per = self.pot // len(self.winners)
         for idx in self.winners:
-            await bank.deposit_credits(self.players[idx].member(self), per)
+            member = self.players[idx].member(self)
+            try:
+                await bank.deposit_credits(member, per)
+            except errors.BalanceTooHigh as err:
+                    await bank.set_balance(member, err.max_balance)
 
         self.pot = 0
         self.all_hands_finished = True

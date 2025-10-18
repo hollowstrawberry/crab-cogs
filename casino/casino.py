@@ -3,15 +3,19 @@ import asyncio
 import discord
 import calendar
 from typing import Optional, Union
+from datetime import datetime
 from redbot.core import commands, app_commands, bank
 from redbot.core.bot import Red
 from redbot.cogs.economy.economy import Economy
 from redbot.core.utils.chat_formatting import humanize_number
+from redbot.core.utils.chat_formatting import humanize_timedelta
 
-from casino.slots import slots
 from casino.base import BaseCasinoCog
+from casino.slots import slots
+from casino.poker import PokerGame
 from casino.blackjack import Blackjack
 from casino.views.again_view import AgainView
+from casino.views.replace_view import ReplaceView
 
 log = logging.getLogger("red.crab-cogs.casino")
 
@@ -19,6 +23,8 @@ old_slot: Optional[commands.Command] = None
 old_payouts: Optional[commands.Command] = None
 
 MAX_CONCURRENT_SLOTS = 3
+POKER_AFK_LIMIT = 15  # minutes
+STARTING = "Starting game..."
 
 
 class Casino(BaseCasinoCog):
@@ -140,6 +146,74 @@ class Casino(BaseCasinoCog):
             await economy.config.member(author).last_slot.set(cur_time)
 
         await slots(self, ctx, bid)
+
+
+    @commands.command(name="poker")
+    @commands.guild_only()
+    async def poker_cmd(self, ctx: commands.Context, starting_bet: int):
+        """Start a new game of Poker with no players and a starting bid."""
+        await self.poker(ctx, starting_bet)
+
+    async def poker(self, ctx: Union[discord.Interaction, commands.Context], starting_bet: int):
+        author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
+        assert ctx.guild and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
+        
+        reply = ctx.reply if isinstance(ctx, commands.Context) else ctx.response.send_message
+
+        if not await bank.can_spend(author, starting_bet):
+            currency_name = await bank.get_currency_name(ctx.guild)
+            return await reply(f"You don't have enough {currency_name} to make that bet.")
+
+        # Game already exists
+        if ctx.channel.id in self.poker_games and not self.poker_games[ctx.channel.id].is_finished:
+            old_game = self.poker_games[ctx.channel.id]
+            try:
+                old_message = await ctx.channel.fetch_message(old_game.message.id) if old_game.message else None # re-fetch
+            except discord.NotFound:
+                old_message = None
+
+            if not old_message:
+                await old_game.update_message()
+                old_message = old_game.message
+                assert old_message
+
+            seconds_passed = int((datetime.now() - old_game.last_interacted).total_seconds())
+            if seconds_passed // 60 >= POKER_AFK_LIMIT:
+                async def callback():
+                    nonlocal ctx, author, old_game
+                    assert isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
+                    await old_game.cancel()
+                    await old_game.update_message()
+                    game = PokerGame(self, [author], ctx.channel, starting_bet)
+                    self.poker_games[ctx.channel.id] = game
+                    await game.update_message()
+
+                content = f"Someone else is playing Checkers in this channel, here: {old_message.jump_url}, " \
+                          f"but {humanize_timedelta(seconds=seconds_passed)} have passed since their last interaction. Do you want to start a new game?"
+                embed = discord.Embed(title="Confirmation", description=content, color=await self.bot.get_embed_color(ctx.channel))
+                view = ReplaceView(self, callback, author)
+                message = await reply(embed=embed, view=view)
+                view.message = message if isinstance(ctx, commands.Context) else await ctx.original_response() # type: ignore
+                return
+            
+            else:
+                content = f"There is still an active game in this channel, here: {old_message.jump_url}\nTry again in a few minutes"
+                permissions = ctx.channel.permissions_for(author)
+                content += " or consider creating a thread." if permissions.create_public_threads or permissions.create_private_threads else "."
+                await reply(content, ephemeral=True)
+                return
+        
+        # New game
+        game = PokerGame(self, [author], ctx.channel, starting_bet)
+        self.poker_games[ctx.channel.id] = game
+        await game.update_message()
+
+        if isinstance(ctx, discord.Interaction):
+            await ctx.response.send_message(STARTING, ephemeral=True)
+        elif ctx.interaction:
+            await ctx.interaction.response.send_message(STARTING, ephemeral=True)
+
+        await game.update_message()
 
 
     @commands.group(name="casinoset", aliases=["setcasino"])  # type: ignore

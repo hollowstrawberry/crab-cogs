@@ -1,7 +1,7 @@
 import random
 import discord
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 from datetime import datetime
 from redbot.core import Config, commands
 from redbot.core.bot import Red
@@ -13,6 +13,7 @@ from casino.utils import MAX_PLAYERS, PokerState
 class BaseCasinoCog(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
+        self.poker_games: Dict[int, BasePokerGame] = {}
         self.config = Config.get_conf(self, identifier=766962065)
         default_config = {
             "bjmin": 10,
@@ -53,8 +54,9 @@ class BasePokerGame(ABC):
         self.turn: Optional[int] = None  # index of current player
         self.winners: List[int] = []  # indices of winners
         self.all_hands_finished: bool = False
-        self.last_interacted: Optional[datetime] = None
+        self.last_interacted: datetime = datetime.now()
         self.message: Optional[discord.Message] = None
+        self.is_cancelled = False
 
     @abstractmethod
     async def update_message(self, interaction: Optional[discord.Interaction] = None):
@@ -72,13 +74,18 @@ class BasePokerGame(ABC):
     def try_remove_player(self, user_id: int) -> Tuple[bool, str]:
         pass
 
+    @abstractmethod
+    async def cancel(self) -> None:
+        pass
+
     @property
     @abstractmethod
     def can_check(self) -> bool:
         pass
 
+    @property
     @abstractmethod
-    async def cancel(self, member: Optional[discord.Member]) -> None:
+    def is_finished(self) -> bool:
         pass
 
     @abstractmethod
