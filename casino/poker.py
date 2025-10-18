@@ -303,10 +303,12 @@ class PokerGame(BasePokerGame):
 
         additional = await current.bet(self, bet)
         if additional == 0:
+            await self.advance_turn()
             return
 
         self.pot += additional
-        current.state = PlayerState.AllIn if current.state == PlayerState.AllIn else PlayerState.Betted
+        if current.state != PlayerState.AllIn:
+            current.state = PlayerState.Betted
         self.current_bet = max(self.current_bet, current.current_bet)
 
         for p in self.players:
