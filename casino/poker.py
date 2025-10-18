@@ -476,7 +476,7 @@ class PokerGame(BasePokerGame):
         embed = await self.get_embed()
 
         if interaction:
-            await interaction.edit_original_response(content=content, embed=embed, view=view)
+            await interaction.response.edit_message(content=content, embed=embed, view=view)
         else:
             old_message = self.message
             self.message = await self.channel.send(content=content, embed=embed, view=view)
