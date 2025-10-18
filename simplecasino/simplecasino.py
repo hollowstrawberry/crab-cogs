@@ -354,7 +354,7 @@ async def setup(bot: Red):
             bot.remove_command(old_slot.name)
         if old_payouts := bot.get_command("payouts"):
             bot.remove_command(old_payouts.name)
-        if old_blackjack := bot.get_command("blackjack"):
+        if old_blackjack := bot.get_command("blackjack"):  # so we can load this cog alongside jumper-plugins's casino
             bot.remove_command(old_blackjack.name)
 
         await bot.add_cog(SimpleCasino(bot))
