@@ -61,13 +61,14 @@ class SimpleCasino(BaseCasinoCog):
 
         # Load custom emojis into the current application.
         all_emojis = await self.bot.fetch_application_emojis()
-        if len(all_emojis) < MAX_APP_EMOJIS:
-            for emoji_name in ("dealer", "smallblind", "bigblind", "spades", "clubs"):
-                if not any(emoji.name == emoji_name for emoji in all_emojis) or not await self.config.__getattr__("emoji_" + emoji_name)():
-                    async with aiofiles.open(bundled_data_path(self) / f"{emoji_name}.png", "rb") as fp:
-                        image = await fp.read()
-                    emoji = await self.bot.create_application_emoji(name=emoji_name, image=image)
-                    await self.config.__getattr__("emoji_" + emoji_name).set(str(emoji))
+        for emoji_name in ("dealer", "smallblind", "bigblind", "spades", "clubs"):
+            emoji = next((emoji for emoji in all_emojis if emoji.name == emoji_name), None)
+            if not emoji and len(all_emojis) < MAX_APP_EMOJIS:
+                async with aiofiles.open(bundled_data_path(self) / f"{emoji_name}.png", "rb") as fp:
+                    image = await fp.read()
+                emoji = await self.bot.create_application_emoji(name=emoji_name, image=image)
+            await self.config.__getattr__("emoji_" + emoji_name).set(str(emoji) if emoji is not None else emoji_name)
+
 
     def cog_unload(self):
         global old_slot, old_payouts
