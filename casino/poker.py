@@ -416,6 +416,7 @@ class PokerGame(BasePokerGame):
 
         # pre-game summary
         if self.state == PokerState.WaitingForPlayers:
+            desc_lines.append(f"**💵 Starting bet:** {humanize_number(self.minimum_bet)} {currency_name}\n")
             for p in self.players:
                 desc_lines.append(f"<@{p.id}> {player_emojis[p.type]}")
             embed.description = "\n".join(desc_lines)
