@@ -233,16 +233,14 @@ class Casino(BaseCasinoCog):
                 await reply(content, ephemeral=True)
                 return
         
-        # New game
-        game = PokerGame(self, [author], ctx.channel, starting_bet)
-        self.poker_games[ctx.channel.id] = game
-        await game.update_message()
-
         if isinstance(ctx, discord.Interaction):
             await ctx.response.send_message(STARTING, ephemeral=True)
         elif ctx.interaction:
             await ctx.interaction.response.send_message(STARTING, ephemeral=True)
 
+        # New game
+        game = PokerGame(self, [author], ctx.channel, starting_bet)
+        self.poker_games[ctx.channel.id] = game
         await game.update_message()
 
 
