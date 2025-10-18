@@ -26,7 +26,7 @@ old_slot: Optional[commands.Command] = None
 old_payouts: Optional[commands.Command] = None
 
 MAX_CONCURRENT_SLOTS = 3
-POKER_AFK_LIMIT = 15  # minutes
+POKER_AFK_LIMIT = 0  # minutes
 STARTING = "Starting game..."
 
 
@@ -50,10 +50,9 @@ class Casino(BaseCasinoCog):
                 if not game_config:
                     continue
                 game = await PokerGame.from_config(self, channel, game_config)
-                if game.players:
-                    self.poker_games[cid] = game
-                    if game.view:
-                        self.bot.add_view(game.view)
+                self.poker_games[cid] = game
+                if game.view:
+                    self.bot.add_view(game.view)
             except Exception:
                 log.error(f"Loading game in {cid}", exc_info=True)
 

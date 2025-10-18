@@ -89,10 +89,8 @@ class PokerGame(BasePokerGame):
         if self.is_finished:
             await channel_conf.game.set({})
         else:
-            players_json = json.dumps([p.to_dict(encode_json=True) for p in self.players])
-            log.info(f"{players_json = }")
             await channel_conf.game.set({
-                "players": players_json,
+                "players": json.dumps([p.to_dict(encode_json=True) for p in self.players]),
                 "table": json.dumps([c.to_dict(encode_json=True) for c in self.table]),
                 "deck": json.dumps([c.to_dict(encode_json=True) for c in self.deck]),
                 "state": int(self.state),
@@ -108,11 +106,8 @@ class PokerGame(BasePokerGame):
     @staticmethod
     async def from_config(cog: BaseCasinoCog, channel: Union[discord.TextChannel, discord.Thread], config: dict) -> "PokerGame":
         game = PokerGame(cog, [], channel, config["minimum_bet"])
-        players = config["players"]
-        log.info(f"{players = }")
-        dictplayers = json.loads(players)
-        log.info(f"{dictplayers = }")
-        game.players = [PokerPlayer.from_dict(p) for p in dictplayers]
+        game.players = [PokerPlayer.from_dict(p) for p in json.loads(config["players"])]
+        game.players_ids = [p.id for p in game.players]
         game.table = [Card.from_dict(c) for c in json.loads(config["table"])]
         game.deck = [Card.from_dict(c) for c in json.loads(config["deck"])]
         game.state = PokerState(config["state"])
