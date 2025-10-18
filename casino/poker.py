@@ -110,7 +110,9 @@ class PokerGame(BasePokerGame):
         game = PokerGame(cog, [], channel, config["minimum_bet"])
         players = config["players"]
         log.info(f"{players = }")
-        game.players = [PokerPlayer.from_dict(p) for p in json.loads(players)]
+        dictplayers = json.loads(players)
+        log.info(f"{dictplayers = }")
+        game.players = [PokerPlayer.from_dict(p) for p in dictplayers]
         game.table = [Card.from_dict(c) for c in json.loads(config["table"])]
         game.deck = [Card.from_dict(c) for c in json.loads(config["deck"])]
         game.state = PokerState(config["state"])
