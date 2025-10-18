@@ -6,7 +6,7 @@
     "hidden": false,
     "install_msg": "🎰 __**Casino**__\n\n```Cog installed. Instructions:\n1. Load it with [p]load casino\n2. Optionally, enable slash commands with [p]slash enablecog casino\n  2.1. Then do [p]slash sync\n  2.2. Then restart Discord.\n3. Configure with [p]casinoset```",
     "required_cogs": {},
-    "requirements": [],
+    "requirements": ["aiofiles"],
     "short": "Improves the builtin slot command and adds blackjack.",
     "end_user_data_statement": "This cog does not store user data.",
     "tags": ["crab", "game", "economy", "casino", "gambling", "blacjkack", "slot", "slots", "slot machine"]

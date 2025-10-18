@@ -21,8 +21,15 @@ class BaseCasinoCog(commands.Cog):
             "bjtime": 5,
             "coinfreespin": True,
         }
+        emojis_config = {
+            "emoji_dealer": "",
+            "emoji_smallblind": "",
+            "emoji_bigblind": "",
+            "emoji_spades": "",
+            "emoji_clubs": "",
+        }
         self.config.register_guild(**default_config)
-        self.config.register_global(**default_config)
+        self.config.register_global(**default_config, **emojis_config)
 
     @abstractmethod
     async def slot(self, ctx: Union[discord.Interaction, commands.Context], bid: int):

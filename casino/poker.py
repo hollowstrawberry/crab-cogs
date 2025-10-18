@@ -327,17 +327,18 @@ class PokerGame(BasePokerGame):
         return {
             CardSuit.HEARTS: "♥️",
             CardSuit.DIAMONDS: "♦️",
-            CardSuit.SPADES: "♠️",
-            CardSuit.CLUBS: "♣️",
+            CardSuit.SPADES: await self.cog.config.emoji_spades(),
+            CardSuit.CLUBS: await self.cog.config.emoji_clubs(),
         }
     
     async def get_player_type_emojis(self):
         return {
-            PlayerType.Dealer: "(D)",
-            PlayerType.SmallBlind: "(SB)",
-            PlayerType.BigBlind: "(BB)",
+            PlayerType.Dealer: await self.cog.config.emoji_dealer(),
+            PlayerType.SmallBlind: await self.cog.config.emoji_smallblind(),
+            PlayerType.BigBlind: await self.cog.config.emoji_bigblind(),
             PlayerType.Normal: "",
         }
+
 
     async def get_embed(self) -> discord.Embed:
         SUIT_EMOJIS = await self.get_suit_emojis()
@@ -458,6 +459,7 @@ class PokerGame(BasePokerGame):
             embed.set_thumbnail(url=thumbnail_url)
         return embed
     
+
     async def update_message(self, interaction: Optional[discord.Interaction] = None):
         content = None
         if self.state == PokerState.WaitingForPlayers:

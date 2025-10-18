@@ -2,10 +2,12 @@ import logging
 import asyncio
 import discord
 import calendar
+import aiofiles
 from typing import Optional, Union
 from datetime import datetime
 from redbot.core import commands, app_commands, bank
 from redbot.core.bot import Red
+from redbot.core.data_manager import bundled_data_path
 from redbot.cogs.economy.economy import Economy
 from redbot.core.utils.chat_formatting import humanize_number
 from redbot.core.utils.chat_formatting import humanize_timedelta
@@ -33,6 +35,34 @@ class Casino(BaseCasinoCog):
     def __init__(self, bot: Red):
         super().__init__(bot)
         self.concurrent_slots = 0
+
+    async def cog_load(self) -> None:
+        # Load custom emojis into the current application
+        if not await self.config.emoji_dealer():
+            async with aiofiles.open(bundled_data_path(self) / "dealer.png", "rb") as fp:
+                image_dealer = await fp.read()
+            emoji_dealer = await self.bot.create_application_emoji(name="dealer", image=image_dealer)
+            await self.config.emoji_dealer.set(str(emoji_dealer))
+        if not await self.config.emoji_smallblind():
+            async with aiofiles.open(bundled_data_path(self) / "smallblind.png", "rb") as fp:
+                image_smallblind = await fp.read()
+            emoji_smallblind = await self.bot.create_application_emoji(name="smallblind", image=image_smallblind)
+            await self.config.emoji_smallblind.set(str(emoji_smallblind))
+        if not await self.config.emoji_bigblind():
+            async with aiofiles.open(bundled_data_path(self) / "bigblind.png", "rb") as fp:
+                image_bigblind = await fp.read()
+            emoji_bigblind = await self.bot.create_application_emoji(name="bigblind", image=image_bigblind)
+            await self.config.emoji_bigblind.set(str(emoji_bigblind))
+        if not await self.config.emoji_spades():
+            async with aiofiles.open(bundled_data_path(self) / "spades.png", "rb") as fp:
+                image_spades = await fp.read()
+            emoji_spades = await self.bot.create_application_emoji(name="spades", image=image_spades)
+            await self.config.emoji_spades.set(str(emoji_spades))
+        if not await self.config.emoji_clubs():
+            async with aiofiles.open(bundled_data_path(self) / "clubs.png", "rb") as fp:
+                image_clubs = await fp.read()
+            emoji_clubs = await self.bot.create_application_emoji(name="clubs", image=image_clubs)
+            await self.config.emoji_clubs.set(str(emoji_clubs))
 
     def cog_unload(self):
         global old_slot, old_payouts

@@ -1,6 +1,7 @@
 
 
 
+import re
 import discord
 from redbot.core.utils.chat_formatting import humanize_number
 
@@ -59,8 +60,9 @@ class PokerView(discord.ui.View):
         self.add_item(self.view_button)
         self.add_item(self.bump_button)
 
+        currency_name = re.sub(r"<a?:(\w+):\d+>", r"\1", currency_name)  # extract emoji name
         raise_values = [game.minimum_bet * (RAISE_BET_FACTOR ** x) for x in range(MAX_OPTIONS)]  # multiply each consecutive step by the factor
-        raise_values = [val // 10 * 10 if val > 100 else val for val in raise_values if val > game.current_bet and val < cur_player_money]  # round to tens and only include what the user can pay
+        raise_values = [int(val // 10) * 10 if val > 100 else int(val) for val in raise_values if val > game.current_bet and val < cur_player_money]  # round to tens and only include what the user can pay
         raise_options = [discord.SelectOption(label=f"{humanize_number(val)} {currency_name}", value=f"{val}") for val in raise_values]
         self.raise_select = discord.ui.Select(
             custom_id=f"poker {game.channel.id} raise",
