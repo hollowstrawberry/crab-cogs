@@ -122,8 +122,8 @@ class SimpleCasino(BaseCasinoCog):
         blackjack = Blackjack(self, author, ctx.channel, bid, await self.bot.get_embed_color(ctx.channel))
         await blackjack.check_payout()
         view = AgainView(self.blackjack, bid, None, currency_name) if blackjack.is_over() else blackjack
-        content = f"-# {author.mention} pressed a button" if isinstance(ctx, discord.Interaction) and ctx.type == discord.InteractionType.component else None
-        message = await reply(content=content, embed=await blackjack.get_embed(), view=view, allowed_mentions=discord.AllowedMentions.none())
+        include_author = isinstance(ctx, discord.Interaction) and ctx.type == discord.InteractionType.component
+        message = await reply(embed=await blackjack.get_embed(include_author), view=view, allowed_mentions=discord.AllowedMentions.none())
         if isinstance(view, AgainView):
             view.message = message if isinstance(ctx, commands.Context) else await ctx.original_response()  # type: ignore
 
@@ -279,11 +279,11 @@ class SimpleCasino(BaseCasinoCog):
     @commands.group(name="simplecasinoset", aliases=["setcasino"])  # type: ignore
     @commands.admin_or_permissions(manage_guild=True)
     @bank.is_owner_if_bank_global()
-    async def casinoset(self, _: commands.Context):
+    async def simplecasinoset(self, _: commands.Context):
         """Settings for the SimpleCasino cog."""
         pass
 
-    @casinoset.command(name="bjmin", aliases=["blackjackmin"])
+    @simplecasinoset.command(name="bjmin", aliases=["blackjackmin"])
     async def casinoset_bjmin(self, ctx: commands.Context, bid: Optional[int]):
         """The minimum bid for blackjack."""
         assert ctx.guild
@@ -298,7 +298,7 @@ class SimpleCasino(BaseCasinoCog):
         await config_bjmin.set(bid)
         await ctx.send(f"New minimum bid for Blackjack is {bid} {currency}.")
 
-    @casinoset.command(name="bjmax", aliases=["blackjackmax"])
+    @simplecasinoset.command(name="bjmax", aliases=["blackjackmax"])
     async def casinoset_bjmax(self, ctx: commands.Context, bid: Optional[int]):
         """The maximum bid for blackjack."""
         assert ctx.guild
@@ -313,7 +313,7 @@ class SimpleCasino(BaseCasinoCog):
         await config_bjmax.set(bid)
         await ctx.send(f"New maximum bid for Blackjack is {bid} {currency}.")
 
-    @casinoset.command(name="pokermin")
+    @simplecasinoset.command(name="pokermin")
     async def casinoset_pokermin(self, ctx: commands.Context, bet: Optional[int]):
         """The minimum bet for Poker."""
         assert ctx.guild
@@ -328,7 +328,7 @@ class SimpleCasino(BaseCasinoCog):
         await config_pokermin.set(bet)
         await ctx.send(f"New minimum bet in Poker is {bet} {currency}.")
 
-    @casinoset.command(name="coinfreespin")
+    @simplecasinoset.command(name="coinfreespin")
     @bank.is_owner_if_bank_global()
     async def casinoset_coinfreespin(self, ctx: commands.Context):
         """

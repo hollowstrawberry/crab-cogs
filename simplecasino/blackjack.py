@@ -98,7 +98,7 @@ class Blackjack(discord.ui.View):
         else:
             return 2 * self.bid
 
-    async def get_embed(self) -> discord.Embed:
+    async def get_embed(self, include_author = False) -> discord.Embed:
         currency_name = await bank.get_currency_name(self.channel.guild)
         dealer_str = " ".join("⬇️" if self.facedown and i == 1 else CARD_EMOJI[card.value] for i, card in enumerate(self.dealer))
         hand_str = " ".join(CARD_EMOJI[card.value] for card in self.hand)
@@ -119,6 +119,8 @@ class Blackjack(discord.ui.View):
                 embed.title = "💀 Blackjack (Lost)"
         else:
             embed.title = "Blackjack"
+        if include_author:
+            embed.set_author(name=self.player.display_name, icon_url=self.player.display_avatar.url)
         return embed
     
     async def dealer_turn(self, interaction: discord.Interaction):
