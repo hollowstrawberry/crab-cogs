@@ -334,10 +334,11 @@ class PokerGame(BasePokerGame):
             if active_non_folded and not pending_non_allin:
                 self.state = PokerState(min(self.state.value + 1, PokerState.Showdown.value))
                 self.current_bet = 0
-                for p in self.players:
-                    if p.state not in (PlayerState.Folded, PlayerState.AllIn):
-                        p.state = PlayerState.Pending
-                        p.current_bet = 0
+                if len(non_allin_active) > 1:
+                    for p in self.players:
+                        if p.state not in (PlayerState.Folded, PlayerState.AllIn):
+                            p.state = PlayerState.Pending
+                            p.current_bet = 0
                 # deal cards
                 if self.state == PokerState.Flop:
                     self.deck.pop()
