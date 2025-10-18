@@ -184,10 +184,11 @@ class Casino(BaseCasinoCog):
         await slots(self, ctx, bid)
 
 
-    @commands.command(name="poker")
+    @commands.hybrid_command(name="poker")
     @commands.guild_only()
+    @app_commands.describe(starting_bed="This bet may increase during the game.")
     async def poker_cmd(self, ctx: commands.Context, starting_bet: int):
-        """Start a new game of Poker with no players and a starting bid."""
+        """Start a new game of Poker with no players."""
         assert isinstance(ctx.author, discord.Member)
         await self.poker(ctx, [ctx.author], starting_bet)
 
