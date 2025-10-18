@@ -1,6 +1,7 @@
 from enum import Enum
 from itertools import product
 from dataclasses import dataclass
+from dataclasses_json import DataClassJsonMixin
 
 
 class CardValue(Enum):
@@ -60,7 +61,7 @@ CARD_VALUE_STR = {
 
 
 @dataclass(frozen=True)
-class Card:
+class Card(DataClassJsonMixin):
     value: CardValue
     suit: CardSuit
 
@@ -70,8 +71,10 @@ class Card:
 
     def __str__(self):
         return f"{CARD_VALUE_STR[self.value]}{self.suit.value}"
+    
+    def __repr__(self):
+        return self.__str__()
 
 
 def make_deck():
     return [Card(value, color) for value, color in product(CardValue, CardSuit)]
-

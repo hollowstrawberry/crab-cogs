@@ -1,8 +1,10 @@
 import json
+import logging
 import discord
 from typing import List, Optional, Tuple, Dict, Union
 from datetime import datetime
 from dataclasses import dataclass, field
+from dataclasses_json import DataClassJsonMixin
 from redbot.core import bank, errors
 from redbot.core.utils.chat_formatting import humanize_number
 
@@ -13,9 +15,11 @@ from casino.utils import (HandType, PlayerState, PlayerType, PokerState, Insuffi
 from casino.views.poker_view import PokerView
 from casino.views.poker_waiting_view import PokerWaitingView
 
+log = logging.getLogger("red.crab-cogs.casino")
+
 
 @dataclass
-class HandResult:
+class HandResult(DataClassJsonMixin):
     type: HandType
     cards: List[Card]
 
@@ -37,7 +41,7 @@ class HandResult:
 
 
 @dataclass
-class PokerPlayer:
+class PokerPlayer(DataClassJsonMixin):
     id: int
     index: int
     type: PlayerType = field(init=False)
@@ -85,10 +89,12 @@ class PokerGame(BasePokerGame):
         if self.is_finished:
             await channel_conf.game.set({})
         else:
+            players_json = json.dumps([p.to_dict() for p in self.players])
+            log.info(players_json)
             await channel_conf.game.set({
-                "table": json.dumps(self.table),
-                "players": json.dumps(self.players),
-                "deck": json.dumps(self.deck),
+                "table": json.dumps([c.to_dict() for c in self.table]),
+                "players": players_json,
+                "deck": json.dumps([c.to_dict() for c in self.deck]),
                 "state": int(self.state),
                 "minimum_bet": self.minimum_bet,
                 "current_bet": self.current_bet,
@@ -102,9 +108,9 @@ class PokerGame(BasePokerGame):
     @staticmethod
     async def from_config(cog: BaseCasinoCog, channel: Union[discord.TextChannel, discord.Thread], config: dict) -> "PokerGame":
         game = PokerGame(cog, [], channel, config["minimum_bet"])
-        game.table = json.loads(config["table"])
-        game.players = json.loads(config["players"])
-        game.deck = json.loads(config["deck"])
+        game.table = [Card.from_dict(c) for c in json.loads(config["table"])]
+        game.players = [PokerPlayer.from_dict(p) for p in json.loads(config["players"])]
+        game.deck = [Card.from_dict(c) for c in json.loads(config["deck"])]
         game.state = PokerState(config["state"])
         game.current_bet = config["current_bet"]
         game.turn = config["turn"]
