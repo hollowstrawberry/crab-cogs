@@ -14,7 +14,7 @@ class PokerRematchView(discord.ui.View):
     @discord.ui.button(label="Play another round", style=discord.ButtonStyle.primary)
     async def rematch(self, interaction: discord.Interaction, _):
         if interaction.user.id not in self.game.players_ids:
-            return await interaction.response.send_message("You didn't participate in this game.", ephemeral=True)
+            return await interaction.response.send_message("You didn't participate in this game, but you could start a new one.", ephemeral=True)
         members = [self.game.channel.guild.get_member(uid) for uid in self.game.players_ids]
         members = [m for m in members if m]
         if len(members) < 2:

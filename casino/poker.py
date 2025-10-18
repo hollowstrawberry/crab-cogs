@@ -525,10 +525,10 @@ class PokerGame(BasePokerGame):
                     decorator = f"👑 "
 
                 if player.state != PlayerState.Folded:
-                    content_lines.append(f"`🖐` {' '.join(card_str(c) for c in player.hand)}")
                     if player.hand_result is not None:
-                        content_lines.append(f"`➡️` {' '.join(card_str(c) for c in player.hand_result.cards)}")
+                        content_lines.append(" ".join(card_str(c) for c in player.hand_result.cards))
                         content_lines.append(f"`📜` {humanize_camel_case(player.hand_result.type.name).title()}")
+                    content_lines.append(f"`🖐` {' '.join(card_str(c) for c in player.hand)}")
 
                 if player in winners:
                     content_lines.append(f"`💵` +{humanize_number(player.winnings - player.total_betted)} {currency_name}")
