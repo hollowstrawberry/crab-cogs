@@ -277,7 +277,7 @@ class PokerGame(BasePokerGame):
         if any(p for p in self.players if p.state != PlayerState.Folded) and all(p.state != PlayerState.Pending for p in self.players if p.state != PlayerState.Folded):
             # advance the state
             self.state = PokerState(min(self.state.value + 1, PokerState.Showdown.value))
-            self.current_bet = self.minimum_bet
+            self.current_bet = 0
             for p in self.players:
                 if p.state != PlayerState.Folded:
                     p.state = PlayerState.Pending
