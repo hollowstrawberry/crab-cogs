@@ -82,6 +82,7 @@ class PokerPlayer(DataClassJsonMixin):
             await bank.withdraw_credits(member, bal)
             self.total_betted += bal
             self.current_bet += bal
+            self.state = PlayerState.AllIn
             return bal
 
         # normal bet
@@ -305,11 +306,11 @@ class PokerGame(BasePokerGame):
             return
 
         self.pot += additional
-        current.state = PlayerState.Betted
+        current.state = PlayerState.AllIn if current.state == PlayerState.AllIn else PlayerState.Betted
         self.current_bet = max(self.current_bet, current.current_bet)
 
         for p in self.players:
-            if p.state != PlayerState.Folded and p.current_bet < self.current_bet:
+            if p.state not in (PlayerState.Folded, PlayerState.AllIn) and p.current_bet < self.current_bet:
                 p.state = PlayerState.Pending
 
         # live blind
@@ -322,28 +323,39 @@ class PokerGame(BasePokerGame):
 
     async def advance_turn(self) -> None:
         self.last_interacted = datetime.now()
-        if any(p for p in self.players if p.state != PlayerState.Folded) and all(p.state != PlayerState.Pending for p in self.players if p.state != PlayerState.Folded):
-            # advance the state
-            self.state = PokerState(min(self.state.value + 1, PokerState.Showdown.value))
-            self.current_bet = 0
-            for p in self.players:
-                if p.state != PlayerState.Folded:
-                    p.state = PlayerState.Pending
-                    p.current_bet = 0
-            # deal cards according to state
-            if self.state == PokerState.Flop:
-                self.deck.pop()
-                for _ in range(3):
-                    self.table.append(self.deck.pop())
-            elif self.state in (PokerState.Turn, PokerState.River):
-                self.deck.pop()
-                self.table.append(self.deck.pop())
-            elif self.state == PokerState.Showdown:
-                await self.end_hand()
-                return
 
+        # keep advancing rounds while there are no non-all-in pending players
+        while True:
+            any_not_folded = any(p for p in self.players if p.state != PlayerState.Folded)
+            none_pending = all(p.state != PlayerState.Pending for p in self.players if p.state not in (PlayerState.Folded, PlayerState.AllIn))
+            if any_not_folded and none_pending:
+                self.state = PokerState(min(self.state.value + 1, PokerState.Showdown.value))
+                self.current_bet = 0
+                for p in self.players:
+                    if p.state not in (PlayerState.Folded, PlayerState.AllIn):
+                        p.state = PlayerState.Pending
+                        p.current_bet = 0
+                # deal cards
+                if self.state == PokerState.Flop:
+                    self.deck.pop()
+                    for _ in range(3):
+                        self.table.append(self.deck.pop())
+                elif self.state in (PokerState.Turn, PokerState.River):
+                    self.deck.pop()
+                    self.table.append(self.deck.pop())
+                elif self.state == PokerState.Showdown:
+                    await self.end_hand()
+                    return
+                continue  # keep going
+            break
+
+        found = False
         if self.turn is None:
-            self.turn = 0
+            for i, p in enumerate(self.players):
+                if p.state == PlayerState.Pending:
+                    self.turn = i
+                    found = True
+                    break
         else:
             start = self.turn
             n = len(self.players)
@@ -351,7 +363,11 @@ class PokerGame(BasePokerGame):
                 idx = (start + i) % n
                 if self.players[idx].state == PlayerState.Pending:
                     self.turn = idx
+                    found = True
                     break
+
+        if not found:
+            self.turn = None
 
         await self.save_state()
 
@@ -359,6 +375,7 @@ class PokerGame(BasePokerGame):
         if force_winner:
             self.winners = [force_winner.index]
             force_winner.winnings += self.pot
+            self.state = PokerState.Showdown  # ui
             member = force_winner.member(self)
             if self.pot > 0:
                 try:

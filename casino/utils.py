@@ -22,6 +22,7 @@ class PlayerState(Enum):
     Folded = auto()
     Betted = auto()
     Checked = auto()
+    AllIn = auto()
 
 
 class PlayerType(Enum):
