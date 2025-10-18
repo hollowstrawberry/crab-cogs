@@ -38,7 +38,23 @@ class Casino(BaseCasinoCog):
         self.concurrent_slots = 0
 
     async def cog_load(self) -> None:
-        # Load custom emojis into the current application
+        # Load existing games
+        all_channels = await self.config.all_channels()
+        for cid, conf in all_channels.items():
+            try:
+                channel = self.bot.get_channel(cid)
+                assert isinstance(channel, (discord.TextChannel, discord.Thread))
+                if not channel:
+                    continue
+                game_config = conf.get("game", {})
+                if not game_config:
+                    continue
+                game = await PokerGame.from_config(self, channel, game_config)
+                self.poker_games[cid] = game
+            except Exception:
+                log.error(f"Loading game in {cid}", exc_info=True)
+
+        # Load custom emojis into the current application. I don't want to touch this honestly.
         if not await self.config.emoji_dealer():
             async with aiofiles.open(bundled_data_path(self) / "dealer.png", "rb") as fp:
                 image_dealer = await fp.read()
@@ -67,6 +83,9 @@ class Casino(BaseCasinoCog):
 
     def cog_unload(self):
         global old_slot, old_payouts
+        for game in self.poker_games.values():
+            if game.view:
+                game.view.stop()
         if old_slot:
             self.bot.remove_command(old_slot.name)
             self.bot.add_command(old_slot)

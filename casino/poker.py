@@ -1,5 +1,6 @@
+import json
 import discord
-from typing import List, Optional, Tuple, Dict
+from typing import List, Optional, Tuple, Dict, Union
 from datetime import datetime
 from dataclasses import dataclass, field
 from redbot.core import bank, errors
@@ -75,23 +76,48 @@ class PokerPlayer:
 
 
 class PokerGame(BasePokerGame):
-    def __init__(self, cog: BaseCasinoCog, players: List[discord.Member], channel: discord.TextChannel, minimum_bet: int = 10):
+    def __init__(self, cog: BaseCasinoCog, players: List[discord.Member], channel: Union[discord.TextChannel, discord.Thread], minimum_bet: int):
         super().__init__(cog, players, channel, minimum_bet)
         self.players: List[PokerPlayer] = [PokerPlayer(id=p, index=i) for i, p in enumerate(self.players_ids)]
 
     async def save_state(self) -> None:
         channel_conf = self.cog.config.channel(self.channel)
-        await channel_conf.game.set({
-            "table": [str(c) for c in self.table],
-            "players": [p.id for p in self.players],
-            "player_states": [p.state.name for p in self.players],
-            "player_total_betted": [p.total_betted for p in self.players],
-            "player_current_bet": [p.current_bet for p in self.players],
-            "state": int(self.state),
-            "minimum_bet": self.minimum_bet,
-            "current_bet": self.current_bet,
-            "pot": self.pot,
-        })
+        if self.is_finished:
+            await channel_conf.game.set({})
+        else:
+            await channel_conf.game.set({
+                "table": json.dumps(self.table),
+                "players": json.dumps(self.players),
+                "deck": json.dumps(self.deck),
+                "state": int(self.state),
+                "minimum_bet": self.minimum_bet,
+                "current_bet": self.current_bet,
+                "pot": self.pot,
+                "turn": self.turn,
+                "winners": self.winners,
+                "finished": self.all_hands_finished,
+                "message": self.message.id if self.message else None
+            })
+
+    @staticmethod
+    async def from_config(cog: BaseCasinoCog, channel: Union[discord.TextChannel, discord.Thread], config: dict) -> "PokerGame":
+        game = PokerGame(cog, [], channel, config["minimum_bet"])
+        game.table = json.loads(config["table"])
+        game.players = json.loads(config["players"])
+        game.deck = json.loads(config["deck"])
+        game.state = PokerState(config["state"])
+        game.current_bet = config["current_bet"]
+        game.turn = config["turn"]
+        game.winners = config["winners"]
+        game.all_hands_finished = config["finished"]
+        if config["message"]:
+            try:
+                game.message = await channel.fetch_message(config["message"])
+            except discord.NotFound:
+                pass
+        game.view = await game.get_view()
+        cog.bot.add_view(game.view)
+        return game
 
     @property
     def is_finished(self) -> bool:
@@ -169,6 +195,7 @@ class PokerGame(BasePokerGame):
         if self.is_cancelled:
             return
         self.is_cancelled = True
+        await self.save_state()
         if self.message:
             try:
                 await self.message.delete()
@@ -470,35 +497,41 @@ class PokerGame(BasePokerGame):
         return embed
     
 
-    async def update_message(self, interaction: Optional[discord.Interaction] = None):
-        content = None
+    async def get_view(self):
         if self.state == PokerState.WaitingForPlayers:
-            view = PokerWaitingView(self)
+            return PokerWaitingView(self)
         elif self.is_finished:
-            view = discord.ui.View()
+            return discord.ui.View(timeout=0)
         else:
             if self.turn is None or not 0 <= self.turn < len(self.players):
                 raise ValueError("Invalid turn during game")
             cur_player = self.players[self.turn]
             money = await bank.get_balance(cur_player.member(self))
             currency_name = await bank.get_currency_name(self.channel.guild)
-            view = PokerView(self, money, cur_player.current_bet, currency_name)
-            content = cur_player.member(self).mention
+            return PokerView(self, money, cur_player.current_bet, currency_name)
+    
 
+    async def update_message(self, interaction: Optional[discord.Interaction] = None):
+        content = None
+        if self.state != PokerState.WaitingForPlayers and not self.is_finished and self.turn is not None and 0 <= len(self.players):
+            content = self.players[self.turn].member(self).mention
+        
+        self.view = await self.get_view()
         embed = await self.get_embed()
 
         if interaction:
-            await interaction.response.edit_message(content=content, embed=embed, view=view)
+            await interaction.response.edit_message(content=content, embed=embed, view=self.view)
         else:
             old_message = self.message
-            self.message = await self.channel.send(content=content, embed=embed, view=view)
+            self.message = await self.channel.send(content=content, embed=embed, view=self.view)
             if old_message:
                 try:
                     await old_message.delete()
                 except discord.NotFound:
                     pass
 
-        self.view = view
+        async with self.cog.config.channel(self.channel).game() as game:
+            game["message"] = self.message.id if self.message else None
     
 
     async def send_cards(self, interaction: discord.Interaction) -> None:
@@ -510,7 +543,6 @@ class PokerGame(BasePokerGame):
         embed.description = " ".join(f"{CARD_VALUE_STR[card.value]}{SUIT_EMOJIS[card.suit]}" for card in player.hand)
         embed.set_author(name="Here are your cards", icon_url=interaction.user.display_avatar.url)
         await interaction.response.send_message(embed=embed, ephemeral=True)
-
 
 
 

@@ -29,6 +29,10 @@ class BaseCasinoCog(commands.Cog):
             "emoji_spades": "",
             "emoji_clubs": "",
         }
+        channel_config = {
+            "game": {},
+        }
+        self.config.register_channel(**channel_config)
         self.config.register_guild(**default_config)
         self.config.register_global(**default_config, **emojis_config)
 
@@ -46,7 +50,7 @@ class BasePokerGame(ABC):
         self,
         cog: BaseCasinoCog,
         players: List[discord.Member],
-        channel: discord.TextChannel,
+        channel: Union[discord.TextChannel, discord.Thread],
         minimum_bet: int = 0,
     ):
         self.cog = cog
@@ -64,6 +68,7 @@ class BasePokerGame(ABC):
         self.all_hands_finished: bool = False
         self.last_interacted: datetime = datetime.now()
         self.message: Optional[discord.Message] = None
+        self.view: Optional[discord.ui.View] = None
         self.is_cancelled = False
 
     @abstractmethod
