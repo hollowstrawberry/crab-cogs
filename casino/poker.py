@@ -515,25 +515,24 @@ class PokerGame(BasePokerGame):
 
 
 def is_straight(original_cards: List[Card]) -> Tuple[bool, Optional[Card]]:
-    highest = None
     if len(original_cards) < 5:
         return False, None
-    cards = sorted({c.value: c for c in original_cards}.values(), key=lambda c: c.value.value)
-    vals = [c.value for c in cards]
 
-    if set([CardValue.TEN, CardValue.JACK, CardValue.QUEEN, CardValue.KING, CardValue.ACE]).issubset(set(vals)):
-        highest = next((c for c in cards if c.value == CardValue.ACE), None)
-        return True, highest
+    # unique by rank, keep any representative (we later look up by rank)
+    rank_map = {}
+    for c in original_cards:
+        rank_map[c.value.value] = c
+    ranks = sorted(rank_map.keys())  # ascending list of ints
 
-    count = 1
-    for i in range(len(cards) - 2, -1, -1):
-        if cards[i].value == CardValue(cards[i + 1].value.value - 1):
-            count += 1
-            if count == 5:
-                highest = cards[i + 4]
-                return True, highest
-        else:
-            count = 1
+    # ace is special
+    if set([10, 11, 12, 13, 1]).issubset(set(ranks)):
+        return True, rank_map[1]
+
+    # sliding window
+    for i in range(0, len(ranks) - 4):
+        window = ranks[i:i+5]
+        if window[4] - window[0] == 4 and all(window[j+1] - window[j] == 1 for j in range(4)):
+            return True, rank_map[window[-1]]
     return False, None
 
 
@@ -549,14 +548,16 @@ def get_hand_result(table: List[Card], hand: List[Card]) -> HandResult:
     flush = None
     for suit_cards in suits_group.values():
         if len(suit_cards) >= 5:
-            flush_sorted = sorted(suit_cards, key=lambda x: x.poker_value, reverse=True)
-            flush = flush_sorted
+            flush = sorted(suit_cards, key=lambda x: x.poker_value, reverse=True)
             break
     if flush:
         is_straight_flush, highest = is_straight(flush)
-        if is_straight_flush:
-            straightflush = sorted(flush, key=lambda x: x.poker_value, reverse=True)[:5]
-            htype = HandType.RoyalFlush if highest and highest.value == CardValue.ACE else HandType.StraightFlush
+        if is_straight_flush and highest is not None:
+            index_highest = flush.index(highest)
+            straightflush = flush[index_highest:index_highest+5]
+            if len(straightflush) == 4:  # janky edge case: ace-5-4-3-2
+                straightflush.append(flush[0])
+            htype = HandType.RoyalFlush if highest.value == CardValue.ACE else HandType.StraightFlush
             return HandResult(htype, straightflush)
         return HandResult(HandType.Flush, flush[:5])
 
@@ -591,7 +592,10 @@ def get_hand_result(table: List[Card], hand: List[Card]) -> HandResult:
             seen_vals.add(c.value)
     is_str, highest = is_straight(list(reversed(distinct)))  # function expects ascending order
     if is_str and highest is not None:
-        straight_cards = sorted(distinct, key=lambda x: x.poker_value, reverse=True)[:5]
+        index_highest = distinct.index(highest)
+        straight_cards = distinct[index_highest:index_highest+5]
+        if len(straight_cards) == 4:  # janky edge case: ace-5-4-3-2
+            straight_cards.append(distinct[0])
         return HandResult(HandType.Straight, straight_cards)
 
     # pairs
