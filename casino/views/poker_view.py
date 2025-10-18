@@ -2,12 +2,15 @@
 
 
 import re
+import logging
 import discord
 from redbot.core import bank
 from redbot.core.utils.chat_formatting import humanize_number
 
 from casino.base import BasePokerGame
 from casino.utils import InsufficientFundsError
+
+log = logging.getLogger("red.crab-cogs.casino.poker")
 
 MAX_OPTIONS = 25
 RAISE_BET_FACTOR = 1.2
@@ -67,6 +70,7 @@ class PokerView(discord.ui.View):
         raise_values = [int(val // 10) * 10 if val > 100 else int(val) for val in raise_values ]  # round to tens
         raise_values = [val for val in raise_values if val > game.current_bet and val <= cur_player_money]  # only valid amounts
         raise_options = [discord.SelectOption(label=f"{humanize_number(val)} {currency_name}", value=f"{val}") for val in raise_values]
+        log.info(f"{game.current_bet=} {raise_values=}")
         if raise_options:
             self.raise_select = discord.ui.Select(
                 custom_id=f"poker {game.channel.id} raise",
