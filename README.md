@@ -40,13 +40,7 @@ A simple and unobtrusive translation cog with support for context menus and auto
 
 ### 💵 EconomyTweaks
 
-* Adds slash commands for economy commands.
-* Adds a configurable bonus for the `[p]payday` command, which activates at a greater time interval.
-* Improves the `[p]slot` command by quickly editing the message, adding suspense as the slots spin.
-* Adds a toggleable option for a free spin, which brings the expected player returns from 68% to 91%, which is similar to real slot machines. This should let your users play longer and gain more satisfaction.
-* Makes the jackpot x100 instead of x50.
-
-![demonstration](https://i.imgur.com/JatNXVy.gif)
+Converts several Economy cog commands into slash commands. Also adds a configurable bonus for the `[p]payday` command, which activates at a greater time interval.
 
 # Game cogs
 
@@ -57,6 +51,16 @@ Interactive games for your users, with economy support. Only one game of each ty
 Features **Connect 4** and **Tic-Tac-Toe**, which you can play against your friends or the bot itself. Configure payouts and let users bet against each other. The AI is simple and can be beaten with practice.
 
 ![demonstration](https://i.imgur.com/llfbOG6.png)
+
+### 🎰 Casino
+
+Features the following games:
+
+* Texas Hold'em Poker for up to 8 players (fully functional, uses emojis to display cards)
+* Blackjack (single player, multiple per channel)
+* An improved Slot Machine with a quick animation and higher player returns (also adds a configurable free spin mechanic)
+
+![demonstration](https://i.imgur.com/JatNXVy.gif)
 
 ### ♟️ SimpleChess
 
