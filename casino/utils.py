@@ -3,9 +3,6 @@ import re
 from enum import Enum, IntEnum, auto
 
 MAX_PLAYERS = 8
-MAX_USEFUL_CARDS = MAX_PLAYERS * 2 + 8
-RAISE_BET_STEPS = 25
-RAISE_BET_FACTOR = 1.2
 DISCORD_RED = 0XDD2E44
 
 

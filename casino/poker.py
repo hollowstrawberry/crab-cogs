@@ -8,6 +8,8 @@ from casino.base import BaseCasinoCog, BasePokerGame
 from casino.card import CARD_VALUE_STR, Card, CardSuit, CardValue
 from casino.utils import (HandType, PlayerState, PlayerType, PokerState,
                           InsufficientFundsError, humanize_camel_case, DISCORD_RED, MAX_PLAYERS)
+from casino.views.poker_view import PokerView
+from casino.views.poker_waiting_view import PokerWaitingView
 
 
 @dataclass
@@ -54,10 +56,6 @@ class PokerPlayer:
         return member
 
     async def bet(self, game: BasePokerGame, bet_amount: int) -> int:
-        """Attempt to place a bet. Delegates actual money transfer to the cog.
-        Returns the actual amount deducted (additional bet).
-        May raise appropriate exceptions if you implement economy.
-        """
         if bet_amount <= self.current_bet:
             raise ValueError("New bet must be higher than previous")
 
@@ -137,31 +135,30 @@ class PokerGame(BasePokerGame):
             return all(p.current_bet <= current.current_bet for p in self.players)
         return False
 
-    # ---------------- Core actions ----------------
-    def try_add_player(self, user_id: int) -> bool:
+    def try_add_player(self, user_id: int) -> Tuple[bool, str]:
         if self.state != PokerState.WaitingForPlayers:
-            return False
+            return False, "The game already started."
         if len(self.players) >= MAX_PLAYERS:
-            return False
+            return False, "This game is full."
         if any(p.id == user_id for p in self.players):
-            return False
+            return False, "You're already playing."
         self.players.append(PokerPlayer(id=user_id, index=len(self.players)))
-        return True
+        return True, ""
 
-    def try_remove_player(self, user_id: int) -> bool:
+    def try_remove_player(self, user_id: int) -> Tuple[bool, str]:
         if len(self.players) == 1:
-            return False
+            return False, "You can't leave. Try cancelling the game instead."
         if self.state != PokerState.WaitingForPlayers:
-            return False
+            return False, "The game already started."
         pl = self.find_player_by_id(user_id)
         if pl is None:
-            return False
+            return False, "You're not even playing, why are you trying to leave?"
         self.players.remove(pl)
         # re-index players
         for i, p in enumerate(self.players):
             p.index = i
             p.type = PlayerType(min(i, PlayerType.Normal.value))
-        return True
+        return True, ""
 
     async def start_hand(self) -> None:
         if self.state != PokerState.WaitingForPlayers:
@@ -169,7 +166,6 @@ class PokerGame(BasePokerGame):
         if len(self.players) < 2:
             raise ValueError("Not enough players")
 
-        # deal two cards to each player
         for _ in range(2):
             for p in self.players:
                 p.hand.append(self.deck.pop())
@@ -188,7 +184,6 @@ class PokerGame(BasePokerGame):
         await self.save_state()
 
     def get_next(self, start_index: int) -> int:
-        # return next index of a non-folded player
         i = start_index
         for _ in range(len(self.players)):
             i = i + 1 if i < len(self.players) - 1 else 0
@@ -251,7 +246,6 @@ class PokerGame(BasePokerGame):
         await self.advance_turn()
 
     async def advance_turn(self) -> None:
-        # if hand finished, nothing to do
         if any(p for p in self.players if p.state != PlayerState.Folded) and all(p.state != PlayerState.Pending for p in self.players if p.state != PlayerState.Folded):
             # advance the state
             self.state = PokerState(min(int(self.state) + 1, int(PokerState.Showdown)))
@@ -277,11 +271,11 @@ class PokerGame(BasePokerGame):
                     self.players[idx].hand_result = res
                 await self.end_hand(*winners)
                 return
-        # otherwise move to next pending player
-        # find next pending player index
+
         if self.turn is None:
             self.turn = 0
             return
+        
         start = self.turn
         n = len(self.players)
         for i in range(1, n + 1):
@@ -289,7 +283,6 @@ class PokerGame(BasePokerGame):
             if self.players[idx].state == PlayerState.Pending:
                 self.turn = idx
                 return
-        # fallback: keep current
 
     async def end_hand(self, *winners_indices: int) -> None:
         if not winners_indices:
@@ -306,25 +299,34 @@ class PokerGame(BasePokerGame):
         self.all_hands_finished = True
         await self.save_state()
 
-
-    async def get_embed(self) -> discord.Embed:
-        SUIT_EMOJIS = {
+    async def get_suit_emojis(self):
+        return {
             CardSuit.HEARTS: "♥️",
             CardSuit.DIAMONDS: "♦️",
             CardSuit.SPADES: "♠️",
             CardSuit.CLUBS: "♣️",
         }
-        PLAYER_TYPE_EMOJIS = {
+    
+    async def get_player_type_emojis(self):
+        return {
             PlayerType.Dealer: "(D)",
             PlayerType.SmallBlind: "(SB)",
             PlayerType.BigBlind: "(BB)",
             PlayerType.Normal: "",
         }
+
+    async def get_embed(self) -> discord.Embed:
+        SUIT_EMOJIS = await self.get_suit_emojis()
+        PLAYER_TYPE_EMOJIS = await self.get_player_type_emojis()
         EMPTY_ELEMENT = "\u200b"
 
         def card_str(card: Card):
             return f"{CARD_VALUE_STR[card.value]}{SUIT_EMOJIS[card.suit]}"
 
+        embed = discord.Embed()
+        desc_lines: List[str] = []
+
+        # title
         winners_count = len(self.winners or [])
         if winners_count == 0:
             title_extra = humanize_camel_case(self.state.name)
@@ -341,29 +343,27 @@ class PokerGame(BasePokerGame):
             title_left = SUIT_EMOJIS[CardSuit.SPADES] + SUIT_EMOJIS[CardSuit.HEARTS]
             title_right = SUIT_EMOJIS[CardSuit.DIAMONDS] + SUIT_EMOJIS[CardSuit.CLUBS]
 
-        title = f"{title_left} Poker - {title_extra} {title_right}"
+        embed.title = f"{title_left} Poker - {title_extra} {title_right}"
 
-        desc_lines: List[str] = []
-        embed = discord.Embed()
-
+        # pre-game summary
         if self.state == PokerState.WaitingForPlayers:
             for p in self.players:
                 desc_lines.append(f"<@{p.id}> {PLAYER_TYPE_EMOJIS[p.type]}")
-            embed.title = title
             embed.description = "\n".join(desc_lines)
             embed.color = await self.cog.bot.get_embed_color(self.channel)
             return embed
         else:
             embed.color = DISCORD_RED
 
-        # Common: pot / table
+        # common
         desc_lines.append(f"**💰 Pot:** {humanize_number(self.pot)}\n")
         table_str = " ".join(card_str(c) for c in self.table) if self.table else "*Empty*"
         desc_lines.append(f"**🃏 Table:** {table_str}\n{EMPTY_ELEMENT}\n")
 
         hand_finished = winners_count > 0
+        currency_name = await bank.get_currency_name(self.channel.guild)
 
-        # Showdown with results: add one inline field per player
+        # showdown information
         if self.state == PokerState.Showdown and hand_finished:
             for p in self.players:
                 content_lines: List[str] = []
@@ -374,29 +374,20 @@ class PokerGame(BasePokerGame):
                     decorator = f"👑 "
 
                 if p.state != PlayerState.Folded:
-                    # show player's hand
                     content_lines.append(f"`🖐` {' '.join(card_str(c) for c in p.hand)}")
-                    # show evaluation if present
                     if p.hand_result is not None:
                         content_lines.append(f"`➡️` {' '.join(card_str(c) for c in p.hand_result.cards)}")
-                        # human readable hand type
                         content_lines.append(f"`📜` {humanize_camel_case(p.hand_result.type.name).title()}")
 
-                # money delta lines
                 if p.index in (self.winners or []):
-                    # prize roughly pot - total_betted (C# had this logic)
-                    gain = (self.pot - p.total_betted) if hasattr(self, "pot") else 0
-                    content_lines.append(f"`💵` +{gain}")
+                    gain = self.pot - p.total_betted
+                    content_lines.append(f"`💵` +{humanize_number(gain)} {currency_name}")
                 elif p.total_betted > 0:
-                    content_lines.append(f"`💵` -{p.total_betted}")
+                    content_lines.append(f"`💵` -{humanize_number(p.total_betted)} {currency_name}")
 
-                # field title = decorator + player's visual name
-                member = self.channel.guild.get_member(p.id) if self.channel.guild else None
-                title_name = member.display_name if member else f"<@{p.id}>"
-                embed.add_field(name=f"{decorator}{title_name}", value="\n".join(content_lines) or "\u200b", inline=True)
-
+                embed.add_field(name=f"{decorator}{p.member(self).display_name}", value="\n".join(content_lines) or "\u200b", inline=True)
+        # player summary
         else:
-            # Non-showdown: summary list of players (text description)
             for p in self.players:
                 line = ""
                 if p.state == PlayerState.Folded:
@@ -406,9 +397,7 @@ class PokerGame(BasePokerGame):
                 if p.index in (self.winners or []):
                     line += f"👑 "
 
-                member = p.member(self)
-                mention = member.mention if member else f"<@{p.id}>"
-                line += mention
+                line += p.member(self).mention
 
                 if not hand_finished:
                     line += PLAYER_TYPE_EMOJIS[p.type]
@@ -420,13 +409,14 @@ class PokerGame(BasePokerGame):
                         line += " `...`"
 
                 if p.index in (self.winners or []):
-                    gain = (self.pot - p.total_betted) if hasattr(self, "pot") else 0
-                    line += f" (+{gain})"
+                    gain = self.pot - p.total_betted
+                    line += f" (+{humanize_number(gain)} {currency_name})"
                 elif p.total_betted > 0:
-                    line += f" (-{p.total_betted})"
+                    line += f" (-{humanize_number(p.total_betted)} {currency_name})"
 
                 desc_lines.append(line)
 
+        # thumbnail
         thumbnail_url = None
         if winners_count == 1:
             winner = self.players[self.winners[0]].member(self)
@@ -438,15 +428,53 @@ class PokerGame(BasePokerGame):
             if member:
                 thumbnail_url = member.display_avatar.url
 
-        embed.title = title
+        # send it
         embed.description = "\n".join(desc_lines) if desc_lines else "\u200b"
         if thumbnail_url:
-            try:
-                embed.set_thumbnail(url=thumbnail_url)
-            except Exception:
-                pass
-
+            embed.set_thumbnail(url=thumbnail_url)
         return embed
+    
+    async def update_message(self, interaction: Optional[discord.Interaction] = None):
+        content = None
+        if self.state == PokerState.WaitingForPlayers:
+            view = PokerWaitingView(self)
+        elif self.is_finished:
+            view = discord.ui.View()
+        else:
+            if self.turn is None or not 0 <= self.turn < len(self.players):
+                raise ValueError("Invalid turn during game")
+            cur_player = self.players[self.turn]
+            money = await bank.get_balance(cur_player.member(self))
+            currency_name = await bank.get_currency_name(self.channel.guild)
+            view = PokerView(self, money, cur_player.current_bet, currency_name)
+            content = cur_player.member(self).mention
+
+        embed = await self.get_embed()
+
+        if interaction:
+            await interaction.edit_original_response(content=content, embed=embed, view=view)
+        else:
+            old_message = self.message
+            self.message = await self.channel.send(content=content, embed=embed, view=view)
+            if old_message:
+                try:
+                    await old_message.delete()
+                except discord.NotFound:
+                    pass
+
+        self.view = view
+    
+
+    async def send_cards(self, interaction: discord.Interaction) -> None:
+        player = self.find_player_by_id(interaction.user.id)
+        if player is None:
+            raise ValueError("Not a player")
+        SUIT_EMOJIS = await self.get_suit_emojis()
+        embed = discord.Embed(color=0x000000)
+        embed.description = " ".join(f"{CARD_VALUE_STR[card.value]}{SUIT_EMOJIS[card.suit]}" for card in player.hand)
+        embed.set_author(name="Here are your cards", icon_url=interaction.user.display_avatar.url)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
 
 
 

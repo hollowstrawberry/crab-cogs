@@ -1,11 +1,12 @@
-from datetime import datetime
+import random
 import discord
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional, Union
+from typing import List, Optional, Tuple, Union
+from datetime import datetime
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 
-from casino.card import Card
+from casino.card import Card, make_deck
 from casino.utils import MAX_PLAYERS, PokerState
 
 
@@ -42,85 +43,72 @@ class BasePokerGame(ABC):
         self.cog = cog
         self.players_ids = [p.id for p in players][:MAX_PLAYERS]
         self.channel = channel
-        self.deck: List[Card] = []
+        self.deck: List[Card] = make_deck()
+        random.shuffle(self.deck)
         self.table: List[Card] = []
         self.state: PokerState = PokerState.WaitingForPlayers
         self.minimum_bet = minimum_bet
         self.current_bet = minimum_bet
         self.pot = 0
-        self.turn: Optional[int] = None  # index of current turn
+        self.turn: Optional[int] = None  # index of current player
         self.winners: List[int] = []  # indices of winners
         self.all_hands_finished: bool = False
-        self.last_played: Optional[float] = None
+        self.last_interacted: Optional[datetime] = None
         self.message: Optional[discord.Message] = None
 
-    # -----------------------
-    # Abstract methods (must be implemented)
-    # -----------------------
     @abstractmethod
-    def is_finished(self) -> bool:
-        """Return True if the entire poker session (all hands) is finished."""
-        raise NotImplementedError
+    async def update_message(self, interaction: Optional[discord.Interaction] = None):
+        pass
 
     @abstractmethod
-    def is_cancelled(self) -> bool:
-        """Return True if the game was cancelled (surrendered/aborted)."""
-        raise NotImplementedError
+    async def send_cards(self, interaction: discord.Interaction) -> None:
+        pass
+
+    @abstractmethod
+    def try_add_player(self, user_id: int) -> Tuple[bool, str]:
+        pass
+
+    @abstractmethod
+    def try_remove_player(self, user_id: int) -> Tuple[bool, str]:
+        pass
+
+    @property
+    @abstractmethod
+    def can_check(self) -> bool:
+        pass
 
     @abstractmethod
     async def cancel(self, member: Optional[discord.Member]) -> None:
-        """
-        Cancel the game, optionally recording which member caused the cancellation.
-        Should mark the game finished and persist state.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    async def input(
-        self,
-        ctx_or_interaction: Any,
-        input_str: str,
-        user_id: int,
-        /,
-    ) -> bool:
-        """
-        Handle an input from a player (button/select/command).
-        Return True if the input caused a state change that should be considered a 'handled action'
-        (e.g. start, fold, call, raise...). Return False if the input was ignored/invalid.
-        `ctx_or_interaction` is provided to allow access to ephemeral replies or interaction data.
-        """
-        raise NotImplementedError
+        pass
 
     @abstractmethod
     async def start_hand(self) -> None:
-        """
-        Begin dealing/starting the current hand (transition from WaitingForPlayers to PreFlop).
-        Should perform initial bets (blinds) and persist state.
-        """
-        raise NotImplementedError
+        pass
+
+    @abstractmethod
+    async def fold(self, user_id: int) -> None:
+        pass
+
+    @abstractmethod
+    async def check(self, user_id: int) -> None:
+        pass
+
+    @abstractmethod
+    async def call(self, user_id: int) -> None:
+        pass
+
+    @abstractmethod
+    async def raise_to(self, user_id: int, bet: int) -> None:
+        pass
 
     @abstractmethod
     async def end_hand(self, *winners_indices: int) -> None:
-        """
-        End the current hand and process winners (indices relative to self.players).
-        Should handle distribution of pot (or delegate to economy/transaction service),
-        set hand results, persist state, and prepare for possible reset or finish.
-        """
-        raise NotImplementedError
+        pass
 
     @abstractmethod
-    async def reset_hand(self) -> None:
-        """
-        Reset internal hand-related state to prepare for a new hand while keeping
-        the same player order (e.g. rotate dealer).
-        """
-        raise NotImplementedError
+    async def get_embed(self) -> discord.Embed:
+        pass
 
     @abstractmethod
     async def save_state(self) -> None:
-        """
-        Persist any state necessary to restore this game later.
-        For a Red cog, use self.cog.config.channel(self.channel).set(...).
-        Must also remove the game from the cog's in-memory store when finished.
-        """
-        raise NotImplementedError
+        pass
