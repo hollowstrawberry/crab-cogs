@@ -59,7 +59,7 @@ class SimpleCasino(BaseCasinoCog):
             except Exception:
                 log.error(f"Loading game in {cid}", exc_info=True)
 
-        # Load custom emojis into the current application.
+        # Load custom emojis into config, creating them if necessary
         all_emojis = await self.bot.fetch_application_emojis()
         for emoji_name in ("dealer", "smallblind", "bigblind", "spades", "clubs"):
             emoji = next((emoji for emoji in all_emojis if emoji.name == emoji_name), None)
@@ -67,7 +67,8 @@ class SimpleCasino(BaseCasinoCog):
                 async with aiofiles.open(bundled_data_path(self) / f"{emoji_name}.png", "rb") as fp:
                     image = await fp.read()
                 emoji = await self.bot.create_application_emoji(name=emoji_name, image=image)
-            await self.config.__getattr__("emoji_" + emoji_name).set(str(emoji) if emoji is not None else emoji_name)
+            if emoji:
+                await self.config.__getattr__("emoji_" + emoji_name).set(str(emoji))
 
 
     def cog_unload(self):
