@@ -52,7 +52,7 @@ Features **Connect 4** and **Tic-Tac-Toe**, which you can play against your frie
 
 ![demonstration](https://i.imgur.com/llfbOG6.png)
 
-### 🎰 Casino
+### 🎰 SimpleCasino
 
 Features the following games:
 

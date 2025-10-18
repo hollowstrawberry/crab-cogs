@@ -5,9 +5,9 @@ from typing import List
 from redbot.core import bank, errors
 from redbot.core.utils.chat_formatting import humanize_number
 
-from casino.base import BaseCasinoCog
-from casino.card import Card, CardValue, CARD_EMOJI, make_deck
-from casino.views.again_view import AgainView
+from simplecasino.base import BaseCasinoCog
+from simplecasino.card import Card, CardValue, CARD_EMOJI, make_deck
+from simplecasino.views.again_view import AgainView
 
 
 TWENTYONE = 21

@@ -6,8 +6,8 @@ from datetime import datetime
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 
-from casino.card import Card, make_deck
-from casino.utils import POKER_MAX_PLAYERS, POKER_MINIMUM_BET, PokerState
+from simplecasino.card import Card, make_deck
+from simplecasino.utils import POKER_MAX_PLAYERS, POKER_MINIMUM_BET, PokerState
 
 
 class BaseCasinoCog(commands.Cog):
@@ -23,11 +23,11 @@ class BaseCasinoCog(commands.Cog):
             "coinfreespin": True,
         }
         emojis_config = {
-            "emoji_dealer": "",
-            "emoji_smallblind": "",
-            "emoji_bigblind": "",
-            "emoji_spades": "",
-            "emoji_clubs": "",
+            "emoji_dealer": "(D)",
+            "emoji_smallblind": "(SB)",
+            "emoji_bigblind": "(BB)",
+            "emoji_spades": "♠️",
+            "emoji_clubs": "♣️",
         }
         channel_config = {
             "game": {},
