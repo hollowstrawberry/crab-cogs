@@ -128,8 +128,8 @@ class Blackjack(discord.ui.View):
         else:
             embed.title = "Blackjack"
 
-        if self.include_author:
-            embed.set_author(name=self.player.display_name, icon_url=self.player.display_avatar.url)
+        #if self.include_author:
+        #    embed.set_author(name=self.player.display_name, icon_url=self.player.display_avatar.url)
 
         return embed
     
