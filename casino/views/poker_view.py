@@ -3,9 +3,11 @@
 
 import re
 import discord
+from redbot.core import bank
 from redbot.core.utils.chat_formatting import humanize_number
 
 from casino.base import BasePokerGame
+from casino.utils import InsufficientFundsError
 
 MAX_OPTIONS = 25
 RAISE_BET_FACTOR = 1.2
@@ -101,8 +103,14 @@ class PokerView(discord.ui.View):
             return await interaction.response.send_message(ERROR_PLAYING, ephemeral=True)
         if interaction.user.id != self.game.players_ids[self.game.turn]:
             return await interaction.response.send_message(ERROR_TURN, ephemeral=True)
+        
+        try:
+            await self.game.bet(interaction.user.id, self.game.current_bet)
+        except InsufficientFundsError:
+            currency_name = await bank.get_currency_name(interaction.guild)
+            return await interaction.response.send_message(f"You don't have enough {currency_name} to call!", ephemeral=True)
+        
         self.stop()
-        await self.game.call(interaction.user.id)
         await self.game.update_message(interaction)
 
     async def view(self, interaction: discord.Interaction):
@@ -122,7 +130,13 @@ class PokerView(discord.ui.View):
             return await interaction.response.send_message(ERROR_PLAYING, ephemeral=True)
         if interaction.user.id != self.game.players_ids[self.game.turn]:
             return await interaction.response.send_message(ERROR_TURN, ephemeral=True)
+        
+        try:
+            new_bet = int(interaction.data['values'][0])  # type: ignore
+            await self.game.bet(interaction.user.id, new_bet)
+        except InsufficientFundsError:
+            currency_name = await bank.get_currency_name(interaction.guild)
+            return await interaction.response.send_message(f"You don't have enough {currency_name} to raise the bet!", ephemeral=True)
+
         self.stop()
-        new_bet = int(interaction.data['values'][0])  # type: ignore
-        await self.game.raise_to(interaction.user.id, new_bet)
         await self.game.update_message(interaction)

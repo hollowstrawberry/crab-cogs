@@ -1,3 +1,4 @@
+from datetime import datetime
 import discord
 from typing import List, Optional, Tuple, Dict
 from dataclasses import dataclass, field
@@ -212,63 +213,65 @@ class PokerGame(BasePokerGame):
         return start_index
 
     async def fold(self, user_id: int) -> None:
-        cur = self.current_player()
-        if cur is None or cur.id != user_id:
-            raise RuntimeError("Not your turn")
-        cur.state = PlayerState.Folded
-        cur.current_bet = 0
+        current = self.current_player()
+        if current is None or current.id != user_id:
+            raise ValueError("Not your turn")
+        
+        current.state = PlayerState.Folded
+        current.current_bet = 0
+
         # check elimination
         not_folded = [p for p in self.players if p.state != PlayerState.Folded]
         if len(not_folded) == 1:
             await self.end_hand(not_folded[0].index)
             return
+        
         # special case: nobody bet the first round
         if len(not_folded) == 2 and self.state == PokerState.PreFlop \
                 and all(p.type in (PlayerType.SmallBlind, PlayerType.BigBlind) for p in not_folded):
             sb = self.find_player(PlayerType.SmallBlind)
             assert sb is not None
             sb.state = PlayerState.Pending
+
         await self.advance_turn()
 
     async def check(self, user_id: int) -> None:
-        cur = self.current_player()
-        if cur is None or cur.id != user_id:
-            raise RuntimeError("Not your turn")
+        current = self.current_player()
+        if current is None or current.id != user_id:
+            raise ValueError("Not your turn")
         if not self.can_check:
-            raise RuntimeError("Cannot check")
-        cur.state = PlayerState.Checked
+            raise ValueError("Cannot check")
+        
+        current.state = PlayerState.Checked
         await self.advance_turn()
 
-    async def call(self, user_id: int) -> None:
-        cur = self.current_player()
-        if cur is None or cur.id != user_id:
-            raise RuntimeError("Not your turn")
-        additional = self.current_bet - cur.current_bet
-        if additional <= 0:
-            return
-        self.pot += await cur.bet(self, self.current_bet)
-        cur.state = PlayerState.Betted
-        await self.advance_turn()
-
-    async def raise_to(self, user_id: int, bet: int) -> None:
-        cur = self.current_player()
-        if cur is None or cur.id != user_id:
+    async def bet(self, user_id: int, bet: int) -> None:
+        current = self.current_player()
+        if current is None or current.id != user_id:
             raise ValueError("Not your turn")
         if bet < self.current_bet:
-            raise ValueError("Bet must be higher than current")
-        self.pot += await cur.bet(self, bet)
-        cur.state = PlayerState.Betted
-        self.current_bet = bet
-        # set pending for players who haven't matched
+            raise ValueError("Bet must be higher than the previous")
+
+        self.pot += await current.bet(self, self.current_bet)
+        current.state = PlayerState.Betted
+
         for p in self.players:
             if p.state != PlayerState.Folded and p.current_bet < self.current_bet:
                 p.state = PlayerState.Pending
+
+        # live blind
+        if self.state == PokerState.PreFlop and self.current_bet == self.minimum_bet and current.type != PlayerType.BigBlind:
+            bb = self.find_player(PlayerType.BigBlind)
+            if bb is not None and bb.state != PlayerState.Folded:
+                bb.state = PlayerState.Pending
+
         await self.advance_turn()
 
     async def advance_turn(self) -> None:
+        self.last_interacted = datetime.now()
         if any(p for p in self.players if p.state != PlayerState.Folded) and all(p.state != PlayerState.Pending for p in self.players if p.state != PlayerState.Folded):
             # advance the state
-            self.state = PokerState(min(int(self.state) + 1, int(PokerState.Showdown)))
+            self.state = PokerState(min(self.state.value + 1, PokerState.Showdown.value))
             self.current_bet = self.minimum_bet
             for p in self.players:
                 if p.state != PlayerState.Folded:

@@ -108,11 +108,7 @@ class BasePokerGame(ABC):
         pass
 
     @abstractmethod
-    async def call(self, user_id: int) -> None:
-        pass
-
-    @abstractmethod
-    async def raise_to(self, user_id: int, bet: int) -> None:
+    async def bet(self, user_id: int, bet: int) -> None:
         pass
 
     @abstractmethod
