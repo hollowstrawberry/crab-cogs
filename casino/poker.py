@@ -514,7 +514,7 @@ class PokerGame(BasePokerGame):
 
         # showdown information
         if self.state == PokerState.Showdown and hand_finished:
-            for player in self.players:
+            for i, player in enumerate(self.players):
                 content_lines: List[str] = []
                 decorator = ""
                 if player.state == PlayerState.Folded:
@@ -533,7 +533,8 @@ class PokerGame(BasePokerGame):
                 elif player.total_betted > 0:
                     content_lines.append(f"`💵` -{humanize_number(player.total_betted)} {currency_name}")
 
-                embed.add_field(name=f"{decorator}{player.member(self).display_name}", value="\n".join(content_lines) or "\u200b", inline=True)
+                inline = i % 3 != 2  # move every 3rd field to its own row to give enough space for the hands to display in full width
+                embed.add_field(name=f"{decorator}{player.member(self).display_name}", value="\n".join(content_lines) or "\u200b", inline=inline)
         # player summary
         else:
             for player in self.players:
