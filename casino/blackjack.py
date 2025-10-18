@@ -122,6 +122,7 @@ class Blackjack(discord.ui.View):
         return embed
     
     async def dealer_turn(self, interaction: discord.Interaction):
+        self.stop()
         self.facedown = False
         self.dealer_turn_started = True
         self.hit_button.disabled = True
