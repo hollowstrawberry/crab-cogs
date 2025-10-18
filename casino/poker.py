@@ -326,9 +326,10 @@ class PokerGame(BasePokerGame):
 
         # keep advancing rounds while there are no non-all-in pending players
         while True:
-            any_not_folded = any(p for p in self.players if p.state != PlayerState.Folded)
-            none_pending = all(p.state != PlayerState.Pending for p in self.players if p.state not in (PlayerState.Folded, PlayerState.AllIn))
-            if any_not_folded and none_pending:
+            active_non_folded = [p for p in self.players if p.state != PlayerState.Folded]
+            non_allin_active = [p for p in active_non_folded if p.state != PlayerState.AllIn]
+            pending_non_allin = [p for p in non_allin_active if p.state == PlayerState.Pending]
+            if active_non_folded and not pending_non_allin:
                 self.state = PokerState(min(self.state.value + 1, PokerState.Showdown.value))
                 self.current_bet = 0
                 for p in self.players:
