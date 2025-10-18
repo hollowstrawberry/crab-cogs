@@ -107,8 +107,9 @@ async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Con
 
     interaction = ctx if isinstance(ctx, discord.Interaction) else ctx.interaction
     if interaction:
+        content = f"-# {author.mention} pressed a button" if interaction.type == discord.InteractionType.component else None
         embed.description = first
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(content=content, embed=embed, allowed_mentions=discord.AllowedMentions.none())
         await asyncio.sleep(1)
         embed.description = second
         await interaction.edit_original_response(embed=embed)

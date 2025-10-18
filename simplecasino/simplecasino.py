@@ -122,7 +122,8 @@ class SimpleCasino(BaseCasinoCog):
         blackjack = Blackjack(self, author, ctx.channel, bid, await self.bot.get_embed_color(ctx.channel))
         await blackjack.check_payout()
         view = AgainView(self.blackjack, bid, None, currency_name) if blackjack.is_over() else blackjack
-        message = await reply(embed=await blackjack.get_embed(), view=view)
+        content = f"-# {author.mention} pressed a button" if isinstance(ctx, discord.Interaction) and ctx.type == discord.InteractionType.component else None
+        message = await reply(content=content, embed=await blackjack.get_embed(), view=view, allowed_mentions=discord.AllowedMentions.none())
         if isinstance(view, AgainView):
             view.message = message if isinstance(ctx, commands.Context) else await ctx.original_response()  # type: ignore
 
