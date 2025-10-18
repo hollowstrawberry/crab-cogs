@@ -57,10 +57,13 @@ class PokerPlayer:
         return member
 
     async def bet(self, game: BasePokerGame, bet_amount: int) -> int:
-        if bet_amount <= self.current_bet:
+        if bet_amount < self.current_bet:
             raise ValueError("New bet must be higher than previous")
 
         additional = bet_amount - self.current_bet
+        if additional == 0:
+            return 0
+        
         member = self.member(game)
         if not await bank.can_spend(member, additional):
             raise InsufficientFundsError
