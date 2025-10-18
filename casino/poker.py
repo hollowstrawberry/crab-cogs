@@ -111,7 +111,6 @@ class PokerGame(BasePokerGame):
                 "current_bet": self.current_bet,
                 "pot": self.pot,
                 "turn": self.turn,
-                "winners": self.winners,
                 "finished": self.all_hands_finished,
                 "message": self.message.id if self.message else None
             })
@@ -127,7 +126,6 @@ class PokerGame(BasePokerGame):
         game.current_bet = config["current_bet"]
         game.pot = config["pot"]
         game.turn = config["turn"]
-        game.winners = config["winners"]
         game.all_hands_finished = config["finished"]
         if config["message"]:
             try:
@@ -377,7 +375,6 @@ class PokerGame(BasePokerGame):
 
     async def end_hand(self, force_winner: Optional[PokerPlayer] = None) -> None:
         if force_winner:
-            self.winners = [force_winner.index]
             force_winner.winnings += self.pot
             self.state = PokerState.Showdown  # ui
             member = force_winner.member(self)
@@ -393,15 +390,15 @@ class PokerGame(BasePokerGame):
                     player.hand_result = get_hand_result(self.table, player.hand)
 
             pots = self.build_side_pots()
-            
+
             # For each pot, find the best hand among eligible players
             for pot_amount, eligible_players in pots:
-                if not eligible_players:
-                    continue 
+                if not eligible_players or pot_amount == 0:
+                    continue  # shouldn't happen
 
                 contenders = [p for p in eligible_players if p.state != PlayerState.Folded]
                 if not contenders:
-                    continue
+                    continue  # shouldn't happen
 
                 # find best HandResult among contenders
                 best = max((p.hand_result for p in contenders), default=None)  # type: ignore
@@ -409,7 +406,6 @@ class PokerGame(BasePokerGame):
                     continue
 
                 winners = [p for p in contenders if p.hand_result == best]
-                self.winners.extend([p.index for p in winners])
 
                 # split pot among winners with deterministic remainder
                 per = pot_amount // len(winners)
@@ -483,12 +479,12 @@ class PokerGame(BasePokerGame):
         desc_lines: List[str] = []
 
         # title
-        winners_count = len(self.winners or [])
-        if winners_count == 0:
+        winners = [p for p in self.players if p.winnings - p.total_betted > 0]
+        hand_finished = len(winners) > 0
+        if len(winners) == 0:
             title_extra = humanize_camel_case(self.state.name)
-        elif winners_count == 1:
-            member = self.players[self.winners[0]].member(self)
-            title_extra = f"Winner: {member.display_name}"
+        elif len(winners) == 1:
+            title_extra = f"Winner: {winners[0].member(self).display_name}"
         else:
             title_extra = "Winners"
 
@@ -504,8 +500,8 @@ class PokerGame(BasePokerGame):
         # pre-game summary
         if self.state == PokerState.WaitingForPlayers:
             desc_lines.append(f"**💵 Starting bet:** {humanize_number(self.minimum_bet)} {currency_name}\n")
-            for p in self.players:
-                desc_lines.append(f"<@{p.id}> {player_emojis[p.type]}")
+            for player in self.players:
+                desc_lines.append(f"<@{player.id}> {player_emojis[player.type]}")
             embed.description = "\n".join(desc_lines)
             embed.color = await self.cog.bot.get_embed_color(self.channel)
             return embed
@@ -518,65 +514,63 @@ class PokerGame(BasePokerGame):
         table_str = " ".join(card_str(c) for c in self.table) if self.table else "*Empty*"
         desc_lines.append(f"**🃏 Table:**{EMPTY_ELEMENT} {table_str}\n{EMPTY_ELEMENT}\n")
 
-        hand_finished = winners_count > 0
-
         # showdown information
         if self.state == PokerState.Showdown and hand_finished:
-            for p in self.players:
+            for player in self.players:
                 content_lines: List[str] = []
                 decorator = ""
-                if p.state == PlayerState.Folded:
+                if player.state == PlayerState.Folded:
                     decorator = f"❌ "
-                elif (p.index in (self.winners or [])):
+                elif player in winners:
                     decorator = f"👑 "
 
-                if p.state != PlayerState.Folded:
-                    content_lines.append(f"`🖐` {' '.join(card_str(c) for c in p.hand)}")
-                    if p.hand_result is not None:
-                        content_lines.append(f"`➡️` {' '.join(card_str(c) for c in p.hand_result.cards)}")
-                        content_lines.append(f"`📜` {humanize_camel_case(p.hand_result.type.name).title()}")
+                if player.state != PlayerState.Folded:
+                    content_lines.append(f"`🖐` {' '.join(card_str(c) for c in player.hand)}")
+                    if player.hand_result is not None:
+                        content_lines.append(f"`➡️` {' '.join(card_str(c) for c in player.hand_result.cards)}")
+                        content_lines.append(f"`📜` {humanize_camel_case(player.hand_result.type.name).title()}")
 
-                if p.winnings > 0:
-                    content_lines.append(f"`💵` +{humanize_number(p.winnings - p.total_betted)} {currency_name}")
-                elif p.total_betted > 0:
-                    content_lines.append(f"`💵` -{humanize_number(p.total_betted)} {currency_name}")
+                if player in winners:
+                    content_lines.append(f"`💵` +{humanize_number(player.winnings - player.total_betted)} {currency_name}")
+                elif player.total_betted > 0:
+                    content_lines.append(f"`💵` -{humanize_number(player.total_betted)} {currency_name}")
 
-                embed.add_field(name=f"{decorator}{p.member(self).display_name}", value="\n".join(content_lines) or "\u200b", inline=True)
+                embed.add_field(name=f"{decorator}{player.member(self).display_name}", value="\n".join(content_lines) or "\u200b", inline=True)
         # player summary
         else:
-            for p in self.players:
+            for player in self.players:
                 line = ""
-                if p.state == PlayerState.Folded:
+                if player.state == PlayerState.Folded:
                     line += f"❌ "
-                if (self.turn is not None) and (p.index == self.turn) and not hand_finished:
+                if (self.turn is not None) and (player.index == self.turn) and not hand_finished:
                     line += f"▶️ "
-                if p.index in (self.winners or []):
+                if player in winners:
                     line += f"👑 "
 
-                line += p.member(self).mention
+                line += player.member(self).mention
 
                 if not hand_finished:
-                    line += player_emojis[p.type]
-                    if p.state == PlayerState.Betted:
-                        line += f" - `betted {humanize_number(p.current_bet)}`"
-                    elif p.state == PlayerState.Checked:
+                    line += player_emojis[player.type]
+                    if player.state == PlayerState.Betted:
+                        line += f" - `betted {humanize_number(player.current_bet)}`"
+                    elif player.state == PlayerState.Checked:
                         line += f" - `checked`"
-                    elif p.state == PlayerState.Pending:
+                    elif player.state == PlayerState.Pending:
                         line += " `...`"
 
-                if p.winnings > 0:
-                    line += f" (+{humanize_number(p.winnings - p.total_betted)} {currency_name})"
-                elif p.total_betted > 0:
-                    line += f" (-{humanize_number(p.total_betted)} {currency_name})"
+                if player in winners:
+                    line += f" (+{humanize_number(player.winnings - player.total_betted)} {currency_name})"
+                elif player.total_betted > 0:
+                    line += f" (-{humanize_number(player.total_betted)} {currency_name})"
 
                 desc_lines.append(line)
 
         # thumbnail
         thumbnail_url = None
-        if winners_count == 1:
-            winner = self.players[self.winners[0]].member(self)
-            thumbnail_url = winner.display_avatar.url
-            embed.color = winner.color
+        if len(winners) == 1:
+            winner_member = winners[0].member(self)
+            thumbnail_url = winner_member.display_avatar.url
+            embed.color = winner_member.color
         elif self.turn is not None:
             turn_player = self.players[self.turn]
             member = turn_player.member(self)

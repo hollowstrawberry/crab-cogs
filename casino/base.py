@@ -68,7 +68,6 @@ class BasePokerGame(ABC):
         self.current_bet = minimum_bet
         self.pot = 0
         self.turn: Optional[int] = None  # index of current player
-        self.winners: List[int] = []  # indices of winners
         self.all_hands_finished: bool = False
         self.last_interacted: datetime = datetime.now()
         self.message: Optional[discord.Message] = None
