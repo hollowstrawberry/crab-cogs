@@ -524,7 +524,7 @@ class PokerGame(BasePokerGame):
 
                 if player.state != PlayerState.Folded:
                     if player.hand_result is not None:
-                        content_lines.append(" ".join(card_str(c) for c in player.hand_result.cards))
+                        content_lines.append(f"`🃏` {' '.join(card_str(c) for c in player.hand_result.cards)}")
                         content_lines.append(f"`📜` {humanize_camel_case(player.hand_result.type.name).title()}")
                     content_lines.append(f"`🖐` {' '.join(card_str(c) for c in player.hand)}")
 
