@@ -52,6 +52,8 @@ class Casino(BaseCasinoCog):
                 game = await PokerGame.from_config(self, channel, game_config)
                 if game.players:
                     self.poker_games[cid] = game
+                    if game.view:
+                        self.bot.add_view(game.view)
             except Exception:
                 log.error(f"Loading game in {cid}", exc_info=True)
 

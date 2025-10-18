@@ -108,7 +108,9 @@ class PokerGame(BasePokerGame):
     @staticmethod
     async def from_config(cog: BaseCasinoCog, channel: Union[discord.TextChannel, discord.Thread], config: dict) -> "PokerGame":
         game = PokerGame(cog, [], channel, config["minimum_bet"])
-        game.players = [PokerPlayer.from_dict(p) for p in json.loads(config["players"])]
+        players = config["players"]
+        log.info(f"{players = }")
+        game.players = [PokerPlayer.from_dict(p) for p in json.loads(players)]
         game.table = [Card.from_dict(c) for c in json.loads(config["table"])]
         game.deck = [Card.from_dict(c) for c in json.loads(config["deck"])]
         game.state = PokerState(config["state"])
@@ -122,7 +124,6 @@ class PokerGame(BasePokerGame):
             except discord.NotFound:
                 pass
         game.view = await game.get_view()
-        cog.bot.add_view(game.view)
         return game
 
     @property
@@ -503,11 +504,11 @@ class PokerGame(BasePokerGame):
         return embed
     
 
-    async def get_view(self):
+    async def get_view(self) -> Optional[discord.ui.View]:
         if self.state == PokerState.WaitingForPlayers:
             return PokerWaitingView(self)
         elif self.is_finished:
-            return discord.ui.View(timeout=0)
+            return None
         else:
             if self.turn is None or not 0 <= self.turn < len(self.players):
                 raise ValueError("Invalid turn during game")
@@ -529,7 +530,7 @@ class PokerGame(BasePokerGame):
             await interaction.response.edit_message(content=content, embed=embed, view=self.view)
         else:
             old_message = self.message
-            self.message = await self.channel.send(content=content, embed=embed, view=self.view)
+            self.message = await self.channel.send(content=content, embed=embed, view=self.view or discord.ui.View(timeout=0))
             if old_message:
                 try:
                     await old_message.delete()
