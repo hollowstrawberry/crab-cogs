@@ -420,7 +420,6 @@ class PokerGame(BasePokerGame):
                     except errors.BalanceTooHigh as err:
                         await bank.set_balance(member, err.max_balance)
         # cleanup
-        self.pot = 0
         self.all_hands_finished = True
         self.turn = None
         await self.save_state()
@@ -509,8 +508,7 @@ class PokerGame(BasePokerGame):
             embed.color = DISCORD_RED
 
         # common
-        if self.pot > 0:
-            desc_lines.append(f"**💰 Pot:** {humanize_number(self.pot)} {currency_name}\n")
+        desc_lines.append(f"**💰 Pot:** {humanize_number(self.pot)} {currency_name}\n")
         table_str = " ".join(card_str(c) for c in self.table) if self.table else "*Empty*"
         desc_lines.append(f"**🃏 Table:**{EMPTY_ELEMENT} {table_str}\n{EMPTY_ELEMENT}\n")
 
