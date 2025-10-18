@@ -24,6 +24,17 @@ class PokerView(discord.ui.View):
         super().__init__(timeout=None)
         self.game = game
 
+        to_call = max(0, game.current_bet - cur_player_bet)
+        if to_call <= 0:
+            call_label = "Call"
+            call_disabled = True
+        elif cur_player_money >= to_call:
+            call_label = "Call"
+            call_disabled = False
+        else:
+            call_label = f"All in"
+            call_disabled = False if cur_player_money > 0 else True
+
         self.fold_button = discord.ui.Button(
             custom_id=f"poker {game.channel.id} fold",
             label="Fold",
@@ -38,11 +49,10 @@ class PokerView(discord.ui.View):
         )
         self.call_button = discord.ui.Button(
             custom_id=f"poker {game.channel.id} call",
-            label="Call",
+            label=call_label,
             style=discord.ButtonStyle.primary,
-            disabled=(cur_player_money < game.current_bet - cur_player_bet) or (cur_player_bet >= game.current_bet)
+            disabled=call_disabled or cur_player_bet >= game.current_bet
         )
-        log.info(f"{cur_player_bet=} {game.current_bet}")
         self.view_button = discord.ui.Button(
             custom_id=f"poker {game.channel.id} view",
             emoji="🃏",
@@ -109,7 +119,7 @@ class PokerView(discord.ui.View):
             return await interaction.response.send_message(ERROR_PLAYING, ephemeral=True)
         if interaction.user.id != self.game.players_ids[self.game.turn]:
             return await interaction.response.send_message(ERROR_TURN, ephemeral=True)
-        
+
         try:
             await self.game.bet(interaction.user.id, self.game.current_bet)
         except InsufficientFundsError:

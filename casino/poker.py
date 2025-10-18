@@ -51,6 +51,7 @@ class PokerPlayer(DataClassJsonMixin):
     total_betted: int = 0
     current_bet: int = 0
     hand_result: Optional[HandResult] = None
+    winnings: int = 0
 
     def __post_init__(self):
         # type is min(index, Normal)
@@ -69,12 +70,22 @@ class PokerPlayer(DataClassJsonMixin):
         additional = bet_amount - self.current_bet
         if additional == 0:
             return 0
-        
-        member = self.member(game)
-        if not await bank.can_spend(member, additional):
-            raise InsufficientFundsError
-        await bank.withdraw_credits(member, additional)
 
+        member = self.member(game)
+
+        bal = await bank.get_balance(member)
+        if bal <= 0:
+            raise InsufficientFundsError
+
+        # all in
+        if bal < additional:
+            await bank.withdraw_credits(member, bal)
+            self.total_betted += bal
+            self.current_bet += bal
+            return bal
+
+        # normal bet
+        await bank.withdraw_credits(member, additional)
         self.total_betted += additional
         self.current_bet = bet_amount
         return additional
@@ -260,7 +271,7 @@ class PokerGame(BasePokerGame):
         # check elimination
         not_folded = [p for p in self.players if p.state != PlayerState.Folded]
         if len(not_folded) == 1:
-            await self.end_hand(not_folded[0].index)
+            await self.end_hand()
             return
         
         # special case: nobody bet the first round
@@ -289,9 +300,13 @@ class PokerGame(BasePokerGame):
         if bet < self.current_bet:
             raise ValueError("Bet must be higher than the previous")
 
-        self.pot += await current.bet(self, bet)
+        additional = await current.bet(self, bet)
+        if additional == 0:
+            return
+
+        self.pot += additional
         current.state = PlayerState.Betted
-        self.current_bet = bet
+        self.current_bet = max(self.current_bet, current.current_bet)
 
         for p in self.players:
             if p.state != PlayerState.Folded and p.current_bet < self.current_bet:
@@ -324,13 +339,7 @@ class PokerGame(BasePokerGame):
                 self.deck.pop()
                 self.table.append(self.deck.pop())
             elif self.state == PokerState.Showdown:
-                # evaluate hands
-                results = {p.index: get_hand_result(self.table, p.hand) for p in self.players if p.state != PlayerState.Folded}
-                max_res = max(results.values())
-                winners = [idx for idx, res in results.items() if res == max_res]
-                for idx, res in results.items():
-                    self.players[idx].hand_result = res
-                await self.end_hand(*winners)
+                await self.end_hand()
                 return
 
         if self.turn is None:
@@ -346,26 +355,75 @@ class PokerGame(BasePokerGame):
 
         await self.save_state()
 
-    async def end_hand(self, *winners_indices: int) -> None:
-        if not winners_indices:
-            raise ValueError("No winners")
-        
-        self.winners = list(winners_indices)
-        self.turn = None
+    async def end_hand(self) -> None:
+        # evaluate hands
+        for player in self.players:
+            if player.state != PlayerState.Folded:
+                player.hand_result = get_hand_result(self.table, player.hand)
 
-        per = self.pot // len(self.winners)
-        remainder = self.pot % len(self.winners)
-        for i, idx in enumerate(self.winners):
-            member = self.players[idx].member(self)
-            amount = per + (1 if i < remainder else 0)
-            try:
-                await bank.deposit_credits(member, amount)
-            except errors.BalanceTooHigh as err:
+        pots = self.build_side_pots()
+        
+        # For each pot, find the best hand among eligible players
+        for pot_amount, eligible_players in pots:
+            if not eligible_players:
+                continue 
+
+            contenders = [p for p in eligible_players if p.state != PlayerState.Folded]
+            if not contenders:
+                continue
+
+            # find best HandResult among contenders
+            best = max((p.hand_result for p in contenders), default=None)  # type: ignore
+            if best is None:
+                continue
+
+            winners = [p for p in contenders if p.hand_result == best]
+            self.winners.extend([p.index for p in winners])
+
+            # split pot among winners with deterministic remainder
+            per = pot_amount // len(winners)
+            remainder = pot_amount % len(winners)
+            winners_sorted = sorted(winners, key=lambda p: p.index)
+            for i, winner in enumerate(winners_sorted):
+                member = winner.member(self)
+                amount = per + (1 if i < remainder else 0)
+                winner.winnings += amount
+                try:
+                    await bank.deposit_credits(member, amount)
+                except errors.BalanceTooHigh as err:
                     await bank.set_balance(member, err.max_balance)
 
+        # cleanup
         self.pot = 0
         self.all_hands_finished = True
+        self.turn = None
         await self.save_state()
+
+    def build_side_pots(self) -> List[Tuple[int, List[PokerPlayer]]]:
+        # consider all players who put chips into the pot (could include folded players)
+        contributors = [p for p in self.players if p.total_betted > 0]
+        if not contributors:
+            return []
+
+        remaining = sorted(contributors, key=lambda p: p.total_betted)
+        pots: List[Tuple[int, List[PokerPlayer]]] = []
+        last = 0
+
+        while remaining:
+            smallest = remaining[0].total_betted
+            contribution = smallest - last  # how much each remaining player contributes to this slice
+            pot_amount = contribution * len(remaining)
+
+            # eligible players for this pot are remaining players who did NOT fold
+            eligible = [p for p in remaining if p.state != PlayerState.Folded]
+            pots.append((pot_amount, eligible))
+
+            # move forward: remove players who only contributed up to smallest
+            last = smallest
+            remaining = [p for p in remaining if p.total_betted > smallest]
+
+        return pots
+    
 
     async def get_suit_emojis(self):
         return {
@@ -382,7 +440,6 @@ class PokerGame(BasePokerGame):
             PlayerType.BigBlind: await self.cog.config.emoji_bigblind(),
             PlayerType.Normal: "",
         }
-
 
     async def get_embed(self) -> discord.Embed:
         suit_emojis = await self.get_suit_emojis()
@@ -449,9 +506,8 @@ class PokerGame(BasePokerGame):
                         content_lines.append(f"`➡️` {' '.join(card_str(c) for c in p.hand_result.cards)}")
                         content_lines.append(f"`📜` {humanize_camel_case(p.hand_result.type.name).title()}")
 
-                if p.index in (self.winners or []):
-                    gain = self.pot - p.total_betted
-                    content_lines.append(f"`💵` +{humanize_number(abs(gain))} {currency_name}")
+                if p.winnings > 0:
+                    content_lines.append(f"`💵` +{humanize_number(p.winnings - p.total_betted)} {currency_name}")
                 elif p.total_betted > 0:
                     content_lines.append(f"`💵` -{humanize_number(p.total_betted)} {currency_name}")
 
@@ -478,9 +534,8 @@ class PokerGame(BasePokerGame):
                     elif p.state == PlayerState.Pending:
                         line += " `...`"
 
-                if p.index in (self.winners or []):
-                    gain = self.pot - p.total_betted
-                    line += f" (+{humanize_number(abs(gain))} {currency_name})"
+                if p.winnings > 0:
+                    line += f" (+{humanize_number(p.winnings - p.total_betted)} {currency_name})"
                 elif p.total_betted > 0:
                     line += f" (-{humanize_number(p.total_betted)} {currency_name})"
 
