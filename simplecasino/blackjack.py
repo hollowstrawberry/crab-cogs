@@ -30,13 +30,21 @@ def get_hand_value(hand: List[Card]) -> int:
 
 
 class Blackjack(discord.ui.View):
-    def __init__(self, cog: BaseCasinoCog, player: discord.Member, channel: discord.TextChannel, bid: int, embed_color: discord.Color):
+    def __init__(self,
+                 cog: BaseCasinoCog,
+                 player: discord.Member,
+                 channel: discord.TextChannel,
+                 bid: int,
+                 embed_color: discord.Color,
+                 include_author: bool,
+                 ):
         super().__init__(timeout=None)
         self.cog = cog
         self.player = player
         self.channel = channel
         self.bid = bid
         self.embed_color = embed_color
+        self.include_author = include_author
         self.dealer: List[Card] = []
         self.hand: List[Card] = []
         self.deck = make_deck()
@@ -119,6 +127,10 @@ class Blackjack(discord.ui.View):
                 embed.title = "💀 Blackjack (Lost)"
         else:
             embed.title = "Blackjack"
+
+        #if self.include_author:
+        #    embed.set_author(name=self.player.display_name, icon_url=self.player.display_avatar.url)
+
         return embed
     
     async def dealer_turn(self, interaction: discord.Interaction):

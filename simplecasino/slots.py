@@ -41,6 +41,7 @@ PAYOUTS = {
 async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Context], bid: int):
     author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
     assert ctx.guild and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
+    interaction = ctx if isinstance(ctx, discord.Interaction) else ctx.interaction
     currency_name = await bank.get_currency_name(ctx.guild)
 
     default_reel = deque(cast(Iterable, SlotMachine))
@@ -87,6 +88,8 @@ async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Con
 
     embed = discord.Embed(title="Slot Machine", color=await cog.bot.get_embed_color(ctx.channel))
     embed.add_field(name="Bid", value=f"{humanize_number(bid)} {currency_name}")
+    # if interaction and interaction.type == discord.InteractionType.component:
+    #     embed.set_author(name=author.display_name, icon_url=author.display_avatar.url)
 
     first = f"┃ {reels[0][0].value} ⬛ ⬛ ┃\n" \
             f"┣ {reels[0][1].value} ⬛ ⬛ ┫\n" \
@@ -105,10 +108,9 @@ async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Con
         if multiplier and multiplier >= JACKPOT_AMOUNT:
             embed.title = "🎆 JACKPOT!!! 🎆"
 
-    interaction = ctx if isinstance(ctx, discord.Interaction) else ctx.interaction
     if interaction:
         embed.description = first
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, allowed_mentions=discord.AllowedMentions.none())
         await asyncio.sleep(1)
         embed.description = second
         await interaction.edit_original_response(embed=embed)
