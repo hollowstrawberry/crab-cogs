@@ -1,6 +1,7 @@
 import re
 import discord
 from redbot.core import bank
+from redbot.core.utils.chat_formatting import humanize_number
 
 from minigames.base import Minigame
 
@@ -11,8 +12,8 @@ class InviteView(discord.ui.View):
     def __init__(self, game: Minigame, currency_name: str):
         super().__init__(timeout=None)
         self.game = game
-        currency_name = re.sub(r"<a?:(\w+):\d+>", r"\1", currency_name)
-        label = "Accept" if game.bet == 0 else f"Accept and bet {game.bet} {currency_name}"[:MAX_BUTTON_LABEL]
+        currency_name = re.sub(r"<a?:(\w+):\d+>", r"\1", currency_name)  # extract emoji name
+        label = "Accept" if game.bet == 0 else f"Accept and bet {humanize_number(game.bet)} {currency_name}"[:MAX_BUTTON_LABEL]
         accept_button = discord.ui.Button(label=label, style=discord.ButtonStyle.primary)
         cancel_button = discord.ui.Button(label="Cancel", style=discord.ButtonStyle.secondary)
         accept_button.callback = self.accept

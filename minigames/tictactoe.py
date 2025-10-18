@@ -4,6 +4,7 @@ from enum import Enum
 from typing import List, Optional, Tuple
 from datetime import datetime
 from redbot.core import bank
+from redbot.core.utils.chat_formatting import humanize_number
 
 from minigames.base import BaseMinigameCog, Minigame
 from minigames.board import Board, find_lines, try_complete_line
@@ -143,9 +144,9 @@ class TicTacToeGame(Minigame):
             if self.winner.value >= 0 and self.bet > 0 and not player.bot and await self.cog.is_economy_enabled(self.channel.guild):
                 currency_name = await bank.get_currency_name(self.channel.guild)
                 if self.winner.value == i:
-                    description += f" +{self.bet} {currency_name}"
+                    description += f" +{humanize_number(self.bet)} {currency_name}"
                 elif not self.member(self.opponent(Player(i))).bot:
-                    description += f" -{self.bet} {currency_name}"
+                    description += f" -{humanize_number(self.bet)} {currency_name}"
             description += "\n"
 
         color = COLORS[self.winner] if self.winner != Player.NONE else COLORS[self.current]

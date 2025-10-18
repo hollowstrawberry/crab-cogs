@@ -215,7 +215,7 @@ class SimpleCheckers(BaseCheckersCog):
     @commands.group(name="setcheckers", aliases=["checkersset", "setdraughts", "draughtsset", "checkerset", "draughtset"])  # type: ignore
     @commands.admin_or_permissions(manage_guild=True)
     @bank.is_owner_if_bank_global()
-    async def setcheckers(self, ctx: commands.Context):
+    async def setcheckers(self, _: commands.Context):
         """Settings for Checkers."""
         pass
 

@@ -7,6 +7,7 @@ from io import BytesIO
 from typing import List, Optional, Tuple
 from datetime import datetime
 from redbot.core import bank
+from redbot.core.utils.chat_formatting import humanize_number
 
 from simplechess.base import BaseChessCog, BaseChessGame
 from simplechess.utils import svg_to_png
@@ -170,9 +171,9 @@ class ChessGame(BaseChessGame):
             embed.description += f" captured **{last_capture.unicode_symbol(invert_color=True)}**"
         elif self.winner is not None and self.bet > 0 and not self.member(chess.BLACK).bot and economy_enabled:
             if self.winner == self.member(chess.BLACK):
-                embed.description += f" +{self.bet} {currency_name}"
+                embed.description += f" +{humanize_number(self.bet)} {currency_name}"
             elif not self.member(chess.WHITE).bot:
-                embed.description += f" -{self.bet} {currency_name}"
+                embed.description += f" -{humanize_number(self.bet)} {currency_name}"
 
         embed.description += "\n"
 
@@ -183,9 +184,9 @@ class ChessGame(BaseChessGame):
             embed.description += f" captured **{last_capture.unicode_symbol()}**"
         elif self.winner is not None and self.bet > 0 and not self.member(chess.WHITE).bot and economy_enabled:
             if self.winner == self.member(chess.WHITE):
-                embed.description += f" +{self.bet} {currency_name}"
+                embed.description += f" +{humanize_number(self.bet)} {currency_name}"
             elif not self.member(chess.BLACK).bot:
-                embed.description += f" -{self.bet} {currency_name}"
+                embed.description += f" -{humanize_number(self.bet)} {currency_name}"
         filename = "board.png"
         file = discord.File(await self.generate_board_image(), filename)
 

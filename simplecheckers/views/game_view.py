@@ -1,5 +1,6 @@
 import time
 import asyncio
+from typing import Callable
 import discord
 import draughts
 
@@ -13,10 +14,11 @@ NOT_PLAYING = "You're not playing this game!"
 class GameMoveModal(discord.ui.Modal, title="Checkers Move"):
     move = discord.ui.Label(text='Move', description="The piece you want to move and every jump after, separated by spaces. Example: 22 13 6", component=discord.ui.TextInput())
 
-    def __init__(self, game: BaseCheckersGame, parent_interaction: discord.Interaction):
+    def __init__(self, game: BaseCheckersGame, parent_interaction: discord.Interaction, view_stop: Callable):
         super().__init__()
         self.game = game
         self.parent_interaction = parent_interaction
+        self.view_stop = view_stop
 
     async def on_submit(self, interaction: discord.Interaction):
         assert isinstance(self.move.component, discord.ui.TextInput)
@@ -24,9 +26,9 @@ class GameMoveModal(discord.ui.Modal, title="Checkers Move"):
         success, message = await self.game.move_user(move)
         if not success:
             return await interaction.response.send_message(message, ephemeral=True)
-        else:
-            await interaction.response.defer()
-
+        
+        self.view_stop()
+        await interaction.response.defer()
         await self.game.update_message(self.parent_interaction)
 
         if self.game.member(self.game.board.turn).bot:
@@ -61,7 +63,7 @@ class GameView(discord.ui.View):
             return await interaction.response.send_message(NOT_PLAYING, ephemeral=True)
         if interaction.user != self.game.member(self.game.board.turn):
             return await interaction.response.send_message("It's not your turn!", ephemeral=True)
-        await interaction.response.send_modal(GameMoveModal(self.game, interaction))
+        await interaction.response.send_modal(GameMoveModal(self.game, interaction, self.stop))
 
     async def help(self, interaction: discord.Interaction):
         instructions = INSTRUCTIONS[self.game.board.variant]
@@ -74,6 +76,7 @@ class GameView(discord.ui.View):
         assert interaction.message
         if interaction.user not in self.game.players:
             return await interaction.response.send_message(NOT_PLAYING, ephemeral=True)
+        self.stop()
         await self.game.update_message()
 
     async def end(self, interaction: discord.Interaction):
