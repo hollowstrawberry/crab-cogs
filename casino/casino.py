@@ -3,7 +3,7 @@ import asyncio
 import discord
 import calendar
 import aiofiles
-from typing import Optional, Union
+from typing import List, Optional, Union
 from datetime import datetime
 from redbot.core import commands, app_commands, bank
 from redbot.core.bot import Red
@@ -205,9 +205,10 @@ class Casino(BaseCasinoCog):
     @commands.guild_only()
     async def poker_cmd(self, ctx: commands.Context, starting_bet: int):
         """Start a new game of Poker with no players and a starting bid."""
-        await self.poker(ctx, starting_bet)
+        assert isinstance(ctx.author, discord.Member)
+        await self.poker(ctx, [ctx.author], starting_bet)
 
-    async def poker(self, ctx: Union[discord.Interaction, commands.Context], starting_bet: int):
+    async def poker(self, ctx: Union[discord.Interaction, commands.Context], players: List[discord.Member], starting_bet: int) -> bool:
         author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
         assert ctx.guild and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
         
@@ -216,12 +217,18 @@ class Casino(BaseCasinoCog):
         minimum_starting_bet = await self.config.pokermin() if await bank.is_global() else await self.config.guild(ctx.guild).pokermin()
         currency_name = await bank.get_currency_name(ctx.guild)
         if starting_bet < minimum_starting_bet:
-            return await reply(f"The starting bet must be at least {minimum_starting_bet} {currency_name}.")
+            await reply(f"The starting bet must be at least {minimum_starting_bet} {currency_name}.")
+            return False
         if not await bank.can_spend(author, starting_bet):
-            return await reply(f"You don't have enough {currency_name} to make that bet.")
+            await reply(f"You don't have enough {currency_name} to make that bet.")
+            return False
 
         # Game already exists
         if ctx.channel.id in self.poker_games and not self.poker_games[ctx.channel.id].is_finished:
+            if len(players) > 1:  # rematch
+                await reply("Another game of Poker has already begun in this channel.", ephemeral=True)
+                return False
+            
             old_game = self.poker_games[ctx.channel.id]
             try:
                 old_message = await ctx.channel.fetch_message(old_game.message.id) if old_game.message else None # re-fetch
@@ -244,7 +251,7 @@ class Casino(BaseCasinoCog):
                             await old_message.delete()
                         except discord.NotFound:
                             pass
-                    game = PokerGame(self, [author], ctx.channel, starting_bet)
+                    game = PokerGame(self, players, ctx.channel, starting_bet)
                     self.poker_games[ctx.channel.id] = game
                     await game.update_message()
 
@@ -254,14 +261,14 @@ class Casino(BaseCasinoCog):
                 view = ReplaceView(self, callback, author)
                 message = await reply(embed=embed, view=view)
                 view.message = message if isinstance(ctx, commands.Context) else await ctx.original_response()  # type: ignore
-                return
+                return False
             
             else:
                 content = f"There is still an active game in this channel, here: {old_message.jump_url}\nTry again in a few minutes"
                 permissions = ctx.channel.permissions_for(author)
                 content += " or consider creating a thread." if permissions.create_public_threads or permissions.create_private_threads else "."
                 await reply(content, ephemeral=True)
-                return
+                return False
         
         if isinstance(ctx, discord.Interaction):
             await ctx.response.send_message(STARTING, ephemeral=True)
@@ -269,9 +276,10 @@ class Casino(BaseCasinoCog):
             await ctx.interaction.response.send_message(STARTING, ephemeral=True)
 
         # New game
-        game = PokerGame(self, [author], ctx.channel, starting_bet)
+        game = PokerGame(self, players, ctx.channel, starting_bet)
         self.poker_games[ctx.channel.id] = game
         await game.update_message()
+        return True
 
 
     @commands.group(name="casinoset", aliases=["setcasino"])  # type: ignore

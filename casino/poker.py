@@ -12,6 +12,7 @@ from casino.base import BaseCasinoCog, BasePokerGame
 from casino.card import CARD_VALUE_STR, Card, CardSuit, CardValue
 from casino.utils import (HandType, PlayerState, PlayerType, PokerState, InsufficientFundsError,
                           humanize_camel_case, DISCORD_RED, POKER_MAX_PLAYERS, EMPTY_ELEMENT)
+from casino.views.poker_rematch_view import PokerRematchView
 from casino.views.poker_view import PokerView
 from casino.views.poker_waiting_view import PokerWaitingView
 
@@ -507,7 +508,7 @@ class PokerGame(BasePokerGame):
         if self.state == PokerState.WaitingForPlayers:
             return PokerWaitingView(self)
         elif self.is_finished:
-            return None
+            return PokerRematchView(self)
         else:
             if self.turn is None or not 0 <= self.turn < len(self.players):
                 raise ValueError("Invalid turn during game")

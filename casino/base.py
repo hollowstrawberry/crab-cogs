@@ -44,6 +44,10 @@ class BaseCasinoCog(commands.Cog):
     async def blackjack(self, ctx: Union[discord.Interaction, commands.Context], bid: int):
         pass
 
+    @abstractmethod
+    async def poker(self, ctx: Union[discord.Interaction, commands.Context], players: List[discord.Member], starting_bet: int) -> bool:
+        pass
+
 
 class BasePokerGame(ABC):
     def __init__(

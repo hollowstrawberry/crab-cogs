@@ -2,21 +2,37 @@
 
 
 import discord
-from discord.ui import Button, View
 from redbot.core import bank
 
 from casino.base import BasePokerGame
 from casino.utils import PokerState
 
 
-class PokerWaitingView(View):
+class PokerWaitingView(discord.ui.View):
     def __init__(self, game: BasePokerGame):
         super().__init__(timeout=None)
         self.game = game
-        self.join_button = Button(custom_id=f"poker {game.channel.id} join", label="Join", style=discord.ButtonStyle.success)
-        self.leave_button = Button(custom_id=f"poker {game.channel.id} leave", label="Leave", style=discord.ButtonStyle.secondary, disabled=len(game.players_ids) == 1)
-        self.start_button = Button(custom_id=f"poker {game.channel.id} start", label="Start", style=discord.ButtonStyle.primary)
-        self.cancel_button = Button(custom_id=f"poker {game.channel.id} cancel", label="Cancel", style=discord.ButtonStyle.danger)
+        self.join_button = discord.ui.Button(
+            custom_id=f"poker {game.channel.id} join",
+            label="Join",
+            style=discord.ButtonStyle.success
+        )
+        self.leave_button = discord.ui.Button(
+            custom_id=f"poker {game.channel.id} leave",
+            label="Leave",
+            style=discord.ButtonStyle.secondary,
+            disabled=len(game.players_ids) == 1
+        )
+        self.start_button = discord.ui.Button(
+            custom_id=f"poker {game.channel.id} start",
+            label="Start",
+            style=discord.ButtonStyle.primary
+        )
+        self.cancel_button = discord.ui.Button(
+            custom_id=f"poker {game.channel.id} cancel",
+            label="Cancel",
+            style=discord.ButtonStyle.danger
+        )
         self.join_button.callback = self.join
         self.leave_button.callback = self.leave
         self.start_button.callback = self.start
