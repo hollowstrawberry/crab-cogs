@@ -30,13 +30,21 @@ def get_hand_value(hand: List[Card]) -> int:
 
 
 class Blackjack(discord.ui.View):
-    def __init__(self, cog: BaseCasinoCog, player: discord.Member, channel: discord.TextChannel, bid: int, embed_color: discord.Color):
+    def __init__(self,
+                 cog: BaseCasinoCog,
+                 player: discord.Member,
+                 channel: discord.TextChannel,
+                 bid: int,
+                 embed_color: discord.Color,
+                 include_footer: bool,
+                 ):
         super().__init__(timeout=None)
         self.cog = cog
         self.player = player
         self.channel = channel
         self.bid = bid
         self.embed_color = embed_color
+        self.include_footer = include_footer
         self.dealer: List[Card] = []
         self.hand: List[Card] = []
         self.deck = make_deck()
@@ -98,7 +106,7 @@ class Blackjack(discord.ui.View):
         else:
             return 2 * self.bid
 
-    async def get_embed(self, include_author = False) -> discord.Embed:
+    async def get_embed(self) -> discord.Embed:
         currency_name = await bank.get_currency_name(self.channel.guild)
         dealer_str = " ".join("⬇️" if self.facedown and i == 1 else CARD_EMOJI[card.value] for i, card in enumerate(self.dealer))
         hand_str = " ".join(CARD_EMOJI[card.value] for card in self.hand)
@@ -119,8 +127,10 @@ class Blackjack(discord.ui.View):
                 embed.title = "💀 Blackjack (Lost)"
         else:
             embed.title = "Blackjack"
-        if include_author:
-            embed.set_author(name=self.player.display_name, icon_url=self.player.display_avatar.url)
+
+        if self.include_footer:
+            embed.set_footer(text=self.player.display_name, icon_url=self.player.display_avatar.url)
+            
         return embed
     
     async def dealer_turn(self, interaction: discord.Interaction):
