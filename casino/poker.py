@@ -6,8 +6,8 @@ from redbot.core.utils.chat_formatting import humanize_number
 
 from casino.base import BaseCasinoCog, BasePokerGame
 from casino.card import CARD_VALUE_STR, Card, CardSuit, CardValue
-from casino.utils import (HandType, PlayerState, PlayerType, PokerState,
-                          InsufficientFundsError, humanize_camel_case, DISCORD_RED, MAX_PLAYERS)
+from casino.utils import (HandType, PlayerState, PlayerType, PokerState, InsufficientFundsError,
+                          humanize_camel_case, DISCORD_RED, MAX_PLAYERS, EMPTY_ELEMENT)
 from casino.views.poker_view import PokerView
 from casino.views.poker_waiting_view import PokerWaitingView
 
@@ -341,12 +341,11 @@ class PokerGame(BasePokerGame):
 
 
     async def get_embed(self) -> discord.Embed:
-        SUIT_EMOJIS = await self.get_suit_emojis()
-        PLAYER_TYPE_EMOJIS = await self.get_player_type_emojis()
-        EMPTY_ELEMENT = "\u200b"
+        suit_emojis = await self.get_suit_emojis()
+        player_emojis = await self.get_player_type_emojis()
 
         def card_str(card: Card):
-            return f"{CARD_VALUE_STR[card.value]}{SUIT_EMOJIS[card.suit]}"
+            return f"{CARD_VALUE_STR[card.value]}{suit_emojis[card.suit]}"
 
         embed = discord.Embed()
         desc_lines: List[str] = []
@@ -362,18 +361,18 @@ class PokerGame(BasePokerGame):
             title_extra = "Winners"
 
         if self.state == PokerState.Showdown:
-            title_left = PLAYER_TYPE_EMOJIS[PlayerType.BigBlind]
-            title_right = PLAYER_TYPE_EMOJIS[PlayerType.BigBlind]
+            title_left = player_emojis[PlayerType.BigBlind]
+            title_right = player_emojis[PlayerType.BigBlind]
         else:
-            title_left = SUIT_EMOJIS[CardSuit.SPADES] + SUIT_EMOJIS[CardSuit.HEARTS]
-            title_right = SUIT_EMOJIS[CardSuit.DIAMONDS] + SUIT_EMOJIS[CardSuit.CLUBS]
+            title_left = suit_emojis[CardSuit.SPADES] + suit_emojis[CardSuit.HEARTS]
+            title_right = suit_emojis[CardSuit.DIAMONDS] + suit_emojis[CardSuit.CLUBS]
 
         embed.title = f"{title_left} Poker - {title_extra} {title_right}"
 
         # pre-game summary
         if self.state == PokerState.WaitingForPlayers:
             for p in self.players:
-                desc_lines.append(f"<@{p.id}> {PLAYER_TYPE_EMOJIS[p.type]}")
+                desc_lines.append(f"<@{p.id}> {player_emojis[p.type]}")
             embed.description = "\n".join(desc_lines)
             embed.color = await self.cog.bot.get_embed_color(self.channel)
             return embed
@@ -381,9 +380,10 @@ class PokerGame(BasePokerGame):
             embed.color = DISCORD_RED
 
         # common
-        desc_lines.append(f"**💰 Pot:** {humanize_number(self.pot)}\n")
+        if self.pot > 0:
+            desc_lines.append(f"**💰 Pot:** {humanize_number(self.pot)}\n")
         table_str = " ".join(card_str(c) for c in self.table) if self.table else "*Empty*"
-        desc_lines.append(f"**🃏 Table:** {table_str}\n{EMPTY_ELEMENT}\n")
+        desc_lines.append(f"**🃏 Table:**{EMPTY_ELEMENT} {table_str}\n{EMPTY_ELEMENT}\n")
 
         hand_finished = winners_count > 0
         currency_name = await bank.get_currency_name(self.channel.guild)
@@ -425,7 +425,7 @@ class PokerGame(BasePokerGame):
                 line += p.member(self).mention
 
                 if not hand_finished:
-                    line += PLAYER_TYPE_EMOJIS[p.type]
+                    line += player_emojis[p.type]
                     if p.state == PlayerState.Betted:
                         line += f" - `betted {humanize_number(p.current_bet)}`"
                     elif p.state == PlayerState.Checked:
@@ -435,7 +435,7 @@ class PokerGame(BasePokerGame):
 
                 if p.index in (self.winners or []):
                     gain = self.pot - p.total_betted
-                    line += f" (+{humanize_number(gain)} {currency_name})"
+                    line += f" (+{humanize_number(abs(gain))} {currency_name})"
                 elif p.total_betted > 0:
                     line += f" (-{humanize_number(p.total_betted)} {currency_name})"
 
@@ -454,7 +454,7 @@ class PokerGame(BasePokerGame):
                 thumbnail_url = member.display_avatar.url
 
         # send it
-        embed.description = "\n".join(desc_lines) if desc_lines else "\u200b"
+        embed.description = "\n".join(desc_lines) if desc_lines else EMPTY_ELEMENT
         if thumbnail_url:
             embed.set_thumbnail(url=thumbnail_url)
         return embed

@@ -4,6 +4,7 @@ from enum import Enum, IntEnum, auto
 
 MAX_PLAYERS = 8
 DISCORD_RED = 0XDD2E44
+EMPTY_ELEMENT = "\u200b"
 
 
 def humanize_camel_case(s: str):
