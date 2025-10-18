@@ -182,6 +182,9 @@ class PokerGame(BasePokerGame):
             raise ValueError("Game already started")
         if len(self.players) < 2:
             raise ValueError("Not enough players")
+        elif len(self.players) == 2:
+            self.players[0].type = PlayerType.SmallBlind
+            self.players[1].type = PlayerType.BigBlind
 
         for _ in range(2):
             for p in self.players:
