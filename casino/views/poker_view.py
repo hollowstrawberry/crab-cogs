@@ -69,7 +69,7 @@ class PokerView(discord.ui.View):
         self.raise_select = discord.ui.Select(
             custom_id=f"poker {game.channel.id} raise",
             options=raise_options,
-            placeholder="Raise bet",
+            placeholder="Raise Bet",
             disabled=cur_player_money < game.minimum_bet
         )
         self.raise_select.callback = self.raisebet

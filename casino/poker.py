@@ -252,7 +252,7 @@ class PokerGame(BasePokerGame):
         if bet < self.current_bet:
             raise ValueError("Bet must be higher than the previous")
 
-        self.pot += await current.bet(self, self.current_bet)
+        self.pot += await current.bet(self, bet)
         current.state = PlayerState.Betted
 
         for p in self.players:
