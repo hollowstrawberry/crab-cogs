@@ -81,7 +81,7 @@ class PokerView(discord.ui.View):
             return await interaction.response.send_message(ERROR_TURN, ephemeral=True)
         self.stop()
         await self.game.fold(interaction.user.id)
-        await self.game.update_message()
+        await self.game.update_message(interaction)
     
     async def check(self, interaction: discord.Interaction):
         assert self.game.turn is not None
@@ -93,7 +93,7 @@ class PokerView(discord.ui.View):
             return await interaction.response.send_message("You can't check right now.", ephemeral=True)
         self.stop()
         await self.game.check(interaction.user.id)
-        await self.game.update_message()
+        await self.game.update_message(interaction)
 
     async def call(self, interaction: discord.Interaction):
         assert self.game.turn is not None
@@ -103,7 +103,7 @@ class PokerView(discord.ui.View):
             return await interaction.response.send_message(ERROR_TURN, ephemeral=True)
         self.stop()
         await self.game.call(interaction.user.id)
-        await self.game.update_message()
+        await self.game.update_message(interaction)
 
     async def view(self, interaction: discord.Interaction):
         if interaction.user.id not in self.game.players_ids:
@@ -114,7 +114,7 @@ class PokerView(discord.ui.View):
         if interaction.user.id not in self.game.players_ids:
             return await interaction.response.send_message(ERROR_PLAYING, ephemeral=True)
         self.stop()
-        await self.game.update_message()
+        await self.game.update_message(None)
 
     async def raisebet(self, interaction: discord.Interaction):
         assert self.game.turn is not None
@@ -125,3 +125,4 @@ class PokerView(discord.ui.View):
         self.stop()
         new_bet = int(interaction.data['values'][0])  # type: ignore
         await self.game.raise_to(interaction.user.id, new_bet)
+        await self.game.update_message(interaction)
