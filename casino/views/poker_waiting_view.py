@@ -70,5 +70,5 @@ class PokerWaitingView(View):
         if self.game.state != PokerState.WaitingForPlayers:
             return await interaction.response.send_message("The game already started.", ephemeral=True)
         self.stop()
-        await self.game.cancel(interaction.user)
+        await self.game.cancel()
         await interaction.message.delete()

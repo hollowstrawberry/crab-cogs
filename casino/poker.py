@@ -142,6 +142,22 @@ class PokerGame(BasePokerGame):
         if any(p.id == user_id for p in self.players):
             return False, "You're already playing."
         self.players.append(PokerPlayer(id=user_id, index=len(self.players)))
+        self.players_ids = [p.id for p in self.players]
+        return True, ""
+    
+    def try_remove_player(self, user_id: int) -> Tuple[bool, str]:
+        if len(self.players) == 1:
+            return False, "You can't leave. Try cancelling the game instead."
+        if self.state != PokerState.WaitingForPlayers:
+            return False, "The game already started."
+        pl = self.find_player_by_id(user_id)
+        if pl is None:
+            return False, "You're not even playing, why are you trying to leave?"
+        self.players.remove(pl)
+        # re-index players
+        for i, p in enumerate(self.players):
+            p.index = i
+            p.type = PlayerType(min(i, PlayerType.Normal.value))
         return True, ""
     
     async def cancel(self) -> None:
@@ -160,21 +176,6 @@ class PokerGame(BasePokerGame):
                     await bank.deposit_credits(member, player.total_betted)
                 except errors.BalanceTooHigh as err:
                     await bank.set_balance(member, err.max_balance)
-
-    def try_remove_player(self, user_id: int) -> Tuple[bool, str]:
-        if len(self.players) == 1:
-            return False, "You can't leave. Try cancelling the game instead."
-        if self.state != PokerState.WaitingForPlayers:
-            return False, "The game already started."
-        pl = self.find_player_by_id(user_id)
-        if pl is None:
-            return False, "You're not even playing, why are you trying to leave?"
-        self.players.remove(pl)
-        # re-index players
-        for i, p in enumerate(self.players):
-            p.index = i
-            p.type = PlayerType(min(i, PlayerType.Normal.value))
-        return True, ""
 
     async def start_hand(self) -> None:
         if self.state != PokerState.WaitingForPlayers:
