@@ -1,6 +1,7 @@
-from datetime import datetime
+import json
 import discord
 from typing import List, Optional, Tuple, Dict
+from datetime import datetime
 from dataclasses import dataclass, field
 from redbot.core import bank, errors
 from redbot.core.utils.chat_formatting import humanize_number
@@ -8,7 +9,7 @@ from redbot.core.utils.chat_formatting import humanize_number
 from casino.base import BaseCasinoCog, BasePokerGame
 from casino.card import CARD_VALUE_STR, Card, CardSuit, CardValue
 from casino.utils import (HandType, PlayerState, PlayerType, PokerState, InsufficientFundsError,
-                          humanize_camel_case, DISCORD_RED, MAX_PLAYERS, EMPTY_ELEMENT)
+                          humanize_camel_case, DISCORD_RED, POKER_MAX_PLAYERS, EMPTY_ELEMENT)
 from casino.views.poker_view import PokerView
 from casino.views.poker_waiting_view import PokerWaitingView
 
@@ -77,7 +78,6 @@ class PokerGame(BasePokerGame):
         self.players: List[PokerPlayer] = [PokerPlayer(id=p, index=i) for i, p in enumerate(self.players_ids)]
 
     async def save_state(self) -> None:
-        return
         channel_conf = self.cog.config.channel(self.channel)
         await channel_conf.game.set({
             "table": [str(c) for c in self.table],
@@ -138,7 +138,7 @@ class PokerGame(BasePokerGame):
     def try_add_player(self, user_id: int) -> Tuple[bool, str]:
         if self.state != PokerState.WaitingForPlayers:
             return False, "The game already started."
-        if len(self.players) >= MAX_PLAYERS:
+        if len(self.players) >= POKER_MAX_PLAYERS:
             return False, "This game is full."
         if any(p.id == user_id for p in self.players):
             return False, "You're already playing."

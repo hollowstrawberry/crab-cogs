@@ -16,6 +16,7 @@ from casino.base import BaseCasinoCog
 from casino.slots import slots
 from casino.poker import PokerGame
 from casino.blackjack import Blackjack
+from casino.utils import POKER_MINIMUM_BET
 from casino.views.again_view import AgainView
 from casino.views.replace_view import ReplaceView
 
@@ -190,8 +191,11 @@ class Casino(BaseCasinoCog):
         
         reply = ctx.reply if isinstance(ctx, commands.Context) else ctx.response.send_message
 
+        minimum_starting_bet = await self.config.pokermin() if await bank.is_global() else await self.config.guild(ctx.guild).pokermin()
+        currency_name = await bank.get_currency_name(ctx.guild)
+        if starting_bet < minimum_starting_bet:
+            return await reply(f"The starting bet must be at least {minimum_starting_bet} {currency_name}.")
         if not await bank.can_spend(author, starting_bet):
-            currency_name = await bank.get_currency_name(ctx.guild)
             return await reply(f"You don't have enough {currency_name} to make that bet.")
 
         # Game already exists
@@ -223,7 +227,7 @@ class Casino(BaseCasinoCog):
                 embed = discord.Embed(title="Confirmation", description=content, color=await self.bot.get_embed_color(ctx.channel))
                 view = ReplaceView(self, callback, author)
                 message = await reply(embed=embed, view=view)
-                view.message = message if isinstance(ctx, commands.Context) else await ctx.original_response() # type: ignore
+                view.message = message if isinstance(ctx, commands.Context) else await ctx.original_response()  # type: ignore
                 return
             
             else:
@@ -260,11 +264,11 @@ class Casino(BaseCasinoCog):
         currency = await bank.get_currency_name(None if is_global else ctx.guild)
         if bid is None:
             bid = await config_bjmin()
-            return await ctx.send(f"Current minimum bid for for Blackjack is {bid} {currency}.")
+            return await ctx.send(f"Current minimum bid for Blackjack is {bid} {currency}.")
         if bid < 1:
             return await ctx.send("Bid must be a positive number.")
         await config_bjmin.set(bid)
-        await ctx.send(f"New minimum bid for for Blackjack is {bid} {currency}.")
+        await ctx.send(f"New minimum bid for Blackjack is {bid} {currency}.")
 
     @casinoset.command(name="bjmax", aliases=["blackjackmax"])
     async def casinoset_bjmax(self, ctx: commands.Context, bid: Optional[int]):
@@ -275,11 +279,26 @@ class Casino(BaseCasinoCog):
         currency = await bank.get_currency_name(None if is_global else ctx.guild)
         if bid is None:
             bid = await config_bjmax()
-            return await ctx.send(f"Current maximum bid for for Blackjack is {bid} {currency}.")
+            return await ctx.send(f"Current maximum bid for Blackjack is {bid} {currency}.")
         if bid < 1:
             return await ctx.send("Bid must be a positive number.")
         await config_bjmax.set(bid)
-        await ctx.send(f"New maximum bid for for Blackjack is {bid} {currency}.")
+        await ctx.send(f"New maximum bid for Blackjack is {bid} {currency}.")
+
+    @casinoset.command(name="pokermin")
+    async def casinoset_pokermin(self, ctx: commands.Context, bet: Optional[int]):
+        """The minimum bet for Poker."""
+        assert ctx.guild
+        is_global = await bank.is_global()
+        config_pokermin = self.config.pokermin if is_global else self.config.guild(ctx.guild).pokermin
+        currency = await bank.get_currency_name(None if is_global else ctx.guild)
+        if bet is None:
+            bet = await config_pokermin()
+            return await ctx.send(f"Current minimum bet in Poker is {bet} {currency}.")
+        if bet < POKER_MINIMUM_BET:
+            return await ctx.send("Bid must be a positive number.")
+        await config_pokermin.set(bet)
+        await ctx.send(f"New minimum bet in Poker is {bet} {currency}.")
 
     @casinoset.command(name="coinfreespin")
     @bank.is_owner_if_bank_global()

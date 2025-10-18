@@ -63,7 +63,6 @@ CARD_VALUE_STR = {
 class Card:
     value: CardValue
     suit: CardSuit
-    public: bool = True
 
     @property
     def poker_value(self):

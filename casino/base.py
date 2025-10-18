@@ -7,7 +7,7 @@ from redbot.core import Config, commands
 from redbot.core.bot import Red
 
 from casino.card import Card, make_deck
-from casino.utils import MAX_PLAYERS, PokerState
+from casino.utils import POKER_MAX_PLAYERS, POKER_MINIMUM_BET, PokerState
 
 
 class BaseCasinoCog(commands.Cog):
@@ -19,6 +19,7 @@ class BaseCasinoCog(commands.Cog):
             "bjmin": 10,
             "bjmax": 1000,
             "bjtime": 5,
+            "pokermin": POKER_MINIMUM_BET,
             "coinfreespin": True,
         }
         emojis_config = {
@@ -49,7 +50,7 @@ class BasePokerGame(ABC):
         minimum_bet: int = 0,
     ):
         self.cog = cog
-        self.players_ids = [p.id for p in players][:MAX_PLAYERS]
+        self.players_ids = [p.id for p in players][:POKER_MAX_PLAYERS]
         self.channel = channel
         self.deck: List[Card] = make_deck()
         random.shuffle(self.deck)

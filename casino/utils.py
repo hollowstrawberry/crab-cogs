@@ -2,7 +2,8 @@
 import re
 from enum import Enum, IntEnum, auto
 
-MAX_PLAYERS = 8
+POKER_MAX_PLAYERS = 8
+POKER_MINIMUM_BET = 10
 DISCORD_RED = 0XDD2E44
 EMPTY_ELEMENT = "\u200b"
 
