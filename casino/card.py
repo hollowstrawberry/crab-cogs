@@ -1,7 +1,7 @@
 from enum import Enum
 from itertools import product
-from dataclasses import dataclass
-from dataclasses_json import DataClassJsonMixin
+from dataclasses import dataclass, field
+from dataclasses_json import DataClassJsonMixin, config
 
 
 class CardValue(Enum):
@@ -62,8 +62,8 @@ CARD_VALUE_STR = {
 
 @dataclass(frozen=True)
 class Card(DataClassJsonMixin):
-    value: CardValue
-    suit: CardSuit
+    value: CardValue = field(metadata=config(encoder=lambda x: x.value, decoder=CardValue))
+    suit: CardSuit = field(metadata=config(encoder=lambda x: x.value, decoder=CardSuit))
 
     @property
     def poker_value(self):

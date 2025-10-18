@@ -4,7 +4,7 @@ import discord
 from typing import List, Optional, Tuple, Dict, Union
 from datetime import datetime
 from dataclasses import dataclass, field
-from dataclasses_json import DataClassJsonMixin
+from dataclasses_json import DataClassJsonMixin, config
 from redbot.core import bank, errors
 from redbot.core.utils.chat_formatting import humanize_number
 
@@ -20,7 +20,7 @@ log = logging.getLogger("red.crab-cogs.casino")
 
 @dataclass
 class HandResult(DataClassJsonMixin):
-    type: HandType
+    type: HandType = field(metadata=config(encoder=lambda x: x.value, decoder=HandType))
     cards: List[Card]
 
     def __post_init__(self):
@@ -44,9 +44,9 @@ class HandResult(DataClassJsonMixin):
 class PokerPlayer(DataClassJsonMixin):
     id: int
     index: int
-    type: PlayerType = field(init=False)
+    type: PlayerType = field(init=False, metadata=config(encoder=lambda x: x.value, decoder=PlayerType))
     hand: List[Card] = field(default_factory=list)
-    state: PlayerState = PlayerState.Pending
+    state: PlayerState = field(default=PlayerState.Pending, metadata=config(encoder=lambda x: x.value, decoder=PlayerState))
     total_betted: int = 0
     current_bet: int = 0
     hand_result: Optional[HandResult] = None
@@ -90,10 +90,10 @@ class PokerGame(BasePokerGame):
             await channel_conf.game.set({})
         else:
             players_json = json.dumps([p.to_dict(encode_json=True) for p in self.players])
-            log.info(players_json)
+            log.info(f"{players_json = }")
             await channel_conf.game.set({
-                "table": json.dumps([c.to_dict(encode_json=True) for c in self.table]),
                 "players": players_json,
+                "table": json.dumps([c.to_dict(encode_json=True) for c in self.table]),
                 "deck": json.dumps([c.to_dict(encode_json=True) for c in self.deck]),
                 "state": int(self.state),
                 "minimum_bet": self.minimum_bet,
@@ -108,8 +108,8 @@ class PokerGame(BasePokerGame):
     @staticmethod
     async def from_config(cog: BaseCasinoCog, channel: Union[discord.TextChannel, discord.Thread], config: dict) -> "PokerGame":
         game = PokerGame(cog, [], channel, config["minimum_bet"])
-        game.table = [Card.from_dict(c) for c in json.loads(config["table"])]
         game.players = [PokerPlayer.from_dict(p) for p in json.loads(config["players"])]
+        game.table = [Card.from_dict(c) for c in json.loads(config["table"])]
         game.deck = [Card.from_dict(c) for c in json.loads(config["deck"])]
         game.state = PokerState(config["state"])
         game.current_bet = config["current_bet"]
