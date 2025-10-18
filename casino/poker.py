@@ -89,12 +89,12 @@ class PokerGame(BasePokerGame):
         if self.is_finished:
             await channel_conf.game.set({})
         else:
-            players_json = json.dumps([p.to_dict() for p in self.players])
+            players_json = json.dumps([p.to_dict(encode_json=True) for p in self.players])
             log.info(players_json)
             await channel_conf.game.set({
-                "table": json.dumps([c.to_dict() for c in self.table]),
+                "table": json.dumps([c.to_dict(encode_json=True) for c in self.table]),
                 "players": players_json,
-                "deck": json.dumps([c.to_dict() for c in self.deck]),
+                "deck": json.dumps([c.to_dict(encode_json=True) for c in self.deck]),
                 "state": int(self.state),
                 "minimum_bet": self.minimum_bet,
                 "current_bet": self.current_bet,
