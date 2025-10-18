@@ -60,11 +60,11 @@ class Casino(BaseCasinoCog):
         # Load custom emojis into the current application.
         all_emojis = await self.bot.fetch_application_emojis()
         for emoji_name in ("dealer", "smallblind", "bigblind", "spades", "clubs"):
-            if not any(emoji.name == emoji_name for emoji in all_emojis) or not await self.config.__getattr__(emoji_name)():
+            if not any(emoji.name == emoji_name for emoji in all_emojis) or not await self.config.__getattr__("emoji_" + emoji_name)():
                 async with aiofiles.open(bundled_data_path(self) / f"{emoji_name}.png", "rb") as fp:
                     image = await fp.read()
                 emoji = await self.bot.create_application_emoji(name=emoji_name, image=image)
-                await self.config.__getattr__(emoji_name).set(str(emoji))
+                await self.config.__getattr__("emoji_" + emoji_name).set(str(emoji))
 
 
     def cog_unload(self):
