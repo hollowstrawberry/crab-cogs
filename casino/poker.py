@@ -343,6 +343,7 @@ class PokerGame(BasePokerGame):
     async def get_embed(self) -> discord.Embed:
         suit_emojis = await self.get_suit_emojis()
         player_emojis = await self.get_player_type_emojis()
+        currency_name = await bank.get_currency_name(self.channel.guild)
 
         def card_str(card: Card):
             return f"{CARD_VALUE_STR[card.value]}{suit_emojis[card.suit]}"
@@ -381,12 +382,11 @@ class PokerGame(BasePokerGame):
 
         # common
         if self.pot > 0:
-            desc_lines.append(f"**💰 Pot:** {humanize_number(self.pot)}\n")
+            desc_lines.append(f"**💰 Pot:** {humanize_number(self.pot)} {currency_name}\n")
         table_str = " ".join(card_str(c) for c in self.table) if self.table else "*Empty*"
         desc_lines.append(f"**🃏 Table:**{EMPTY_ELEMENT} {table_str}\n{EMPTY_ELEMENT}\n")
 
         hand_finished = winners_count > 0
-        currency_name = await bank.get_currency_name(self.channel.guild)
 
         # showdown information
         if self.state == PokerState.Showdown and hand_finished:
@@ -406,7 +406,7 @@ class PokerGame(BasePokerGame):
 
                 if p.index in (self.winners or []):
                     gain = self.pot - p.total_betted
-                    content_lines.append(f"`💵` +{humanize_number(gain)} {currency_name}")
+                    content_lines.append(f"`💵` +{humanize_number(abs(gain))} {currency_name}")
                 elif p.total_betted > 0:
                     content_lines.append(f"`💵` -{humanize_number(p.total_betted)} {currency_name}")
 
