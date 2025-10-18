@@ -255,6 +255,7 @@ class PokerGame(BasePokerGame):
 
         self.pot += await current.bet(self, bet)
         current.state = PlayerState.Betted
+        self.current_bet = bet
 
         for p in self.players:
             if p.state != PlayerState.Folded and p.current_bet < self.current_bet:
