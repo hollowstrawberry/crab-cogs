@@ -12,25 +12,27 @@ from redbot.cogs.economy.economy import Economy
 from redbot.core.utils.chat_formatting import humanize_number
 from redbot.core.utils.chat_formatting import humanize_timedelta
 
-from casino.base import BaseCasinoCog
-from casino.slots import slots
-from casino.poker import PokerGame
-from casino.blackjack import Blackjack
-from casino.utils import POKER_MINIMUM_BET
-from casino.views.again_view import AgainView
-from casino.views.replace_view import ReplaceView
+from simplecasino.base import BaseCasinoCog
+from simplecasino.slots import slots
+from simplecasino.poker import PokerGame
+from simplecasino.blackjack import Blackjack
+from simplecasino.utils import POKER_MINIMUM_BET
+from simplecasino.views.again_view import AgainView
+from simplecasino.views.replace_view import ReplaceView
 
-log = logging.getLogger("red.crab-cogs.casino")
+log = logging.getLogger("red.crab-cogs.simplecasino")
 
 old_slot: Optional[commands.Command] = None
 old_payouts: Optional[commands.Command] = None
+old_blackjack: Optional[commands.Command] = None
 
 MAX_CONCURRENT_SLOTS = 3
+MAX_APP_EMOJIS = 2000
 POKER_AFK_LIMIT = 10  # minutes
 STARTING = "Starting game..."
 
 
-class Casino(BaseCasinoCog):
+class SimpleCasino(BaseCasinoCog):
     """Gamble virtual currency with Poker, Blackjack, and Slot Machines."""
 
     def __init__(self, bot: Red):
@@ -59,25 +61,30 @@ class Casino(BaseCasinoCog):
 
         # Load custom emojis into the current application.
         all_emojis = await self.bot.fetch_application_emojis()
-        for emoji_name in ("dealer", "smallblind", "bigblind", "spades", "clubs"):
-            if not any(emoji.name == emoji_name for emoji in all_emojis) or not await self.config.__getattr__("emoji_" + emoji_name)():
-                async with aiofiles.open(bundled_data_path(self) / f"{emoji_name}.png", "rb") as fp:
-                    image = await fp.read()
-                emoji = await self.bot.create_application_emoji(name=emoji_name, image=image)
-                await self.config.__getattr__("emoji_" + emoji_name).set(str(emoji))
-
+        if len(all_emojis) < MAX_APP_EMOJIS:
+            for emoji_name in ("dealer", "smallblind", "bigblind", "spades", "clubs"):
+                if not any(emoji.name == emoji_name for emoji in all_emojis) or not await self.config.__getattr__("emoji_" + emoji_name)():
+                    async with aiofiles.open(bundled_data_path(self) / f"{emoji_name}.png", "rb") as fp:
+                        image = await fp.read()
+                    emoji = await self.bot.create_application_emoji(name=emoji_name, image=image)
+                    await self.config.__getattr__("emoji_" + emoji_name).set(str(emoji))
 
     def cog_unload(self):
         global old_slot, old_payouts
+        # clear views
         for game in self.poker_games.values():
             if game.view:
                 game.view.stop()
+        # restore old commands
         if old_slot:
             self.bot.remove_command(old_slot.name)
             self.bot.add_command(old_slot)
         if old_payouts:
             self.bot.remove_command(old_payouts.name)
             self.bot.add_command(old_payouts)
+        if old_blackjack:
+            self.bot.remove_command(old_blackjack.name)
+            self.bot.add_command(old_blackjack)
 
     async def get_economy_cog(self, ctx: Union[discord.Interaction, commands.Context]) -> Optional[Economy]:
         cog: Optional[Economy] = self.bot.get_cog("Economy")  # type: ignore
@@ -266,11 +273,11 @@ class Casino(BaseCasinoCog):
         return True
 
 
-    @commands.group(name="casinoset", aliases=["setcasino"])  # type: ignore
+    @commands.group(name="simplecasinoset", aliases=["setcasino"])  # type: ignore
     @commands.admin_or_permissions(manage_guild=True)
     @bank.is_owner_if_bank_global()
     async def casinoset(self, _: commands.Context):
-        """Settings for the Casino cog."""
+        """Settings for the SimpleCasino cog."""
         pass
 
     @casinoset.command(name="bjmin", aliases=["blackjackmin"])
@@ -337,21 +344,17 @@ class Casino(BaseCasinoCog):
 
 
 async def setup(bot: Red):
-    global old_slot, old_payouts
-    old_slot = bot.get_command("slot")
-    old_payouts = bot.get_command("payouts")
-    if old_slot and old_payouts:
-        bot.remove_command(old_slot.name)
-        bot.remove_command(old_payouts.name)
-        await bot.add_cog(Casino(bot))
-    else:
-        async def add_cog():
-            global old_slot, old_payouts
-            await asyncio.sleep(1)  # hopefully economy cog has finished loading
-            old_slot = bot.get_command("slot")
-            old_payouts = bot.get_command("payouts")
-            if old_slot and old_payouts:
-                bot.remove_command(old_slot.name)
-                bot.remove_command(old_payouts.name)
-            await bot.add_cog(Casino(bot))
-        _ = asyncio.create_task(add_cog())
+    async def add_cog():
+        global old_slot, old_payouts
+        await asyncio.sleep(1)  # hopefully economy cog has finished loading
+
+        if old_slot := bot.get_command("slot"):
+            bot.remove_command(old_slot.name)
+        if old_payouts := bot.get_command("payouts"):
+            bot.remove_command(old_payouts.name)
+        if old_blackjack := bot.get_command("blackjack"):
+            bot.remove_command(old_blackjack.name)
+
+        await bot.add_cog(SimpleCasino(bot))
+
+    _ = asyncio.create_task(add_cog())
