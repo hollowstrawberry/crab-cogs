@@ -6,28 +6,13 @@ from redbot.core import bank, errors
 from redbot.core.utils.chat_formatting import humanize_number
 
 from casino.base import BaseCasinoCog
-from casino.card import Card, CardValue, make_deck
+from casino.card import Card, CardValue, CARD_EMOJI, make_deck
 from casino.views.again_view import AgainView
 
 
 TWENTYONE = 21
 DEALER_STAND = 17
 
-EMOJI = {
-    CardValue.ACE: "🇦",
-    CardValue.TWO: "2️⃣",
-    CardValue.THREE: "3️⃣",
-    CardValue.FOUR: "4️⃣",
-    CardValue.FIVE: "5️⃣",
-    CardValue.SIX: "6️⃣",
-    CardValue.SEVEN: "7️⃣",
-    CardValue.EIGHT: "8️⃣",
-    CardValue.NINE: "9️⃣",
-    CardValue.TEN: "🔟",
-    CardValue.JACK: "🇯",
-    CardValue.QUEEN: "🇶",
-    CardValue.KING: "🇰",
-}
 
 def get_hand_value(hand: List[Card]) -> int:
     total = 0
@@ -115,8 +100,8 @@ class Blackjack(discord.ui.View):
 
     async def get_embed(self) -> discord.Embed:
         currency_name = await bank.get_currency_name(self.channel.guild)
-        dealer_str = " ".join("⬇️" if self.facedown and i == 1 else EMOJI[card.value] for i, card in enumerate(self.dealer))
-        hand_str = " ".join(EMOJI[card.value] for card in self.hand)
+        dealer_str = " ".join("⬇️" if self.facedown and i == 1 else CARD_EMOJI[card.value] for i, card in enumerate(self.dealer))
+        hand_str = " ".join(CARD_EMOJI[card.value] for card in self.hand)
 
         embed = discord.Embed(color=self.embed_color)
         embed.add_field(name=f"Dealer ({'?' if self.facedown else get_hand_value(self.dealer)})", value=dealer_str, inline=False)

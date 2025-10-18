@@ -1,6 +1,6 @@
 from enum import Enum
-from typing import NamedTuple
 from itertools import product
+from dataclasses import dataclass
 
 
 class CardValue(Enum):
@@ -19,18 +19,60 @@ class CardValue(Enum):
     KING = 13
 
 
-class CardColor(Enum):
-    SPADES = 0
-    HEARTS = 1
-    CLUBS = 2
-    DIAMONDS = 3
+class CardSuit(Enum):
+    SPADES = "s"
+    HEARTS = "h"
+    CLUBS = "c"
+    DIAMONDS = "d"
 
 
-class Card(NamedTuple):
+CARD_EMOJI = {
+    CardValue.ACE: "🇦",
+    CardValue.TWO: "2️⃣",
+    CardValue.THREE: "3️⃣",
+    CardValue.FOUR: "4️⃣",
+    CardValue.FIVE: "5️⃣",
+    CardValue.SIX: "6️⃣",
+    CardValue.SEVEN: "7️⃣",
+    CardValue.EIGHT: "8️⃣",
+    CardValue.NINE: "9️⃣",
+    CardValue.TEN: "🔟",
+    CardValue.JACK: "🇯",
+    CardValue.QUEEN: "🇶",
+    CardValue.KING: "🇰",
+}
+
+CARD_VALUE_STR = {
+    CardValue.ACE: "A",
+    CardValue.TWO: "2",
+    CardValue.THREE: "3",
+    CardValue.FOUR: "4",
+    CardValue.FIVE: "5",
+    CardValue.SIX: "6",
+    CardValue.SEVEN: "7",
+    CardValue.EIGHT: "8",
+    CardValue.NINE: "9",
+    CardValue.TEN: "10",
+    CardValue.JACK: "J",
+    CardValue.QUEEN: "Q",
+    CardValue.KING: "K",
+}
+
+
+@dataclass(frozen=True)
+class Card:
     value: CardValue
-    color: CardColor
+    suit: CardSuit
+    public: bool = True
+
+    @property
+    def poker_value(self):
+        return 14 if self.value == CardValue.ACE else self.value.value
+
+    def __str__(self):
+        return f"{CARD_VALUE_STR[self.value]}{self.suit.value}"
 
 
 def make_deck():
-    return [Card(value, color) for value, color in product(CardValue, CardColor)]
+    return [Card(value, color) for value, color in product(CardValue, CardSuit)]
 
