@@ -26,12 +26,12 @@ old_slot: Optional[commands.Command] = None
 old_payouts: Optional[commands.Command] = None
 
 MAX_CONCURRENT_SLOTS = 3
-POKER_AFK_LIMIT = 5  # minutes
+POKER_AFK_LIMIT = 10  # minutes
 STARTING = "Starting game..."
 
 
 class Casino(BaseCasinoCog):
-    """Gamble virtual currency with Poker, Blackjack, and Slots."""
+    """Gamble virtual currency with Poker, Blackjack, and Slot Machines."""
 
     def __init__(self, bot: Red):
         super().__init__(bot)
@@ -141,10 +141,10 @@ class Casino(BaseCasinoCog):
 
         if self.concurrent_slots > MAX_CONCURRENT_SLOTS and isinstance(ctx, commands.Context) and not ctx.interaction:
             content = f"Too many people are using the slot machine right now. "
-            if self.bot.tree.get_command("slots") is None:
-                content += "The bot owner could enable the `/slots` slash command, which would allow more people to use it at the same time."
+            if self.bot.tree.get_command("slot") is None:
+                content += "The bot owner could enable the `/slot` slash command, which would allow more people to use it at the same time."
             else:
-                content += "Consider using the `/slots` slash command instead, which allows more people to use it at the same time."
+                content += "Consider using the `/slot` slash command instead, which allows more people to use it at the same time."
             return await reply(content)
         
         is_global = await bank.is_global()
