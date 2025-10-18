@@ -88,8 +88,8 @@ async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Con
 
     embed = discord.Embed(title="Slot Machine", color=await cog.bot.get_embed_color(ctx.channel))
     embed.add_field(name="Bid", value=f"{humanize_number(bid)} {currency_name}")
-    # if interaction and interaction.type == discord.InteractionType.component:
-    #     embed.set_author(name=author.display_name, icon_url=author.display_avatar.url)
+    if interaction and interaction.type == discord.InteractionType.component:
+        embed.set_footer(text=author.display_name, icon_url=author.display_avatar.url)
 
     first = f"┃ {reels[0][0].value} ⬛ ⬛ ┃\n" \
             f"┣ {reels[0][1].value} ⬛ ⬛ ┫\n" \
