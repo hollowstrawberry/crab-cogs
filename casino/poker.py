@@ -271,7 +271,7 @@ class PokerGame(BasePokerGame):
         # check elimination
         not_folded = [p for p in self.players if p.state != PlayerState.Folded]
         if len(not_folded) == 1:
-            await self.end_hand()
+            await self.end_hand(force_winner=not_folded[0])
             return
         
         # special case: nobody bet the first round
@@ -355,44 +355,53 @@ class PokerGame(BasePokerGame):
 
         await self.save_state()
 
-    async def end_hand(self) -> None:
-        # evaluate hands
-        for player in self.players:
-            if player.state != PlayerState.Folded:
-                player.hand_result = get_hand_result(self.table, player.hand)
-
-        pots = self.build_side_pots()
-        
-        # For each pot, find the best hand among eligible players
-        for pot_amount, eligible_players in pots:
-            if not eligible_players:
-                continue 
-
-            contenders = [p for p in eligible_players if p.state != PlayerState.Folded]
-            if not contenders:
-                continue
-
-            # find best HandResult among contenders
-            best = max((p.hand_result for p in contenders), default=None)  # type: ignore
-            if best is None:
-                continue
-
-            winners = [p for p in contenders if p.hand_result == best]
-            self.winners.extend([p.index for p in winners])
-
-            # split pot among winners with deterministic remainder
-            per = pot_amount // len(winners)
-            remainder = pot_amount % len(winners)
-            winners_sorted = sorted(winners, key=lambda p: p.index)
-            for i, winner in enumerate(winners_sorted):
-                member = winner.member(self)
-                amount = per + (1 if i < remainder else 0)
-                winner.winnings += amount
+    async def end_hand(self, force_winner: Optional[PokerPlayer] = None) -> None:
+        if force_winner:
+            self.winners = [force_winner.index]
+            force_winner.winnings += self.pot
+            member = force_winner.member(self)
+            if self.pot > 0:
                 try:
-                    await bank.deposit_credits(member, amount)
+                    await bank.deposit_credits(member, self.pot)
                 except errors.BalanceTooHigh as err:
                     await bank.set_balance(member, err.max_balance)
+        else:
+            # evaluate hands
+            for player in self.players:
+                if player.state != PlayerState.Folded:
+                    player.hand_result = get_hand_result(self.table, player.hand)
 
+            pots = self.build_side_pots()
+            
+            # For each pot, find the best hand among eligible players
+            for pot_amount, eligible_players in pots:
+                if not eligible_players:
+                    continue 
+
+                contenders = [p for p in eligible_players if p.state != PlayerState.Folded]
+                if not contenders:
+                    continue
+
+                # find best HandResult among contenders
+                best = max((p.hand_result for p in contenders), default=None)  # type: ignore
+                if best is None:
+                    continue
+
+                winners = [p for p in contenders if p.hand_result == best]
+                self.winners.extend([p.index for p in winners])
+
+                # split pot among winners with deterministic remainder
+                per = pot_amount // len(winners)
+                remainder = pot_amount % len(winners)
+                winners_sorted = sorted(winners, key=lambda p: p.index)
+                for i, winner in enumerate(winners_sorted):
+                    member = winner.member(self)
+                    amount = per + (1 if i < remainder else 0)
+                    winner.winnings += amount
+                    try:
+                        await bank.deposit_credits(member, amount)
+                    except errors.BalanceTooHigh as err:
+                        await bank.set_balance(member, err.max_balance)
         # cleanup
         self.pot = 0
         self.all_hands_finished = True
