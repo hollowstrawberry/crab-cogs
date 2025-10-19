@@ -101,17 +101,11 @@ class SimpleCasino(BaseCasinoCog):
         await reply("Economy cog not loaded! Contact the bot owner for more information.", ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
     
 
-    @commands.command(name="blackjack", aliases=["bj"])
+    @commands.hybrid_command(name="blackjack", aliases=["bj"])
+    @app_commands.describe(bet="How much currency to bet.")
     @commands.guild_only()
     async def blackjack_cmd(self, ctx: commands.Context, bet: int):
         """Play Blackjack against the bot. Get as close to 21 as possible!"""
-        await self.blackjack(ctx, bet)
-
-    @app_commands.command(name="blackjack")
-    @app_commands.describe(bet="How much currency to bet.")
-    async def blackjack_app(self, interaction: discord.Interaction, bet: int):
-        """Play Blackjack against the bot. Get as close to 21 as possible!"""
-        ctx = await commands.Context.from_interaction(interaction)
         await self.blackjack(ctx, bet)
 
     async def blackjack(self, ctx: Union[discord.Interaction, commands.Context], bet: int):
