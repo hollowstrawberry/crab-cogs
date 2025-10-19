@@ -390,6 +390,7 @@ class PokerGame(BasePokerGame):
                     player.hand_result = get_hand_result(self.table, player.hand)
 
             pots = self.build_side_pots()
+            log.info(f"{pots = }")
 
             # For each pot, find the best hand among eligible players
             for pot_amount, eligible_players in pots:
@@ -403,7 +404,7 @@ class PokerGame(BasePokerGame):
                 # find best HandResult among contenders
                 best = max((p.hand_result for p in contenders), default=None)  # type: ignore
                 if best is None:
-                    continue
+                    continue  # shouldn't happen
 
                 winners = [p for p in contenders if p.hand_result == best]
 
