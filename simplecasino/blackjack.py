@@ -34,7 +34,7 @@ class Blackjack(discord.ui.View):
                  cog: BaseCasinoCog,
                  player: discord.Member,
                  channel: discord.TextChannel,
-                 bid: int,
+                 bet: int,
                  embed_color: discord.Color,
                  include_author: bool,
                  ):
@@ -42,7 +42,7 @@ class Blackjack(discord.ui.View):
         self.cog = cog
         self.player = player
         self.channel = channel
-        self.bid = bid
+        self.bet = bet
         self.embed_color = embed_color
         self.include_author = include_author
         self.dealer: List[Card] = []
@@ -95,16 +95,16 @@ class Blackjack(discord.ui.View):
     
     def payout_amount(self) -> int:
         if self.is_tie():
-            return self.bid 
+            return self.bet 
         if not self.is_win():
             return 0
         player_total = get_hand_value(self.hand)
         is_player_natural = len(self.hand) == 2 and player_total == TWENTYONE
         is_dealer_natural = len(self.dealer) == 2 and get_hand_value(self.dealer) == TWENTYONE
         if is_player_natural and not is_dealer_natural:
-            return self.bid * 5 // 2
+            return self.bet * 5 // 2
         else:
-            return 2 * self.bid
+            return 2 * self.bet
 
     async def get_embed(self) -> discord.Embed:
         currency_name = await bank.get_currency_name(self.channel.guild)
@@ -114,7 +114,7 @@ class Blackjack(discord.ui.View):
         embed = discord.Embed(color=self.embed_color)
         embed.add_field(name=f"Dealer ({'?' if self.facedown else get_hand_value(self.dealer)})", value=dealer_str, inline=False)
         embed.add_field(name=f"Hand ({get_hand_value(self.hand)})", value=hand_str, inline=False)
-        embed.add_field(name="Bet", value=f"{self.bid} {currency_name}")
+        embed.add_field(name="Bet", value=f"{self.bet} {currency_name}")
         if not self.facedown and self.is_over():
             payout = self.payout_amount()
             embed.add_field(name="Payout", value=f"{humanize_number(payout)} {currency_name}" if self.is_win() or self.is_tie() else "*None*")
@@ -141,13 +141,13 @@ class Blackjack(discord.ui.View):
         self.stand_button.disabled = True
         await self.check_payout()
         currency_name = await bank.get_currency_name(interaction.guild)
-        view = AgainView(self.cog.blackjack, self.bid, interaction.message, currency_name) if self.is_over() else self
+        view = AgainView(self.cog.blackjack, self.bet, interaction.message, currency_name) if self.is_over() else self
         await interaction.response.edit_message(embed=await self.get_embed(), view=view)
         while not self.is_over():
             self.dealer.append(self.deck.pop())
             await asyncio.sleep(1)
             await self.check_payout()
-            view = AgainView(self.cog.blackjack, self.bid, interaction.message, currency_name) if self.is_over() else self
+            view = AgainView(self.cog.blackjack, self.bet, interaction.message, currency_name) if self.is_over() else self
             await interaction.edit_original_response(embed=await self.get_embed(), view=view)
 
     async def check_payout(self):

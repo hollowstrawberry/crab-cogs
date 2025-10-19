@@ -97,13 +97,13 @@ class SimpleCasino(BaseCasinoCog):
     
 
     @commands.hybrid_command(name="blackjack", aliases=["bj"])
-    @app_commands.describe(bid="How much currency to bet.")
+    @app_commands.describe(bet="How much currency to bet.")
     @commands.guild_only()
-    async def blackjack_cmd(self, ctx: commands.Context, bid: int):
+    async def blackjack_cmd(self, ctx: commands.Context, bet: int):
         """Play Blackjack against the bot. Get as close to 21 as possible!"""
-        await self.blackjack(ctx, bid)
+        await self.blackjack(ctx, bet)
 
-    async def blackjack(self, ctx: Union[discord.Interaction, commands.Context], bid: int):
+    async def blackjack(self, ctx: Union[discord.Interaction, commands.Context], bet: int):
         author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
         reply = ctx.reply if isinstance(ctx, commands.Context) else ctx.response.send_message
         assert ctx.guild and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
@@ -111,37 +111,37 @@ class SimpleCasino(BaseCasinoCog):
         minimum_bid = await self.config.bjmin() if await bank.is_global() else await self.config.guild(ctx.guild).bjmin()
         maximum_bid = await self.config.bjmax() if await bank.is_global() else await self.config.guild(ctx.guild).bjmax()
         currency_name = await bank.get_currency_name(ctx.guild)
-        if bid < 1 or bid < minimum_bid:
-            return await reply(f"Your bid must be at least {humanize_number(minimum_bid)} {currency_name}", ephemeral=True)
-        elif bid > maximum_bid:
-            return await reply(f"Your bid cannot be greater than {humanize_number(maximum_bid)} {currency_name}", ephemeral=True)
-        if not await bank.can_spend(author, bid):
+        if bet < 1 or bet < minimum_bid:
+            return await reply(f"Your bet must be at least {humanize_number(minimum_bid)} {currency_name}", ephemeral=True)
+        elif bet > maximum_bid:
+            return await reply(f"Your bet cannot be greater than {humanize_number(maximum_bid)} {currency_name}", ephemeral=True)
+        if not await bank.can_spend(author, bet):
             return await reply("You ain't got enough money, friend.", ephemeral=True)
         
-        await bank.withdraw_credits(author, bid)
+        await bank.withdraw_credits(author, bet)
         include_author = isinstance(ctx, discord.Interaction) and ctx.type == discord.InteractionType.component
-        blackjack = Blackjack(self, author, ctx.channel, bid, await self.bot.get_embed_color(ctx.channel), include_author)
+        blackjack = Blackjack(self, author, ctx.channel, bet, await self.bot.get_embed_color(ctx.channel), include_author)
         await blackjack.check_payout()
-        view = AgainView(self.blackjack, bid, None, currency_name) if blackjack.is_over() else blackjack
+        view = AgainView(self.blackjack, bet, None, currency_name) if blackjack.is_over() else blackjack
         message = await reply(embed=await blackjack.get_embed(), view=view, allowed_mentions=discord.AllowedMentions.none())
         if isinstance(view, AgainView):
             view.message = message if isinstance(ctx, commands.Context) else await ctx.original_response()  # type: ignore
 
 
-    @commands.hybrid_command(name="slot")
+    @commands.hybrid_command(name="slot", aliases=["slots"])
     @commands.guild_only()
-    @app_commands.describe(bid="How much currency to put in the slot machine.")
-    async def slot_cmd(self, ctx: commands.Context, bid: int):
+    @app_commands.describe(bet="How much currency to put in the slot machine.")
+    async def slot_cmd(self, ctx: commands.Context, bet: int):
         """Play the slot machine."""
         try:
             if not ctx.interaction:
                 self.concurrent_slots += 1
-            await self.slot(ctx, bid)
+            await self.slot(ctx, bet)
         finally:
             if not ctx.interaction:
                 self.concurrent_slots -= 1
 
-    async def slot(self, ctx: Union[discord.Interaction, commands.Context], bid: int):
+    async def slot(self, ctx: Union[discord.Interaction, commands.Context], bet: int):
         author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
         reply = ctx.reply if isinstance(ctx, commands.Context) else ctx.response.send_message
         assert ctx.guild and isinstance(author, discord.Member)
@@ -176,13 +176,13 @@ class SimpleCasino(BaseCasinoCog):
         if (cur_time - last_slot) < max(3, slot_time):
             await reply("You're on cooldown, try again in a few seconds.")
             return
-        if bid < min_bid:
-            await reply(f"Your bid must be at least {humanize_number(min_bid)} {currency_name}")
+        if bet < min_bid:
+            await reply(f"Your bet must be at least {humanize_number(min_bid)} {currency_name}")
             return
-        if bid > max_bid:
-            await reply(f"Your bid cannot be greater than {humanize_number(max_bid)} {currency_name}")
+        if bet > max_bid:
+            await reply(f"Your bet cannot be greater than {humanize_number(max_bid)} {currency_name}")
             return
-        if not await bank.can_spend(author, bid):
+        if not await bank.can_spend(author, bet):
             await reply("You ain't got enough money, friend.")
             return
         
@@ -191,7 +191,7 @@ class SimpleCasino(BaseCasinoCog):
         else:
             await economy.config.member(author).last_slot.set(cur_time)
 
-        await slots(self, ctx, bid)
+        await slots(self, ctx, bet)
 
 
     @commands.hybrid_command(name="poker")
@@ -348,7 +348,7 @@ class SimpleCasino(BaseCasinoCog):
 
 async def setup(bot: Red):
     async def add_cog():
-        global old_slot, old_payouts
+        global old_slot, old_payouts, old_blackjack
         await asyncio.sleep(1)  # hopefully economy cog has finished loading
 
         if old_slot := bot.get_command("slot"):
