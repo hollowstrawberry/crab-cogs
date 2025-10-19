@@ -214,4 +214,5 @@ async def setup(bot: Red):
             if old_payday:
                 bot.remove_command(old_payday.name)
             await bot.add_cog(EconomyTweaks(bot))
+            await bot.tree.red_check_enabled()  # type: ignore  # register slash commands
         _ = asyncio.create_task(add_cog())

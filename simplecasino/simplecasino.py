@@ -364,8 +364,6 @@ async def setup(bot: Red):
             bot.remove_command(old_blackjack.name)
 
         await bot.add_cog(SimpleCasino(bot))
-        log.info("About to red check enabled")
-        await bot.tree.red_check_enabled()
-        log.info("After red check enabled")
+        await bot.tree.red_check_enabled()  # type: ignore  # register slash commands
 
     _ = asyncio.create_task(add_cog())
