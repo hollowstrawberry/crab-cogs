@@ -56,7 +56,7 @@ class PokerView(discord.ui.View):
         self.view_button = discord.ui.Button(
             custom_id=f"poker {game.channel.id} view",
             emoji="🃏",
-            label="View Cards",
+            label="View my cards",
             style=discord.ButtonStyle.secondary
         )
         self.bump_button = discord.ui.Button(
