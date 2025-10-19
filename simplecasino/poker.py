@@ -481,7 +481,7 @@ class PokerGame(BasePokerGame):
         winners = [p for p in self.players if p.winnings - p.total_betted > 0]
         hand_finished = len(winners) > 0
         if len(winners) == 0:
-            title_extra = humanize_camel_case(self.state.name)
+            title_extra = f"{humanize_camel_case(self.state.name)} stage"
         elif len(winners) == 1:
             title_extra = f"Winner: {winners[0].member(self).display_name}"
         else:
@@ -523,10 +523,10 @@ class PokerGame(BasePokerGame):
                     decorator = f"👑 "
 
                 if player.state != PlayerState.Folded:
+                    content_lines.append(f"`🖐` {' '.join(card_str(c) for c in player.hand)}")
                     if player.hand_result is not None:
                         content_lines.append(f"`🃏` {' '.join(card_str(c) for c in player.hand_result.cards)}")
                         content_lines.append(f"`📜` {humanize_camel_case(player.hand_result.type.name).title()}")
-                    content_lines.append(f"`🖐` {' '.join(card_str(c) for c in player.hand)}")
 
                 if player in winners:
                     content_lines.append(f"`💵` +{humanize_number(player.winnings - player.total_betted)} {currency_name}")
@@ -554,9 +554,10 @@ class PokerGame(BasePokerGame):
                         line += f" - `betted {humanize_number(player.current_bet)}`"
                     elif player.state == PlayerState.Checked:
                         line += f" - `checked`"
+                    elif player.state == PlayerState.AllIn:
+                        line += f" - `all in`"
                     elif player.state == PlayerState.Pending:
                         line += " `...`"
-
                 if player in winners:
                     line += f" (+{humanize_number(player.winnings - player.total_betted)} {currency_name})"
                 elif player.total_betted > 0:
