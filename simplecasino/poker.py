@@ -390,7 +390,6 @@ class PokerGame(BasePokerGame):
                     player.hand_result = get_hand_result(self.table, player.hand)
 
             pots = self.build_side_pots()
-            log.info(f"{pots = }")
 
             # For each pot, find the best hand among eligible players
             for pot_amount, eligible_players in pots:
@@ -532,7 +531,7 @@ class PokerGame(BasePokerGame):
                 if player in winners:
                     content_lines.append(f"`💵` +{humanize_number(player.winnings - player.total_betted)} {currency_name}")
                 elif player.total_betted > 0:
-                    content_lines.append(f"`💵` -{humanize_number(player.total_betted)} {currency_name}")
+                    content_lines.append(f"`💵` -{humanize_number(player.total_betted - player.winnings)} {currency_name}")
 
                 inline = i % 3 != 2  # move every 3rd field to its own row to give enough space for the hands to display in full width
                 embed.add_field(name=f"{decorator}{player.member(self).display_name}", value="\n".join(content_lines) or "\u200b", inline=inline)
@@ -562,7 +561,7 @@ class PokerGame(BasePokerGame):
                 if player in winners:
                     line += f" (+{humanize_number(player.winnings - player.total_betted)} {currency_name})"
                 elif player.total_betted > 0:
-                    line += f" (-{humanize_number(player.total_betted)} {currency_name})"
+                    line += f" (-{humanize_number(player.total_betted - player.winnings)} {currency_name})"
 
                 desc_lines.append(line)
 
