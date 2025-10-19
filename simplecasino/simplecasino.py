@@ -352,27 +352,17 @@ class SimpleCasino(BaseCasinoCog):
 
 
 async def setup(bot: Red):
-    if old_slot := bot.get_command("slot"):
-        bot.remove_command(old_slot.name)
-    if old_payouts := bot.get_command("payouts"):
-        bot.remove_command(old_payouts.name)
-    if old_blackjack := bot.get_command("blackjack"):  # so we can load this cog alongside jumper-plugins's casino
-        bot.remove_command(old_blackjack.name)
+    async def add_cog():
+        global old_slot, old_payouts, old_blackjack
+        await asyncio.sleep(1)  # hopefully economy cog has finished loading
 
-    if old_slot is not None:
+        if old_slot := bot.get_command("slot"):
+            bot.remove_command(old_slot.name)
+        if old_payouts := bot.get_command("payouts"):
+            bot.remove_command(old_payouts.name)
+        if old_blackjack := bot.get_command("blackjack"):  # so we can load this cog alongside jumper-plugins's casino
+            bot.remove_command(old_blackjack.name)
+
         await bot.add_cog(SimpleCasino(bot))
-    else:
-        async def add_cog():
-            global old_slot, old_payouts, old_blackjack
-            await asyncio.sleep(1)  # hopefully economy cog has finished loading
 
-            if old_slot := bot.get_command("slot"):
-                bot.remove_command(old_slot.name)
-            if old_payouts := bot.get_command("payouts"):
-                bot.remove_command(old_payouts.name)
-            if old_blackjack := bot.get_command("blackjack"):  # so we can load this cog alongside jumper-plugins's casino
-                bot.remove_command(old_blackjack.name)
-
-            await bot.add_cog(SimpleCasino(bot))
-
-        _ = asyncio.create_task(add_cog())
+    _ = asyncio.create_task(add_cog())
