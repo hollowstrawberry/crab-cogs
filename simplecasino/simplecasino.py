@@ -348,7 +348,7 @@ class SimpleCasino(BaseCasinoCog):
 
 async def setup(bot: Red):
     async def add_cog():
-        global old_slot, old_payouts
+        global old_slot, old_payouts, old_blackjack
         await asyncio.sleep(1)  # hopefully economy cog has finished loading
 
         if old_slot := bot.get_command("slot"):
