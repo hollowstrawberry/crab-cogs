@@ -403,7 +403,7 @@ class PokerGame(BasePokerGame):
                 # find best HandResult among contenders
                 best = max((p.hand_result for p in contenders), default=None)  # type: ignore
                 if best is None:
-                    continue
+                    continue  # shouldn't happen
 
                 winners = [p for p in contenders if p.hand_result == best]
 
@@ -531,7 +531,7 @@ class PokerGame(BasePokerGame):
                 if player in winners:
                     content_lines.append(f"`💵` +{humanize_number(player.winnings - player.total_betted)} {currency_name}")
                 elif player.total_betted > 0:
-                    content_lines.append(f"`💵` -{humanize_number(player.total_betted)} {currency_name}")
+                    content_lines.append(f"`💵` -{humanize_number(player.total_betted - player.winnings)} {currency_name}")
 
                 inline = i % 3 != 2  # move every 3rd field to its own row to give enough space for the hands to display in full width
                 embed.add_field(name=f"{decorator}{player.member(self).display_name}", value="\n".join(content_lines) or "\u200b", inline=inline)
@@ -561,7 +561,7 @@ class PokerGame(BasePokerGame):
                 if player in winners:
                     line += f" (+{humanize_number(player.winnings - player.total_betted)} {currency_name})"
                 elif player.total_betted > 0:
-                    line += f" (-{humanize_number(player.total_betted)} {currency_name})"
+                    line += f" (-{humanize_number(player.total_betted - player.winnings)} {currency_name})"
 
                 desc_lines.append(line)
 
