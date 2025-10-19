@@ -37,11 +37,11 @@ class BaseCasinoCog(commands.Cog):
         self.config.register_global(**default_config, **emojis_config)
 
     @abstractmethod
-    async def slot(self, ctx: Union[discord.Interaction, commands.Context], bid: int):
+    async def slot(self, ctx: Union[discord.Interaction, commands.Context], bet: int):
         pass
 
     @abstractmethod
-    async def blackjack(self, ctx: Union[discord.Interaction, commands.Context], bid: int):
+    async def blackjack(self, ctx: Union[discord.Interaction, commands.Context], bet: int):
         pass
 
     @abstractmethod

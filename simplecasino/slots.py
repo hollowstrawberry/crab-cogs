@@ -38,7 +38,7 @@ PAYOUTS = {
     DOUBLE: 2,
 }
 
-async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Context], bid: int):
+async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Context], bet: int):
     author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
     assert ctx.guild and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
     interaction = ctx if isinstance(ctx, discord.Interaction) else ctx.interaction
@@ -74,7 +74,7 @@ async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Con
         else:
             phrase = f"**×{multiplier}**"
             old_balance = await bank.get_balance(author)
-            winnings = bid * (multiplier - 1)
+            winnings = bet * (multiplier - 1)
             balance = old_balance + winnings
             try:
                 await bank.deposit_credits(author, winnings)
@@ -82,12 +82,12 @@ async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Con
                 await bank.set_balance(author, exc.max_balance)
     else:
         old_balance = await bank.get_balance(author)
-        await bank.withdraw_credits(author, bid)
-        balance = old_balance - bid
+        await bank.withdraw_credits(author, bet)
+        balance = old_balance - bet
         phrase = "*None*"
 
     embed = discord.Embed(title="Slot Machine", color=await cog.bot.get_embed_color(ctx.channel))
-    embed.add_field(name="Bet", value=f"{humanize_number(bid)} {currency_name}")
+    embed.add_field(name="Bet", value=f"{humanize_number(bet)} {currency_name}")
     if interaction and interaction.type == discord.InteractionType.component:
         embed.set_footer(text=author.display_name, icon_url=author.display_avatar.url)
 
@@ -117,7 +117,7 @@ async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Con
         await asyncio.sleep(1)
         embed.description = third
         prepare_final_embed()
-        view = AgainView(cog.slot, bid, await interaction.original_response(), currency_name)
+        view = AgainView(cog.slot, bet, await interaction.original_response(), currency_name)
         await interaction.edit_original_response(embed=embed, view=view)
     else:
         embed.description = first
@@ -128,5 +128,5 @@ async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Con
         await asyncio.sleep(1)
         embed.description = third
         prepare_final_embed()
-        view = AgainView(cog.slot, bid, message, currency_name)
+        view = AgainView(cog.slot, bet, message, currency_name)
         await message.edit(embed=embed, view=view)
