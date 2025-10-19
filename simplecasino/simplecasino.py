@@ -40,6 +40,11 @@ class SimpleCasino(BaseCasinoCog):
         self.concurrent_slots = 0
 
     async def cog_load(self) -> None:
+        # testing
+        slot = self.bot.tree.get_command("slot")
+        poker = self.bot.tree.get_command("poker")
+        log.info(f"{slot=} {poker=}")
+
         # Load existing games
         all_channels = await self.config.all_channels()
         for cid, conf in all_channels.items():
