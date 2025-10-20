@@ -16,7 +16,7 @@ from simplecasino.base import BaseCasinoCog
 from simplecasino.slots import slots
 from simplecasino.poker import PokerGame
 from simplecasino.blackjack import Blackjack
-from simplecasino.utils import POKER_MINIMUM_BET
+from simplecasino.utils import DISCORD_RED, POKER_MINIMUM_BET, POKER_RULES
 from simplecasino.views.again_view import AgainView
 from simplecasino.views.replace_view import ReplaceView
 
@@ -69,7 +69,6 @@ class SimpleCasino(BaseCasinoCog):
                 emoji = await self.bot.create_application_emoji(name=emoji_name, image=image)
             if emoji:
                 await self.config.__getattr__("emoji_" + emoji_name).set(str(emoji))
-
 
     def cog_unload(self):
         global old_slot, old_payouts
@@ -194,24 +193,51 @@ class SimpleCasino(BaseCasinoCog):
         await slots(self, ctx, bet)
 
 
-    @commands.hybrid_command(name="poker")
+    @commands.command(name="poker")
     @commands.guild_only()
-    @app_commands.describe(starting_bet="This bet may increase during the game.")
-    async def poker_cmd(self, ctx: commands.Context, starting_bet: int):
+    async def poker_cmd(self, ctx: commands.Context, starting_bet: Optional[int]):
         """Start a new game of Poker with no players."""
         assert isinstance(ctx.author, discord.Member)
         await self.poker(ctx, [ctx.author], starting_bet)
 
-    async def poker(self, ctx: Union[discord.Interaction, commands.Context], players: List[discord.Member], starting_bet: int) -> bool:
+    poker_app = app_commands.Group(name="poker", description="Play Texas Hold'em Poker with up to 8 people!", guild_only=True)
+
+    @poker_app.command(name="new")
+    @app_commands.describe(starting_bet="This bet may increase during the game.")
+    async def poker_app_new(self, interaction: discord.Interaction, starting_bet: Optional[int]):
+        """Start a new game of Poker with no players."""
+        ctx = await commands.Context.from_interaction(interaction)
+        assert isinstance(ctx.author, discord.Member)
+        await self.poker(ctx, [ctx.author], starting_bet)
+
+    @poker_app.command(name="rules")
+    async def poker_app_rules(self, interaction: discord.Interaction):
+        """Show the rules for Poker in this bot."""
+        embed = discord.Embed(color=DISCORD_RED)
+        bigblind_emoji = await self.config.emoji_bigblind()
+        embed.title = f"{bigblind_emoji} Texas Hold'em Poker - Rules summary"
+        embed.description = POKER_RULES
+        filename = "pokerhands.jpg"
+        file = discord.File(bundled_data_path(self) / filename, filename=filename)
+        embed.set_image(url=f"attachment://{filename}")
+        await interaction.response.send_message(embed=embed, file=file, ephemeral=True)
+
+    async def poker(self, ctx: Union[discord.Interaction, commands.Context], players: List[discord.Member], starting_bet: Optional[int]) -> bool:
         author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
         assert ctx.guild and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
         
         reply = ctx.reply if isinstance(ctx, commands.Context) else ctx.response.send_message
 
-        minimum_starting_bet = await self.config.pokermin() if await bank.is_global() else await self.config.guild(ctx.guild).pokermin()
+        minimum_starting_bet: int = await self.config.pokermin() if await bank.is_global() else await self.config.guild(ctx.guild).pokermin()
+        maximum_starting_bet: int = await self.config.pokermax() if await bank.is_global() else await self.config.guild(ctx.guild).pokermax()
         currency_name = await bank.get_currency_name(ctx.guild)
-        if starting_bet < minimum_starting_bet:
+        if starting_bet is None:
+            starting_bet = minimum_starting_bet
+        elif starting_bet < minimum_starting_bet:
             await reply(f"The starting bet must be at least {minimum_starting_bet} {currency_name}.")
+            return False
+        elif starting_bet > maximum_starting_bet:
+            await reply(f"The starting bet must not be greater than {maximum_starting_bet} {currency_name}.")
             return False
         if not await bank.can_spend(author, starting_bet):
             await reply(f"You don't have enough {currency_name} to make that bet.")
@@ -315,18 +341,42 @@ class SimpleCasino(BaseCasinoCog):
 
     @simplecasinoset.command(name="pokermin")
     async def casinoset_pokermin(self, ctx: commands.Context, bet: Optional[int]):
-        """The minimum bet for Poker."""
+        """The minimum starting bet for Poker."""
         assert ctx.guild
         is_global = await bank.is_global()
         config_pokermin = self.config.pokermin if is_global else self.config.guild(ctx.guild).pokermin
+        config_pokermax = self.config.pokermax if is_global else self.config.guild(ctx.guild).pokermax
         currency = await bank.get_currency_name(None if is_global else ctx.guild)
         if bet is None:
-            bet = await config_pokermin()
-            return await ctx.send(f"Current minimum bet in Poker is {bet} {currency}.")
+            min_bet = await config_pokermin()
+            return await ctx.send(f"Current minimum **starting bet** in Poker is {humanize_number(min_bet)} {currency}.\n"
+                                  f"The maximum bet with this starting bet will be 100x, so {humanize_number(min_bet * 100)} {currency}.")
         if bet < POKER_MINIMUM_BET:
-            return await ctx.send(f"You cannot set a minimum Poker bet lower than {POKER_MINIMUM_BET} {currency}.")
+            return await ctx.send(f"You cannot set a minimum starting bet for Poker lower than {POKER_MINIMUM_BET} {currency}.")
         await config_pokermin.set(bet)
-        await ctx.send(f"New minimum bet in Poker is {bet} {currency}.")
+        if await config_pokermax() < bet:  # maximum bet can't be lower than the minimum bet
+            await config_pokermax.set(bet)
+        await ctx.send(f"New minimum **starting bet** in Poker is {humanize_number(bet)} {currency}.\n"
+                       f"The maximum bet with this starting bet will be 100x, so {humanize_number(bet * 100)} {currency}.")
+        
+    @simplecasinoset.command(name="pokermax")
+    async def casinoset_pokermax(self, ctx: commands.Context, bet: Optional[int]):
+        """The maximum starting bet for Poker."""
+        assert ctx.guild
+        is_global = await bank.is_global()
+        config_pokermax = self.config.pokermax if is_global else self.config.guild(ctx.guild).pokermax
+        config_pokermin = self.config.pokermin if is_global else self.config.guild(ctx.guild).pokermin
+        currency = await bank.get_currency_name(None if is_global else ctx.guild)
+        if bet is None:
+            max_bet: int = await config_pokermax()
+            return await ctx.send(f"Current maximum **starting bet** in Poker is {humanize_number(max_bet)} {currency}.\n"
+                                  f"The maximum bet with this starting bet will be 100x, so {humanize_number(max_bet * 100)} {currency}.")
+        min_bet: int = await config_pokermin()
+        if bet < min_bet:
+            return await ctx.send(f"The maximum starting bet cannot be lower than the minimum starting bet, which is currently {humanize_number(min_bet)} {currency}.")
+        await config_pokermax.set(bet)
+        await ctx.send(f"New maximum **starting bet** in Poker is {humanize_number(bet)} {currency}.\n"
+                       f"The maximum bet with this starting bet will be 100x, so {humanize_number(bet * 100)} {currency}.")
 
     @simplecasinoset.command(name="coinfreespin")
     @bank.is_owner_if_bank_global()

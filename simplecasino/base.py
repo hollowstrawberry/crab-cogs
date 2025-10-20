@@ -20,6 +20,7 @@ class BaseCasinoCog(commands.Cog):
             "bjmax": 1000,
             "bjtime": 5,
             "pokermin": POKER_MINIMUM_BET,
+            "pokermax": 1000,
             "coinfreespin": True,
         }
         emojis_config = {
