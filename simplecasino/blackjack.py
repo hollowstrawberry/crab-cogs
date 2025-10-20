@@ -100,9 +100,9 @@ class Blackjack(discord.ui.View):
         self.double_button.callback = self.double_down
         self.split_button.callback = self.split
         
-        self._update_buttons()
+        self.update_buttons()
 
-    def _update_buttons(self):
+    def update_buttons(self):
         """Update which buttons are available based on current hand"""
         self.clear_items()
         
@@ -133,7 +133,7 @@ class Blackjack(discord.ui.View):
         """Move to the next hand or start dealer turn"""
         self.current_hand_index += 1
         if self.current_hand_index < len(self.hands):
-            self._update_buttons()
+            self.update_buttons()
         else:
             self.facedown = False
             self.dealer_turn_started = True
@@ -195,7 +195,7 @@ class Blackjack(discord.ui.View):
             hand_label = f"Hand {idx + 1}" if len(self.hands) > 1 else "Hand"
             
             # Mark current hand and show bet
-            if idx == self.current_hand_index and not self.dealer_turn_started:
+            if idx == self.current_hand_index and not self.dealer_turn_started and len(self.hands) > 1:
                 hand_label += " ⬅️"
             
             status = ""
@@ -213,7 +213,7 @@ class Blackjack(discord.ui.View):
             total_payout = self.total_payout()
             net_profit = total_payout - self.total_bet
             
-            embed.add_field(name="Total Payout", value=f"{humanize_number(total_payout)} {currency_name}")
+            #embed.add_field(name="Total Payout", value=f"{humanize_number(total_payout)} {currency_name}")
             embed.add_field(name="Net Result", value=f"{'+' if net_profit > 0 else ''}{humanize_number(net_profit)} {currency_name}")
             embed.add_field(name="Balance", value=f"{humanize_number(await bank.get_balance(self.player))} {currency_name}")
             
@@ -238,6 +238,7 @@ class Blackjack(discord.ui.View):
         self.dealer_turn_started = True
         
         await self.check_payout()
+        self.update_buttons()
         currency_name = await bank.get_currency_name(interaction.guild)
         view = AgainView(self.cog.blackjack, self.initial_bet, interaction.message, currency_name) if self.is_over() else self
         await interaction.response.edit_message(embed=await self.get_embed(), view=view)
@@ -246,6 +247,7 @@ class Blackjack(discord.ui.View):
             self.dealer.append(self.deck.pop())
             await asyncio.sleep(1)
             await self.check_payout()
+            self.update_buttons()
             view = AgainView(self.cog.blackjack, self.initial_bet, interaction.message, currency_name) if self.is_over() else self
             await interaction.edit_original_response(embed=await self.get_embed(), view=view)
 
@@ -276,7 +278,7 @@ class Blackjack(discord.ui.View):
             else:
                 await interaction.response.edit_message(embed=await self.get_embed(), view=self)
         else:
-            self._update_buttons()
+            self.update_buttons()
             await interaction.response.edit_message(embed=await self.get_embed(), view=self)
         
     async def stand(self, interaction: discord.Interaction):
@@ -344,5 +346,5 @@ class Blackjack(discord.ui.View):
         new_hand = BlackjackHand([card2, self.deck.pop()], current_hand.bet, is_split=True)
         self.hands.insert(self.current_hand_index + 1, new_hand)
         
-        self._update_buttons()
+        self.update_buttons()
         await interaction.response.edit_message(embed=await self.get_embed(), view=self)
