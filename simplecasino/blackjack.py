@@ -198,13 +198,7 @@ class Blackjack(discord.ui.View):
             if idx == self.current_hand_index and not self.dealer_turn_started and len(self.hands) > 1:
                 hand_label += " ⬅️"
             
-            status = ""
-            if hand.is_doubled:
-                status = " (Doubled)"
-            elif hand.is_split:
-                status = " (Split)"
-            
-            hand_label += f" ({hand.get_value()}{status})"
+            hand_label += f" ({hand.get_value()})"
             embed.add_field(name=hand_label, value=hand_str, inline=False)
         
         embed.add_field(name="Total Bet", value=f"{humanize_number(self.total_bet)} {currency_name}")
