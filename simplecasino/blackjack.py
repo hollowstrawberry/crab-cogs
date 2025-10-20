@@ -134,6 +134,8 @@ class Blackjack(discord.ui.View):
             return False
         if all(hand.get_value() > TWENTYONE for hand in self.hands):
             return True
+        if len(self.hands) == 1 and self.hands[0].get_value() == TWENTYONE and len(self.hands[0].cards) == 2:  # natural 21
+            return True
         dealer_total = get_hand_value(self.dealer)
         return dealer_total >= DEALER_STAND
 
