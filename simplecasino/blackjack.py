@@ -12,6 +12,7 @@ from simplecasino.views.again_view import AgainView
 
 TWENTYONE = 21
 DEALER_STAND = 17
+MAX_HANDS = 4
 ERROR_PLAYER = "You're not the one playing!"
 
 
@@ -31,7 +32,6 @@ def get_hand_value(hand: List[Card]) -> int:
 
 
 class BlackjackHand:
-    """Represents a single blackjack hand"""
     def __init__(self, cards: List[Card], bet: int, is_split: bool = False, is_doubled: bool = False):
         self.cards = cards
         self.bet = bet
@@ -43,16 +43,13 @@ class BlackjackHand:
         return get_hand_value(self.cards)
     
     def can_split(self) -> bool:
-        """Check if this hand can be split"""
         if len(self.cards) != 2 or self.is_split:
             return False
-        # Cards can be split if they have the same rank (10, J, Q, K all count as 10)
-        val1 = min(10, self.cards[0].value.value) if self.cards[0].value != CardValue.ACE else 11
-        val2 = min(10, self.cards[1].value.value) if self.cards[1].value != CardValue.ACE else 11
+        val1 = 11 if self.cards[0].value == CardValue.ACE else min(10, self.cards[0].value.value)
+        val2 = 11 if self.cards[1].value == CardValue.ACE else min(10, self.cards[1].value.value)
         return val1 == val2
     
     def can_double(self) -> bool:
-        """Check if this hand can be doubled"""
         return len(self.cards) == 2 and not self.is_doubled
 
 
@@ -103,34 +100,28 @@ class Blackjack(discord.ui.View):
         self.update_buttons()
 
     def update_buttons(self):
-        """Update which buttons are available based on current hand"""
         self.clear_items()
-        
         current_hand = self.hands[self.current_hand_index]
         
-        # Check if current hand has blackjack
+        # natural blackjack
         if current_hand.get_value() == TWENTYONE and len(current_hand.cards) == 2:
             current_hand.is_complete = True
-            self._move_to_next_hand()
+            self.move_to_next_hand()
             return
         
-        # Add appropriate buttons
         if current_hand.get_value() < TWENTYONE and not current_hand.is_doubled:
             self.add_item(self.hit_button)
             self.add_item(self.stand_button)
-            
-            # Can only double or split on initial 2 cards
             if current_hand.can_double():
                 self.add_item(self.double_button)
-            
-            if current_hand.can_split() and len(self.hands) < 4:  # Limit to 4 hands
+            if current_hand.can_split() and len(self.hands) < MAX_HANDS:
                 self.add_item(self.split_button)
+
         elif current_hand.is_doubled or current_hand.get_value() >= TWENTYONE:
             current_hand.is_complete = True
-            self._move_to_next_hand()
+            self.move_to_next_hand()
 
-    def _move_to_next_hand(self):
-        """Move to the next hand or start dealer turn"""
+    def move_to_next_hand(self):
         self.current_hand_index += 1
         if self.current_hand_index < len(self.hands):
             self.update_buttons()
@@ -139,12 +130,12 @@ class Blackjack(discord.ui.View):
             self.dealer_turn_started = True
 
     def is_over(self) -> bool:
-        """Check if the entire game is over"""
         if not self.dealer_turn_started:
             return False
-        
+        if all(hand.get_value() > TWENTYONE for hand in self.hands):
+            return True
         dealer_total = get_hand_value(self.dealer)
-        return dealer_total > TWENTYONE or dealer_total >= DEALER_STAND
+        return dealer_total >= DEALER_STAND
 
     def is_tie(self, hand: BlackjackHand) -> bool:
         player_total = hand.get_value()
@@ -161,9 +152,8 @@ class Blackjack(discord.ui.View):
         return player_total > dealer_total
     
     def payout_amount(self, hand: BlackjackHand) -> int:
-        """Calculate payout for a specific hand"""
         if self.is_tie(hand):
-            return hand.bet  # Push - return bet
+            return hand.bet
         if not self.is_win(hand):
             return 0
         
@@ -172,14 +162,12 @@ class Blackjack(discord.ui.View):
         is_player_natural = len(hand.cards) == 2 and player_total == TWENTYONE and not hand.is_split
         is_dealer_natural = len(self.dealer) == 2 and dealer_total == TWENTYONE
         
-        # Natural blackjack pays 3:2 (but not on split hands)
         if is_player_natural and not is_dealer_natural:
-            return hand.bet + (hand.bet * 3 // 2)
+            return hand.bet * 5 // 2
         else:
             return 2 * hand.bet
 
     def total_payout(self) -> int:
-        """Calculate total payout across all hands"""
         return sum(self.payout_amount(hand) for hand in self.hands)
 
     async def get_embed(self) -> discord.Embed:
@@ -189,26 +177,25 @@ class Blackjack(discord.ui.View):
         embed = discord.Embed(color=self.embed_color)
         embed.add_field(name=f"Dealer ({'?' if self.facedown else get_hand_value(self.dealer)})", value=dealer_str, inline=False)
         
-        # Display all hands
-        for idx, hand in enumerate(self.hands):
+        for i, hand in enumerate(self.hands):
             hand_str = " ".join(CARD_EMOJI[card.value] for card in hand.cards)
-            hand_label = f"Hand {idx + 1}" if len(self.hands) > 1 else "Hand"
+            hand_label = f"Hand {i + 1}" if len(self.hands) > 1 else "Hand"
             
-            # Mark current hand and show bet
-            if idx == self.current_hand_index and not self.dealer_turn_started and len(self.hands) > 1:
+            if len(self.hands) > 1 and i == self.current_hand_index and not self.dealer_turn_started:
                 hand_label += " ⬅️"
             
             hand_label += f" ({hand.get_value()})"
             embed.add_field(name=hand_label, value=hand_str, inline=False)
         
-        embed.add_field(name="Total Bet", value=f"{humanize_number(self.total_bet)} {currency_name}")
+        bet_label = "Bet" if len(self.hands) == 1 else "Total Bet"
+        embed.add_field(name=bet_label, value=f"{humanize_number(self.total_bet)} {currency_name}")
         
         if self.dealer_turn_started and self.is_over():
             total_payout = self.total_payout()
             net_profit = total_payout - self.total_bet
             
-            net_name = "Net Winnings" if net_profit > 0 else "Net Losses"
-            embed.add_field(name=net_name, value=f"{'+' if net_profit > 0 else ''}{humanize_number(net_profit)} {currency_name}")
+            net_label = "Net Winnings" if net_profit >= 0 else "Net Loss"
+            embed.add_field(name=net_label, value=f"{'+' if net_profit > 0 else ''}{humanize_number(net_profit)} {currency_name}")
             embed.add_field(name="Balance", value=f"{humanize_number(await bank.get_balance(self.player))} {currency_name}")
             
             if net_profit > 0:
@@ -226,7 +213,6 @@ class Blackjack(discord.ui.View):
         return embed
     
     async def dealer_turn(self, interaction: discord.Interaction):
-        """Execute the dealer's turn"""
         self.stop()
         self.facedown = False
         self.dealer_turn_started = True
@@ -234,7 +220,9 @@ class Blackjack(discord.ui.View):
         await self.check_payout()
         self.hit_button.disabled = True
         self.stand_button.disabled = True
-        currency_name = await bank.get_currency_name(interaction.guild)
+        self.double_button.disabled = True
+        self.split_button.disabled = True
+        currency_name = await bank.get_currency_name(self.channel.guild)
         view = AgainView(self.cog.blackjack, self.initial_bet, interaction.message, currency_name) if self.is_over() else self
         await interaction.response.edit_message(embed=await self.get_embed(), view=view)
         
@@ -246,7 +234,6 @@ class Blackjack(discord.ui.View):
             await interaction.edit_original_response(embed=await self.get_embed(), view=view)
 
     async def check_payout(self):
-        """Process payout when game is over"""
         if not self.payout_done and self.is_over():
             self.payout_done = True
             total_payout = self.total_payout()
@@ -265,7 +252,7 @@ class Blackjack(discord.ui.View):
         
         if current_hand.get_value() >= TWENTYONE:
             current_hand.is_complete = True
-            self._move_to_next_hand()
+            self.move_to_next_hand()
             
             if self.dealer_turn_started:
                 await self.dealer_turn(interaction)
@@ -281,7 +268,7 @@ class Blackjack(discord.ui.View):
         
         current_hand = self.hands[self.current_hand_index]
         current_hand.is_complete = True
-        self._move_to_next_hand()
+        self.move_to_next_hand()
         
         if self.dealer_turn_started:
             await self.dealer_turn(interaction)
@@ -294,21 +281,19 @@ class Blackjack(discord.ui.View):
         
         current_hand = self.hands[self.current_hand_index]
         
-        # Check if player has enough balance for the split bet
         if not bank.can_spend(self.player, current_hand.bet):
-            currency_name = await bank.get_currency_name(interaction.guild)
+            currency_name = await bank.get_currency_name(self.channel.guild)
             return await interaction.response.send_message(f"You don't have enough {currency_name} to double down!", ephemeral=True)
         await bank.withdraw_credits(self.player, current_hand.bet)
         
-        # Double the bet and mark as doubled
         self.total_bet += current_hand.bet
         current_hand.bet *= 2
         current_hand.is_doubled = True
         
-        # Deal one card and automatically stand
+        # deal one card and automatic stand
         current_hand.cards.append(self.deck.pop())
         current_hand.is_complete = True
-        self._move_to_next_hand()
+        self.move_to_next_hand()
         
         if self.dealer_turn_started:
             await self.dealer_turn(interaction)
@@ -321,22 +306,18 @@ class Blackjack(discord.ui.View):
         
         current_hand = self.hands[self.current_hand_index]
         
-        # Check if player has enough balance for the split bet
         if not bank.can_spend(self.player, current_hand.bet):
-            currency_name = await bank.get_currency_name(interaction.guild)
+            currency_name = await bank.get_currency_name(self.channel.guild)
             return await interaction.response.send_message(f"You don't have enough {currency_name} to split!", ephemeral=True)
         await bank.withdraw_credits(self.player, current_hand.bet)
         
-        # Split the hand
         self.total_bet += current_hand.bet
         card1 = current_hand.cards[0]
         card2 = current_hand.cards[1]
         
-        # First hand gets first card + new card
         current_hand.cards = [card1, self.deck.pop()]
         current_hand.is_split = True
         
-        # Create second hand with second card + new card
         new_hand = BlackjackHand([card2, self.deck.pop()], current_hand.bet, is_split=True)
         self.hands.insert(self.current_hand_index + 1, new_hand)
         
