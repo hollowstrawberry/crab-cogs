@@ -207,8 +207,8 @@ class Blackjack(discord.ui.View):
             total_payout = self.total_payout()
             net_profit = total_payout - self.total_bet
             
-            #embed.add_field(name="Total Payout", value=f"{humanize_number(total_payout)} {currency_name}")
-            embed.add_field(name="Net Result", value=f"{'+' if net_profit > 0 else ''}{humanize_number(net_profit)} {currency_name}")
+            net_name = "Net Winnings" if net_profit > 0 else "Net Losses"
+            embed.add_field(name=net_name, value=f"{'+' if net_profit > 0 else ''}{humanize_number(net_profit)} {currency_name}")
             embed.add_field(name="Balance", value=f"{humanize_number(await bank.get_balance(self.player))} {currency_name}")
             
             if net_profit > 0:
