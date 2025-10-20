@@ -10,8 +10,8 @@ from redbot.core.utils.chat_formatting import humanize_number
 
 from simplecasino.base import BaseCasinoCog, BasePokerGame
 from simplecasino.card import CARD_VALUE_STR, Card, CardSuit, CardValue
-from simplecasino.utils import (HandType, PlayerState, PlayerType, PokerState, InsufficientFundsError,
-                          humanize_camel_case, DISCORD_RED, POKER_MAX_PLAYERS, EMPTY_ELEMENT)
+from simplecasino.utils import (HandType, PlayerState, PlayerType, PokerState, InsufficientFundsError, humanize_camel_case,
+                                DISCORD_RED, EMPTY_ELEMENT, POKER_MAX_PLAYERS, POKER_STAGE_NAMES)
 from simplecasino.views.poker_rematch_view import PokerRematchView
 from simplecasino.views.poker_view import PokerView
 from simplecasino.views.poker_waiting_view import PokerWaitingView
@@ -26,7 +26,7 @@ class HandResult(DataClassJsonMixin):
 
     def __post_init__(self):
         if len(self.cards) != 5:
-            raise ValueError("HandResult must contain exactly 5 cards")
+            raise RuntimeError("HandResult must contain exactly 5 cards")
 
     def _compare_key(self):
         # comparison key: (handtype, pokervalues...)
@@ -60,7 +60,7 @@ class PokerPlayer(DataClassJsonMixin):
     def member(self, game: BasePokerGame) -> discord.Member:
         member = game.channel.guild.get_member(self.id)
         if not member:
-            raise ValueError(f"Where did poker player with id {self.id} go?")
+            raise RuntimeError(f"Where did poker player with id {self.id} go?")
         return member
 
     async def bet(self, game: BasePokerGame, bet_amount: int) -> int:
@@ -481,7 +481,7 @@ class PokerGame(BasePokerGame):
         winners = [p for p in self.players if p.winnings - p.total_betted > 0]
         hand_finished = len(winners) > 0
         if len(winners) == 0:
-            title_extra = f"{humanize_camel_case(self.state.name)} stage"
+            title_extra = POKER_STAGE_NAMES[self.state]
         elif len(winners) == 1:
             title_extra = f"Winner: {winners[0].member(self).display_name}"
         else:
@@ -591,7 +591,7 @@ class PokerGame(BasePokerGame):
             return PokerRematchView(self)
         else:
             if self.turn is None or not 0 <= self.turn < len(self.players):
-                raise ValueError("Invalid turn during game")
+                raise RuntimeError("Invalid turn during game")
             cur_player = self.players[self.turn]
             money = await bank.get_balance(cur_player.member(self))
             currency_name = await bank.get_currency_name(self.channel.guild)
