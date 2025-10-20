@@ -13,7 +13,7 @@ from simplecasino.utils import InsufficientFundsError
 log = logging.getLogger("red.crab-cogs.simplecasino.poker")
 
 MAX_OPTIONS = 25
-RAISE_BET_FACTOR = 1.2
+RAISE_BET_FACTOR = 1.21153  # 10x every 12th power
 
 ERROR_PLAYING = "You're not playing this game!"
 ERROR_TURN = "It's not your turn!"
@@ -78,7 +78,10 @@ class PokerView(discord.ui.View):
 
         currency_name = re.sub(r"<a?:(\w+):\d+>", r"\1", currency_name)  # extract emoji name
         raise_values = [game.minimum_bet * (RAISE_BET_FACTOR ** x) for x in range(MAX_OPTIONS)]  # multiply each consecutive step by the factor
-        raise_values = [int(val // 10) * 10 if val > 100 else int(val) for val in raise_values ]  # round to tens
+        raise_values = [int(val // 100) * 100 if val > 1000  # round to hundreds
+                        else int(val // 10) * 10 if val > 100  # round to tens
+                        else int(val)
+                        for val in raise_values]
         raise_values = [val for val in raise_values if val > game.current_bet and val <= cur_player_money]  # only valid amounts
         raise_options = [discord.SelectOption(label=f"{humanize_number(val)} {currency_name}", value=f"{val}") for val in raise_values]
         if raise_options:
