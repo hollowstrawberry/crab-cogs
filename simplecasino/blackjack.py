@@ -238,7 +238,8 @@ class Blackjack(discord.ui.View):
         self.dealer_turn_started = True
         
         await self.check_payout()
-        self.update_buttons()
+        self.hit_button.disabled = True
+        self.stand_button.disabled = True
         currency_name = await bank.get_currency_name(interaction.guild)
         view = AgainView(self.cog.blackjack, self.initial_bet, interaction.message, currency_name) if self.is_over() else self
         await interaction.response.edit_message(embed=await self.get_embed(), view=view)
@@ -247,7 +248,6 @@ class Blackjack(discord.ui.View):
             self.dealer.append(self.deck.pop())
             await asyncio.sleep(1)
             await self.check_payout()
-            self.update_buttons()
             view = AgainView(self.cog.blackjack, self.initial_bet, interaction.message, currency_name) if self.is_over() else self
             await interaction.edit_original_response(embed=await self.get_embed(), view=view)
 
