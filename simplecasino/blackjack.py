@@ -77,7 +77,7 @@ class Blackjack(discord.ui.View):
         self.deck = make_deck()
         random.shuffle(self.deck)
         
-        # Deal initial cards
+        # deal initial cards
         initial_cards = [self.deck.pop(), self.deck.pop()]
         self.hands.append(BlackjackHand(initial_cards, bet))
         self.dealer.append(self.deck.pop())
@@ -88,7 +88,7 @@ class Blackjack(discord.ui.View):
         self.payout_done = False
         self.total_bet = bet
 
-        # Create buttons
+        # create buttons
         self.hit_button = discord.ui.Button(label="Hit", style=discord.ButtonStyle.green)
         self.stand_button = discord.ui.Button(label="Stand", style=discord.ButtonStyle.red)
         self.double_button = discord.ui.Button(label="Double", style=discord.ButtonStyle.blurple)
@@ -105,7 +105,7 @@ class Blackjack(discord.ui.View):
         self.clear_items()
         current_hand = self.hands[self.current_hand_index]
         
-        # natural blackjack
+        # natural 21
         if current_hand.get_value() == TWENTYONE and len(current_hand.cards) == 2:
             current_hand.is_complete = True
             self.move_to_next_hand()
@@ -173,77 +173,7 @@ class Blackjack(discord.ui.View):
 
     def total_payout(self) -> int:
         return sum(self.payout_amount(hand) for hand in self.hands)
-
-    async def get_embed(self) -> discord.Embed:
-        currency_name = await bank.get_currency_name(self.channel.guild)
-        dealer_str = " ".join("⬇️" if self.facedown and i == 1 else CARD_EMOJI[card.value] for i, card in enumerate(self.dealer))
-
-        embed = discord.Embed(color=self.embed_color)
-        embed.add_field(name=f"Dealer ({'?' if self.facedown else get_hand_value(self.dealer)})", value=dealer_str, inline=False)
-        
-        for i, hand in enumerate(self.hands):
-            hand_str = " ".join(CARD_EMOJI[card.value] for card in hand.cards)
-            hand_label = f"Hand {i + 1}" if len(self.hands) > 1 else "Hand"
-            
-            if len(self.hands) > 1 and i == self.current_hand_index and not self.dealer_turn_started:
-                hand_label += " ⬅️"
-            
-            hand_label += f" ({hand.get_value()})"
-            embed.add_field(name=hand_label, value=hand_str, inline=False)
-        
-        bet_label = "Bet" if len(self.hands) == 1 else "Total Bet"
-        embed.add_field(name=bet_label, value=f"{humanize_number(self.total_bet)} {currency_name}")
-        
-        if self.dealer_turn_started and self.is_over():
-            total_payout = self.total_payout()
-            net_profit = total_payout - self.total_bet
-            
-            net_label = "Net Winnings" if net_profit >= 0 else "Net Loss"
-            embed.add_field(name=net_label, value=f"{'+' if net_profit > 0 else ''}{humanize_number(net_profit)} {currency_name}")
-            embed.add_field(name="Balance", value=f"{humanize_number(await bank.get_balance(self.player))} {currency_name}")
-            
-            if net_profit > 0:
-                embed.title = "🎉 Blackjack (Win)"
-            elif net_profit == 0:
-                embed.title = "👔 Blackjack (Tie)"
-            else:
-                embed.title = "💀 Blackjack (Lost)"
-        else:
-            embed.title = "Blackjack"
-
-        if self.include_author:
-            embed.set_footer(text=self.player.display_name, icon_url=self.player.display_avatar.url)
-
-        return embed
     
-    async def dealer_turn(self, interaction: discord.Interaction):
-        self.stop()
-        self.facedown = False
-        self.dealer_turn_started = True
-        
-        await self.check_payout()
-        self.hit_button.disabled = True
-        self.stand_button.disabled = True
-        self.double_button.disabled = True
-        self.split_button.disabled = True
-        currency_name = await bank.get_currency_name(self.channel.guild)
-        view = AgainView(self.cog.blackjack, self.initial_bet, interaction.message, currency_name) if self.is_over() else self
-        
-        try:  # we catch any connection errors and continue because we want the user to get the payout even if something goes wrong
-            await interaction.response.edit_message(embed=await self.get_embed(), view=view)
-        except discord.DiscordException:
-            log.error("Failed to respond during dealer turn", exc_info=True)
-        
-        while not self.is_over():
-            self.dealer.append(self.deck.pop())
-            await asyncio.sleep(1)
-            await self.check_payout()
-            view = AgainView(self.cog.blackjack, self.initial_bet, interaction.message, currency_name) if self.is_over() else self
-            try:
-                await interaction.edit_original_response(embed=await self.get_embed(), view=view)
-            except discord.DiscordException:
-                log.error("Failed to respond during dealer turn", exc_info=True)
-
     async def check_payout(self):
         if not self.payout_done and self.is_over():
             self.payout_done = True
@@ -292,7 +222,7 @@ class Blackjack(discord.ui.View):
         
         current_hand = self.hands[self.current_hand_index]
         
-        if not bank.can_spend(self.player, current_hand.bet):
+        if not await bank.can_spend(self.player, current_hand.bet):
             currency_name = await bank.get_currency_name(self.channel.guild)
             return await interaction.response.send_message(f"You don't have enough {currency_name} to double down!", ephemeral=True)
         await bank.withdraw_credits(self.player, current_hand.bet)
@@ -317,7 +247,7 @@ class Blackjack(discord.ui.View):
         
         current_hand = self.hands[self.current_hand_index]
         
-        if not bank.can_spend(self.player, current_hand.bet):
+        if not await bank.can_spend(self.player, current_hand.bet):
             currency_name = await bank.get_currency_name(self.channel.guild)
             return await interaction.response.send_message(f"You don't have enough {currency_name} to split!", ephemeral=True)
         await bank.withdraw_credits(self.player, current_hand.bet)
@@ -334,3 +264,73 @@ class Blackjack(discord.ui.View):
         
         self.update_buttons()
         await interaction.response.edit_message(embed=await self.get_embed(), view=self)
+
+    async def dealer_turn(self, interaction: discord.Interaction):
+        self.stop()
+        self.facedown = False
+        self.dealer_turn_started = True
+        
+        await self.check_payout()
+        self.hit_button.disabled = True
+        self.stand_button.disabled = True
+        self.double_button.disabled = True
+        self.split_button.disabled = True
+        currency_name = await bank.get_currency_name(self.channel.guild)
+        view = AgainView(self.cog.blackjack, self.initial_bet, interaction.message, currency_name) if self.is_over() else self
+        
+        try:  # we catch any connection errors and continue because we want the user to get the payout even if something goes wrong
+            await interaction.response.edit_message(embed=await self.get_embed(), view=view)
+        except discord.DiscordException:
+            log.error("Failed to respond during dealer turn", exc_info=True)
+        
+        while not self.is_over():
+            self.dealer.append(self.deck.pop())
+            await asyncio.sleep(1)
+            await self.check_payout()
+            view = AgainView(self.cog.blackjack, self.initial_bet, interaction.message, currency_name) if self.is_over() else self
+            try:
+                await interaction.edit_original_response(embed=await self.get_embed(), view=view)
+            except discord.DiscordException:
+                log.error("Failed to respond during dealer turn", exc_info=True)
+
+    async def get_embed(self) -> discord.Embed:
+        currency_name = await bank.get_currency_name(self.channel.guild)
+        dealer_str = " ".join("⬇️" if self.facedown and i == 1 else CARD_EMOJI[card.value] for i, card in enumerate(self.dealer))
+
+        embed = discord.Embed(color=self.embed_color)
+        embed.add_field(name=f"Dealer ({'?' if self.facedown else get_hand_value(self.dealer)})", value=dealer_str, inline=False)
+        
+        for i, hand in enumerate(self.hands):
+            hand_str = " ".join(CARD_EMOJI[card.value] for card in hand.cards)
+            hand_label = f"Hand {i + 1}" if len(self.hands) > 1 else "Hand"
+            
+            if len(self.hands) > 1 and i == self.current_hand_index and not self.dealer_turn_started:
+                hand_label += " ⬅️"
+            
+            hand_label += f" ({hand.get_value()})"
+            embed.add_field(name=hand_label, value=hand_str, inline=False)
+        
+        bet_label = "Bet" if len(self.hands) == 1 else "Total Bet"
+        embed.add_field(name=bet_label, value=f"{humanize_number(self.total_bet)} {currency_name}")
+        
+        if self.dealer_turn_started and self.is_over():
+            total_payout = self.total_payout()
+            net_profit = total_payout - self.total_bet
+            
+            net_label = "Net Winnings" if net_profit >= 0 else "Net Loss"
+            embed.add_field(name=net_label, value=f"{'+' if net_profit > 0 else ''}{humanize_number(net_profit)} {currency_name}")
+            embed.add_field(name="Balance", value=f"{humanize_number(await bank.get_balance(self.player))} {currency_name}")
+            
+            if net_profit > 0:
+                embed.title = "🎉 Blackjack (Win)"
+            elif net_profit == 0:
+                embed.title = "👔 Blackjack (Tie)"
+            else:
+                embed.title = "💀 Blackjack (Lost)"
+        else:
+            embed.title = "Blackjack"
+
+        if self.include_author:
+            embed.set_footer(text=self.player.display_name, icon_url=self.player.display_avatar.url)
+
+        return embed
