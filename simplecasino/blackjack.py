@@ -1,4 +1,5 @@
 import random
+import logging
 import asyncio
 import discord
 from typing import List
@@ -9,6 +10,7 @@ from simplecasino.base import BaseCasinoCog
 from simplecasino.card import Card, CardValue, CARD_EMOJI, make_deck
 from simplecasino.views.again_view import AgainView
 
+log = logging.getLogger("red.crab-cogs.simplecasino.blackjack")
 
 TWENTYONE = 21
 DEALER_STAND = 17
@@ -226,14 +228,21 @@ class Blackjack(discord.ui.View):
         self.split_button.disabled = True
         currency_name = await bank.get_currency_name(self.channel.guild)
         view = AgainView(self.cog.blackjack, self.initial_bet, interaction.message, currency_name) if self.is_over() else self
-        await interaction.response.edit_message(embed=await self.get_embed(), view=view)
+        
+        try:  # we catch any connection errors and continue because we want the user to get the payout even if something goes wrong
+            await interaction.response.edit_message(embed=await self.get_embed(), view=view)
+        except discord.DiscordException:
+            log.error("Failed to respond during dealer turn", exc_info=True)
         
         while not self.is_over():
             self.dealer.append(self.deck.pop())
             await asyncio.sleep(1)
             await self.check_payout()
             view = AgainView(self.cog.blackjack, self.initial_bet, interaction.message, currency_name) if self.is_over() else self
-            await interaction.edit_original_response(embed=await self.get_embed(), view=view)
+            try:
+                await interaction.response.edit_message(embed=await self.get_embed(), view=view)
+            except discord.DiscordException:
+                log.error("Failed to respond during dealer turn", exc_info=True)
 
     async def check_payout(self):
         if not self.payout_done and self.is_over():
