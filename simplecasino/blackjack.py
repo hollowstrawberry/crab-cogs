@@ -222,7 +222,7 @@ class Blackjack(discord.ui.View):
         
         current_hand = self.hands[self.current_hand_index]
         
-        if not bank.can_spend(self.player, current_hand.bet):
+        if not await bank.can_spend(self.player, current_hand.bet):
             currency_name = await bank.get_currency_name(self.channel.guild)
             return await interaction.response.send_message(f"You don't have enough {currency_name} to double down!", ephemeral=True)
         await bank.withdraw_credits(self.player, current_hand.bet)
@@ -247,7 +247,7 @@ class Blackjack(discord.ui.View):
         
         current_hand = self.hands[self.current_hand_index]
         
-        if not bank.can_spend(self.player, current_hand.bet):
+        if not await bank.can_spend(self.player, current_hand.bet):
             currency_name = await bank.get_currency_name(self.channel.guild)
             return await interaction.response.send_message(f"You don't have enough {currency_name} to split!", ephemeral=True)
         await bank.withdraw_credits(self.player, current_hand.bet)
