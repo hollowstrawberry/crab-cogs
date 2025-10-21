@@ -240,7 +240,7 @@ class Blackjack(discord.ui.View):
             await self.check_payout()
             view = AgainView(self.cog.blackjack, self.initial_bet, interaction.message, currency_name) if self.is_over() else self
             try:
-                await interaction.response.edit_message(embed=await self.get_embed(), view=view)
+                await interaction.edit_original_response(embed=await self.get_embed(), view=view)
             except discord.DiscordException:
                 log.error("Failed to respond during dealer turn", exc_info=True)
 
