@@ -383,7 +383,7 @@ class SimpleCasino(BaseCasinoCog):
     async def casinoset_coinfreespin(self, ctx: commands.Context):
         """
         Toggles whether a coin in the slot machine will give a free spin.
-        This increases the expected player returns from 68% to 91%, which is similar to real slot machines.
+        This increases the expected player returns to be similar to real slot machines.
         """
         assert ctx.guild
         is_global = await bank.is_global()
@@ -391,9 +391,25 @@ class SimpleCasino(BaseCasinoCog):
         value = await config_value()
         await config_value.set(not value)
         if not value:
-            await ctx.send(f"Coins will give free spins. Expected player returns: 91%")
+            await ctx.send(f"Coins will give free spins in the slot machine.")
         else:
-            await ctx.send(f"Coins won't give free spins. Expected player returns: 68%")
+            await ctx.send(f"Coins won't give free spins in the slot machine.")
+
+    @simplecasinoset.command(name="sloteasy")
+    @bank.is_owner_if_bank_global()
+    async def casinoset_sloteasy(self, ctx: commands.Context):
+        """
+        Removes one of the symbols from the slot machine, further increasing the expected player returns into a very slightly net positive.
+        """
+        assert ctx.guild
+        is_global = await bank.is_global()
+        config_value = self.config.sloteasy if is_global else self.config.guild(ctx.guild).sloteasy
+        value = await config_value()
+        await config_value.set(not value)
+        if not value:
+            await ctx.send(f"Removed the 10th symbol from the slot machine.")
+        else:
+            await ctx.send(f"Added back the 10th symbol to the slot machine.")
 
 
 async def setup(bot: Red):
