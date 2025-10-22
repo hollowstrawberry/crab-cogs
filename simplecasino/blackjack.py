@@ -184,10 +184,13 @@ class Blackjack(discord.ui.View):
                 except errors.BalanceTooHigh:
                     await bank.deposit_credits(self.player, await bank.get_max_balance(self.channel.guild))
             # stats
-            async with self.cog.config.user(self.player).all() as stats:
+            statconfig = self.cog.config.user(self.player) if await bank.is_global() else self.cog.config.member(self.player)
+            async with statconfig.all() as stats:
                 stats["bjcount"] += 1
                 total_payout = self.total_payout()
                 net_profit = total_payout - self.total_bet
+                stats["bjprofit"] += total_payout
+                stats["bjbetted"] += self.total_bet
                 if net_profit > 0:
                     stats["bjwincount"] += 1
                 elif net_profit < 0:

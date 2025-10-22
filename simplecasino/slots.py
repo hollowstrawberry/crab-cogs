@@ -102,8 +102,12 @@ async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Con
                 jackpot_whiff = True
     
     # stats
-    async with cog.config.user(author).all() as stats:
+    statconfig = cog.config.user(author) if is_global else cog.config.member(author)
+    async with statconfig.all() as stats:
         stats["slotcount"] += 1
+        stats["slotbetted"] += bet
+        if multiplier and multiplier > 0:
+            stats["slotprofit"] += bet * (multiplier - 1)
         if center_line[0] == center_line[1] == center_line[2]:
             stats["slot3symbolcount"] += 1
         elif center_line[0] == center_line[1] or center_line[1] == center_line[2]:
