@@ -22,6 +22,7 @@ class BaseCasinoCog(commands.Cog):
             "pokermin": POKER_MINIMUM_BET,
             "pokermax": 1000,
             "coinfreespin": True,
+            "sloteasy": False,
         }
         emojis_config = {
             "emoji_dealer": "(D)",

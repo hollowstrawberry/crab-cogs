@@ -23,9 +23,9 @@ class SlotMachine(Enum):
     lemon = "🍋"
     seven = "7️⃣"
     watermelon = "🍉"
-    heart = "🩷"
-    coin = "🪙"
     grapes = "🍇"
+    coin = "🪙"
+    heart = "🩷"
 
 PAYOUTS = {
     (SlotMachine.seven, SlotMachine.seven, SlotMachine.seven): JACKPOT_AMOUNT,
@@ -43,8 +43,10 @@ async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Con
     assert ctx.guild and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
     interaction = ctx if isinstance(ctx, discord.Interaction) else ctx.interaction
     currency_name = await bank.get_currency_name(ctx.guild)
+    is_global = await bank.is_global()
+    easy = await cog.config.sloteasy() if is_global else await cog.config.guild(ctx.guild).sloteasy()
 
-    default_reel = deque(cast(Iterable, SlotMachine))
+    default_reel = deque(list(cast(Iterable, SlotMachine))[:9 if easy else 10])
     reels = []
     for _ in range(3):
         default_reel.rotate(random.randint(-999, 999))  # weeeeee
@@ -63,7 +65,7 @@ async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Con
         elif has_two:
             multiplier = PAYOUTS[DOUBLE]
     
-    coinfreespin = await cog.config.coinfreespin() if await bank.is_global() else await cog.config.guild(ctx.guild).coinfreespin()
+    coinfreespin = await cog.config.coinfreespin() if is_global else await cog.config.guild(ctx.guild).coinfreespin()
     if coinfreespin and not multiplier and SlotMachine.coin in (reels[0][1], reels[1][1], reels[2][1]):
         multiplier = 1
 
