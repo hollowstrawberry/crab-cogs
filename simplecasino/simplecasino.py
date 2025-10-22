@@ -317,7 +317,7 @@ class SimpleCasino(BaseCasinoCog):
         embed.add_field(name="Ties", value=stats["bjtiecount"])
         embed.add_field(name="Number of 21 gotten", value=stats["bj21count"])
         embed.add_field(name="Blackjacks gotten (natural 21)", value=stats["bjnatural21count"])
-        await ctx.send(embed)
+        await ctx.send(embed=embed)
 
     @commands.command(name="slotstats", aliases=["slotsstats"])
     @commands.guild_only()
@@ -334,7 +334,7 @@ class SimpleCasino(BaseCasinoCog):
         embed.add_field(name="3 symbol payouts", value=stats["slot3symbolcount"])
         embed.add_field(name="Jackpots", value=stats["slotjackpotcount"])
         embed.add_field(name="Jackpot near-misses", value=stats["slotjackpotwhiffcount"])
-        await ctx.send(embed)
+        await ctx.send(embed=embed)
 
 
     casinostats_app = app_commands.Group(name="casinostats", description="View your stats in Blackjack and Slots.", guild_only=True)
