@@ -125,6 +125,7 @@ async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Con
         if multiplier and multiplier >= JACKPOT_AMOUNT:
             try:
                 message = await interaction.original_response()
+                await asyncio.sleep(1)
                 await message.pin()
             except discord.DiscordException:
                 pass
@@ -139,3 +140,10 @@ async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Con
         prepare_final_embed()
         view = AgainView(cog.slot, bet, message, currency_name)
         await message.edit(embed=embed, view=view)
+        # pin jackpots if possible
+        if multiplier and multiplier >= JACKPOT_AMOUNT:
+            try:
+                await asyncio.sleep(1)
+                await message.pin()
+            except discord.DiscordException:
+                pass
