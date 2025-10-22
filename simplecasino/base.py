@@ -32,8 +32,23 @@ class BaseCasinoCog(commands.Cog):
             "emoji_clubs": "♣️",
         }
         channel_config = {
-            "game": {},
+            "game": {},  # poker
         }
+        user_stats = {
+            "slotcount": 0,
+            "slot2symbolcount": 0,
+            "slot3symbolcount": 0,
+            "slotfreespincount": 0,
+            "slotjackpotcount": 0,
+            "slotjackpotwhiffcount": 0,
+            "bjcount": 0,
+            "bjwincount": 0,
+            "bjlosscount": 0,
+            "bjtiecount": 0,
+            "bj21count": 0,
+            "bjnatural21count": 0,
+        }
+        self.config.register_user(**user_stats)
         self.config.register_channel(**channel_config)
         self.config.register_guild(**default_config)
         self.config.register_global(**default_config, **emojis_config)

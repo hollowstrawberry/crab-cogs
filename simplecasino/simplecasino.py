@@ -302,6 +302,58 @@ class SimpleCasino(BaseCasinoCog):
         return True
 
 
+    @commands.command(name="blackjackstats", aliases=["bjstats"])
+    @commands.guild_only()
+    async def blackjackstats(self, ctx: commands.Context, member: Optional[discord.Member]):
+        """View your own or someone else's stats in Blackjack."""
+        assert isinstance(ctx.author, discord.Member)
+        member = member or ctx.author
+        stats = await self.config.user(ctx.author).all()
+        embed = discord.Embed(title="2️⃣1️⃣ Blackjack Stats", color=await self.bot.get_embed_color(ctx.channel))
+        embed.set_author(name=member.display_name, icon_url=member.display_avatar.url)
+        embed.add_field(name="Times played", value=stats["bjcount"], inline=False)
+        embed.add_field(name="Wins", value=stats["bjwincount"])
+        embed.add_field(name="Losses", value=stats["bjlosscount"])
+        embed.add_field(name="Ties", value=stats["bjtiecount"])
+        embed.add_field(name="Number of 21 gotten", value=stats["bj21count"])
+        embed.add_field(name="Blackjacks gotten (natural 21)", value=stats["bjnatural21count"])
+        await ctx.send(embed)
+
+    @commands.command(name="slotstats", aliases=["slotsstats"])
+    @commands.guild_only()
+    async def slotstats(self, ctx: commands.Context, member: Optional[discord.Member]):
+        """View your own or someone else's stats in the Slot machine."""
+        assert isinstance(ctx.author, discord.Member)
+        member = member or ctx.author
+        stats = await self.config.user(ctx.author).all()
+        embed = discord.Embed(title="7️⃣ Slot Machine Stats", color=await self.bot.get_embed_color(ctx.channel))
+        embed.set_author(name=member.display_name, icon_url=member.display_avatar.url)
+        embed.add_field(name="Times played", value=stats["slotcount"], inline=False)
+        embed.add_field(name="Free spins", value=stats["slotfreespincount"])
+        embed.add_field(name="2 symbol payouts", value=stats["slot2symbolcount"])
+        embed.add_field(name="3 symbol payouts", value=stats["slot3symbolcount"])
+        embed.add_field(name="Jackpots", value=stats["slotjackpotcount"])
+        embed.add_field(name="Jackpot near-misses", value=stats["slotjackpotwhiffcount"])
+        await ctx.send(embed)
+
+
+    casinostats_app = app_commands.Group(name="casinostats", description="View your stats in Blackjack and Slots.", guild_only=True)
+
+    @casinostats_app.command(name="blackjack")
+    @app_commands.describe(member="The user to view stats for. Views your own stats by default.")
+    async def blackjackstats_app(self, interaction: discord.Interaction, member: Optional[discord.Member]):
+        """View your or someone else's stats with Blackjack."""
+        ctx = await commands.Context.from_interaction(interaction)
+        await self.blackjackstats(ctx, member)
+
+    @casinostats_app.command(name="slot")
+    @app_commands.describe(member="The user to view stats for. Views your own stats by default.")
+    async def slotstats_app(self, interaction: discord.Interaction, member: Optional[discord.Member]):
+        """View your or someone else's stats with the Slot Machine."""
+        ctx = await commands.Context.from_interaction(interaction)
+        await self.slotstats(ctx, member)
+
+
     @commands.group(name="simplecasinoset", aliases=["setcasino"])  # type: ignore
     @commands.admin_or_permissions(manage_guild=True)
     @bank.is_owner_if_bank_global()

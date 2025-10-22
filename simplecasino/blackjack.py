@@ -27,7 +27,7 @@ def get_hand_value(hand: List[Card]) -> int:
             total += 11  # assume Ace is 11 for now
         else:
             total += min(10, card.value.value)
-    while total > 21 and aces > 0:
+    while total > TWENTYONE and aces > 0:
         total -= 10
         aces -= 1
     return total
@@ -183,6 +183,22 @@ class Blackjack(discord.ui.View):
                     await bank.deposit_credits(self.player, total_payout)
                 except errors.BalanceTooHigh:
                     await bank.deposit_credits(self.player, await bank.get_max_balance(self.channel.guild))
+            # stats
+            async with self.cog.config.user(self.player).all() as stats:
+                stats["bjcount"] += 1
+                total_payout = self.total_payout()
+                net_profit = total_payout - self.total_bet
+                if net_profit > 0:
+                    stats["bjwincount"] += 1
+                elif net_profit < 0:
+                    stats["bjlosscount"] += 1
+                else:
+                    stats["bjtiecount"] += 1
+                for hand in self.hands:
+                    if hand.get_value() == TWENTYONE:
+                        stats["bj21count"] += 1
+                if len(self.hands) == 1 and len(self.hands[0].cards) == 2 and self.hands[0].get_value() == TWENTYONE:
+                    stats["bjnatural21count"] += 1
 
     async def hit(self, interaction: discord.Interaction):
         if interaction.user != self.player:
