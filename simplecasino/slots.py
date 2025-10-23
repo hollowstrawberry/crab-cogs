@@ -107,7 +107,7 @@ async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Con
         stats["slotcount"] += 1
         stats["slotbetted"] += bet
         if multiplier and multiplier > 0:
-            stats["slotprofit"] += bet * (multiplier - 1)
+            stats["slotprofit"] += bet * multiplier
         if center_line[0] == center_line[1] == center_line[2]:
             stats["slot3symbolcount"] += 1
         elif center_line[0] == center_line[1] or center_line[1] == center_line[2]:
