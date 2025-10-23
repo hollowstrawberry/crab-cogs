@@ -326,16 +326,19 @@ class SimpleCasino(BaseCasinoCog):
     @commands.guild_only()
     async def slotstats(self, ctx: commands.Context, member: Optional[discord.Member]):
         """View your own or someone else's stats in the Slot machine."""
-        assert isinstance(ctx.author, discord.Member)
+        assert ctx.guild and isinstance(ctx.author, discord.Member)
         member = member or ctx.author
-        stats = await self.config.user(ctx.author).all() if await bank.is_global() else await self.config.member(ctx.author).all()
+        is_global = await bank.is_global()
+        stats = await self.config.user(ctx.author).all() if is_global else await self.config.member(ctx.author).all()
         currency_name = await bank.get_currency_name(ctx.guild)
         embed = discord.Embed(title="7️⃣ Slot Machine Stats", color=await self.bot.get_embed_color(ctx.channel))
         embed.set_author(name=member.display_name, icon_url=member.display_avatar.url)
         embed.add_field(name="Times played", value=humanize_number(stats["slotcount"]))
         embed.add_field(name="Total betted", value=f"{humanize_number(stats['slotbetted'])} {currency_name}")
         embed.add_field(name="Total payout", value=f"{humanize_number(stats['slotprofit'])} {currency_name}")
-        embed.add_field(name="Free spins", value=humanize_number(stats["slotfreespincount"]))
+        freespinenabled = await self.config.coinfreespin() if is_global else self.config.guild(ctx.guild).coinfreespin()
+        if freespinenabled:
+            embed.add_field(name="Free spins", value=humanize_number(stats["slotfreespincount"]))
         embed.add_field(name="2 symbol payouts", value=humanize_number(stats["slot2symbolcount"]))
         embed.add_field(name="3 symbol payouts", value=humanize_number(stats["slot3symbolcount"]))
         embed.add_field(name="Jackpots", value=humanize_number(stats["slotjackpotcount"]))
