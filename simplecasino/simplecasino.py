@@ -302,6 +302,67 @@ class SimpleCasino(BaseCasinoCog):
         return True
 
 
+    @commands.command(name="blackjackstats", aliases=["bjstats"])
+    @commands.guild_only()
+    async def blackjackstats(self, ctx: commands.Context, member: Optional[discord.Member]):
+        """View your own or someone else's stats in Blackjack."""
+        assert isinstance(ctx.author, discord.Member)
+        member = member or ctx.author
+        stats = await self.config.user(ctx.author).all() if await bank.is_global() else await self.config.member(ctx.author).all()
+        currency_name = await bank.get_currency_name(ctx.guild)
+        embed = discord.Embed(title="2️⃣1️⃣ Blackjack Stats", color=await self.bot.get_embed_color(ctx.channel))
+        embed.set_author(name=member.display_name, icon_url=member.display_avatar.url)
+        embed.add_field(name="Times played", value=humanize_number(stats["bjcount"]))
+        embed.add_field(name="Total betted", value=f"{humanize_number(stats['bjbetted'])} {currency_name}")
+        embed.add_field(name="Total payout", value=f"{humanize_number(stats['bjprofit'])} {currency_name}")
+        embed.add_field(name="Wins", value=humanize_number(stats["bjwincount"]))
+        embed.add_field(name="Losses", value=humanize_number(stats["bjlosscount"]))
+        embed.add_field(name="Ties", value=humanize_number(stats["bjtiecount"]))
+        embed.add_field(name="21s gotten", value=humanize_number(stats["bj21count"]))
+        embed.add_field(name="Blackjacks gotten", value=humanize_number(stats["bjnatural21count"]))
+        await ctx.send(embed=embed)
+
+    @commands.command(name="slotstats", aliases=["slotsstats"])
+    @commands.guild_only()
+    async def slotstats(self, ctx: commands.Context, member: Optional[discord.Member]):
+        """View your own or someone else's stats in the Slot machine."""
+        assert ctx.guild and isinstance(ctx.author, discord.Member)
+        member = member or ctx.author
+        is_global = await bank.is_global()
+        stats = await self.config.user(ctx.author).all() if is_global else await self.config.member(ctx.author).all()
+        currency_name = await bank.get_currency_name(ctx.guild)
+        embed = discord.Embed(title="7️⃣ Slot Machine Stats", color=await self.bot.get_embed_color(ctx.channel))
+        embed.set_author(name=member.display_name, icon_url=member.display_avatar.url)
+        embed.add_field(name="Times played", value=humanize_number(stats["slotcount"]))
+        embed.add_field(name="Total betted", value=f"{humanize_number(stats['slotbetted'])} {currency_name}")
+        embed.add_field(name="Total payout", value=f"{humanize_number(stats['slotprofit'])} {currency_name}")
+        freespinenabled = await self.config.coinfreespin() if is_global else self.config.guild(ctx.guild).coinfreespin()
+        if freespinenabled:
+            embed.add_field(name="Free spins", value=humanize_number(stats["slotfreespincount"]))
+        embed.add_field(name="2 symbol payouts", value=humanize_number(stats["slot2symbolcount"]))
+        embed.add_field(name="3 symbol payouts", value=humanize_number(stats["slot3symbolcount"]))
+        embed.add_field(name="Jackpots", value=humanize_number(stats["slotjackpotcount"]))
+        embed.add_field(name="Jackpot near-misses", value=humanize_number(stats["slotjackpotwhiffcount"]))
+        await ctx.send(embed=embed)
+
+
+    casinostats_app = app_commands.Group(name="casinostats", description="View your stats in Blackjack and Slots.", guild_only=True)
+
+    @casinostats_app.command(name="blackjack")
+    @app_commands.describe(member="The user to view stats for. Views your own stats by default.")
+    async def blackjackstats_app(self, interaction: discord.Interaction, member: Optional[discord.Member]):
+        """View your or someone else's stats with Blackjack."""
+        ctx = await commands.Context.from_interaction(interaction)
+        await self.blackjackstats(ctx, member)
+
+    @casinostats_app.command(name="slot")
+    @app_commands.describe(member="The user to view stats for. Views your own stats by default.")
+    async def slotstats_app(self, interaction: discord.Interaction, member: Optional[discord.Member]):
+        """View your or someone else's stats with the Slot Machine."""
+        ctx = await commands.Context.from_interaction(interaction)
+        await self.slotstats(ctx, member)
+
+
     @commands.group(name="simplecasinoset", aliases=["setcasino"])  # type: ignore
     @commands.admin_or_permissions(manage_guild=True)
     @bank.is_owner_if_bank_global()

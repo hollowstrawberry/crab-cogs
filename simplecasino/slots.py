@@ -53,20 +53,22 @@ async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Con
         new_reel = deque(default_reel, maxlen=3)
         reels.append(new_reel)
 
-    multiplier = PAYOUTS.get((reels[0][1], reels[1][1], reels[2][1]),
-            PAYOUTS.get((reels[0][1], reels[1][1]),
-            PAYOUTS.get((reels[1][1], reels[2][1]))))
+    center_line = (reels[0][1], reels[1][1], reels[2][1])
+
+    multiplier = PAYOUTS.get(center_line,
+                 PAYOUTS.get(center_line[1:],
+                 PAYOUTS.get(center_line[:-1])))
 
     if not multiplier:
-        has_three = reels[0][1] == reels[1][1] == reels[2][1]
-        has_two = reels[0][1] == reels[1][1] or reels[1][1] == reels[2][1]
+        has_three = center_line[0] == center_line[1] == center_line[2]
+        has_two = center_line[0] == center_line[1] or center_line[1] == center_line[2]
         if has_three:
             multiplier = PAYOUTS[TRIPLE]
         elif has_two:
             multiplier = PAYOUTS[DOUBLE]
     
     coinfreespin = await cog.config.coinfreespin() if is_global else await cog.config.guild(ctx.guild).coinfreespin()
-    if coinfreespin and not multiplier and SlotMachine.coin in (reels[0][1], reels[1][1], reels[2][1]):
+    if coinfreespin and not multiplier and SlotMachine.coin in center_line:
         multiplier = 1
 
     if multiplier:
@@ -87,6 +89,35 @@ async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Con
         await bank.withdraw_credits(author, bet)
         balance = old_balance - bet
         phrase = "*None*"
+
+    jackpot_whiff = False
+    if center_line.count(SlotMachine.seven) == 2:
+            if (reels[0][1] == reels[1][1] == reels[2][0]  # xx^
+                or reels[0][1] == reels[1][1] == reels[2][2]  # xxv
+                or reels[0][0] == reels[1][1] == reels[2][1]  # ^xx
+                or reels[0][2] == reels[1][1] == reels[2][1]  # vxx
+                or reels[0][1] == reels[1][0] == reels[2][1]  # x^x
+                or reels[0][1] == reels[1][2] == reels[2][1]  # xvx
+            ):
+                jackpot_whiff = True
+    
+    # stats
+    statconfig = cog.config.user(author) if is_global else cog.config.member(author)
+    async with statconfig.all() as stats:
+        stats["slotcount"] += 1
+        stats["slotbetted"] += bet
+        if multiplier and multiplier > 0:
+            stats["slotprofit"] += bet * multiplier
+        if center_line[0] == center_line[1] == center_line[2]:
+            stats["slot3symbolcount"] += 1
+        elif center_line[0] == center_line[1] or center_line[1] == center_line[2]:
+            stats["slot2symbolcount"] += 1
+        if multiplier == 1:
+            stats["slotfreespincount"] += 1
+        elif multiplier and multiplier >= JACKPOT_AMOUNT:
+            stats["slotjackpotcount"] += 1
+        elif jackpot_whiff:
+            stats["slotjackpotwhiffcount"] += 1
 
     embed = discord.Embed(title="Slot Machine", color=await cog.bot.get_embed_color(ctx.channel))
     embed.add_field(name="Bet", value=f"{humanize_number(bet)} {currency_name}")
@@ -109,6 +140,8 @@ async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Con
         embed.add_field(name="Balance", value=f"{humanize_number(balance)} {currency_name}")
         if multiplier and multiplier >= JACKPOT_AMOUNT:
             embed.title = "🎆 JACKPOT!!! 🎆"
+        elif jackpot_whiff:
+            embed.title = "💀 So close..."
 
     if interaction:
         embed.description = first
