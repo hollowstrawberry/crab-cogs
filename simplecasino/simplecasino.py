@@ -49,10 +49,8 @@ class SimpleCasino(BaseCasinoCog):
                 if not channel:
                     continue
                 game_config = conf.get("game", {})
-                if not game_config:
-                    continue
                 game = await PokerGame.from_config(self, channel, game_config)
-                if game.players and not game.is_finished:
+                if game and game.players and not game.is_finished:
                     self.poker_games[cid] = game
                     if game.view:
                         self.bot.add_view(game.view)
