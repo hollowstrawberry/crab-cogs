@@ -116,7 +116,9 @@ class PokerGame(BasePokerGame):
             })
 
     @staticmethod
-    async def from_config(cog: BaseCasinoCog, channel: Union[discord.TextChannel, discord.Thread], config: dict) -> "PokerGame":
+    async def from_config(cog: BaseCasinoCog, channel: Union[discord.TextChannel, discord.Thread], config: dict) -> Optional["PokerGame"]:
+        if not config.get("minimum_bet"):
+            return None
         game = PokerGame(cog, [], channel, config["minimum_bet"])
         game.players = [PokerPlayer.from_dict(p) for p in json.loads(config["players"])]
         game.players_ids = [p.id for p in game.players]
