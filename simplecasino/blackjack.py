@@ -282,7 +282,11 @@ class Blackjack(discord.ui.View):
         self.hands.insert(self.current_hand_index + 1, new_hand)
         
         self.update_buttons()
-        await interaction.response.edit_message(embed=await self.get_embed(), view=self)
+        
+        if self.dealer_turn_started:
+            await self.dealer_turn(interaction)
+        else:
+            await interaction.response.edit_message(embed=await self.get_embed(), view=self)
 
     async def dealer_turn(self, interaction: discord.Interaction):
         self.stop()
