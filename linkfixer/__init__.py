@@ -1,4 +1,4 @@
-from .tts import LinkFixer
+from .linkfixer import LinkFixer
 from redbot.core.utils import get_end_user_data_statement
 
 __red_end_user_data_statement__ = get_end_user_data_statement(__file__)
