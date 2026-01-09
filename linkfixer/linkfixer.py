@@ -17,11 +17,10 @@ class Link:
 
 ALL_LINKS = [
     Link("twitter",     re.compile(r"(?<!<)https?://(?:www\.)?(?:x|twitter)\.com/([^\s)>\]]+)"),                "https://fixvx.com/"),
-    Link("tiktok",      re.compile(r"(?<!<)https?://(?:www\.|vm\.)?tiktok\.com/([^\s)>\]]+)"),                  "https://vxtiktok.com/"),
+    Link("tiktok",      re.compile(r"(?<!<)https?://(?:www\.|vm\.)?tiktok\.com/([^\s)>\]]+)"),                  "https://kktiktok.com/"),
     Link("instagram",   re.compile(r"(?<!<)https?://(?:www\.)?instagram\.com/([^\s)>\]]+)"),                    "https://kkinstagram.com/"),
-    Link("reddit",      re.compile(r"(?<!<)https?://(?:redd\.it|(?:www\.|old\.)?reddit\.com)/([^\s)>\]]+)"),    "https://vxreddit.com/"),
-    Link("pixiv",       re.compile(r"(?<!<)https?://(?:www\.)?pixiv\.net/([^\s)>\]]+)"),                        "https://phixiv.com/"),
-    Link("bluesky",     re.compile(r"(?<!<)https?://bsky\.app/([^\s)>\]]+)"),                                   "https://bskx.app/"),
+    Link("reddit",      re.compile(r"(?<!<)https?://(?:redd\.it|(?:www\.|old\.)?reddit\.com)/r/([^\s)>\]]+)"),  "https://vxreddit.com/r/"),
+    Link("pixiv",       re.compile(r"(?<!<)https?://(?:www\.)?pixiv\.net/([^\s)>\]]+)"),                        "https://phixiv.net/"),
 ]
 
 
@@ -63,7 +62,7 @@ class LinkFixer(commands.Cog):
                 fixed_links.append(f"{link.fixed}{m.group(1)}")
         if not fixed_links:
             return
-        fixed_links.insert(0, "-# I fixed that link so it makes a better embed.")
+        fixed_links.insert(0, "-# I fixed that link so the content embeds better.")
         await message.channel.send("\n".join(fixed_links))
 
     async def is_valid_red_message(self, message: discord.Message) -> bool:
