@@ -311,7 +311,10 @@ class ImageScanner(commands.Cog):
                         resp.raise_for_status()
                         data = await resp.json()
             except aiohttp.ClientError as error:
-                log.warning(f"Trying to grab model from Civitai: {type(error).__name__}: {error}")
+                if isinstance(error, aiohttp.ClientResponseError) and error.status == 404:
+                    log.debug(f"Civitai model {short_hash} not found")
+                else:
+                    log.warning(f"Trying to grab model {short_hash} from Civitai: {type(error).__name__}: {error}")
                 return None
 
             if not data or "modelId" not in data:
@@ -340,7 +343,10 @@ class ImageScanner(commands.Cog):
                         resp.raise_for_status()
                         data = await resp.json()
             except aiohttp.ClientError as error:
-                log.warning(f"Trying to grab model from Civitai: {type(error).__name__}: {error}")
+                if isinstance(error, aiohttp.ClientResponseError) and error.status == 404:
+                    log.debug(f"Arcenciel model {short_hash} not found")
+                else:
+                    log.warning(f"Trying to grab model {short_hash} from Arcenciel: {type(error).__name__}: {error}")
                 return None
 
             if not data or not data.get("data") or "id" not in data["data"][0]:
