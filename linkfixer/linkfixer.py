@@ -107,7 +107,7 @@ class LinkFixer(commands.Cog):
         assert ctx.guild
         disabled_links = await self.config.guild(ctx.guild).disabled_links()
         links = []
-        for link in set(ALL_LINKS):
+        for link in ALL_LINKS:
             links.append(f"`{link.name}`: {'disabled' if link.name in disabled_links else 'enabled'}")
         await ctx.send(">>> " + "\n".join(links))
 
