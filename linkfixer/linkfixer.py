@@ -53,6 +53,9 @@ class LinkFixer(commands.Cog):
     async def on_message(self, message: discord.Message):
         if not message.guild or message.guild.id not in self.enabled_guilds:
             return
+        perms = message.channel.permissions_for(message.guild.me)
+        if not perms.send_messages or not perms.embed_links:
+            return
         if not self.is_valid_red_message(message):
             return
         allowed_links = [link for link in ALL_LINKS if link.name not in self.disabled_links.get(message.guild.id, [])]
