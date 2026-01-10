@@ -38,6 +38,10 @@ A simple and unobtrusive translation cog with support for context menus and auto
 
 ![demonstration](https://i.imgur.com/zlc5BVJ.gif)
 
+### 🔗 LinkFixer
+
+Sends modified links to embed content from popular social media sites: Twitter, Reddit, TikTok, Instagram, Pixiv. These "fixed" links ([fxtwitter](https://github.com/FxEmbed/FxEmbed), [vxreddit](https://github.com/dylanpdx/vxReddit), etc.) have advantages such as allowing video or showing the full content instead of a snippet. Many people already use these regularly, but the cog is useful due to people that don't know them or can't be bothered to edit their links.
+
 ### 💵 EconomyTweaks
 
 Converts several Economy cog commands into slash commands. Also adds a configurable bonus for the `[p]payday` command, which activates at a greater time interval.
