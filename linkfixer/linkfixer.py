@@ -17,11 +17,11 @@ class Link:
 
 
 ALL_LINKS = [
-    Link("twitter",     re.compile(r"(?<!<)https?://(?:www\.)?(?:x|twitter)\.com/([^\s)>\]]+)"),                "https://fxtwitter.com/"),
-    Link("tiktok",      re.compile(r"(?<!<)https?://(?:www\.|vm\.)?tiktok\.com/([^\s)>\]]+)"),                  "https://kktiktok.com/"),
-    Link("instagram",   re.compile(r"(?<!<)https?://(?:www\.)?instagram\.com/([^\s)>\]]+)"),                    "https://kkinstagram.com/"),
-    Link("reddit",      re.compile(r"(?<!<)https?://(?:redd\.it|(?:www\.|old\.)?reddit\.com)/r/([^\s)>\]]+)"),  "https://vxreddit.com/r/"),
-    Link("pixiv",       re.compile(r"(?<!<)https?://(?:www\.)?pixiv\.net/([^\s)>\]]+)"),                        "https://phixiv.net/"),
+    Link("twitter",     re.compile(r"(?<!<)https?://(?:www\.)?(?:x|twitter)\.com/([^\s|)>\]]+)"),                "https://fxtwitter.com/"),
+    Link("tiktok",      re.compile(r"(?<!<)https?://(?:www\.|vm\.)?tiktok\.com/([^\s|)>\]]+)"),                  "https://kktiktok.com/"),
+    Link("instagram",   re.compile(r"(?<!<)https?://(?:www\.)?instagram\.com/([^\s|)>\]]+)"),                    "https://kkinstagram.com/"),
+    Link("reddit",      re.compile(r"(?<!<)https?://(?:redd\.it|(?:www\.|old\.)?reddit\.com)/r/([^\s|)>\]]+)"),  "https://vxreddit.com/r/"),
+    Link("pixiv",       re.compile(r"(?<!<)https?://(?:www\.)?pixiv\.net/([^\s|)>\]]+)"),                        "https://phixiv.net/"),
 ]
 
 
