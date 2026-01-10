@@ -1,6 +1,7 @@
 import re
 import logging
 import discord
+from typing import Dict, List
 from dataclasses import dataclass
 from redbot.core import commands, Config
 from redbot.core.bot import Red
@@ -33,10 +34,10 @@ class LinkFixer(commands.Cog):
         self.config = Config.get_conf(self, identifier=44141349)
         self.config.register_guild(**{
             "enabled": False,
-            "disabled_links": []
+            "disabled_links": [],
         })
-        self.enabled_guilds = []
-        self.disabled_links = {}
+        self.enabled_guilds: List[int] = []
+        self.disabled_links: Dict[int, List[str]] = {}
 
     async def cog_load(self):
         all_guilds = await self.config.all_guilds()
@@ -62,7 +63,10 @@ class LinkFixer(commands.Cog):
         fixed_links = []
         for link in allowed_links:
             if m := link.pattern.search(message.content):
-                fixed_links.append(f"{link.fixed}{m.group(1)}")
+                if f"||{m.group(0)}||" in message.content:
+                    fixed_links.append(f"||{link.fixed}{m.group(1)}||")
+                else:
+                    fixed_links.append(f"{link.fixed}{m.group(1)}")
         if not fixed_links:
             return
         fixed_links.insert(0, "-# I fixed that link so the content embeds better.")
@@ -73,7 +77,7 @@ class LinkFixer(commands.Cog):
             and await self.bot.ignored_channel_or_guild(message) \
             and not await self.bot.cog_disabled_in_guild(self, message.guild)
     
-    @commands.group(name="linkfixer")  # type: ignore
+    @commands.group(name="linkfixer", aliases=["linkfix"])  # type: ignore
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
     async def command_linkfixer(self, _: commands.Context):
