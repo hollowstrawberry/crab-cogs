@@ -51,7 +51,7 @@ class LinkFixer(commands.Cog):
         pass
 
     @commands.Cog.listener()
-    async def on_message(self, message: discord.Message):
+    async def on_message_without_command(self, message: discord.Message):
         if not message.guild or message.guild.id not in self.enabled_guilds:
             return
         perms = message.channel.permissions_for(message.guild.me)
