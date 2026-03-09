@@ -88,7 +88,7 @@ class LinkFixer(commands.Cog):
             matches = link.pattern.findall(message.content)
             for match in matches:
                 unfixed_links.append(match[0])
-                tail = next(m for m in match[1:] if m)
+                tail = [m for m in match if m][-1]
                 if f"||{match[0]}||" in message.content:  # spoilered
                     fixed_links.append(f"||{link.fixed}{tail}||")
                 else:
