@@ -92,11 +92,11 @@ class Booru(commands.Cog):
             await ctx.send(embed=discord.Embed(description=description, color=EMBED_COLOR))
             return
 
-        img_url = result.get("sample_url", result["file_url"])
-        async with self.session.get(img_url, allow_redirects=False, headers=HEADERS) as resp:
-            try:
+        image_url = result.get("sample_url", result["file_url"])
+        try:
+            async with self.session.get(image_url, allow_redirects=False, headers=HEADERS) as resp:
                 image_data = await resp.read()
-                filename = img_url.split("/")[-1]
+                filename = image_url.split("/")[-1]
                 file = discord.File(io.BytesIO(image_data), filename=filename)
                 embed = discord.Embed(color=EMBED_COLOR)
                 embed.set_author(name="Booru Post", url=f"https://gelbooru.com/index.php?page=post&s=view&id={result['id']}", icon_url=EMBED_ICON)
@@ -105,12 +105,9 @@ class Booru(commands.Cog):
                     embed.description = f"[🔗 Original Source]({result['source']})"
                 embed.set_footer(text=f"⭐ {result.get('score', 0)}")
                 await ctx.send(embed=embed, file=file)
-            except Exception:
-                try:
-                    await ctx.send("Sorry, there was an error trying to grab the image from Gelbooru! Please try again or contact the bot owner.")
-                except Exception:
-                    pass
-                raise
+        except Exception as error:
+            log.error(f"{type(error).__name__}: {error} {image_url=}")
+            await ctx.send("Sorry, there was an error trying to grab the image from Gelbooru! Please try again or contact the bot owner.")
 
 
     @commands.hybrid_command(aliases=["boorutags"])
