@@ -103,7 +103,7 @@ class SimpleCasino(BaseCasinoCog):
     async def blackjack(self, ctx: Union[discord.Interaction, commands.Context], bet: int):
         author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
         reply = ctx.reply if isinstance(ctx, commands.Context) else ctx.response.send_message
-        assert ctx.guild and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
+        assert ctx.guild and isinstance(author, discord.Member) and isinstance(ctx.channel, (discord.TextChannel, discord.Thread))
 
         minimum_bid = await self.config.bjmin() if await bank.is_global() else await self.config.guild(ctx.guild).bjmin()
         maximum_bid = await self.config.bjmax() if await bank.is_global() else await self.config.guild(ctx.guild).bjmax()
@@ -222,7 +222,7 @@ class SimpleCasino(BaseCasinoCog):
 
     async def poker(self, ctx: Union[discord.Interaction, commands.Context], players: List[discord.Member], starting_bet: Optional[int]) -> bool:
         author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
-        assert ctx.guild and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
+        assert ctx.guild and isinstance(author, discord.Member) and isinstance(ctx.channel, (discord.TextChannel, discord.Thread))
         
         reply = ctx.reply if isinstance(ctx, commands.Context) else ctx.response.send_message
 
