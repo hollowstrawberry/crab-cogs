@@ -79,7 +79,7 @@ class LinkFixer(commands.Cog):
         perms = message.channel.permissions_for(message.guild.me)
         if not perms.send_messages or not perms.embed_links:
             return
-        if not self.is_valid_red_message(message):
+        if not await self.is_valid_red_message(message):
             return
         
         matched_links = list(dict.fromkeys(GENERIC_LINK.findall(message.content)))
