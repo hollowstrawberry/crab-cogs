@@ -240,7 +240,7 @@ class Booru(commands.Cog):
             "q": "index",
             "json": 1,
             "limit": 1000,
-            "tags": ' '.join(tags)
+            "tags": ' '.join(tags).replace(":", "%3A")  # colons break for some reason
         }
 
         api = await self.bot.get_shared_api_tokens("gelbooru")
