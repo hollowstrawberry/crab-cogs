@@ -2,7 +2,7 @@ import random
 import logging
 import asyncio
 import discord
-from typing import List
+from typing import List, Union
 from redbot.core import bank, errors
 from redbot.core.utils.chat_formatting import humanize_number
 
@@ -59,7 +59,7 @@ class Blackjack(discord.ui.View):
     def __init__(self,
                  cog: BaseCasinoCog,
                  player: discord.Member,
-                 channel: discord.TextChannel,
+                 channel: Union[discord.TextChannel, discord.Thread],
                  bet: int,
                  embed_color: discord.Color,
                  include_author: bool,

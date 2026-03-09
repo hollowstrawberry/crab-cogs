@@ -332,7 +332,7 @@ class NovelAI(commands.Cog):
                                       decrisper: Optional[bool],
                                       model: Optional[ImageModel],
                                       ) -> Optional[Tuple[str, ImagePreset]]:
-        assert isinstance(ctx.channel, discord.TextChannel)
+        assert isinstance(ctx.channel, discord.abc.Messageable)
 
         if not self.api and not await self.try_create_api():
             await ctx.response.send_message(
@@ -372,7 +372,7 @@ class NovelAI(commands.Cog):
         
         resolution = resolution or await self.config.user(ctx.user).resolution()
 
-        if ctx.guild and not ctx.channel.nsfw and const.NSFW_TERMS.search(prompt):
+        if ctx.guild and not self.is_nsfw(ctx.channel) and const.NSFW_TERMS.search(prompt):
             await ctx.response.send_message(":warning: You may not generate NSFW images in non-NSFW channels.")
             return
 
@@ -387,7 +387,7 @@ class NovelAI(commands.Cog):
                 ":warning: To abide by Discord terms of service, the prompt you chose may not be used.")
             return
 
-        if ctx.guild and not ctx.channel.nsfw and await self.config.guild(ctx.guild).nsfw_filter():
+        if ctx.guild and not self.is_nsfw(ctx.channel) and await self.config.guild(ctx.guild).nsfw_filter():
             prompt = "rating:general, " + prompt
 
         preset = ImagePreset()
@@ -740,3 +740,12 @@ class NovelAI(commands.Cog):
         """Show all users in the VIP list."""
         await ctx.reply('\n'.join([f'<@{uid}>' for uid in await self.config.vip()]) or "*None*",
                         allowed_mentions=discord.AllowedMentions.none())
+        
+    @staticmethod
+    def is_nsfw(channel: discord.abc.Messageable):
+        if isinstance(channel, discord.TextChannel):
+            return channel.nsfw
+        elif isinstance(channel, discord.Thread) and channel.parent:
+            return channel.parent.nsfw
+        else:
+            return False

@@ -1,7 +1,7 @@
 import random
 import discord
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 from datetime import datetime
 from redbot.core import bank
 from redbot.core.utils.chat_formatting import humanize_number
@@ -38,7 +38,7 @@ IMAGES = {
 
 
 class TicTacToeGame(Minigame):
-    def __init__(self, cog: BaseMinigameCog, players: List[discord.Member], channel: discord.TextChannel, bet: int):
+    def __init__(self, cog: BaseMinigameCog, players: List[discord.Member], channel: Union[discord.abc.GuildChannel, discord.Thread], bet: int):
         if len(players) != 2:
             raise ValueError("Game must have 2 players")
         super().__init__(cog, players, channel, bet)

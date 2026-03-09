@@ -40,7 +40,7 @@ PAYOUTS = {
 
 async def slots(cog: BaseCasinoCog, ctx: Union[discord.Interaction, commands.Context], bet: int):
     author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
-    assert ctx.guild and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
+    assert ctx.guild and isinstance(author, discord.Member) and isinstance(ctx.channel, (discord.TextChannel, discord.Thread))
     interaction = ctx if isinstance(ctx, discord.Interaction) else ctx.interaction
     currency_name = await bank.get_currency_name(ctx.guild)
     is_global = await bank.is_global()

@@ -4,7 +4,7 @@ import discord
 import chess
 import chess.svg
 from io import BytesIO
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 from datetime import datetime
 from redbot.core import bank
 from redbot.core.utils.chat_formatting import humanize_number
@@ -28,7 +28,7 @@ class ChessGame(BaseChessGame):
     def __init__(self,
                  cog: BaseChessCog,
                  players: List[discord.Member],
-                 channel: discord.TextChannel,
+                 channel: Union[discord.TextChannel, discord.Thread],
                  initial_state: str = None,
                  depth: Optional[int] = None,
                  bet: int = 0

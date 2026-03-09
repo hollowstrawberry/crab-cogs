@@ -59,7 +59,7 @@ class ImageView(View):
 
     @discord.ui.button(emoji="🗑️", style=discord.ButtonStyle.grey)
     async def delete(self, ctx: discord.Interaction, _):
-        assert ctx.message and isinstance(ctx.channel, discord.TextChannel) and isinstance(ctx.user, discord.Member)
+        assert ctx.message and isinstance(ctx.channel, (discord.abc.GuildChannel, discord.Thread)) and isinstance(ctx.user, discord.Member)
         if ctx.message.interaction:
             original_user_id = ctx.message.interaction.user.id
         elif m := re.search(r"(\d+)", ctx.message.content):

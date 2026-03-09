@@ -200,7 +200,7 @@ class ImageScanner(commands.Cog):
             return
 
         channel = self.bot.get_channel(ctx.channel_id)
-        assert isinstance(channel, discord.TextChannel)
+        assert isinstance(channel, discord.abc.MessageableChannel)
         message: discord.Message = await channel.fetch_message(ctx.message_id)
         assert isinstance(message.author, discord.Member)
         if not message or message.author.bot and message.author.id != self.bot.user.id:

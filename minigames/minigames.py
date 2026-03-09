@@ -46,7 +46,7 @@ class Minigames(BaseMinigameCog):
         """
         Play a game of Tic-Tac-Toe against the bot or another user.
         """
-        assert ctx.guild and isinstance(ctx.author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
+        assert ctx.guild and isinstance(ctx.author, discord.Member)
         opponent = opponent or ctx.guild.me
         players = [ctx.author, opponent] if opponent.bot else [opponent, ctx.author]
         await self.base_minigame_cmd(TicTacToeGame, ctx, players, opponent.bot, bet)
@@ -58,7 +58,7 @@ class Minigames(BaseMinigameCog):
         """
         Play a game of Connect 4 against the bot or another user.
         """
-        assert ctx.guild and isinstance(ctx.author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
+        assert ctx.guild and isinstance(ctx.author, discord.Member) and isinstance(ctx.channel, (discord.abc.GuildChannel, discord.Thread))
         opponent = opponent or ctx.guild.me
         players = [ctx.author, opponent] if opponent.bot else [opponent, ctx.author]
         await self.base_minigame_cmd(ConnectFourGame, ctx, players, opponent.bot, bet)
@@ -73,7 +73,7 @@ class Minigames(BaseMinigameCog):
                                 ):
         author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
         reply = ctx.reply if isinstance(ctx, commands.Context) else ctx.response.send_message
-        assert ctx.guild and isinstance(ctx.channel, discord.TextChannel) and isinstance(author, discord.Member)
+        assert ctx.guild and isinstance(ctx.channel, discord.abc.MessageableChannel) and isinstance(ctx.channel, (discord.abc.GuildChannel, discord.Thread)) and isinstance(author, discord.Member)
 
         if game_cls == TicTacToeGame:
             if await bank.is_global():
@@ -110,7 +110,7 @@ class Minigames(BaseMinigameCog):
                 if seconds_passed // 60 >= TIME_LIMIT:
                     async def callback():
                         nonlocal ctx, players, old_game, against_bot
-                        assert isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel) 
+                        assert isinstance(author, discord.Member) and isinstance(ctx.channel, discord.abc.MessageableChannel) and isinstance(ctx.channel, (discord.abc.GuildChannel, discord.Thread))
                         await old_game.cancel(author)
                         game = game_cls(self, players, ctx.channel, bet or 0)
                         if against_bot:

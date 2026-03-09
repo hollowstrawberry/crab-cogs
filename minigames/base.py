@@ -22,7 +22,7 @@ class BaseMinigameCog(commands.Cog):
         
 
 class Minigame(ABC):
-    def __init__(self, cog: BaseMinigameCog, players: List[discord.Member], channel: discord.TextChannel, bet: int):
+    def __init__(self, cog: BaseMinigameCog, players: List[discord.Member], channel: Union[discord.abc.GuildChannel, discord.Thread], bet: int):
         self.cog = cog
         self.bet = bet
         self.players = players

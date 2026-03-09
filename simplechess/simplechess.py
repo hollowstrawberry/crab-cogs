@@ -41,7 +41,7 @@ class SimpleChess(BaseChessCog):
         for channel_id, config in all_channels.items():
             try:
                 channel = self.bot.get_channel(channel_id)
-                if not config["game"] or not isinstance(channel, discord.TextChannel):
+                if not config["game"] or not isinstance(channel, (discord.TextChannel, discord.Thread)):
                     continue
                 players: List[discord.Member] = [channel.guild.get_member(user_id) for user_id in config["players"]] # type: ignore
                 if any(player is None for player in players):
@@ -78,7 +78,7 @@ class SimpleChess(BaseChessCog):
 
     async def chess_new(self, ctx: Union[commands.Context, discord.Interaction], opponent: Optional[discord.Member], depth: Optional[int] = None, bet: Optional[int] = 0):
         author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
-        assert ctx.guild and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
+        assert ctx.guild and isinstance(author, discord.Member) and isinstance(ctx.channel, (discord.TextChannel, discord.Thread))
         opponent = opponent or ctx.guild.me
         players = [author, opponent] if opponent.bot else [opponent, author]
         reply = ctx.reply if isinstance(ctx, commands.Context) else ctx.response.send_message
@@ -113,7 +113,7 @@ class SimpleChess(BaseChessCog):
             if seconds_passed // 60 >= TIME_LIMIT:
                 async def callback():
                     nonlocal ctx, players, author, old_game, old_message, opponent
-                    assert opponent and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
+                    assert opponent and isinstance(author, discord.Member) and isinstance(ctx.channel, (discord.TextChannel, discord.Thread))
                     await old_game.cancel(author)
                     await old_game.update_message()
                     game = ChessGame(self, players, ctx.channel, depth=depth, bet=bet or 0)
@@ -152,7 +152,7 @@ class SimpleChess(BaseChessCog):
 
 
     async def chess_bots(self, ctx: commands.Context, opponent: discord.Member, depth: Optional[int] = None):
-        assert ctx.guild and isinstance(ctx.channel, discord.TextChannel)
+        assert ctx.guild and isinstance(ctx.channel, (discord.TextChannel, discord.Thread))
         if not opponent.bot or opponent == ctx.guild.me:
             return await ctx.send("Opponent must be a bot different from myself.")
         
