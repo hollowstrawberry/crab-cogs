@@ -20,7 +20,7 @@ class SetChannelConfirmation(View):
 
     @discord.ui.button(label='Accept', style=discord.ButtonStyle.green)
     async def accept(self, ctx: discord.Interaction, _):
-        assert ctx.guild and isinstance(ctx.channel, discord.TextChannel) and isinstance(ctx.user, discord.Member) and ctx.user.resolved_permissions
+        assert ctx.guild and isinstance(ctx.channel, (discord.abc.GuildChannel, discord.Thread)) and isinstance(ctx.user, discord.Member) and ctx.user.resolved_permissions
         if not ctx.user.resolved_permissions.manage_guild:
             await ctx.response.send_message("You must have the Manage Guild permission to interact with this message", ephemeral=True)
             return
@@ -84,7 +84,7 @@ class ImageLog(commands.Cog):
         if not message or not self.logchannels.get(ctx.guild_id, 0):
             return
 
-        assert message.guild and isinstance(message.author, discord.Member) and isinstance(message.channel, discord.TextChannel)
+        assert message.guild and isinstance(message.author, discord.Member) and isinstance(message.channel, (discord.abc.GuildChannel, discord.Thread))
         guild = message.guild
         channel = message.channel
         log_channel = guild.get_channel(self.logchannels[guild.id])
@@ -129,7 +129,7 @@ class ImageLog(commands.Cog):
                 file = discord.File(img, filename=attachment.filename)
                 embed.set_image(url=f"attachment://{attachment.filename}")
 
-            assert isinstance(log_channel, discord.TextChannel)
+            assert isinstance(log_channel, discord.abc.MessageableChannel)
             await log_channel.send(embed=embed, file=file)
 
 

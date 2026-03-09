@@ -46,7 +46,7 @@ class BaseChessGame(ABC):
     def __init__(self,
                  cog: BaseChessCog,
                  players: List[discord.Member],
-                 channel: discord.TextChannel,
+                 channel: Union[discord.TextChannel, discord.Thread],
                  initial_state: str = None,
                  depth: Optional[int] = None,
                  bet: int = 0

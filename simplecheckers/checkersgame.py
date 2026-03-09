@@ -3,7 +3,7 @@ import logging
 import discord
 import draughts
 from io import BytesIO
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 from datetime import datetime
 from redbot.core import bank
 from redbot.core.data_manager import bundled_data_path
@@ -29,7 +29,7 @@ class CheckersGame(BaseCheckersGame):
     def __init__(self,
                  cog: BaseCheckersCog,
                  players: List[discord.Member],
-                 channel: discord.TextChannel,
+                 channel: Union[discord.TextChannel, discord.Thread],
                  variant: str,
                  initial_state: str = None,
                  initial_time: int = 0,

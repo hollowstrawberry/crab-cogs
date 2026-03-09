@@ -63,7 +63,7 @@ class GptImage(commands.Cog):
         await self.imagine(ctx, prompt)
 
     async def imagine(self, ctx: discord.Interaction, prompt: str):
-        assert isinstance(ctx.channel, discord.TextChannel)
+        assert isinstance(ctx.channel, discord.abc.Messageable)
         if not self.client:
             return await ctx.response.send_message("OpenAI key not set.", ephemeral=True)
         prompt = prompt.strip()
@@ -87,7 +87,7 @@ class GptImage(commands.Cog):
             model = await self.config.model()
             quality = NotGiven() if model == "dall-e-2" else await self.config.quality()
             response_format = NotGiven() if model == "gpt-image-1" else "b64_json"
-            moderation = NotGiven() if model != "gpt-image-1" or not ctx.channel.is_nsfw() else "low"
+            moderation = NotGiven() if model != "gpt-image-1" or not self.is_nsfw(ctx.channel) else "low"
             result = await self.client.images.generate(
                 n=1,
                 size="1024x1024",
@@ -201,3 +201,12 @@ class GptImage(commands.Cog):
         """Show all users in the VIP list."""
         await ctx.reply('\n'.join([f'<@{uid}>' for uid in await self.config.vip()]) or "*None*",
                         allowed_mentions=discord.AllowedMentions.none())
+        
+    @staticmethod
+    def is_nsfw(channel: discord.abc.Messageable):
+        if isinstance(channel, discord.TextChannel):
+            return channel.nsfw
+        elif isinstance(channel, discord.Thread) and channel.parent:
+            return channel.parent.nsfw
+        else:
+            return False

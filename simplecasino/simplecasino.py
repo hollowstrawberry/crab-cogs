@@ -262,7 +262,7 @@ class SimpleCasino(BaseCasinoCog):
             if seconds_passed // 60 >= POKER_AFK_LIMIT:
                 async def callback():
                     nonlocal ctx, author, old_game, old_message
-                    assert isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
+                    assert isinstance(author, discord.Member) and isinstance(ctx.channel, (discord.TextChannel, discord.Thread))
                     await old_game.cancel()
                     if old_message:
                         try:

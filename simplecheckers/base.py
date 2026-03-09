@@ -44,7 +44,7 @@ class BaseCheckersGame(ABC):
     def __init__(self,
                  cog: BaseCheckersCog,
                  players: List[discord.Member],
-                 channel: discord.TextChannel,
+                 channel: Union[discord.TextChannel, discord.Thread],
                  variant: str,
                  initial_state: str = None,
                  initial_time: int = 0,

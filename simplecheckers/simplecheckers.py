@@ -34,7 +34,7 @@ class SimpleCheckers(BaseCheckersCog):
         for channel_id, config in all_channels.items():
             try:
                 channel = self.bot.get_channel(channel_id)
-                if not config["game"] or not isinstance(channel, discord.TextChannel):
+                if not config["game"] or not isinstance(channel, (discord.TextChannel, discord.Thread)):
                     continue
                 players: List[discord.Member] = [channel.guild.get_member(user_id) for user_id in config["players"]] # type: ignore
                 if any(player is None for player in players):
@@ -69,7 +69,7 @@ class SimpleCheckers(BaseCheckersCog):
 
     async def checkers_new(self, ctx: Union[commands.Context, discord.Interaction], opponent: Optional[discord.Member], bet: Optional[int]):
         author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
-        assert ctx.guild and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
+        assert ctx.guild and isinstance(author, discord.Member) and isinstance(ctx.channel, (discord.TextChannel, discord.Thread))
         
         reply = ctx.reply if isinstance(ctx, commands.Context) else ctx.response.send_message
         opponent = opponent or ctx.guild.me
@@ -105,7 +105,7 @@ class SimpleCheckers(BaseCheckersCog):
             if seconds_passed // 60 >= TIME_LIMIT:
                 async def callback():
                     nonlocal ctx, players, author, opponent, old_game
-                    assert opponent and isinstance(author, discord.Member) and isinstance(ctx.channel, discord.TextChannel)
+                    assert opponent and isinstance(author, discord.Member) and isinstance(ctx.channel, (discord.TextChannel, discord.Thread))
                     await old_game.cancel(author)
                     await old_game.update_message()
                     game = CheckersGame(self, players, ctx.channel, VARIANT, bet=bet or 0)
@@ -144,7 +144,7 @@ class SimpleCheckers(BaseCheckersCog):
 
 
     async def checkers_bots(self, ctx: commands.Context, opponent: discord.Member, depth: Optional[int] = None):
-        assert ctx.guild and isinstance(ctx.channel, discord.TextChannel)
+        assert ctx.guild and isinstance(ctx.channel, (discord.TextChannel, discord.Thread))
         if not opponent.bot or opponent == ctx.guild.me:
             return await ctx.send("Opponent must be a bot different from myself.")
         

@@ -68,11 +68,10 @@ class Booru(commands.Cog):
         You can add score:>NUMBER to have a minimum score above a number.
         You can add rating:general / rating:sensitive / rating:questionable / rating:explicit"""
         
-        assert isinstance(ctx.channel, discord.TextChannel)
         tags = tags.strip()
         if tags.lower() in ["none", "error"]:
             tags = ""
-        if not ctx.channel.nsfw:
+        if not self.is_nsfw(ctx.channel):
             tags = re.sub(r"\s?rating:\S+", "", tags)
             tags += f" {RATING_GENERAL}"
 
@@ -85,7 +84,7 @@ class Booru(commands.Cog):
 
         if not result:
             description = "💨 No results..."
-            if not ctx.channel.nsfw:
+            if not self.is_nsfw(ctx.channel):
                 description += " (safe mode)"
             await ctx.send(embed=discord.Embed(description=description, color=EMBED_COLOR))
             return
@@ -125,7 +124,7 @@ class Booru(commands.Cog):
 
         excluded = last.startswith('-')
         last = last.lstrip('-')
-        is_nsfw = interaction and isinstance(interaction.channel, discord.TextChannel) and interaction.channel.nsfw
+        is_nsfw = interaction and isinstance(interaction.channel, discord.abc.Messageable) and self.is_nsfw(interaction.channel)
 
         if not last and not excluded:
             # suggestions
@@ -241,3 +240,12 @@ class Booru(commands.Cog):
         choice = random.choice(images)
         self.image_cache[key].append(choice["id"])
         return choice
+    
+    @staticmethod
+    def is_nsfw(channel: discord.abc.Messageable):
+        if isinstance(channel, discord.TextChannel):
+            return channel.nsfw
+        elif isinstance(channel, discord.Thread) and channel.parent:
+            return channel.parent.nsfw
+        else:
+            return False

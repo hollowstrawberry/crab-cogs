@@ -1,7 +1,7 @@
 import json
 import logging
 import discord
-from typing import List, Optional, Tuple, Dict, Union
+from typing import List, Optional, Tuple, Dict, Union, Annotated
 from datetime import datetime
 from dataclasses import dataclass, field
 from dataclasses_json import DataClassJsonMixin, config
@@ -131,6 +131,7 @@ class PokerGame(BasePokerGame):
         game.all_hands_finished = config["finished"]
         if config["message"]:
             try:
+                assert isinstance(channel, discord.abc.Messageable)
                 game.message = await channel.fetch_message(config["message"])
             except discord.NotFound:
                 pass
