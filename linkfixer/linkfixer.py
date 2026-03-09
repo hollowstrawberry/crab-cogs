@@ -62,11 +62,12 @@ class LinkFixer(commands.Cog):
         allowed_links = [link for link in ALL_LINKS if link.name not in self.disabled_links.get(message.guild.id, [])]
         fixed_links = []
         for link in allowed_links:
-            if m := link.pattern.search(message.content):
-                if f"||{m.group(0)}||" in message.content:
-                    fixed_links.append(f"||{link.fixed}{m.group(1)}||")
+            matches = link.pattern.findall(message.content)
+            for match in matches:
+                if f"||{match[0]}||" in message.content:  # spoilered
+                    fixed_links.append(f"||{link.fixed}{match[1]}||")
                 else:
-                    fixed_links.append(f"{link.fixed}{m.group(1)}")
+                    fixed_links.append(f"{link.fixed}{match[1]}")
         if not fixed_links:
             return
         fixed_links.insert(0, "-# I fixed that link so the content embeds better.")
