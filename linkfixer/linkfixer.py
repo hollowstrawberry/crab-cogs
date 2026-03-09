@@ -26,7 +26,7 @@ ALL_LINKS = [
     ),
     Link(
         "tiktok",
-        re.compile(r"(?<!<)(https?://(?:www\.)?tiktok\.com/([^/]+/video/[^\s|)>\]]+)|https?://vm\.tiktok\.com/([^\s|)>\]]+))"),
+        re.compile(r"(?<!<)(https?://(?:www\.)?tiktok\.com/([^/]+/[^/]+/[^\s|)>\]]+)|https?://vm\.tiktok\.com/([^\s|)>\]]+))"),
         "https://kktiktok.com/"
     ),
     Link(
