@@ -82,7 +82,7 @@ class Booru(commands.Cog):
             result = await self.grab_image(tags, ctx)
         except (aiohttp.ClientError, KeyError):
             log.exception("Failed to grab image from Gelbooru")
-            await ctx.send("Sorry, there was an error trying to grab an image from Gelbooru. Please try again or contact the bot owner.")
+            await ctx.send("Sorry, there was an error trying to grab an image from Gelbooru! Please try again or contact the bot owner.")
             return
 
         if not result:
@@ -105,8 +105,12 @@ class Booru(commands.Cog):
                     embed.description = f"[🔗 Original Source]({result['source']})"
                 embed.set_footer(text=f"⭐ {result.get('score', 0)}")
                 await ctx.send(embed=embed, file=file)
-            except Exception as error:
-                await ctx.send(f"Failed to grab the image from Gelbooru! {resp.status} {type(error).__name__}: {error}")
+            except Exception:
+                try:
+                    await ctx.send("Sorry, there was an error trying to grab the image from Gelbooru! Please try again or contact the bot owner.")
+                except Exception:
+                    pass
+                raise
 
 
     @commands.hybrid_command(aliases=["boorutags"])
