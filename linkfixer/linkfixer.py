@@ -16,32 +16,32 @@ class Link:
     fixed: str
 
 
-GENERIC_LINK = re.compile(r"(?<!<)https?://[^\s|?)>\]]+")
+GENERIC_LINK = re.compile(r"(?<!<)https?://[^\s|)>\]]+")
 
 ALL_LINKS = [
     Link(
         "twitter",
-        re.compile(r"(?<!<)(https?://(?:www\.|m\.)?(?:x|twitter)\.com/([^\s]+status/[^\s|?)>\]]+))"),
+        re.compile(r"(?<!<)(https?://(?:www\.|m\.)?(?:x|twitter)\.com/([^\s]+status/[^\s|)>\]]+))(?:\?[^\s|)>\]]+)?"),
         "https://fxtwitter.com/"
     ),
     Link(
         "tiktok",
-        re.compile(r"(?<!<)(https?://(?:www\.)?tiktok\.com/([^/]+/[^/]+/[^\s|?)>\]]+)|https?://vm\.tiktok\.com/([^\s|?)>\]]+))"),
+        re.compile(r"(?<!<)(https?://(?:www\.)?tiktok\.com/([^/]+/[^/]+/[^\s|)>\]]+)|https?://vm\.tiktok\.com/([^\s|)>\]]+))(?:\?[^\s|)>\]]+)?"),
         "https://kktiktok.com/"
     ),
     Link(
         "instagram",
-        re.compile(r"(?<!<)(https?://(?:www\.)?instagram\.com/([^/]+/[^\s|?)>\]]+))"),
+        re.compile(r"(?<!<)(https?://(?:www\.)?instagram\.com/([^/]+/[^\s|)>\]]+))(?:\?[^\s|)>\]]+)?"),
         "https://kkinstagram.com/"
     ),
     Link(
         "reddit",
-        re.compile(r"(?<!<)(https?://(?:www\.|old\.)?reddit\.com/(r/[^/]+/[^\s|?)>\]]+))"),
+        re.compile(r"(?<!<)(https?://(?:www\.|old\.)?reddit\.com/(r/[^/]+/[^\s|)>\]]+))(?:\?[^\s|)>\]]+)?"),
         "https://rxddit.com/"
     ),
     Link(
         "pixiv",
-        re.compile(r"(?<!<)(https?://(?:www\.)?pixiv\.net/([^\s|)?>\]]+))"),
+        re.compile(r"(?<!<)(https?://(?:www\.)?pixiv\.net/([^\s|)>\]]+))(?:\?[^\s|)>\]]+)?"),
         "https://phixiv.net/"
     ),
 ]
