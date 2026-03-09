@@ -31,7 +31,7 @@ ALL_LINKS = [
     ),
     Link(
         "instagram",
-        re.compile(r"(?<!<)(https?://(?:www\.)?instagram\.com/([^/]+/[^\s|)>\]]+)"),
+        re.compile(r"(?<!<)(https?://(?:www\.)?instagram\.com/([^/]+/[^\s|)>\]]+))"),
         "https://kkinstagram.com/"
     ),
     Link(
