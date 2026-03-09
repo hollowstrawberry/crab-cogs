@@ -92,6 +92,7 @@ class Booru(commands.Cog):
             await ctx.send(embed=discord.Embed(description=description, color=EMBED_COLOR))
             return
 
+        log.info(f"{result['sample_url']=} {result['preview_url']=} {result['image_url']=}")
         img_url = result["sample_url"]
         async with self.session.get(img_url, allow_redirects=False, headers=HEADERS) as resp:
             try:
