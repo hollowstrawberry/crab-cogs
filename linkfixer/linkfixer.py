@@ -81,31 +81,33 @@ class LinkFixer(commands.Cog):
             return
         if not self.is_valid_red_message(message):
             return
+        
+        matched_links = list(dict.fromkeys(GENERIC_LINK.findall(message.content)))
+        for i in range(len(matched_links)):
+            spoilered = f"||{matched_links[i]}||"
+            if spoilered in message.content:
+                matched_links[i] = spoilered
+        matched_links.insert(0, "-# I fixed the links so the content embeds better.")
+
         allowed_links = [link for link in ALL_LINKS if link.name not in self.disabled_links.get(message.guild.id, [])]
-        fixed_links = []
-        unfixed_links = []
         for link in allowed_links:
+            any_fixed = False
             matches = link.pattern.findall(message.content)
             for match in matches:
-                unfixed_links.append(match[0])
+                any_fixed = True
                 tail = [m for m in match if m][-1]
-                if f"||{match[0]}||" in message.content:  # spoilered
-                    fixed_links.append(f"||{link.fixed}{tail}||")
-                else:
-                    fixed_links.append(f"{link.fixed}{tail}")
-        if not fixed_links:
-            return
-        generic_matches = GENERIC_LINK.findall(message.content)
-        for match in generic_matches:
-            if match in unfixed_links:
-                continue
-            if f"||{match}||" in message.content:  # spoilered
-                fixed_links.append(f"||{match}||")
-            else:
-                fixed_links.append(f"{match}")
-        fixed_links.insert(0, "-# I fixed the links so the content embeds better.")
+                try:
+                    if f"||{match[0]}||" in matched_links:
+                        matched_links[matched_links.index(f"||{match[0]}||")] = f"||{link.fixed}{tail}||"
+                    else:
+                        matched_links[matched_links.index(match[0])] = f"{link.fixed}{tail}"
+                except ValueError:
+                    pass
 
-        await message.channel.send("\n".join(list(dict.fromkeys(fixed_links))))
+        if not any_fixed:
+            return
+
+        await message.channel.send("\n".join(matched_links))
         if message.channel.permissions_for(message.guild.me).manage_messages:
             await message.edit(suppress=True)
 
