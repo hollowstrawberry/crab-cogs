@@ -26,7 +26,7 @@ ALL_LINKS = [
     ),
     Link(
         "tiktok",
-        re.compile(r"(?<!<)(https?://(?:www\.)?tiktok\.com/([^/]+/video/[^\s|)>\]]+)|https?://vm\.tiktok\.com/[^\s|)>\]]+)"),
+        re.compile(r"(?<!<)(https?://(?:www\.)?tiktok\.com/([^/]+/video/[^\s|)>\]]+)|https?://vm\.tiktok\.com/([^\s|)>\]]+))"),
         "https://kktiktok.com/"
     ),
     Link(
@@ -36,7 +36,7 @@ ALL_LINKS = [
     ),
     Link(
         "reddit",
-        re.compile(r"(?<!<)(https?://(?:www\.|old\.)?reddit\.com/r/[^/]+/([^\s|)>\]]+)|https?://redd\.it/([^\s|)>\]]+)"),
+        re.compile(r"(?<!<)(https?://(?:www\.|old\.)?reddit\.com/r/[^/]+/([^\s|)>\]]+)|https?://redd\.it/([^\s|)>\]]+))"),
         "https://vxreddit.com/r/"
     ),
     Link(
