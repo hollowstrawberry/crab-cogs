@@ -36,7 +36,7 @@ ALL_LINKS = [
     ),
     Link(
         "reddit",
-        re.compile(r"(?<!<)(https?://(?:www\.|old\.)?reddit\.com/r/[^/]+/([^\s|)>\]]+)|https?://redd\.it/([^\s|)>\]]+))"),
+        re.compile(r"(?<!<)(https?://(?:www\.|old\.)?reddit\.com/(r/[^/]+/[^\s|)>\]]+)|https?://redd\.it/([^\s|)>\]]+))"),
         "https://vxreddit.com/r/"
     ),
     Link(
@@ -88,10 +88,11 @@ class LinkFixer(commands.Cog):
             matches = link.pattern.findall(message.content)
             for match in matches:
                 unfixed_links.append(match[0])
+                tail = next(m for m in match[1:] if m)
                 if f"||{match[0]}||" in message.content:  # spoilered
-                    fixed_links.append(f"||{link.fixed}{match[1]}||")
+                    fixed_links.append(f"||{link.fixed}{tail}||")
                 else:
-                    fixed_links.append(f"{link.fixed}{match[1]}")
+                    fixed_links.append(f"{link.fixed}{tail}")
         if not fixed_links:
             return
         generic_matches = GENERIC_LINK.findall(message.content)
