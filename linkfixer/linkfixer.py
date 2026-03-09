@@ -95,7 +95,8 @@ class LinkFixer(commands.Cog):
             for link_type in link_types:
                 if match := link_type.pattern.search(link):
                     any_fixed = True
-                    matched_links[i] = link.replace(match.string, f"{link_type.fixed}{match.lastgroup}")
+                    tail = [g for g in match.groups() if g]
+                    matched_links[i] = link.replace(match.string, f"{link_type.fixed}{tail}")
 
         if not any_fixed:
             return
