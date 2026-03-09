@@ -36,7 +36,7 @@ ALL_LINKS = [
     ),
     Link(
         "reddit",
-        re.compile(r"(?<!<)(https?://(?:www\.|old\.)?reddit\.com/(r/[^/]+/[^\s|)>\]]+)|https?://redd\.it/([^\s|)>\]]+))"),
+        re.compile(r"(?<!<)(https?://(?:www\.|old\.)?reddit\.com/(r/[^/]+/[^\s|)>\]]+))"),
         "https://vxreddit.com/"
     ),
     Link(
@@ -105,7 +105,7 @@ class LinkFixer(commands.Cog):
                 fixed_links.append(f"{match}")
         fixed_links.insert(0, "-# I fixed the links so the content embeds better.")
 
-        await message.channel.send("\n".join(fixed_links))
+        await message.channel.send("\n".join(list(dict.fromkeys(fixed_links))))
         if message.channel.permissions_for(message.guild.me).manage_messages:
             await message.edit(suppress=True)
 
