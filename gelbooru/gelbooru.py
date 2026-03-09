@@ -230,7 +230,6 @@ class Booru(commands.Cog):
 
 
     async def grab_image(self, query: str, ctx: commands.Context) -> dict:
-        query = urllib.parse.quote(query.lower(), safe=' ')
         tags = [tag for tag in query.split(' ') if tag]
         tags = [tag for tag in tags if tag not in TAG_BLACKLIST]
         tags += [f"-{tag}" for tag in TAG_BLACKLIST]
@@ -240,7 +239,7 @@ class Booru(commands.Cog):
             "q": "index",
             "json": 1,
             "limit": 1000,
-            "tags": ' '.join(tags).replace(":", "%3A")  # colons break for some reason
+            "tags": ' '.join(tags)
         }
 
         api = await self.bot.get_shared_api_tokens("gelbooru")
