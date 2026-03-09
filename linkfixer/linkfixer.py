@@ -95,6 +95,7 @@ class LinkFixer(commands.Cog):
             matches = link.pattern.findall(message.content)
             for match in matches:
                 any_fixed = True
+                log.info(match)
                 tail = [m for m in match if m][-1]
                 try:
                     if f"||{match[0]}||" in matched_links:
@@ -102,7 +103,6 @@ class LinkFixer(commands.Cog):
                     else:
                         matched_links[matched_links.index(match[0])] = f"{link.fixed}{tail}"
                 except ValueError:
-                    log.info(f"{match[0]=} {matched_links=}")
                     pass
 
         if not any_fixed:
