@@ -19,7 +19,7 @@ IMAGE_TYPES = (".png", ".jpeg", ".jpg", ".webp", ".gif")
 TAG_BLACKLIST = ["loli", "shota", "guro", "video"]
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0",
-    "Referer": "",
+    "Referer": "https://gelbooru.com/",
 }
 RATING_GENERAL = "rating:general"
 RATING_SENSITIVE = "rating:sensitive"
@@ -94,7 +94,7 @@ class Booru(commands.Cog):
 
         img_url = result["sample_url"]
         async with self.session.get(img_url, allow_redirects=False, headers=HEADERS) as resp:
-            if resp.status == 200:
+            try:
                 image_data = await resp.read()
                 filename = img_url.split("/")[-1]
                 file = discord.File(io.BytesIO(image_data), filename=filename)
@@ -104,10 +104,9 @@ class Booru(commands.Cog):
                 if result.get("source", ""):
                     embed.description = f"[🔗 Original Source]({result['source']})"
                 embed.set_footer(text=f"⭐ {result.get('score', 0)}")
-                
                 await ctx.send(embed=embed, file=file)
-            else:
-                await ctx.send(f"Failed to grab the image from Gelbooru! {resp.status}")
+            except Exception as error:
+                await ctx.send(f"Failed to grab the image from Gelbooru! {resp.status} {type(error).__name__}: {error}")
 
 
     @commands.hybrid_command(aliases=["boorutags"])
