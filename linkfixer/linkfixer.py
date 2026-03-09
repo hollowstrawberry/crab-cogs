@@ -16,12 +16,13 @@ class Link:
     fixed: str
 
 
+GENERIC_LINK = re.compile(r"(?<!<)https?://[^\s|)>\]]+")
 ALL_LINKS = [
-    Link("twitter",     re.compile(r"(?<!<)https?://(?:www\.)?(?:x|twitter)\.com/([^\s|)>\]]+)"),                "https://fxtwitter.com/"),
-    Link("tiktok",      re.compile(r"(?<!<)https?://(?:www\.|vm\.)?tiktok\.com/([^\s|)>\]]+)"),                  "https://kktiktok.com/"),
-    Link("instagram",   re.compile(r"(?<!<)https?://(?:www\.)?instagram\.com/([^\s|)>\]]+)"),                    "https://kkinstagram.com/"),
-    Link("reddit",      re.compile(r"(?<!<)https?://(?:redd\.it|(?:www\.|old\.)?reddit\.com)/r/([^\s|)>\]]+)"),  "https://vxreddit.com/r/"),
-    Link("pixiv",       re.compile(r"(?<!<)https?://(?:www\.)?pixiv\.net/([^\s|)>\]]+)"),                        "https://phixiv.net/"),
+    Link("twitter",     re.compile(r"(?<!<)(https?://(?:www\.)?(?:x|twitter)\.com/([^\s|)>\]]+))"),                "https://fxtwitter.com/"),
+    Link("tiktok",      re.compile(r"(?<!<)(https?://(?:www\.|vm\.)?tiktok\.com/([^\s|)>\]]+))"),                  "https://kktiktok.com/"),
+    Link("instagram",   re.compile(r"(?<!<)(https?://(?:www\.)?instagram\.com/([^\s|)>\]]+))"),                    "https://kkinstagram.com/"),
+    Link("reddit",      re.compile(r"(?<!<)(https?://(?:redd\.it|(?:www\.|old\.)?reddit\.com)/r/([^\s|)>\]]+))"),  "https://vxreddit.com/r/"),
+    Link("pixiv",       re.compile(r"(?<!<)(https?://(?:www\.)?pixiv\.net/([^\s|)>\]]+))"),                        "https://phixiv.net/"),
 ]
 
 
@@ -61,17 +62,30 @@ class LinkFixer(commands.Cog):
             return
         allowed_links = [link for link in ALL_LINKS if link.name not in self.disabled_links.get(message.guild.id, [])]
         fixed_links = []
+        unfixed_links = []
         for link in allowed_links:
             matches = link.pattern.findall(message.content)
             for match in matches:
+                unfixed_links.append(match[0])
                 if f"||{match[0]}||" in message.content:  # spoilered
                     fixed_links.append(f"||{link.fixed}{match[1]}||")
                 else:
                     fixed_links.append(f"{link.fixed}{match[1]}")
         if not fixed_links:
             return
-        fixed_links.insert(0, "-# I fixed that link so the content embeds better.")
+        generic_matches = GENERIC_LINK.findall(message.content)
+        for match in generic_matches:
+            if match in unfixed_links:
+                continue
+            if f"||{match}||" in message.content:  # spoilered
+                fixed_links.append(f"||{match}||")
+            else:
+                fixed_links.append(f"{match}")
+        fixed_links.insert(0, "-# I fixed the links so the content embeds better.")
+
         await message.channel.send("\n".join(fixed_links))
+        if message.channel.permissions_for(message.guild.me).manage_messages:
+            await message.edit(suppress=True)
 
     async def is_valid_red_message(self, message: discord.Message) -> bool:
         return await self.bot.allowed_by_whitelist_blacklist(message.author) \
