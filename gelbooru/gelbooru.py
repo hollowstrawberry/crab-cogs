@@ -92,7 +92,7 @@ class Booru(commands.Cog):
             await ctx.send(embed=discord.Embed(description=description, color=EMBED_COLOR))
             return
 
-        image_url = result.get("sample_url", result["file_url"])
+        image_url = result.get("sample_url", "") or result["file_url"]
         post_url = f"https://gelbooru.com/index.php?page=post&s=view&id={result['id']}"
         try:
             async with self.session.get(image_url, allow_redirects=False, headers=HEADERS) as resp:
@@ -107,7 +107,7 @@ class Booru(commands.Cog):
                 embed.set_footer(text=f"⭐ {result.get('score', 0)}")
                 await ctx.send(embed=embed, file=file)
         except Exception as error:
-            log.error(f"{type(error).__name__}: {error} {post_url=} {image_url=}")
+            log.error(f"{type(error).__name__}: {error} {post_url=}")
             await ctx.send("Sorry, there was an error trying to grab the image from Gelbooru! Please try again or contact the bot owner.")
 
 
