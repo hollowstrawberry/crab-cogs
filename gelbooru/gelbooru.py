@@ -92,7 +92,7 @@ class Booru(commands.Cog):
             return
 
         img_url = result["sample_url"]
-        async with self.session.get(img_url, headers={"Referer": ""}) as resp:
+        async with self.session.get(img_url, allow_redirects=False, headers=HEADERS) as resp:
             if resp.status == 200:
                 image_data = await resp.read()
                 filename = img_url.split("/")[-1]
