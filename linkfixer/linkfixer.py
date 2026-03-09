@@ -37,7 +37,7 @@ ALL_LINKS = [
     Link(
         "reddit",
         re.compile(r"(?<!<)(https?://(?:www\.|old\.)?reddit\.com/(r/[^/]+/[^\s|)>\]]+)|https?://redd\.it/([^\s|)>\]]+))"),
-        "https://vxreddit.com/r/"
+        "https://vxreddit.com/"
     ),
     Link(
         "pixiv",
