@@ -102,6 +102,7 @@ class LinkFixer(commands.Cog):
                     else:
                         matched_links[matched_links.index(match[0])] = f"{link.fixed}{tail}"
                 except ValueError:
+                    log.info(f"{match[0]=} {matched_links=}")
                     pass
 
         if not any_fixed:
