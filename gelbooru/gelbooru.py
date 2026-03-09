@@ -8,6 +8,7 @@ import discord
 from typing import Optional, List, Dict, Union
 from expiringdict import ExpiringDict
 from redbot.core import commands, app_commands, Config
+from redbot.core.bot import Red
 
 log = logging.getLogger("red.crab-cogs.boorucog")
 
@@ -16,7 +17,7 @@ EMBED_ICON = "https://i.imgur.com/FeRu6Pw.png"
 IMAGE_TYPES = (".png", ".jpeg", ".jpg", ".webp", ".gif")
 TAG_BLACKLIST = ["loli", "shota", "guro", "video"]
 HEADERS = {
-    "User-Agent": "crab-cogs/v1 (https://github.com/hollowstrawberry/crab-cogs);"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0"
 }
 RATING_GENERAL = "rating:general"
 RATING_SENSITIVE = "rating:sensitive"
@@ -30,7 +31,7 @@ MAX_OPTION_SIZE = 100
 class Booru(commands.Cog):
     """Searches images on Gelbooru with slash command and tag completion support."""
 
-    def __init__(self, bot):
+    def __init__(self, bot: Red):
         super().__init__()
         self.bot = bot
         self.session = aiohttp.ClientSession(headers=HEADERS)
@@ -184,15 +185,22 @@ class Booru(commands.Cog):
         if query in self.tag_cache:
             return self.tag_cache[query].split(' ')
 
-        query = urllib.parse.quote(query.lower(), safe=' ')
-        url = f"https://gelbooru.com/index.php?page=dapi&s=tag&q=index&json=1&sort=desc&order_by=index_count&name_pattern=%25{query}%25"
+        params = {
+            "page": "dapi",
+            "s": "tag",
+            "q": "index",
+            "json": 1,
+            "sort": "desc",
+            "order_by": "index_count",
+            "name_pattern": f"%{query.lower()}%"
+        }
 
         api = await self.bot.get_shared_api_tokens("gelbooru")
         api_key, user_id = api.get("api_key"), api.get("user_id")
         if api_key and user_id:
-            url += f"&api_key={api_key}&user_id={user_id}"
+            params.update({"api_key": api_key, "user_id": user_id})
 
-        async with self.session.get(url) as resp:
+        async with self.session.get("https://gelbooru.com/index.php", params=params, headers=HEADERS) as resp:
             resp.raise_for_status()
             data = await resp.json()
 
@@ -212,15 +220,21 @@ class Booru(commands.Cog):
         tags = [tag for tag in query.split(' ') if tag]
         tags = [tag for tag in tags if tag not in TAG_BLACKLIST]
         tags += [f"-{tag}" for tag in TAG_BLACKLIST]
-        query = ' '.join(tags)
-        url = "https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&limit=1000&tags=" + query.replace(' ', '+')
+        params = {
+            "page": "dapi",
+            "s": "post",
+            "q": "index",
+            "json": 1,
+            "limit": 1000,
+            "tags": ' '.join(tags)
+        }
 
         api = await self.bot.get_shared_api_tokens("gelbooru")
         api_key, user_id = api.get("api_key"), api.get("user_id")
         if api_key and user_id:
-            url += f"&api_key={api_key}&user_id={user_id}"
+            params.update({"api_key": api_key, "user_id": user_id})
 
-        async with self.session.get(url) as resp:
+        async with self.session.get("https://gelbooru.com/index.php", params=params, headers=HEADERS) as resp:
             resp.raise_for_status()
             data = await resp.json()
 
