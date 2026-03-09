@@ -76,7 +76,7 @@ class BasePokerGame(ABC):
         self,
         cog: BaseCasinoCog,
         players: List[discord.Member],
-        channel: discord.abc.Messageable,
+        channel: Union[discord.TextChannel, discord.Thread],
         minimum_bet: int = 0,
     ):
         self.cog = cog
