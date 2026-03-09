@@ -1,3 +1,4 @@
+import io
 import re
 import html
 import random
@@ -8,6 +9,7 @@ import discord
 from typing import Optional, List, Dict, Union
 from expiringdict import ExpiringDict
 from redbot.core import commands, app_commands, Config
+from redbot.core.bot import Red
 
 log = logging.getLogger("red.crab-cogs.boorucog")
 
@@ -16,7 +18,8 @@ EMBED_ICON = "https://i.imgur.com/FeRu6Pw.png"
 IMAGE_TYPES = (".png", ".jpeg", ".jpg", ".webp", ".gif")
 TAG_BLACKLIST = ["loli", "shota", "guro", "video"]
 HEADERS = {
-    "User-Agent": "crab-cogs/v1 (https://github.com/hollowstrawberry/crab-cogs);"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0",
+    "Referer": "https://gelbooru.com/",
 }
 RATING_GENERAL = "rating:general"
 RATING_SENSITIVE = "rating:sensitive"
@@ -30,7 +33,7 @@ MAX_OPTION_SIZE = 100
 class Booru(commands.Cog):
     """Searches images on Gelbooru with slash command and tag completion support."""
 
-    def __init__(self, bot):
+    def __init__(self, bot: Red):
         super().__init__()
         self.bot = bot
         self.session = aiohttp.ClientSession(headers=HEADERS)
@@ -79,7 +82,7 @@ class Booru(commands.Cog):
             result = await self.grab_image(tags, ctx)
         except (aiohttp.ClientError, KeyError):
             log.exception("Failed to grab image from Gelbooru")
-            await ctx.send("Sorry, there was an error trying to grab an image from Gelbooru. Please try again or contact the bot owner.")
+            await ctx.send("Sorry, there was an error trying to grab an image from Gelbooru! Please try again or contact the bot owner.")
             return
 
         if not result:
@@ -89,13 +92,23 @@ class Booru(commands.Cog):
             await ctx.send(embed=discord.Embed(description=description, color=EMBED_COLOR))
             return
 
-        embed = discord.Embed(color=EMBED_COLOR)
-        embed.set_author(name="Booru Post", url=f"https://gelbooru.com/index.php?page=post&s=view&id={result['id']}", icon_url=EMBED_ICON)
-        embed.set_image(url=result["file_url"] if result["width"]*result["height"] < 4200000 else result["sample_url"])
-        if result.get("source", ""):
-            embed.description = f"[🔗 Original Source]({result['source']})"
-        embed.set_footer(text=f"⭐ {result.get('score', 0)}")
-        await ctx.send(embed=embed)
+        image_url = result.get("sample_url", "") or result["file_url"]
+        post_url = f"https://gelbooru.com/index.php?page=post&s=view&id={result['id']}"
+        try:
+            async with self.session.get(image_url, allow_redirects=False, headers=HEADERS) as resp:
+                image_data = await resp.read()
+                filename = image_url.split("/")[-1]
+                file = discord.File(io.BytesIO(image_data), filename=filename)
+                embed = discord.Embed(color=EMBED_COLOR)
+                embed.set_author(name="Booru Post", url=post_url, icon_url=EMBED_ICON)
+                embed.set_image(url=f"attachment://{filename}")
+                if result.get("source", ""):
+                    embed.description = f"[🔗 Original Source]({result['source']})"
+                embed.set_footer(text=f"⭐ {result.get('score', 0)}")
+                await ctx.send(embed=embed, file=file)
+        except Exception as error:
+            log.error(f"{type(error).__name__}: {error} {post_url=}")
+            await ctx.send("Sorry, there was an error trying to grab the image from Gelbooru! Please try again or contact the bot owner.")
 
 
     @commands.hybrid_command(aliases=["boorutags"])
@@ -184,15 +197,22 @@ class Booru(commands.Cog):
         if query in self.tag_cache:
             return self.tag_cache[query].split(' ')
 
-        query = urllib.parse.quote(query.lower(), safe=' ')
-        url = f"https://gelbooru.com/index.php?page=dapi&s=tag&q=index&json=1&sort=desc&order_by=index_count&name_pattern=%25{query}%25"
+        params = {
+            "page": "dapi",
+            "s": "tag",
+            "q": "index",
+            "json": 1,
+            "sort": "desc",
+            "order_by": "index_count",
+            "name_pattern": f"%{query.lower()}%"
+        }
 
         api = await self.bot.get_shared_api_tokens("gelbooru")
         api_key, user_id = api.get("api_key"), api.get("user_id")
         if api_key and user_id:
-            url += f"&api_key={api_key}&user_id={user_id}"
+            params.update({"api_key": api_key, "user_id": user_id})
 
-        async with self.session.get(url) as resp:
+        async with self.session.get("https://gelbooru.com/index.php", params=params, headers=HEADERS) as resp:
             resp.raise_for_status()
             data = await resp.json()
 
@@ -208,19 +228,24 @@ class Booru(commands.Cog):
 
 
     async def grab_image(self, query: str, ctx: commands.Context) -> dict:
-        query = urllib.parse.quote(query.lower(), safe=' ')
         tags = [tag for tag in query.split(' ') if tag]
         tags = [tag for tag in tags if tag not in TAG_BLACKLIST]
         tags += [f"-{tag}" for tag in TAG_BLACKLIST]
-        query = ' '.join(tags)
-        url = "https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&limit=1000&tags=" + query.replace(' ', '+')
+        params = {
+            "page": "dapi",
+            "s": "post",
+            "q": "index",
+            "json": 1,
+            "limit": 1000,
+            "tags": ' '.join(tags)
+        }
 
         api = await self.bot.get_shared_api_tokens("gelbooru")
         api_key, user_id = api.get("api_key"), api.get("user_id")
         if api_key and user_id:
-            url += f"&api_key={api_key}&user_id={user_id}"
+            params.update({"api_key": api_key, "user_id": user_id})
 
-        async with self.session.get(url) as resp:
+        async with self.session.get("https://gelbooru.com/index.php", params=params, headers=HEADERS) as resp:
             resp.raise_for_status()
             data = await resp.json()
 
