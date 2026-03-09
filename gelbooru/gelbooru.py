@@ -1,3 +1,4 @@
+import io
 import re
 import html
 import random
@@ -90,13 +91,22 @@ class Booru(commands.Cog):
             await ctx.send(embed=discord.Embed(description=description, color=EMBED_COLOR))
             return
 
-        embed = discord.Embed(color=EMBED_COLOR)
-        embed.set_author(name="Booru Post", url=f"https://gelbooru.com/index.php?page=post&s=view&id={result['id']}", icon_url=EMBED_ICON)
-        embed.set_image(url=result["file_url"] if result["width"]*result["height"] < 4200000 else result["sample_url"])
-        if result.get("source", ""):
-            embed.description = f"[🔗 Original Source]({result['source']})"
-        embed.set_footer(text=f"⭐ {result.get('score', 0)}")
-        await ctx.send(embed=embed)
+        img_url = result["sample_url"]
+        async with self.session.get(img_url, headers={"Referer": ""}) as resp:
+            if resp.status == 200:
+                image_data = await resp.read()
+                filename = img_url.split("/")[-1]
+                file = discord.File(io.BytesIO(image_data), filename=filename)
+                embed = discord.Embed(color=EMBED_COLOR)
+                embed.set_author(name="Booru Post", url=f"https://gelbooru.com/index.php?page=post&s=view&id={result['id']}", icon_url=EMBED_ICON)
+                embed.set_image(url=f"attachment://{filename}")
+                if result.get("source", ""):
+                    embed.description = f"[🔗 Original Source]({result['source']})"
+                embed.set_footer(text=f"⭐ {result.get('score', 0)}")
+                
+                await ctx.send(embed=embed, file=file)
+            else:
+                await ctx.send("Failed to grab the image from Gelbooru!")
 
 
     @commands.hybrid_command(aliases=["boorutags"])
