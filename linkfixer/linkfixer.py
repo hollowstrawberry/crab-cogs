@@ -82,32 +82,25 @@ class LinkFixer(commands.Cog):
         if not await self.is_valid_red_message(message):
             return
         
-        matched_links = list(dict.fromkeys(GENERIC_LINK.findall(message.content)))
+        matched_links: List[str] = list(dict.fromkeys(GENERIC_LINK.findall(message.content)))
         for i in range(len(matched_links)):
             spoilered = f"||{matched_links[i]}||"
             if spoilered in message.content:
                 matched_links[i] = spoilered
-        matched_links.insert(0, "-# I fixed the links so the content embeds better.")
 
-        allowed_links = [link for link in ALL_LINKS if link.name not in self.disabled_links.get(message.guild.id, [])]
-        for link in allowed_links:
-            any_fixed = False
-            matches = link.pattern.findall(message.content)
-            for match in matches:
-                any_fixed = True
-                log.info(match)
-                tail = [m for m in match if m][-1]
-                try:
-                    if f"||{match[0]}||" in matched_links:
-                        matched_links[matched_links.index(f"||{match[0]}||")] = f"||{link.fixed}{tail}||"
-                    else:
-                        matched_links[matched_links.index(match[0])] = f"{link.fixed}{tail}"
-                except ValueError:
-                    pass
+        any_fixed = False
+        link_types = [link for link in ALL_LINKS if link.name not in self.disabled_links.get(message.guild.id, [])]
+        for i in range(len(matched_links)):
+            link = matched_links[i]
+            for link_type in link_types:
+                if match := link_type.pattern.search(link):
+                    any_fixed = True
+                    matched_links[i] = link.replace(match.string, f"{link_type.fixed}{match.lastgroup}")
 
         if not any_fixed:
             return
-
+        
+        matched_links.insert(0, "-# I fixed the links so the content embeds better.")
         await message.channel.send("\n".join(matched_links))
         if message.channel.permissions_for(message.guild.me).manage_messages:
             await message.edit(suppress=True)
