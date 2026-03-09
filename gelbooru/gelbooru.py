@@ -106,7 +106,7 @@ class Booru(commands.Cog):
                 
                 await ctx.send(embed=embed, file=file)
             else:
-                await ctx.send("Failed to grab the image from Gelbooru!")
+                await ctx.send(f"Failed to grab the image from Gelbooru! {resp.status}")
 
 
     @commands.hybrid_command(aliases=["boorutags"])
