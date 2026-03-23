@@ -63,7 +63,7 @@ def get_params_from_metadata(metadata: ImageDataReader) -> "OrderedDict[str, Any
                     elif node_id == "extra_seed_extra_noise":
                         output_dict["Extra Seed"] = node.get("inputs", {}).get("noise_seed", -1)
                     elif node_id == "extra_seed_noised_latent_blend":
-                        output_dict["Extra Seed Strength"] = 1.0 - node.get("inputs", {}).get("blend_factor", 1.0)
+                        output_dict["Extra Seed Strength"] = round(1.0 - node.get("inputs", {}).get("blend_factor", 1.0), 4)
 
             except Exception:
                 log.warning("Loading comfy metadata", exc_info=True)
