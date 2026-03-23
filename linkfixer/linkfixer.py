@@ -101,8 +101,8 @@ class LinkFixer(commands.Cog):
         if not any_fixed:
             return
         
-        matched_links.insert(0, "-# I fixed the links so the content embeds better.")
-        await message.channel.send("\n".join(matched_links))
+        matched_links.insert(0, f"-# {message.author.mention} I fixed the links so the content embeds better.")
+        await message.channel.send("\n".join(matched_links), allowed_mentions=discord.AllowedMentions.none())
         if message.channel.permissions_for(message.guild.me).manage_messages:
             await message.edit(suppress=True)
 
