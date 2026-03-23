@@ -88,7 +88,7 @@ class EasyTranslate(commands.Cog):
     async def translate(self, ctx: Union[commands.Context, discord.Interaction],
                         language: str, *, content: str = None, message: discord.Message = None):
         """Translates a message or string and responds in the provided context."""
-        assert isinstance(ctx.channel, discord.abc.MessageableChannel)
+        assert isinstance(ctx.channel, discord.abc.Messageable)
         if not (language := self.convert_language(language)):
             return await ctx.channel.send(LANGUAGE_NOT_FOUND)
         if not content and not message:

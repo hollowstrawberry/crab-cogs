@@ -129,7 +129,7 @@ class ImageLog(commands.Cog):
                 file = discord.File(img, filename=attachment.filename)
                 embed.set_image(url=f"attachment://{attachment.filename}")
 
-            assert isinstance(log_channel, discord.abc.MessageableChannel)
+            assert isinstance(log_channel, discord.abc.Messageable)
             await log_channel.send(embed=embed, file=file)
 
 
