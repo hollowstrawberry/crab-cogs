@@ -46,20 +46,27 @@ def get_params_from_metadata(metadata: ImageDataReader) -> "OrderedDict[str, Any
                 key = key[:252] + "..."
             output_dict[key] = value
 
-        for key in output_dict:
-            if len(output_dict[key]) > 1000:
-                output_dict[key] = output_dict[key][:1000] + "..."
-
     else:
         output_dict["Prompt"] = metadata.positive or metadata.positive_sdxl
         output_dict["Negative Prompt"] = metadata.negative or metadata.negative_sdxl
+        
+        if "Comfy" in metadata._tool:
+            try:
+                workflow = json.loads(metadata._parser._workflow)  # type: ignore
+                for node in workflow.values():
+                    if node["class_type"] == "LoraLoader":
+                        lora_name = node.get("inputs", {}).get("lora_name", "").replace(".safetensors", "")
+                        lora_weight = node.get("inputs", {}).get("strength_model", 1.0)
+                        if lora_name:
+                            output_dict["Prompt"] = output_dict["Prompt"] + f" <lora:{lora_name}:{lora_weight}>"  # type: ignore
+            except Exception:
+                log.warning("Loading comfy metadata", exc_info=True)
+
         for key, value in metadata.parameter.items():
             if len(output_dict) > 24 or any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
                 continue
             output_dict[key.title()] = value
-        for key in output_dict.keys():
-            if len(output_dict[key]) > 1000:
-                output_dict[key] = output_dict[key][:997] + "..."
+
         return output_dict
 
     return output_dict
@@ -67,6 +74,9 @@ def get_params_from_metadata(metadata: ImageDataReader) -> "OrderedDict[str, Any
 
 def get_embed(embed_dict: Dict[str, Any], author: discord.Member) -> discord.Embed:
     embed = discord.Embed(title="Here's your image!", color=author.color)
+    for key in embed_dict.keys():
+        if len(embed_dict[key]) > 1000:
+            embed_dict[key] = embed_dict[key][:997] + "..."
     for key, value in embed_dict.items():
         if "hashes" in key:
             continue

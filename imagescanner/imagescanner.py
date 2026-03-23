@@ -90,7 +90,7 @@ class ImageScanner(commands.Cog):
     def convert_novelai_info(img_info: dict):  # used by novelai cog
         return utils.convert_novelai_info(img_info)
     
-    async def grab_metadata_dict(self, message: discord.Message): # used by gptmemory from holo-cogs
+    async def grab_metadata_dict(self, message: discord.Message) -> dict:  # used by gptmemory from holo-cogs
         assert self.image_cache is not None
         
         if message.id in self.image_cache:
