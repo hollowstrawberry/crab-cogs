@@ -51,22 +51,33 @@ def get_params_from_metadata(metadata: ImageDataReader) -> "OrderedDict[str, Any
         output_dict["Prompt"] = metadata.positive or metadata.positive_sdxl
         output_dict["Negative Prompt"] = metadata.negative or metadata.negative_sdxl
         
-        if "Comfy" in metadata._tool:
-            try:
-                workflow = json.loads("{" + metadata.raw.split("{", 1)[1])
-                for node in workflow.values():
-                    if node["class_type"] == "LoraLoader":
-                        lora_name = node.get("inputs", {}).get("lora_name", "").replace(".safetensors", "")
-                        lora_weight = node.get("inputs", {}).get("strength_model", 1.0)
-                        if lora_name:
-                            output_dict["Prompt"] = output_dict["Prompt"] + f" <lora:{lora_name}:{lora_weight}>"  # type: ignore
-            except Exception:
-                log.warning("Loading comfy metadata", exc_info=True)
-
         for key, value in metadata.parameter.items():
             if len(output_dict) > 24 or any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
                 continue
             output_dict[key.title()] = value
+
+        if "Comfy" in metadata._tool:
+            try:
+                workflow = json.loads("{" + metadata.raw.split("{", 1)[1])
+                for node_id, node in workflow.items():
+                    if node["class_type"] == "LoraLoader":
+                        lora_name = node.get("inputs", {}).get("lora_name", "?").replace(".safetensors", "")
+                        lora_weight = node.get("inputs", {}).get("strength_model", 1.0)
+                        if lora_name:
+                            output_dict["Prompt"] = output_dict["Prompt"] + f" <lora:{lora_name}:{lora_weight}>"  # type: ignore
+                    elif node_id == "extra_seed_extra_noise":
+                        output_dict["Extra Seed"] = node.get("inputs", {}).get("noise_seed", -1)
+                    elif node_id == "extra_seed_noised_latent_blend":
+                        output_dict["Extra Seed Strength"] = round(1.0 - node.get("inputs", {}).get("blend_factor", 1.0), 4)
+                    elif node["class_type"] == "UpscaleModelLoader":
+                        output_dict["Upscaler"] = node.get("inputs", {}).get("model_name", "?")
+                    elif node_id == "upscale_0_sampler":
+                        output_dict["Denoising"] = node.get("inputs", {}).get("denoise", 0)
+                    elif node["class_type"] == "ADetailer":
+                        output_dict["ADetailer Model"] = node.get("inputs", {}).get("model", "?")
+                        output_dict["ADetailer Denoising"] = node.get("inputs", {}).get("denoise", 0)
+            except Exception:
+                log.warning("Loading comfy metadata", exc_info=True)
 
         return output_dict
 
@@ -76,8 +87,8 @@ def get_params_from_metadata(metadata: ImageDataReader) -> "OrderedDict[str, Any
 def get_embed(embed_dict: Dict[str, Any], author: discord.Member) -> discord.Embed:
     embed = discord.Embed(title="Here's your image!", color=author.color)
     for key in embed_dict.keys():
-        if len(embed_dict[key]) > 1000:
-            embed_dict[key] = embed_dict[key][:997] + "..."
+        if len(str(embed_dict[key])) > 1000:
+            embed_dict[key] = str(embed_dict[key])[:997] + "..."
     for key, value in embed_dict.items():
         if "hashes" in key:
             continue
