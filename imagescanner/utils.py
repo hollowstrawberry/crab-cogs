@@ -52,7 +52,7 @@ def get_params_from_metadata(metadata: ImageDataReader) -> "OrderedDict[str, Any
         
         if "Comfy" in metadata._tool:
             try:
-                workflow = json.loads(metadata._parser._workflow)  # type: ignore
+                workflow = json.loads("{" + metadata.raw.split("{", 1)[1])
                 for node in workflow.values():
                     if node["class_type"] == "LoraLoader":
                         lora_name = node.get("inputs", {}).get("lora_name", "").replace(".safetensors", "")
