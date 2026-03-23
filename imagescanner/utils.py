@@ -1,10 +1,11 @@
 import json
 import PIL.Image
+import asyncio
 import discord
 from io import BytesIO
 from PIL.Image import Image
 from PIL import PngImagePlugin
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 from collections import OrderedDict
 from sd_prompt_reader.constants import SUPPORTED_FORMATS
 from sd_prompt_reader.image_data_reader import ImageDataReader
@@ -98,12 +99,12 @@ async def read_attachment_metadata(i: int, attachment: discord.Attachment, metad
     try:
         current_image_bytes = await attachment.read()
         b = BytesIO(current_image_bytes)
-        img = PIL.Image.open(b)
+        img = await asyncio.to_thread(PIL.Image.open, b)
         if (img.mode == "RGBA"):  # in rare cases, when ImageDataReader reads an RGBA image, it gets stuck in an infinite loop
-            b = remove_transparency(img)
+            b = await asyncio.to_thread(remove_transparency, img)
         del img
         b.seek(0)
-        image_metadata = ImageDataReader(b)
+        image_metadata = await asyncio.to_thread(ImageDataReader, b)
     except Exception: # previously (discord.DiscordException, PIL.Image.UnidentifiedImageError, PIL.Image.DecompressionBombError, SyntaxError)
         log.exception("Processing attachment")
         return
