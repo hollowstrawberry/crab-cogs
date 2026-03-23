@@ -61,7 +61,7 @@ def get_params_from_metadata(metadata: ImageDataReader) -> "OrderedDict[str, Any
                 workflow = json.loads("{" + metadata.raw.split("{", 1)[1])
                 for node_id, node in workflow.items():
                     if node["class_type"] == "LoraLoader":
-                        lora_name = node.get("inputs", {}).get("lora_name", "").replace(".safetensors", "")
+                        lora_name = node.get("inputs", {}).get("lora_name", "?").replace(".safetensors", "")
                         lora_weight = node.get("inputs", {}).get("strength_model", 1.0)
                         if lora_name:
                             output_dict["Prompt"] = output_dict["Prompt"] + f" <lora:{lora_name}:{lora_weight}>"  # type: ignore
@@ -69,6 +69,13 @@ def get_params_from_metadata(metadata: ImageDataReader) -> "OrderedDict[str, Any
                         output_dict["Extra Seed"] = node.get("inputs", {}).get("noise_seed", -1)
                     elif node_id == "extra_seed_noised_latent_blend":
                         output_dict["Extra Seed Strength"] = round(1.0 - node.get("inputs", {}).get("blend_factor", 1.0), 4)
+                    elif node["class_type"] == "UpscaleModelLoader":
+                        output_dict["Upscaler"] = node.get("inputs", {}).get("model_name", "?")
+                    elif node_id == "upscale_0_sampler":
+                        output_dict["Denoising"] = node.get("inputs", {}).get("denoise", 0)
+                    elif node["class_type"] == "ADetailer":
+                        output_dict["ADetailer Model"] = node.get("inputs", {}).get("model", "?")
+                        output_dict["ADetailer Denoising"] = node.get("inputs", {}).get("denoise", 0)
             except Exception:
                 log.warning("Loading comfy metadata", exc_info=True)
 
