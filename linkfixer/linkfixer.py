@@ -27,7 +27,7 @@ ALL_LINKS = [
     Link(
         "tiktok",
         re.compile(r"(?<!<)(https?://(?:www\.)?tiktok\.com/([^/]+/[^/]+/[^\s|)>\]]+)|https?://vm\.tiktok\.com/([^\s|)>\]]+))(?:\?[^\s|)>\]]+)?"),
-        "https://kktiktok.com/"
+        "https://tiktokez.com/"
     ),
     Link(
         "instagram",
