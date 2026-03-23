@@ -10,12 +10,13 @@ from expiringdict import ExpiringDict
 from redbot.core import commands, app_commands, Config
 from redbot.core.bot import Red
 from sd_prompt_reader.constants import SUPPORTED_FORMATS
+from sd_prompt_reader.image_data_reader import ImageDataReader
 
 import imagescanner.utils as utils
 from imagescanner.imageview import ImageView
 from imagescanner.constants import log, IMAGE_TYPES, HEADERS, PARAM_REGEX
 
-ImageCache = Dict[int, Tuple[Dict[int, str], Dict[int, bytes]]]
+ImageCache = Dict[int, Tuple[Dict[int, ImageDataReader], Dict[int, bytes]]]
 
 MODEL = "Model"
 MODEL_HASH = "Model hash"
@@ -105,14 +106,14 @@ class ImageScanner(commands.Cog):
                 self.image_cache[message.id] = (metadata, image_bytes)
 
         if metadata:
-            return utils.get_params_from_string(metadata[0])
+            return utils.get_params_from_metadata(metadata[0])
         else:
             return {}
         
 
-    async def prepare_embed(self, message: discord.Message, metadata: str, i: int, total=1) -> discord.Embed:
+    async def prepare_embed(self, message: discord.Message, metadata: ImageDataReader, i: int, total=1) -> discord.Embed:
         assert isinstance(message.author, discord.Member)
-        params = utils.get_params_from_string(metadata)
+        params = utils.get_params_from_metadata(metadata)
         embed = utils.get_embed(params, message.author)
         embed.description = message.jump_url if self.civitai_emoji else f":arrow_right: {message.jump_url}"
         if total > 1:
@@ -176,7 +177,7 @@ class ImageScanner(commands.Cog):
         if not await self.is_valid_red_message(message):
             return
 
-        metadata: Dict[int, str] = {}
+        metadata: Dict[int, ImageDataReader] = {}
         image_bytes: Dict[int, bytes] = {}
         tasks = [utils.read_attachment_metadata(i, attachment, metadata, image_bytes)
                  for i, attachment in enumerate(attachments)]
@@ -237,7 +238,7 @@ class ImageScanner(commands.Cog):
 
         for i, data in sorted(metadata.items()):
             embed = await self.prepare_embed(message, data, i, len(attachments))
-            view = ImageView(data, [embed], ephemeral=False)
+            view = ImageView(data.raw, [embed], ephemeral=False)
             if self.attach_images and i in image_bytes:
                 img = io.BytesIO(image_bytes[i])
                 filename = md5(image_bytes[i]).hexdigest() + ".png"
@@ -290,7 +291,7 @@ class ImageScanner(commands.Cog):
             embed = await self.prepare_embed(message, data, i, len(attachments))
             embed.set_thumbnail(url=attachments[i].url or attachments[i].proxy_url or None)
             embeds.append(embed)
-        params = "\n\n".join(metadata.values())
+        params = "\n\n".join(data.raw for data in metadata.values())
         view = ImageView(params, embeds, ephemeral=True)
 
         await interaction.followup.send(embed=embeds[0], view=view)

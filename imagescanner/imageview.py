@@ -4,12 +4,12 @@ from discord.ui import View
 from typing import List, Optional
 
 from imagescanner.constants import VIEW_TIMEOUT
-
+from sd_prompt_reader.image_data_reader import ImageDataReader
 
 class ImageView(View):
-    def __init__(self, params: str, embeds: List[discord.Embed], ephemeral: bool):
+    def __init__(self, metadata: ImageDataReader, embeds: List[discord.Embed], ephemeral: bool):
         super().__init__(timeout=VIEW_TIMEOUT)
-        self.params = params
+        self.metadata = metadata
         self.embeds = embeds
         self.ephemeral = ephemeral
         self.pressed = False
@@ -35,11 +35,11 @@ class ImageView(View):
         if len(self.embeds) == 1:
             self.pressed = True
             self.stop()
-        if len(self.params) < 1980:
-            await interaction.response.send_message(f"```yaml\n{self.params}```", ephemeral=self.ephemeral)
+        if len(self.metadata.raw) < 1980:
+            await interaction.response.send_message(f"```yaml\n{self.metadata}```", ephemeral=self.ephemeral)
         else:
             with io.StringIO() as f:
-                f.write(self.params)
+                f.write(self.metadata.raw)
                 f.seek(0)
                 await interaction.response.send_message(file=discord.File(f, "parameters.yaml"), ephemeral=self.ephemeral) # type: ignore
         if interaction.message and len(self.embeds) == 1:
