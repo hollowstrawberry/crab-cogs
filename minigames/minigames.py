@@ -73,7 +73,7 @@ class Minigames(BaseMinigameCog):
                                 ):
         author = ctx.author if isinstance(ctx, commands.Context) else ctx.user
         reply = ctx.reply if isinstance(ctx, commands.Context) else ctx.response.send_message
-        assert ctx.guild and isinstance(ctx.channel, discord.abc.MessageableChannel) and isinstance(ctx.channel, (discord.abc.GuildChannel, discord.Thread)) and isinstance(author, discord.Member)
+        assert ctx.guild and isinstance(ctx.channel, discord.abc.Messageable) and isinstance(ctx.channel, (discord.abc.GuildChannel, discord.Thread)) and isinstance(author, discord.Member)
 
         if game_cls == TicTacToeGame:
             if await bank.is_global():
@@ -110,7 +110,7 @@ class Minigames(BaseMinigameCog):
                 if seconds_passed // 60 >= TIME_LIMIT:
                     async def callback():
                         nonlocal ctx, players, old_game, against_bot
-                        assert isinstance(author, discord.Member) and isinstance(ctx.channel, discord.abc.MessageableChannel) and isinstance(ctx.channel, (discord.abc.GuildChannel, discord.Thread))
+                        assert isinstance(author, discord.Member) and isinstance(ctx.channel, discord.abc.Messageable) and isinstance(ctx.channel, (discord.abc.GuildChannel, discord.Thread))
                         await old_game.cancel(author)
                         game = game_cls(self, players, ctx.channel, bet or 0)
                         if against_bot:
