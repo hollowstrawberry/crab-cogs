@@ -81,8 +81,8 @@ def get_params_from_metadata(metadata: ImageDataReader) -> "OrderedDict[str, Any
 def get_embed(embed_dict: Dict[str, Any], author: discord.Member) -> discord.Embed:
     embed = discord.Embed(title="Here's your image!", color=author.color)
     for key in embed_dict.keys():
-        if len(embed_dict[key]) > 1000:
-            embed_dict[key] = embed_dict[key][:997] + "..."
+        if len(str(embed_dict[key])) > 1000:
+            embed_dict[key] = str(embed_dict[key])[:997] + "..."
     for key, value in embed_dict.items():
         if "hashes" in key:
             continue
