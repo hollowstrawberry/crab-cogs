@@ -1,10 +1,11 @@
 import json
 import PIL.Image
+import asyncio
 import discord
 from io import BytesIO
 from PIL.Image import Image
 from PIL import PngImagePlugin
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 from collections import OrderedDict
 from sd_prompt_reader.constants import SUPPORTED_FORMATS
 from sd_prompt_reader.image_data_reader import ImageDataReader
@@ -12,48 +13,71 @@ from sd_prompt_reader.image_data_reader import ImageDataReader
 from imagescanner.constants import log, NAIV3_PARAMS, PARAM_REGEX, PARAM_GROUP_REGEX, PARAMS_BLACKLIST, METADATA_REGEX
 
 
-def get_params_from_string(param_str: str) -> "OrderedDict[str, Any]":
+def get_params_from_metadata(metadata: ImageDataReader) -> "OrderedDict[str, Any]":
     output_dict = OrderedDict()
 
-    match = METADATA_REGEX.match(param_str)
-    if not match:
-        output_dict["Metadata"] = "Invalid"
-        return output_dict
+    if "A1111" in metadata._tool or "NovelAI" in metadata._tool:
+        match = METADATA_REGEX.match(metadata.raw)
+        if not match:
+            output_dict["Metadata"] = "Invalid"
+            return output_dict
 
-    if prompt := match.group("Prompt"):
-        output_dict["Prompt"] = prompt
-    if negative_prompt := match.group("NegativePrompt"):
-        output_dict["Negative Prompt"] = negative_prompt
+        if prompt := match.group("Prompt"):
+            output_dict["Prompt"] = prompt
+        if negative_prompt := match.group("NegativePrompt"):
+            output_dict["Negative Prompt"] = negative_prompt
 
-    params = match.group("Params")
-    params = PARAM_GROUP_REGEX.sub("", params)
-    param_list = PARAM_REGEX.findall(params)
-    is_novelai = False
-    for key, value in param_list:
-        if key == "Source" and value == "NovelAI":
-            is_novelai = True
-        if is_novelai:
-            if key in NAIV3_PARAMS:
-                key = NAIV3_PARAMS[key]
-            else:
+        params = match.group("Params")
+        params = PARAM_GROUP_REGEX.sub("", params)
+        param_list = PARAM_REGEX.findall(params)
+        is_novelai = False
+        for key, value in param_list:
+            if key == "Source" and value == "NovelAI":
+                is_novelai = True
+            if is_novelai:
+                if key in NAIV3_PARAMS:
+                    key = NAIV3_PARAMS[key]
+                else:
+                    continue
+            if len(output_dict) >= 25 or key in output_dict:
                 continue
-        if len(output_dict) >= 25 or key in output_dict:
-            continue
-        if any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
-            continue
-        if len(key) > 255:
-            key = key[:252] + "..."
-        output_dict[key] = value
+            if any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
+                continue
+            if len(key) > 255:
+                key = key[:252] + "..."
+            output_dict[key] = value
 
-    for key in output_dict:
-        if len(output_dict[key]) > 1000:
-            output_dict[key] = output_dict[key][:1000] + "..."
+    else:
+        output_dict["Prompt"] = metadata.positive or metadata.positive_sdxl
+        output_dict["Negative Prompt"] = metadata.negative or metadata.negative_sdxl
+        
+        if "Comfy" in metadata._tool:
+            try:
+                workflow = json.loads("{" + metadata.raw.split("{", 1)[1])
+                for node in workflow.values():
+                    if node["class_type"] == "LoraLoader":
+                        lora_name = node.get("inputs", {}).get("lora_name", "").replace(".safetensors", "")
+                        lora_weight = node.get("inputs", {}).get("strength_model", 1.0)
+                        if lora_name:
+                            output_dict["Prompt"] = output_dict["Prompt"] + f" <lora:{lora_name}:{lora_weight}>"  # type: ignore
+            except Exception:
+                log.warning("Loading comfy metadata", exc_info=True)
+
+        for key, value in metadata.parameter.items():
+            if len(output_dict) > 24 or any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
+                continue
+            output_dict[key.title()] = value
+
+        return output_dict
 
     return output_dict
 
 
 def get_embed(embed_dict: Dict[str, Any], author: discord.Member) -> discord.Embed:
     embed = discord.Embed(title="Here's your image!", color=author.color)
+    for key in embed_dict.keys():
+        if len(embed_dict[key]) > 1000:
+            embed_dict[key] = embed_dict[key][:997] + "..."
     for key, value in embed_dict.items():
         if "hashes" in key:
             continue
@@ -69,44 +93,24 @@ def convert_novelai_info(img_info: Dict[str, Any]) -> str:
     return f"{prompt}\n{negative_prompt}\nNovelAI3 Parameters: {json.dumps(info)}"
 
 
-def convert_metadata(metadata: ImageDataReader) -> Optional[str]:
-    if metadata.status.name == "COMFYUI_ERROR":
-        return f"Source: {metadata._tool}, Metadata: Workflow too complex,"
-    elif metadata.status.name == "READ_SUCCESS":
-        if "A1111" in metadata._tool:
-            return metadata.raw + ","
-        else:
-            positive = metadata.positive or str(metadata.positive_sdxl) or "(None)"
-            negative = metadata.negative or str(metadata.negative_sdxl) or "(None)"
-            fixed_setting = metadata.setting
-            if positive and len(positive.strip()) > 10:
-                fixed_setting = fixed_setting.replace(positive, "(Prompt)")
-            if negative and len(negative.strip()) > 10:
-                fixed_setting = fixed_setting.replace(negative, "(Negative Prompt)")
-            return f"{positive}\nNegative prompt: {negative}\nSource: {metadata._tool}, {fixed_setting},"
-    else:
-        return None
-
-
-async def read_attachment_metadata(i: int, attachment: discord.Attachment, metadata: Dict[int, str], image_bytes: Dict[int, bytes]) -> None:
+async def read_attachment_metadata(i: int, attachment: discord.Attachment, metadata: Dict[int, ImageDataReader], image_bytes: Dict[int, bytes]) -> None:
     if not any(attachment.filename.endswith(ext) for ext in SUPPORTED_FORMATS):
         return
     try:
-        image_data = await attachment.read()
-        b = BytesIO(image_data)
-        img = PIL.Image.open(b)
+        current_image_bytes = await attachment.read()
+        b = BytesIO(current_image_bytes)
+        img = await asyncio.to_thread(PIL.Image.open, b)
         if (img.mode == "RGBA"):  # in rare cases, when ImageDataReader reads an RGBA image, it gets stuck in an infinite loop
-            b = remove_transparency(img)
+            b = await asyncio.to_thread(remove_transparency, img)
         del img
         b.seek(0)
-        image_metadata = ImageDataReader(b)
+        image_metadata = await asyncio.to_thread(ImageDataReader, b)
     except Exception: # previously (discord.DiscordException, PIL.Image.UnidentifiedImageError, PIL.Image.DecompressionBombError, SyntaxError)
         log.exception("Processing attachment")
         return
-    metadata_str = convert_metadata(image_metadata)
-    if metadata_str:
-        image_bytes[i] = image_data
-        metadata[i] = metadata_str
+    if image_metadata.status.name == "READ_SUCCESS":
+        image_bytes[i] = current_image_bytes
+        metadata[i] = image_metadata
 
 def remove_transparency(img: Image):
     info = img.info.copy()

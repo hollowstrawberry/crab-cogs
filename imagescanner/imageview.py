@@ -7,9 +7,9 @@ from imagescanner.constants import VIEW_TIMEOUT
 
 
 class ImageView(View):
-    def __init__(self, params: str, embeds: List[discord.Embed], ephemeral: bool):
+    def __init__(self, raw_metadata: str, embeds: List[discord.Embed], ephemeral: bool):
         super().__init__(timeout=VIEW_TIMEOUT)
-        self.params = params
+        self.raw_metadata = raw_metadata
         self.embeds = embeds
         self.ephemeral = ephemeral
         self.pressed = False
@@ -35,11 +35,11 @@ class ImageView(View):
         if len(self.embeds) == 1:
             self.pressed = True
             self.stop()
-        if len(self.params) < 1980:
-            await interaction.response.send_message(f"```yaml\n{self.params}```", ephemeral=self.ephemeral)
+        if len(self.raw_metadata) < 1980:
+            await interaction.response.send_message(f"```yaml\n{self.raw_metadata}```", ephemeral=self.ephemeral)
         else:
             with io.StringIO() as f:
-                f.write(self.params)
+                f.write(self.raw_metadata)
                 f.seek(0)
                 await interaction.response.send_message(file=discord.File(f, "parameters.yaml"), ephemeral=self.ephemeral) # type: ignore
         if interaction.message and len(self.embeds) == 1:
