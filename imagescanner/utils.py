@@ -51,6 +51,11 @@ def get_params_from_metadata(metadata: ImageDataReader) -> "OrderedDict[str, Any
         output_dict["Prompt"] = metadata.positive or metadata.positive_sdxl
         output_dict["Negative Prompt"] = metadata.negative or metadata.negative_sdxl
         
+        for key, value in metadata.parameter.items():
+            if len(output_dict) > 24 or any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
+                continue
+            output_dict[key.title()] = value
+
         if "Comfy" in metadata._tool:
             try:
                 workflow = json.loads("{" + metadata.raw.split("{", 1)[1])
@@ -64,14 +69,8 @@ def get_params_from_metadata(metadata: ImageDataReader) -> "OrderedDict[str, Any
                         output_dict["Extra Seed"] = node.get("inputs", {}).get("noise_seed", -1)
                     elif node_id == "extra_seed_noised_latent_blend":
                         output_dict["Extra Seed Strength"] = round(1.0 - node.get("inputs", {}).get("blend_factor", 1.0), 4)
-
             except Exception:
                 log.warning("Loading comfy metadata", exc_info=True)
-
-        for key, value in metadata.parameter.items():
-            if len(output_dict) > 24 or any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
-                continue
-            output_dict[key.title()] = value
 
         return output_dict
 
