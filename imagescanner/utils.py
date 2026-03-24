@@ -108,19 +108,21 @@ async def read_attachment_metadata(i: int, attachment: discord.Attachment, metad
     if not any(attachment.filename.endswith(ext) for ext in SUPPORTED_FORMATS):
         return
     try:
-        image_data = await attachment.read()
-        b = BytesIO(image_data)
+        current_image_bytes = await attachment.read()
+        b = BytesIO(current_image_bytes)
         img = PIL.Image.open(b)
+        await asyncio.to_thread(img.load)
+        log.info(f"{img.info=}")
         if (img.mode == "RGBA"):  # in rare cases, when ImageDataReader reads an RGBA image, it gets stuck in an infinite loop
-            b = remove_transparency(img)
+            b = await asyncio.to_thread(remove_transparency, img)
         del img
         b.seek(0)
-        image_metadata = ImageDataReader(b)
+        image_metadata = await asyncio.to_thread(ImageDataReader, b)
     except Exception:
         log.exception("Processing attachment")
         return
     if image_metadata.status.name == "READ_SUCCESS":
-        image_bytes[i] = image_data
+        image_bytes[i] = current_image_bytes
         metadata[i] = image_metadata
 
 def remove_transparency(img: Image):
