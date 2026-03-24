@@ -1,7 +1,9 @@
+from io import BytesIO
 import json
 from typing import Any
 from collections import OrderedDict
 from dataclasses import dataclass, field
+from PIL import Image
 
 NEGATIVE_HINTS = (
     "negative prompt", "worst quality", "low quality",
@@ -34,7 +36,7 @@ class ComfyMetadata:
     loras: list[ComfyLora] = field(default_factory=list)
     error: str | None = None
 
-    def as_dict(self) -> OrderedDict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         output: dict[str, Any] = OrderedDict()
 
         if self.prompt:
@@ -62,16 +64,12 @@ class ComfyMetadata:
         if self.adetailer_denoise is not None:
             output["ADetailer Denoising"] = self.adetailer_denoise
 
-        # add loras to prompt
-        prompt_value = output.get("Prompt")
-        if isinstance(prompt_value, str):
-            prompt_text = prompt_value
+        if output.get("Prompt"):
             for lora in self.loras:
                 clean_name = lora.name.replace(".safetensors", "")
                 tag = f"<lora:{clean_name}:{format(lora.weight, 'g')}>"
-                if tag not in prompt_text:
-                    prompt_text = f"{prompt_text} {tag}".strip()
-            output["Prompt"] = prompt_text
+                if tag not in output['Prompt']:
+                    output["Prompt"] = f"{output['Prompt']} {tag}".strip()
 
         return output
 
@@ -86,9 +84,19 @@ class Node:
 
 class ComfyMetadataReader:
     @classmethod
-    def from_image_meta(cls, meta: dict[str, Any]) -> ComfyMetadata:
+    def from_bytes(cls, b) -> ComfyMetadata:
+        result = ComfyMetadata()
         try:
-            result = ComfyMetadata()
+            image = Image.open(BytesIO(b))
+            return cls.from_info(image.info)
+        except Exception as error:
+            result.error = f"{type(error).__name__}: {error}"
+        return result
+
+    @classmethod
+    def from_info(cls, meta: dict[str, Any]) -> ComfyMetadata:
+        result = ComfyMetadata()
+        try:
             workflow = cls.extract_workflow(meta)
             if workflow is None:
                 result.error = "Workflow not found"
