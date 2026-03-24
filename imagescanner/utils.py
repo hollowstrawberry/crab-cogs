@@ -16,7 +16,7 @@ from imagescanner.constants import log, NAIV3_PARAMS, PARAM_REGEX, PARAM_GROUP_R
 
 def get_params_from_metadata(metadata: ImageDataReader) -> OrderedDict[str, Any]:
     output_dict = OrderedDict()
-    log.info(f"get_params_from_metadata {type(metadata).__name__}")
+
     if "A1111" in metadata._tool:
         match = METADATA_REGEX.match(metadata.raw)
         if not match:
@@ -60,7 +60,6 @@ def get_params_from_metadata(metadata: ImageDataReader) -> OrderedDict[str, Any]
                 key = key[:252] + "..."
             output_dict[key.title()] = value
 
-    log.info(f"get_params_from_metadata {type(metadata).__name__}")
     return output_dict
 
 
@@ -88,7 +87,6 @@ async def read_attachment_metadata(i: int, attachment: discord.Attachment, metad
     if not any(attachment.filename.endswith(ext) for ext in SUPPORTED_FORMATS):
         return
     try:
-        log.info(f"read_attachment_metadata pre {i} " + ", ".join(type(meta).__name__ for meta in metadata.values()))
         current_image_bytes = await attachment.read()
         b = BytesIO(current_image_bytes)
         img = PIL.Image.open(b)
@@ -98,7 +96,6 @@ async def read_attachment_metadata(i: int, attachment: discord.Attachment, metad
         del img
         b.seek(0)
         image_metadata = await asyncio.to_thread(ImageDataReader, b)
-        log.info(f"read_attachment_metadata post {i} {type(image_metadata).__name__}")
     except Exception:
         log.exception("Processing attachment")
         return
