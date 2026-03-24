@@ -227,7 +227,7 @@ class ImageScanner(commands.Cog):
             if self.image_cache_size > 0:
                 self.image_cache[message.id] = (metadata, image_bytes)
 
-        if not metadata:
+        if not metadata or all(m is None for m in metadata.values()):
             embed = utils.get_embed({}, message.author)
             embed.description = f"{message.jump_url}\nThis post contains no image generation data."
             embed.set_thumbnail(url=attachments[0].url)
@@ -279,7 +279,7 @@ class ImageScanner(commands.Cog):
                      for i, attachment in enumerate(attachments)]
             await asyncio.gather(*tasks)
 
-        if not metadata:
+        if not metadata or all(m is None for m in metadata.values()):
             embed = discord.Embed(title="Image Info", color=message.author.color)
             embed.description = "This message contains no image generation data."
             embed.set_thumbnail(url=attachments[0].url)
@@ -293,7 +293,7 @@ class ImageScanner(commands.Cog):
             embed = await self.prepare_embed(message, data, i, len(attachments))
             embed.set_thumbnail(url=attachments[i].url or attachments[i].proxy_url or None)
             embeds.append(embed)
-        params = "\n\n".join(data.raw for data in metadata.values())
+        params = "\n\n".join(data.raw for data in metadata.values() if data)
         view = ImageView(params, embeds, ephemeral=True)
 
         await interaction.followup.send(embed=embeds[0], view=view)
