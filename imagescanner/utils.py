@@ -16,6 +16,12 @@ from imagescanner.constants import log, NAIV3_PARAMS, PARAM_REGEX, PARAM_GROUP_R
 def get_params_from_metadata(metadata: ImageDataReader) -> "OrderedDict[str, Any]":
     output_dict = OrderedDict()
 
+    # wtf
+    if isinstance(metadata, str):
+        output_dict["Metadata"] = metadata[:1000]
+        log.error(f"Invalid metadata: {metadata}")
+        return output_dict
+
     if "A1111" in metadata._tool or "NovelAI" in metadata._tool:
         match = METADATA_REGEX.match(metadata.raw)
         if not match:
@@ -79,8 +85,6 @@ def get_params_from_metadata(metadata: ImageDataReader) -> "OrderedDict[str, Any
             except Exception:
                 log.warning("Loading comfy metadata", exc_info=True)
 
-        return output_dict
-
     return output_dict
 
 
@@ -111,11 +115,15 @@ async def read_attachment_metadata(i: int, attachment: discord.Attachment, metad
         current_image_bytes = await attachment.read()
         b = BytesIO(current_image_bytes)
         img = await asyncio.to_thread(PIL.Image.open, b)
-        if (img.mode == "RGBA"):  # in rare cases, when ImageDataReader reads an RGBA image, it gets stuck in an infinite loop
-            b = await asyncio.to_thread(remove_transparency, img)
+        #if (img.mode == "RGBA"):  # in rare cases, when ImageDataReader reads an RGBA image, it gets stuck in an infinite loop
+        #    b = await asyncio.to_thread(remove_transparency, img)
         del img
         b.seek(0)
         image_metadata = await asyncio.to_thread(ImageDataReader, b)
+        # wtf
+        if not isinstance(image_metadata, ImageDataReader):
+            log.error(f"ImageDataReader was in fact {image_metadata}")
+            return
     except Exception: # previously (discord.DiscordException, PIL.Image.UnidentifiedImageError, PIL.Image.DecompressionBombError, SyntaxError)
         log.exception("Processing attachment")
         return

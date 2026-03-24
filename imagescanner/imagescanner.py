@@ -97,7 +97,8 @@ class ImageScanner(commands.Cog):
         elif not message.attachments:
             return {}
         else:
-            metadata, image_bytes = {}, {}
+            metadata: Dict[int, ImageDataReader] = {}
+            image_bytes: Dict[int, bytes] = {}
             tasks = [utils.read_attachment_metadata(i, attachment, metadata, image_bytes)
                     for i, attachment in enumerate(message.attachments)]
             await asyncio.gather(*tasks)
@@ -218,7 +219,8 @@ class ImageScanner(commands.Cog):
         if message.id in self.image_cache:
             metadata, image_bytes = self.image_cache[message.id]
         else:
-            metadata, image_bytes = {}, {}
+            metadata: Dict[int, ImageDataReader] = {}
+            image_bytes: Dict[int, bytes] = {}
             tasks = [utils.read_attachment_metadata(i, attachment, metadata, image_bytes)
                      for i, attachment in enumerate(attachments)]
             await asyncio.gather(*tasks)
