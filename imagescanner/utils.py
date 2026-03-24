@@ -54,11 +54,13 @@ def get_params_from_metadata(metadata: ImageDataReader) -> "OrderedDict[str, Any
         for key, value in metadata.parameter.items():
             if len(output_dict) > 24 or any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
                 continue
+            if len(key) > 255:
+                key = key[:252] + "..."
             output_dict[key.title()] = value
 
         if "Comfy" in metadata._tool:
             try:
-                workflow = json.loads("{" + metadata.raw.split("{", 1)[1])
+                workflow = json.loads(metadata._info["prompt"])
                 for node_id, node in workflow.items():
                     if node["class_type"] == "LoraLoader":
                         lora_name = node.get("inputs", {}).get("lora_name", "?").replace(".safetensors", "")
@@ -119,7 +121,7 @@ async def read_attachment_metadata(i: int, attachment: discord.Attachment, metad
     except Exception:
         log.exception("Processing attachment")
         return
-    if image_metadata.status.name != "FORMAT_ERROR":
+    if image_metadata.status.name == "READ_SUCCESS":
         image_bytes[i] = current_image_bytes
         metadata[i] = image_metadata
 
