@@ -19,7 +19,7 @@ def get_params_from_metadata(metadata: PromptInfo) -> "OrderedDict[str, Any]":
     output_dict["Prompt"] = (metadata.prompts or ["*none*"])[0]
     output_dict["Negative Prompt"] = (metadata.negative_prompts or ["*none*"])[0]
 
-    for key, value in metadata.metadata:
+    for key, value in metadata.metadata.items():
         if len(output_dict) >= 25 or key in output_dict:
             continue
         if any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
