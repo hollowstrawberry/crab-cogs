@@ -7,30 +7,14 @@ from PIL.Image import Image
 from PIL import PngImagePlugin
 from typing import Any, Dict
 from collections import OrderedDict
-from sd_parsers import ParserManager
-from sd_parsers.data import PromptInfo
+from sd_prompt_reader.constants import SUPPORTED_FORMATS
+from sd_prompt_reader.image_data_reader import ImageDataReader
 
-from imagescanner.constants import SUPPORTED_FORMATS, log, NAIV3_PARAMS, PARAM_REGEX, PARAM_GROUP_REGEX, PARAMS_BLACKLIST, METADATA_REGEX
+from imagescanner.constants import log, NAIV3_PARAMS, PARAM_REGEX, PARAM_GROUP_REGEX, PARAMS_BLACKLIST, METADATA_REGEX
 
 
-def get_params_from_metadata(metadata: PromptInfo) -> "OrderedDict[str, Any]":
+def get_params_from_metadata(metadata: ImageDataReader) -> "OrderedDict[str, Any]":
     output_dict = OrderedDict()
-    
-    output_dict["Prompt"] = (metadata.prompts or ["*none*"])[0]
-    output_dict["Negative Prompt"] = (metadata.negative_prompts or ["*none*"])[0]
-
-    for key, value in metadata.metadata:
-        if len(output_dict) >= 25 or key in output_dict:
-            continue
-        if any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
-            continue
-        if len(str(key)) > 255:
-            key = str(key[:252]) + "..."
-        if len(str(value)) > 1000:
-            value = str(value)[:997] + "..."
-        output_dict[key] = value
-
-    return output_dict
 
     if "A1111" in metadata._tool or "NovelAI" in metadata._tool:
         match = METADATA_REGEX.match(metadata.raw)
@@ -118,16 +102,22 @@ def convert_novelai_info(img_info: Dict[str, Any]) -> str:
     return f"{prompt}\n{negative_prompt}\nNovelAI3 Parameters: {json.dumps(info)}"
 
 
-async def read_attachment_metadata(i: int, attachment: discord.Attachment, metadata: Dict[int, PromptInfo], image_bytes: Dict[int, bytes]) -> None:
+async def read_attachment_metadata(i: int, attachment: discord.Attachment, metadata: Dict[int, ImageDataReader], image_bytes: Dict[int, bytes]) -> None:
     if not any(attachment.filename.endswith(ext) for ext in SUPPORTED_FORMATS):
         return
     try:
         current_image_bytes = await attachment.read()
-        image_metadata = await asyncio.to_thread(ParserManager().parse, current_image_bytes)
+        b = BytesIO(current_image_bytes)
+        img = await asyncio.to_thread(PIL.Image.open, b)
+        if (img.mode == "RGBA"):  # in rare cases, when ImageDataReader reads an RGBA image, it gets stuck in an infinite loop
+            b = await asyncio.to_thread(remove_transparency, img)
+        del img
+        b.seek(0)
+        image_metadata = await asyncio.to_thread(ImageDataReader, b)
     except Exception: # previously (discord.DiscordException, PIL.Image.UnidentifiedImageError, PIL.Image.DecompressionBombError, SyntaxError)
         log.exception("Processing attachment")
         return
-    if image_metadata:
+    if image_metadata.status.name != "FORMAT_ERROR":
         image_bytes[i] = current_image_bytes
         metadata[i] = image_metadata
 
