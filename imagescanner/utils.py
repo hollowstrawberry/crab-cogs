@@ -99,7 +99,7 @@ async def read_attachment_metadata(i: int, attachment: discord.Attachment, metad
     except Exception:
         log.exception("Processing attachment")
         return
-    if image_metadata and image_metadata.status.name != "FORMAT_ERROR":
+    if image_metadata and image_metadata._parser and image_metadata.status.name != "FORMAT_ERROR":
         image_bytes[i] = current_image_bytes
         metadata[i] = image_metadata
 
