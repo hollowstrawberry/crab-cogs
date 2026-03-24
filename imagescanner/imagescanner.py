@@ -97,7 +97,8 @@ class ImageScanner(commands.Cog):
         elif not message.attachments:
             return {}
         else:
-            metadata, image_bytes = {}, {}
+            metadata: Dict[int, ImageDataReader] = {}
+            image_bytes: Dict[int, bytes] = {}
             tasks = [utils.read_attachment_metadata(i, attachment, metadata, image_bytes)
                     for i, attachment in enumerate(message.attachments)]
             await asyncio.gather(*tasks)
@@ -218,7 +219,8 @@ class ImageScanner(commands.Cog):
         if message.id in self.image_cache:
             metadata, image_bytes = self.image_cache[message.id]
         else:
-            metadata, image_bytes = {}, {}
+            metadata: Dict[int, ImageDataReader] = {}
+            image_bytes: Dict[int, bytes] = {}
             tasks = [utils.read_attachment_metadata(i, attachment, metadata, image_bytes)
                      for i, attachment in enumerate(attachments)]
             await asyncio.gather(*tasks)
@@ -234,7 +236,7 @@ class ImageScanner(commands.Cog):
             except discord.Forbidden:
                 log.debug(f"User {ctx.member.id} does not accept DMs")
             return
-
+        
         for i, data in sorted(metadata.items()):
             embed = await self.prepare_embed(message, data, i, len(attachments))
             view = ImageView(data.raw, [embed], ephemeral=False)
@@ -278,19 +280,20 @@ class ImageScanner(commands.Cog):
             await asyncio.gather(*tasks)
 
         if not metadata:
-            metadata = {}  # Don't overwrite the cache in an edge case
-            for i, att in enumerate(attachments):
-                size_kb, size_mb = round(att.size / 1024), round(att.size / 1024**2, 2)
-                metadata[i] = f"Filename: {att.filename}, Dimensions: {att.width}x{att.height}, " \
-                              "Filesize: " + (f"{size_mb} MB" if size_mb >= 1.0 else f"{size_kb} KB")
-
+            embed = discord.Embed(title="Image Info", color=message.author.color)
+            embed.description = "This message contains no image generation data."
+            embed.set_thumbnail(url=attachments[0].url)
+            embed.set_footer(text=f'Posted by {message.author}', icon_url=message.author.display_avatar.url)
+            await interaction.followup.send(embed=embed)
+            return
+        
         embeds = []
         metadata_sorted = sorted(metadata.items(), key=lambda m: m[0])
         for i, data in metadata_sorted:
             embed = await self.prepare_embed(message, data, i, len(attachments))
             embed.set_thumbnail(url=attachments[i].url or attachments[i].proxy_url or None)
             embeds.append(embed)
-        params = "\n\n".join(data.raw for data in metadata.values())
+        params = "\n\n".join(data.raw for data in metadata.values() if data)
         view = ImageView(params, embeds, ephemeral=True)
 
         await interaction.followup.send(embed=embeds[0], view=view)

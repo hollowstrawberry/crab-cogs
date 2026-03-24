@@ -12,15 +12,14 @@ PARAM_REGEX = re.compile(rf" ?([^:]+): (.+?),{LOOKAHEAD_PATTERN}")
 PARAM_GROUP_REGEX = re.compile(rf", [^:]+: {{.+?{LOOKAHEAD_PATTERN}}}")
 
 PARAMS_BLACKLIST = [
-    "Template", "Version",
-    "ADetailer confidence", "ADetailer mask", "ADetailer dilate", "ADetailer denoising",
-    "ADetailer inpaint", "ADetailer version", "ADetailer prompt", "ADetailer use", "ADetailer checkpoint",
-    "ADetailer sampler", "ADetailer scheduler",
+    "Template", "Version", "Hires prompt", "Hires negative"
+    "ADetailer mask", "ADetailer dilate", "ADetailer prompt", "ADetailer use", "ADetailer checkpoint", "ADetailer sampler", "ADetailer scheduler",
     "RP Divide", "RP Ma", "RP Prompt", "RP Calc", "RP Ratio", "RP Base", "RP Use", "RP LoRA", "RP Options", "RP Flip", "RP threshold",
     "FreeU Stages", "FreeU Schedule",
     "Mimic", "Separate Feature Channels", "Scaling Startpoint", "Variability Measure",  # Dynamic thresholding
-    "Interpolate Phi", "Threshold percentile", "CFG mode", "CFG scale min",
+    "Interpolate Phi", "Threshold percentile",
 ]
+
 NAIV3_PARAMS = {
     "steps": "Steps",                       "width": "Width",                   "height": "Height",
     "seed": "Seed",                         "scale": "Guidance",                "cfg_rescale": "Guidance Rescale",
