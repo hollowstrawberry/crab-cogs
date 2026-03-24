@@ -152,4 +152,4 @@ Connects to this AI anime generation service to generate images with novelai3. I
 
 ### 📎 ImageScanner
 
-Lets you view basic information about other people's images with a context menu. Its real purpose is to view AI image generation metadata (Stable Diffusion and NovelAI). Additionally it can scan all images sent in specified channels and put a magnifying glass reaction button on AI images; the bot will DM the results to the users who use the magnifying glass.
+Lets you view AI image generation metadata, including A1111, ComfyUI, SwarmUI, and NovelAI. It can be accessed from a message's context menu. Additionally it can scan all images sent in specified channels and put a magnifying glass reaction button on AI images; the bot will DM the results to the users who use the magnifying glass.
