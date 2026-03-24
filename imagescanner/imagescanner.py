@@ -263,7 +263,7 @@ class ImageScanner(commands.Cog):
     # context menu set in __init__
     async def scanimage_app(self, interaction: discord.Interaction, message: discord.Message):
         """Get image metadata"""
-        assert self.image_cache and isinstance(interaction.user, discord.Member)
+        assert self.image_cache
         attachments = [a for a in message.attachments if a.filename.lower().endswith(tuple(SUPPORTED_FORMATS))]
         if not attachments:
             await interaction.response.send_message("This post contains no images.", ephemeral=True)
@@ -280,8 +280,10 @@ class ImageScanner(commands.Cog):
             await asyncio.gather(*tasks)
 
         if not metadata:
-            embed = utils.get_embed({}, interaction.user)
-            embed.description = "This post contains no image generation data."
+            embed = discord.Embed(title="Image Info", color=message.author.color)
+            embed.description = "This message contains no image generation data."
+            embed.set_thumbnail(url=attachments[0].url)
+            embed.set_footer(text=f'Posted by {message.author}', icon_url=message.author.display_avatar.url)
             await interaction.followup.send(embed=embed)
             return
         
