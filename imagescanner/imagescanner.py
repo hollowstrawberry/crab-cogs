@@ -94,7 +94,6 @@ class ImageScanner(commands.Cog):
         
         if message.id in self.image_cache:
             metadata, image_bytes = self.image_cache[message.id]
-            log.info(f"grab_metadata_dict cached" + (type(metadata[0]).__name__ if isinstance(metadata, (dict, list)) else type(metadata[0]).__name__))
         elif not message.attachments:
             return {}
         else:
@@ -103,7 +102,6 @@ class ImageScanner(commands.Cog):
             tasks = [utils.read_attachment_metadata(i, attachment, metadata, image_bytes)
                     for i, attachment in enumerate(message.attachments)]
             await asyncio.gather(*tasks)
-            log.info(f"grab_metadata_dict " + ", ".join(type(meta).__name__ for meta in metadata.values()))
             if metadata and self.image_cache_size > 0:
                 self.image_cache[message.id] = (metadata, image_bytes)
 
@@ -115,10 +113,8 @@ class ImageScanner(commands.Cog):
 
     async def prepare_embed(self, message: discord.Message, metadata: ImageDataReader, i: int, total=1) -> discord.Embed:
         assert isinstance(message.author, discord.Member)
-        log.info(f"prepare_embed 1" + type(metadata).__name__ )
         params = utils.get_params_from_metadata(metadata)
         embed = utils.get_embed(params, message.author)
-        log.info(f"prepare_embed 2" + type(metadata).__name__ )
         embed.description = message.jump_url if self.civitai_emoji else f":arrow_right: {message.jump_url}"
         if total > 1:
             embed.title = f"{embed.title or ''} ({i+1}/{total})"
@@ -186,7 +182,6 @@ class ImageScanner(commands.Cog):
         tasks = [utils.read_attachment_metadata(i, attachment, metadata, image_bytes)
                  for i, attachment in enumerate(attachments)]
         await asyncio.gather(*tasks)
-        log.info(f"on_message " + ", ".join(type(meta).__name__ for meta in metadata.values()))
 
         if metadata:
             if self.image_cache_size > 0:
@@ -229,7 +224,6 @@ class ImageScanner(commands.Cog):
             tasks = [utils.read_attachment_metadata(i, attachment, metadata, image_bytes)
                      for i, attachment in enumerate(attachments)]
             await asyncio.gather(*tasks)
-            log.info(f"on_raw_reaction_add " + ", ".join(type(meta).__name__ for meta in metadata.values()))
             if self.image_cache_size > 0:
                 self.image_cache[message.id] = (metadata, image_bytes)
 
@@ -284,7 +278,6 @@ class ImageScanner(commands.Cog):
             tasks = [utils.read_attachment_metadata(i, attachment, metadata, image_bytes)
                      for i, attachment in enumerate(attachments)]
             await asyncio.gather(*tasks)
-            log.info(f"scanimage_app " + ", ".join(type(meta).__name__ for meta in metadata.values()))
 
         if not metadata:
             embed = discord.Embed(title="Image Info", color=message.author.color)
