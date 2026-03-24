@@ -10,13 +10,14 @@ from collections import OrderedDict
 from sd_prompt_reader.constants import SUPPORTED_FORMATS
 from sd_prompt_reader.image_data_reader import ImageDataReader
 
+from imagescanner.comfy import ComfyMetadataReader
 from imagescanner.constants import log, NAIV3_PARAMS, PARAM_REGEX, PARAM_GROUP_REGEX, PARAMS_BLACKLIST, METADATA_REGEX
 
 
 def get_params_from_metadata(metadata: ImageDataReader) -> "OrderedDict[str, Any]":
     output_dict = OrderedDict()
 
-    if "A1111" in metadata._tool or "NovelAI" in metadata._tool:
+    if "A1111" in metadata._tool:
         match = METADATA_REGEX.match(metadata.raw)
         if not match:
             output_dict["Metadata"] = "Invalid"
@@ -30,15 +31,7 @@ def get_params_from_metadata(metadata: ImageDataReader) -> "OrderedDict[str, Any
         params = match.group("Params")
         params = PARAM_GROUP_REGEX.sub("", params)
         param_list = PARAM_REGEX.findall(params)
-        is_novelai = False
         for key, value in param_list:
-            if key == "Source" and value == "NovelAI":
-                is_novelai = True
-            if is_novelai:
-                if key in NAIV3_PARAMS:
-                    key = NAIV3_PARAMS[key]
-                else:
-                    continue
             if len(output_dict) >= 25 or key in output_dict:
                 continue
             if any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
@@ -47,6 +40,10 @@ def get_params_from_metadata(metadata: ImageDataReader) -> "OrderedDict[str, Any
                 key = key[:252] + "..."
             output_dict[key] = value
 
+    elif "Comfy" in metadata._tool:
+        comfy_data = ComfyMetadataReader.from_image_meta(metadata._info)
+        if comfy_data:
+            output_dict = comfy_data.as_dict()
     else:
         output_dict["Prompt"] = metadata.positive or metadata.positive_sdxl
         output_dict["Negative Prompt"] = metadata.negative or metadata.negative_sdxl
@@ -54,32 +51,14 @@ def get_params_from_metadata(metadata: ImageDataReader) -> "OrderedDict[str, Any
         for key, value in metadata.parameter.items():
             if len(output_dict) > 24 or any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
                 continue
+            if "NovelAI" in metadata._tool:
+                if key in NAIV3_PARAMS:
+                    key = NAIV3_PARAMS[key]
+                else:
+                    continue
             if len(key) > 255:
                 key = key[:252] + "..."
             output_dict[key.title()] = value
-
-        if "Comfy" in metadata._tool:
-            try:
-                workflow = json.loads(metadata._info["prompt"])
-                for node_id, node in workflow.items():
-                    if node["class_type"] == "LoraLoader":
-                        lora_name = node.get("inputs", {}).get("lora_name", "?").replace(".safetensors", "")
-                        lora_weight = node.get("inputs", {}).get("strength_model", 1.0)
-                        if lora_name:
-                            output_dict["Prompt"] = output_dict["Prompt"] + f" <lora:{lora_name}:{lora_weight}>"  # type: ignore
-                    elif node_id == "extra_seed_extra_noise":
-                        output_dict["Extra Seed"] = node.get("inputs", {}).get("noise_seed", -1)
-                    elif node_id == "extra_seed_noised_latent_blend":
-                        output_dict["Extra Seed Strength"] = round(1.0 - node.get("inputs", {}).get("blend_factor", 1.0), 4)
-                    elif node["class_type"] == "UpscaleModelLoader":
-                        output_dict["Upscaler"] = node.get("inputs", {}).get("model_name", "?")
-                    elif node_id == "upscale_0_sampler":
-                        output_dict["Denoising"] = node.get("inputs", {}).get("denoise", 0)
-                    elif node["class_type"] == "ADetailer":
-                        output_dict["ADetailer Model"] = node.get("inputs", {}).get("model", "?")
-                        output_dict["ADetailer Denoising"] = node.get("inputs", {}).get("denoise", 0)
-            except Exception:
-                log.warning("Loading comfy metadata", exc_info=True)
 
     return output_dict
 
@@ -120,7 +99,7 @@ async def read_attachment_metadata(i: int, attachment: discord.Attachment, metad
     except Exception:
         log.exception("Processing attachment")
         return
-    if image_metadata.status.name == "READ_SUCCESS":
+    if image_metadata.status.name != "FORMAT_ERROR":
         image_bytes[i] = current_image_bytes
         metadata[i] = image_metadata
 
