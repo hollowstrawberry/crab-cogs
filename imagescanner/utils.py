@@ -14,7 +14,7 @@ from imagescanner.comfy import ComfyMetadataReader
 from imagescanner.constants import log, NAIV3_PARAMS, PARAM_REGEX, PARAM_GROUP_REGEX, PARAMS_BLACKLIST, METADATA_REGEX
 
 
-def get_params_from_metadata(metadata: ImageDataReader) -> "OrderedDict[str, Any]":
+def get_params_from_metadata(metadata: ImageDataReader) -> OrderedDict[str, Any]:
     output_dict = OrderedDict()
 
     if "A1111" in metadata._tool:
@@ -41,7 +41,7 @@ def get_params_from_metadata(metadata: ImageDataReader) -> "OrderedDict[str, Any
             output_dict[key] = value
 
     elif "Comfy" in metadata._tool:
-        comfy_data = ComfyMetadataReader.from_image_meta(metadata._info)
+        comfy_data = ComfyMetadataReader.from_info(metadata._info)
         if comfy_data:
             output_dict = comfy_data.as_dict()
     else:

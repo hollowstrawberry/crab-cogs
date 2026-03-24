@@ -36,7 +36,7 @@ class ComfyMetadata:
     loras: list[ComfyLora] = field(default_factory=list)
     error: str | None = None
 
-    def as_dict(self) -> dict[str, Any]:
+    def as_dict(self) -> OrderedDict[str, Any]:
         output: dict[str, Any] = OrderedDict()
 
         if self.prompt:
