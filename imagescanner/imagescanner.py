@@ -94,7 +94,7 @@ class ImageScanner(commands.Cog):
         
         if message.id in self.image_cache:
             metadata, image_bytes = self.image_cache[message.id]
-            log.info(f"grab_metadata_dict cached " + ", ".join(type(meta).__name__ for meta in metadata.values()))
+            log.info(f"grab_metadata_dict cached" + (type(metadata[0]).__name__ if isinstance(metadata, (dict, list)) else type(metadata[0]).__name__))
         elif not message.attachments:
             return {}
         else:
@@ -105,7 +105,6 @@ class ImageScanner(commands.Cog):
             await asyncio.gather(*tasks)
             log.info(f"grab_metadata_dict " + ", ".join(type(meta).__name__ for meta in metadata.values()))
             if metadata and self.image_cache_size > 0:
-                log.info(f"grab_metadata_dict set " + ", ".join(type(meta).__name__ for meta in metadata.values()))
                 self.image_cache[message.id] = (metadata, image_bytes)
 
         if metadata:
@@ -191,7 +190,6 @@ class ImageScanner(commands.Cog):
 
         if metadata:
             if self.image_cache_size > 0:
-                log.info(f"on_message set " + ", ".join(type(meta).__name__ for meta in metadata.values()))
                 self.image_cache[message.id] = (metadata, image_bytes)
             await message.add_reaction('🔎')
         else:
@@ -231,7 +229,7 @@ class ImageScanner(commands.Cog):
             tasks = [utils.read_attachment_metadata(i, attachment, metadata, image_bytes)
                      for i, attachment in enumerate(attachments)]
             await asyncio.gather(*tasks)
-            log.info(f"on_raw_reaction_add set " + ", ".join(type(meta).__name__ for meta in metadata.values()))
+            log.info(f"on_raw_reaction_add " + ", ".join(type(meta).__name__ for meta in metadata.values()))
             if self.image_cache_size > 0:
                 self.image_cache[message.id] = (metadata, image_bytes)
 
