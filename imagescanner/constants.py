@@ -4,6 +4,8 @@ import logging
 log = logging.getLogger("red.crab-cogs.imagescanner")
 
 IMAGE_TYPES = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
+SUPPORTED_FORMATS = ("png", "jpg", "jpeg")
+
 VIEW_TIMEOUT = 10*60
 
 METADATA_REGEX = re.compile(r"(?:(?P<Prompt>[\S\s]+?)\n)?(?:Negative prompt: ?(?P<NegativePrompt>[\S\s]*)\n)?(?P<Params>[^\n:]+: .+)", re.IGNORECASE)
