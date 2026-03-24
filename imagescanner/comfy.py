@@ -26,6 +26,9 @@ class ComfyMetadata:
     seed: int | str | None = None
     steps: int | None = None
     cfg: float | None = None
+    checkpoint: str | None = None
+    vae: str | None = None
+    scheduler: str | None = None
     sampler: str | None = None
     extra_seed: int | None = None
     extra_seed_strength: float | None = None
@@ -43,6 +46,10 @@ class ComfyMetadata:
             output["Prompt"] = self.prompt
         if self.negative_prompt:
             output["Negative Prompt"] = self.negative_prompt
+        if self.checkpoint:
+            output["Checkpoint"] = self.checkpoint
+        if self.vae:
+            output["VAE"] = self.vae
         if self.seed is not None and "Seed" not in output:
             output["Seed"] = self.seed
         if self.steps is not None and "Steps" not in output:
@@ -51,6 +58,8 @@ class ComfyMetadata:
             output["CFG"] = self.cfg
         if self.sampler and "Sampler" not in output:
             output["Sampler"] = self.sampler
+        if self.scheduler:
+            output["Scheduler"] = self.scheduler
         if self.extra_seed is not None:
             output["Extra Seed"] = self.extra_seed
         if self.extra_seed_strength is not None:
@@ -68,7 +77,7 @@ class ComfyMetadata:
             for lora in self.loras:
                 clean_name = lora.name.replace(".safetensors", "")
                 tag = f"<lora:{clean_name}:{format(lora.weight, 'g')}>"
-                if tag not in output['Prompt']:
+                if tag not in output["Prompt"]:
                     output["Prompt"] = f"{output['Prompt']} {tag}".strip()
 
         return output
@@ -243,6 +252,20 @@ class ComfyMetadataReader:
             node_type_lower = node.node_type.lower()
             inputs = node.inputs
 
+            cls.set_if_missing(meta, "checkpoint", cls.as_text(inputs.get("ckpt_name") or inputs.get("checkpoint_name")))
+            cls.set_if_missing(meta, "vae", cls.as_text(inputs.get("vae_name") or inputs.get("vae")))
+            cls.set_if_missing(meta,"scheduler", cls.as_text(inputs.get("scheduler") or inputs.get("scheduler_name") or inputs.get("schedulerName")),)
+            if "checkpoint" in node_type_lower and "upscale" not in node_type_lower:
+                cls.set_if_missing(meta, "checkpoint", cls.as_text(inputs.get("model_name") or inputs.get("model")))
+                if len(node.widgets) > 0:
+                    cls.set_if_missing(meta, "checkpoint", cls.as_text(node.widgets[0]))
+            if "vae" in node_type_lower:
+                if len(node.widgets) > 0:
+                    cls.set_if_missing(meta, "vae", cls.as_text(node.widgets[0]))
+            if "scheduler" in node_type_lower:
+                if len(node.widgets) > 0:
+                    cls.set_if_missing(meta, "scheduler", cls.as_text(node.widgets[0]))
+
             text_value = cls.as_text(inputs.get("text"))
             if text_value:
                 if "negative" in node_type_lower or "neg" in node_type_lower:
@@ -266,6 +289,7 @@ class ComfyMetadataReader:
                 cls.set_if_missing(meta, "steps", cls.as_int(inputs.get("steps")))
                 cls.set_if_missing(meta, "cfg", cls.as_float(inputs.get("cfg")))
                 cls.set_if_missing(meta, "sampler", cls.as_text(inputs.get("sampler_name") or inputs.get("sampler") or inputs.get("samplerName")))
+                cls.set_if_missing(meta, "scheduler", cls.as_text(inputs.get("scheduler") or inputs.get("scheduler_name") or inputs.get("schedulerName")))
 
                 if not meta.seed and len(node.widgets) > 0:
                     cls.set_if_missing(meta, "seed", cls.as_int(node.widgets[0]) or cls.as_text(node.widgets[0]))
@@ -275,6 +299,8 @@ class ComfyMetadataReader:
                     cls.set_if_missing(meta, "cfg", cls.as_float(node.widgets[3]))
                 if not meta.sampler and len(node.widgets) > 4:
                     cls.set_if_missing(meta, "sampler", cls.as_text(node.widgets[4]))
+                if not meta.scheduler and len(node.widgets) > 5:
+                    cls.set_if_missing(meta, "scheduler", cls.as_text(node.widgets[5]))
 
                 if node.id == "upscale_0_sampler" or "upscale" in node_type_lower:
                     cls.set_if_missing(meta, "denoise", cls.as_float(inputs.get("denoise")))
