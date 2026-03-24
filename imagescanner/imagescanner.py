@@ -227,7 +227,7 @@ class ImageScanner(commands.Cog):
             if self.image_cache_size > 0:
                 self.image_cache[message.id] = (metadata, image_bytes)
 
-        if not metadata or all(m is None for m in metadata.values()):
+        if not metadata:
             embed = utils.get_embed({}, message.author)
             embed.description = f"{message.jump_url}\nThis post contains no image generation data."
             embed.set_thumbnail(url=attachments[0].url)
@@ -236,8 +236,10 @@ class ImageScanner(commands.Cog):
             except discord.Forbidden:
                 log.debug(f"User {ctx.member.id} does not accept DMs")
             return
-
+        
+        log.info(f"metadata =  {metadata}")
         for i, data in sorted(metadata.items()):
+            log.info(f"metadata[{i}] = {data}")
             embed = await self.prepare_embed(message, data, i, len(attachments))
             view = ImageView(data.raw, [embed], ephemeral=False)
             if self.attach_images and i in image_bytes:
@@ -279,7 +281,7 @@ class ImageScanner(commands.Cog):
                      for i, attachment in enumerate(attachments)]
             await asyncio.gather(*tasks)
 
-        if not metadata or all(m is None for m in metadata.values()):
+        if not metadata:
             embed = discord.Embed(title="Image Info", color=message.author.color)
             embed.description = "This message contains no image generation data."
             embed.set_thumbnail(url=attachments[0].url)
@@ -287,9 +289,11 @@ class ImageScanner(commands.Cog):
             await interaction.followup.send(embed=embed)
             return
         
+        log.info(f"metadata = {metadata}")
         embeds = []
         metadata_sorted = sorted(metadata.items(), key=lambda m: m[0])
         for i, data in metadata_sorted:
+            log.info(f"metadata[{i}] =  {data}")
             embed = await self.prepare_embed(message, data, i, len(attachments))
             embed.set_thumbnail(url=attachments[i].url or attachments[i].proxy_url or None)
             embeds.append(embed)
