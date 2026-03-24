@@ -123,9 +123,8 @@ async def read_attachment_metadata(i: int, attachment: discord.Attachment, metad
         return
     try:
         current_image_bytes = await attachment.read()
-        img = PIL.Image.open(current_image_bytes)
-        image_metadata = await asyncio.to_thread(ParserManager().parse, img)
-    except Exception:
+        image_metadata = await asyncio.to_thread(ParserManager().parse, BytesIO(current_image_bytes))
+    except Exception: # previously (discord.DiscordException, PIL.Image.UnidentifiedImageError, PIL.Image.DecompressionBombError, SyntaxError)
         log.exception("Processing attachment")
         return
     if image_metadata:
