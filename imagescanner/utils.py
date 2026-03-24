@@ -125,7 +125,7 @@ async def read_attachment_metadata(i: int, attachment: discord.Attachment, metad
         current_image_bytes = await attachment.read()
         log.info(f"{len(current_image_bytes)=}")
         img = PIL.Image.open(BytesIO(current_image_bytes))
-        image_metadata = ParserManager().parse(img)
+        image_metadata = await asyncio.to_thread(ParserManager().parse, img)
     except Exception:
         log.exception("Processing attachment")
         return
