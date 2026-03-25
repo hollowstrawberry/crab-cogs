@@ -65,7 +65,7 @@ class Autoreact(commands.Cog):
                 log.warning(f"Failed to react with {emoji} - {type(error).__name__}: {error}", exc_info=True)
                     
     @commands.Cog.listener()
-    async def on_reaction_add(self, reaction: discord.Reaction, user: discord.Member):
+    async def on_reaction_add(self, reaction: discord.Reaction, *, user: discord.Member):
         message = reaction.message
         if not message or not message.guild or user.bot:
             return

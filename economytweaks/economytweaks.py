@@ -139,7 +139,7 @@ class EconomyTweaks(commands.Cog):
     @bank_app.command(name="balance")
     @app_commands.describe(user="The user to check the balance of. If omitted, defaults to your own balance.")
     @app_commands.guild_only()
-    async def balance_app(self, interaction: discord.Interaction, user: Optional[discord.Member] = None):
+    async def balance_app(self, interaction: discord.Interaction, *, user: Optional[discord.Member] = None):
         """Show the user's account balance."""
         assert isinstance(interaction.user, discord.Member)
         user = user or interaction.user
