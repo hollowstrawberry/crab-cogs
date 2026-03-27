@@ -52,7 +52,7 @@ class Draw(commands.Cog):
     async def avatar_app_command(self, inter: discord.Interaction, member: discord.Member):
         """Gets the avatar for a user quietly."""
         ctx = await commands.Context.from_interaction(inter)
-        await self.avatar(ctx, member)
+        await self.avatar(ctx, user=member)
 
     @staticmethod
     def draw_effect(fp: BytesIO) -> BytesIO:
