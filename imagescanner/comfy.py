@@ -1,15 +1,24 @@
 from io import BytesIO
 import json
+import math
+import re
 from typing import Any
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from PIL import Image
 
 NEGATIVE_HINTS = (
-    "negative prompt", "worst quality", "low quality",
-    "bad anatomy", "bad hands", "jpeg artifacts",
-    "watermark", "deformed", "blurry",
+    "negative prompt",
+    "worst quality",
+    "low quality",
+    "bad anatomy",
+    "bad hands",
+    "jpeg artifacts",
+    "watermark",
+    "deformed",
+    "blurry",
 )
+LORA_INPUT_KEY_RE = re.compile(r"^lora_\d+$", re.IGNORECASE)
 
 
 @dataclass
@@ -40,7 +49,7 @@ class ComfyMetadata:
     error: str | None = None
 
     def as_dict(self) -> OrderedDict[str, Any]:
-        output: dict[str, Any] = OrderedDict()
+        output: OrderedDict[str, Any] = OrderedDict()
 
         if self.prompt:
             output["Prompt"] = self.prompt
@@ -104,50 +113,98 @@ class ComfyMetadataReader:
 
     @classmethod
     def from_info(cls, meta: dict[str, Any]) -> ComfyMetadata:
-        result = ComfyMetadata()
-        try:
-            workflow = cls.extract_workflow(meta)
-            if workflow is None:
-                result.error = "Workflow not found"
-                return result
+        candidates = cls.extract_workflow_candidates(meta)
+        if not candidates:
+            return ComfyMetadata(error="Workflow not found")
+
+        merged = ComfyMetadata(is_comfy=True)
+        parsed_any = False
+        candidate_errors: list[str] = []
+
+        for workflow in candidates:
             nodes = cls.normalize_nodes(workflow)
             if not nodes:
-                result.error = "Workflow nodes not found"
-                return result
-            result.is_comfy = True
-            cls.parse_nodes(nodes, result)
-        except Exception as error:
-            result.error = f"{type(error).__name__}: {error}"
-        return result
+                continue
+            partial = ComfyMetadata(is_comfy=True)
+            try:
+                cls.parse_nodes(nodes, partial)
+            except Exception as error:
+                candidate_errors.append(f"{type(error).__name__}: {error}")
+                continue
+            cls.merge_metadata(merged, partial)
+            parsed_any = True
+
+        if not parsed_any:
+            error = candidate_errors[0] if candidate_errors else "Workflow nodes not found"
+            return ComfyMetadata(error=error)
+
+        merged.is_comfy = True
+        return merged
 
     @staticmethod
-    def extract_workflow(meta: dict) -> dict[str, Any] | None:
-        for key in ("prompt", "workflow"):
-            parsed = ComfyMetadataReader.parse_json_like(meta.get(key))
-            if parsed is not None:
-                return parsed
-        return None
+    def extract_workflow_candidates(meta: dict[str, Any]) -> list[dict[str, Any]]:
+        candidates: list[dict[str, Any]] = []
+        seen: set[str] = set()
+
+        def push_candidate(value: Any) -> None:
+            parsed = ComfyMetadataReader.parse_json_like(value)
+            if parsed is None:
+                return
+            signature = ComfyMetadataReader.workflow_signature(parsed)
+            if signature in seen:
+                return
+            seen.add(signature)
+            candidates.append(parsed)
+
+        # Prefer workflow first because UI workflow usually contains resolved widget values.
+        for key in ("workflow", "prompt"):
+            push_candidate(meta.get(key))
+
+        for key, value in meta.items():
+            if key in ("workflow", "prompt"):
+                continue
+            push_candidate(value)
+
+        return candidates
+
+    @staticmethod
+    def workflow_signature(flow: dict[str, Any]) -> str:
+        try:
+            return json.dumps(flow, sort_keys=True, ensure_ascii=False)
+        except TypeError:
+            return str(id(flow))
 
     @staticmethod
     def parse_json_like(value: Any) -> dict[str, Any] | None:
         if isinstance(value, dict):
             return value
-        if isinstance(value, list) and value and isinstance(value[0], dict):
-            return value[0]
+
+        if isinstance(value, list):
+            if value and all(isinstance(item, dict) for item in value):
+                return {"nodes": value}
+            return None
+
         if not isinstance(value, str):
             return None
-        
+
         value = value.strip()
         if not value:
             return None
         try:
-            return json.loads(value)
+            parsed = json.loads(value)
+            if isinstance(parsed, dict):
+                return parsed
+            if isinstance(parsed, list) and parsed and all(isinstance(item, dict) for item in parsed):
+                return {"nodes": parsed}
+            return None
         except json.JSONDecodeError:
             start = value.find("{")
             end = value.rfind("}")
             if start >= 0 and end > start:
                 try:
-                    return json.loads(value[start:end+1])
+                    parsed = json.loads(value[start : end + 1])
+                    if isinstance(parsed, dict):
+                        return parsed
                 except json.JSONDecodeError:
                     return None
         return None
@@ -182,7 +239,7 @@ class ComfyMetadataReader:
             sortable_entries.append((sort_key, str(key), value))
         sortable_entries.sort(key=lambda entry: entry[0])
 
-        nodes = []
+        nodes: list[Node] = []
         for _, key, value in sortable_entries:
             inputs = value.get("inputs") if isinstance(value.get("inputs"), dict) else {}
             widgets = value.get("widgets_values") if isinstance(value.get("widgets_values"), list) else []
@@ -199,33 +256,76 @@ class ComfyMetadataReader:
         if isinstance(value, str):
             return value.strip() or None
         if isinstance(value, (int, float)) and not isinstance(value, bool):
+            if isinstance(value, float) and not math.isfinite(value):
+                return None
             return str(value)
         return None
 
     @staticmethod
     def as_int(value: Any) -> int | None:
-        if not value or isinstance(value, bool):
-            return None
-        try:
-            return int(float(value))
-        except ValueError:
-            return None
-
-    @staticmethod
-    def as_float(value: Any) -> float | None:
-        if not value or isinstance(value, bool):
+        if value is None or isinstance(value, bool):
             return None
         if isinstance(value, (int, float)):
-            return float(value)
+            if not math.isfinite(float(value)):
+                return None
+            return int(float(value))
         if isinstance(value, str):
             value = value.strip().replace(",", ".")
             if not value:
                 return None
             try:
-                return float(value)
-            except ValueError:
+                numeric = float(value)
+                if not math.isfinite(numeric):
+                    return None
+                return int(numeric)
+            except (ValueError, TypeError):
                 return None
         return None
+
+    @staticmethod
+    def as_float(value: Any) -> float | None:
+        if value is None or isinstance(value, bool):
+            return None
+        if isinstance(value, (int, float)):
+            numeric = float(value)
+            if not math.isfinite(numeric):
+                return None
+            return numeric
+        if isinstance(value, str):
+            value = value.strip().replace(",", ".")
+            if not value:
+                return None
+            try:
+                numeric = float(value)
+                if not math.isfinite(numeric):
+                    return None
+                return numeric
+            except (ValueError, TypeError):
+                return None
+        return None
+
+    @staticmethod
+    def first_text(*values: Any) -> str | None:
+        for value in values:
+            text = ComfyMetadataReader.as_text(value)
+            if text:
+                return text
+        return None
+
+    @staticmethod
+    def first_float(*values: Any) -> float | None:
+        for value in values:
+            parsed = ComfyMetadataReader.as_float(value)
+            if parsed is not None:
+                return parsed
+        return None
+
+    @staticmethod
+    def is_useful_text_candidate(text: str) -> bool:
+        stripped = text.strip()
+        if not stripped:
+            return False
+        return any(char.isalnum() for char in stripped)
 
     @staticmethod
     def set_if_missing(meta: ComfyMetadata, key: str, value: Any) -> None:
@@ -244,92 +344,189 @@ class ComfyMetadataReader:
                 return
         meta.loras.append(ComfyLora(name=name, weight=weight))
 
+    @staticmethod
+    def merge_metadata(target: ComfyMetadata, source: ComfyMetadata) -> None:
+        fields = (
+            "prompt",
+            "negative_prompt",
+            "seed",
+            "steps",
+            "cfg",
+            "checkpoint",
+            "vae",
+            "scheduler",
+            "sampler",
+            "extra_seed",
+            "extra_seed_strength",
+            "upscaler",
+            "denoise",
+            "adetailer_model",
+            "adetailer_denoise",
+            "error",
+        )
+        for field_name in fields:
+            if getattr(target, field_name) is None and getattr(source, field_name) is not None:
+                setattr(target, field_name, getattr(source, field_name))
+        for lora in source.loras:
+            ComfyMetadataReader.add_lora(target, lora.name, lora.weight)
+        target.is_comfy = target.is_comfy or source.is_comfy
+
+    @classmethod
+    def parse_lora_payload(cls, payload: Any) -> tuple[str, float] | None:
+        if not isinstance(payload, dict):
+            return None
+        if payload.get("on") is False:
+            return None
+
+        name = cls.first_text(payload.get("lora"), payload.get("lora_name"), payload.get("name"))
+        if not name:
+            return None
+
+        weight = cls.first_float(payload.get("strength_model"), payload.get("strength"), payload.get("weight"))
+        if weight is None:
+            weight = 1.0
+        return name, weight
+
     @classmethod
     def parse_nodes(cls, nodes: list[Node], meta: ComfyMetadata) -> None:
-        text_candidates: list[str] = []
+        text_candidates: list[tuple[str, bool]] = []
 
         for node in nodes:
-            node_type_lower = node.node_type.lower()
-            inputs = node.inputs
-
-            cls.set_if_missing(meta, "checkpoint", cls.as_text(inputs.get("ckpt_name") or inputs.get("checkpoint_name")))
-            cls.set_if_missing(meta, "vae", cls.as_text(inputs.get("vae_name") or inputs.get("vae")))
-            cls.set_if_missing(meta,"scheduler", cls.as_text(inputs.get("scheduler") or inputs.get("scheduler_name") or inputs.get("schedulerName")),)
-            if "checkpoint" in node_type_lower and "upscale" not in node_type_lower:
-                cls.set_if_missing(meta, "checkpoint", cls.as_text(inputs.get("model_name") or inputs.get("model")))
-                if len(node.widgets) > 0:
-                    cls.set_if_missing(meta, "checkpoint", cls.as_text(node.widgets[0]))
-            if "vae" in node_type_lower:
-                if len(node.widgets) > 0:
-                    cls.set_if_missing(meta, "vae", cls.as_text(node.widgets[0]))
-            if "scheduler" in node_type_lower:
-                if len(node.widgets) > 0:
-                    cls.set_if_missing(meta, "scheduler", cls.as_text(node.widgets[0]))
-
-            text_value = cls.as_text(inputs.get("text"))
-            if text_value:
-                if "negative" in node_type_lower or "neg" in node_type_lower:
-                    cls.set_if_missing(meta, "negative_prompt", text_value)
-                else:
-                    text_candidates.append(text_value)
-
-            if "lora" in node_type_lower:
-                lora_name = cls.as_text(inputs.get("lora_name") or inputs.get("lora") or inputs.get("name"))
-                if lora_name:
-                    weight = (
-                        cls.as_float(inputs.get("strength_model"))
-                        or cls.as_float(inputs.get("weight"))
-                        or cls.as_float(inputs.get("strength"))
-                        or 1.0
-                    )
-                    cls.add_lora(meta, lora_name, weight)
-
-            if "sampler" in node_type_lower:
-                cls.set_if_missing(meta, "seed", cls.as_int(inputs.get("seed")) or cls.as_text(inputs.get("seed")))
-                cls.set_if_missing(meta, "steps", cls.as_int(inputs.get("steps")))
-                cls.set_if_missing(meta, "cfg", cls.as_float(inputs.get("cfg")))
-                cls.set_if_missing(meta, "sampler", cls.as_text(inputs.get("sampler_name") or inputs.get("sampler") or inputs.get("samplerName")))
-                cls.set_if_missing(meta, "scheduler", cls.as_text(inputs.get("scheduler") or inputs.get("scheduler_name") or inputs.get("schedulerName")))
-
-                if not meta.seed and len(node.widgets) > 0:
-                    cls.set_if_missing(meta, "seed", cls.as_int(node.widgets[0]) or cls.as_text(node.widgets[0]))
-                if meta.steps is None and len(node.widgets) > 2:
-                    cls.set_if_missing(meta, "steps", cls.as_int(node.widgets[2]))
-                if meta.cfg is None and len(node.widgets) > 3:
-                    cls.set_if_missing(meta, "cfg", cls.as_float(node.widgets[3]))
-                if not meta.sampler and len(node.widgets) > 4:
-                    cls.set_if_missing(meta, "sampler", cls.as_text(node.widgets[4]))
-                if not meta.scheduler and len(node.widgets) > 5:
-                    cls.set_if_missing(meta, "scheduler", cls.as_text(node.widgets[5]))
-
-                if node.id == "upscale_0_sampler" or "upscale" in node_type_lower:
-                    cls.set_if_missing(meta, "denoise", cls.as_float(inputs.get("denoise")))
-
-            if node.id == "extra_seed_extra_noise":
-                cls.set_if_missing(meta, "extra_seed", cls.as_int(inputs.get("noise_seed")))
-            elif node.id == "extra_seed_noised_latent_blend":
-                blend = cls.as_float(inputs.get("blend_factor"))
-                if blend is not None:
-                    strength = round(1.0 - blend, 4)
-                    cls.set_if_missing(meta, "extra_seed_strength", strength)
-
-            if "upscale" in node_type_lower and "loader" in node_type_lower:
-                cls.set_if_missing(
-                    meta,
-                    "upscaler",
-                    cls.as_text(inputs.get("model_name") or inputs.get("upscale_model") or inputs.get("upscale_model_name")),
-                )
-
-            if "adetailer" in node_type_lower:
-                cls.set_if_missing(meta, "adetailer_model", cls.as_text(inputs.get("model")))
-                cls.set_if_missing(meta, "adetailer_denoise", cls.as_float(inputs.get("denoise")))
+            try:
+                cls.parse_single_node(node, meta, text_candidates)
+            except Exception:
+                # Keep metadata extraction resilient even when one node has exotic structure.
+                continue
 
         if not meta.prompt and text_candidates:
-            non_negative = [text for text in text_candidates if not cls.looks_negative(text)]
-            meta.prompt = non_negative[0] if non_negative else text_candidates[0]
+            non_negative = [text for text, is_neg in text_candidates if not is_neg and not cls.looks_negative(text)]
+            meta.prompt = non_negative[0] if non_negative else text_candidates[0][0]
+
         if not meta.negative_prompt and text_candidates:
-            negatives = [text for text in text_candidates if cls.looks_negative(text)]
+            negatives = [text for text, is_neg in text_candidates if is_neg or cls.looks_negative(text)]
             if negatives:
                 meta.negative_prompt = negatives[0]
             elif len(text_candidates) > 1:
-                meta.negative_prompt = text_candidates[1]
+                meta.negative_prompt = text_candidates[1][0]
+
+    @classmethod
+    def parse_single_node(cls, node: Node, meta: ComfyMetadata, text_candidates: list[tuple[str, bool]]) -> None:
+        node_type_lower = node.node_type.lower()
+        inputs = node.inputs
+
+        cls.set_if_missing(
+            meta,
+            "checkpoint",
+            cls.first_text(inputs.get("ckpt_name"), inputs.get("checkpoint_name"), inputs.get("unet_name")),
+        )
+        cls.set_if_missing(meta, "vae", cls.first_text(inputs.get("vae_name"), inputs.get("vae")))
+        cls.set_if_missing(
+            meta,
+            "scheduler",
+            cls.first_text(inputs.get("scheduler"), inputs.get("scheduler_name"), inputs.get("schedulerName")),
+        )
+
+        if ("checkpoint" in node_type_lower and "upscale" not in node_type_lower) or "unetloader" in node_type_lower:
+            cls.set_if_missing(meta, "checkpoint", cls.first_text(inputs.get("model_name"), inputs.get("model")))
+            if node.widgets:
+                cls.set_if_missing(meta, "checkpoint", cls.as_text(node.widgets[0]))
+
+        if "vae" in node_type_lower and node.widgets:
+            cls.set_if_missing(meta, "vae", cls.as_text(node.widgets[0]))
+
+        if "scheduler" in node_type_lower and node.widgets:
+            cls.set_if_missing(meta, "scheduler", cls.as_text(node.widgets[0]))
+
+        if "upscale" in node_type_lower and "loader" in node_type_lower:
+            cls.set_if_missing(
+                meta,
+                "upscaler",
+                cls.first_text(inputs.get("model_name"), inputs.get("upscale_model"), inputs.get("upscale_model_name")),
+            )
+            if node.widgets:
+                cls.set_if_missing(meta, "upscaler", cls.as_text(node.widgets[0]))
+
+        if "adetailer" in node_type_lower:
+            cls.set_if_missing(meta, "adetailer_model", cls.as_text(inputs.get("model")))
+            cls.set_if_missing(meta, "adetailer_denoise", cls.as_float(inputs.get("denoise")))
+
+        is_text_node = (
+            "textencode" in node_type_lower
+            or "text encode" in node_type_lower
+            or "prompt" in node_type_lower
+            or "text multiline" in node_type_lower
+            or "text concatenate" in node_type_lower
+        )
+        if is_text_node:
+            text_value = cls.as_text(inputs.get("text"))
+            if text_value is None and node.widgets:
+                text_value = cls.as_text(node.widgets[0])
+            if text_value and cls.is_useful_text_candidate(text_value):
+                is_negative = "negative" in node_type_lower or "neg" in node_type_lower
+                text_candidates.append((text_value, is_negative))
+                if is_negative:
+                    cls.set_if_missing(meta, "negative_prompt", text_value)
+
+        if "lora" in node_type_lower:
+            lora_name = cls.first_text(inputs.get("lora_name"), inputs.get("lora"), inputs.get("name"))
+            if lora_name:
+                weight = cls.first_float(inputs.get("strength_model"), inputs.get("weight"), inputs.get("strength"))
+                cls.add_lora(meta, lora_name, 1.0 if weight is None else weight)
+
+            for input_key, value in inputs.items():
+                if LORA_INPUT_KEY_RE.match(input_key):
+                    parsed_lora = cls.parse_lora_payload(value)
+                    if parsed_lora is not None:
+                        cls.add_lora(meta, parsed_lora[0], parsed_lora[1])
+
+            for widget in node.widgets:
+                parsed_lora = cls.parse_lora_payload(widget)
+                if parsed_lora is not None:
+                    cls.add_lora(meta, parsed_lora[0], parsed_lora[1])
+
+        if "sampler" in node_type_lower:
+            input_seed = cls.as_int(inputs.get("seed"))
+            if input_seed is not None:
+                cls.set_if_missing(meta, "seed", input_seed)
+            else:
+                cls.set_if_missing(meta, "seed", cls.as_text(inputs.get("seed")))
+
+            cls.set_if_missing(meta, "steps", cls.as_int(inputs.get("steps")))
+            cls.set_if_missing(meta, "cfg", cls.as_float(inputs.get("cfg")))
+            cls.set_if_missing(meta, "sampler", cls.first_text(inputs.get("sampler_name"), inputs.get("sampler"), inputs.get("samplerName")))
+            cls.set_if_missing(
+                meta,
+                "scheduler",
+                cls.first_text(inputs.get("scheduler"), inputs.get("scheduler_name"), inputs.get("schedulerName")),
+            )
+
+            if meta.seed is None and len(node.widgets) > 0:
+                widget_seed = cls.as_int(node.widgets[0])
+                if widget_seed is not None:
+                    cls.set_if_missing(meta, "seed", widget_seed)
+                else:
+                    cls.set_if_missing(meta, "seed", cls.as_text(node.widgets[0]))
+            if meta.steps is None and len(node.widgets) > 2:
+                cls.set_if_missing(meta, "steps", cls.as_int(node.widgets[2]))
+            if meta.cfg is None and len(node.widgets) > 3:
+                cls.set_if_missing(meta, "cfg", cls.as_float(node.widgets[3]))
+            if meta.sampler is None and len(node.widgets) > 4:
+                cls.set_if_missing(meta, "sampler", cls.as_text(node.widgets[4]))
+            if meta.scheduler is None and len(node.widgets) > 5:
+                cls.set_if_missing(meta, "scheduler", cls.as_text(node.widgets[5]))
+
+            denoise = cls.first_float(inputs.get("denoise"), node.widgets[6] if len(node.widgets) > 6 else None)
+            if denoise is not None:
+                if meta.denoise is None:
+                    if denoise < 0.999 or node.id == "upscale_0_sampler" or "upscale" in node_type_lower:
+                        meta.denoise = denoise
+                elif meta.denoise >= 0.999 and denoise < 0.999:
+                    meta.denoise = denoise
+
+        if node.id == "extra_seed_extra_noise":
+            cls.set_if_missing(meta, "extra_seed", cls.as_int(inputs.get("noise_seed")))
+        elif node.id == "extra_seed_noised_latent_blend":
+            blend = cls.as_float(inputs.get("blend_factor"))
+            if blend is not None:
+                strength = round(1.0 - blend, 4)
+                cls.set_if_missing(meta, "extra_seed_strength", strength)
