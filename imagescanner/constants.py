@@ -14,6 +14,7 @@ PARAM_GROUP_REGEX = re.compile(rf", [^:]+: {{.+?{LOOKAHEAD_PATTERN}}}")
 PARAMS_BLACKLIST = [
     "Template", "Version", "Hires prompt", "Hires negative"
     "ADetailer mask", "ADetailer dilate", "ADetailer prompt", "ADetailer use", "ADetailer checkpoint", "ADetailer sampler", "ADetailer scheduler",
+    "ADetailer inpaint", "ADetailer min", "ADetailer method", "ADetailer hires", "ADetailer mask"
     "RP Divide", "RP Ma", "RP Prompt", "RP Calc", "RP Ratio", "RP Base", "RP Use", "RP LoRA", "RP Options", "RP Flip", "RP threshold",
     "FreeU Stages", "FreeU Schedule",
     "Mimic", "Separate Feature Channels", "Scaling Startpoint", "Variability Measure",  # Dynamic thresholding

@@ -1,7 +1,7 @@
-from io import BytesIO
-import json
-import math
 import re
+import math
+import json
+from io import BytesIO
 from typing import Any
 from collections import OrderedDict
 from dataclasses import dataclass, field
