@@ -348,6 +348,7 @@ class ImageScanner(commands.Cog):
         try:
             async with self.session.get(url) as resp:
                 resp.raise_for_status()
+                log.info(resp.url)
                 data = await resp.json()
         except aiohttp.ClientError as error:
             if isinstance(error, aiohttp.ClientResponseError) and error.status == 404:
