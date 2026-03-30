@@ -111,6 +111,7 @@ class ComfyMetadata:
     loras: list[ComfyLora] = field(default_factory=list)
     resource_hints: ComfyResourceHints = field(default_factory=ComfyResourceHints)
     error: str | None = None
+    raw: str | None = None
 
     def as_dict(self) -> OrderedDict[str, Any]:
         output: OrderedDict[str, Any] = OrderedDict()
@@ -535,6 +536,7 @@ class ComfyMetadataReader:
 
         merged.is_comfy = True
         merged.resource_hints = ComfyResourceHintExtractor.from_sources(merged, meta)
+        merged.raw = str(meta)
         return merged
 
     @classmethod

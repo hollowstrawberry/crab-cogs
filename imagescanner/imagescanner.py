@@ -1,5 +1,6 @@
 import io
 import asyncio
+import re
 import aiohttp
 import discord
 from hashlib import md5
@@ -12,7 +13,7 @@ from sd_prompt_reader.image_data_reader import ImageDataReader
 import imagescanner.utils as utils
 from imagescanner.comfy import ComfyMetadata, ComfyMetadataReader
 from imagescanner.commands import ImageScannerCommands
-from imagescanner.constants import log, IMAGE_TYPES, PARAM_REGEX, RESOURCE_HASH_REGEX
+from imagescanner.constants import log, IMAGE_TYPES, PARAM_REGEX, RESOURCE_HASH_REGEX, RESOURCE_FILE_REGEX
 from imagescanner.imageview import ImageView
 
 MODEL = "Model"
@@ -333,8 +334,9 @@ class ImageScanner(ImageScannerCommands):
     async def resolve_arcenciel_resources(self, metadata: ComfyMetadata) -> list[str]:
         hyperlinks: set[str] = set()
         hints = metadata.resource_hint_strings()
-        log.info(f"hints {hints}")
-        for hint in hints:
+        files = RESOURCE_FILE_REGEX.findall(metadata.raw or "")
+        log.info(f"hints {hints} /// files {files}")
+        for hint in hints + files:
             if hint not in self.model_cache_arcenciel and hint in self.model_not_found_cache_arcenciel:
                 continue
             if hint in self.model_cache_arcenciel:

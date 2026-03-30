@@ -11,6 +11,7 @@ LOOKAHEAD_PATTERN = r'(?=(?:[^"]*"[^"]*")*[^"]*$)'  # ensures the characters sur
 PARAM_REGEX = re.compile(rf" ?([^:]+): (.+?),{LOOKAHEAD_PATTERN}")
 PARAM_GROUP_REGEX = re.compile(rf", [^:]+: {{.+?{LOOKAHEAD_PATTERN}}}")
 RESOURCE_HASH_REGEX = re.compile(r"\b(?:0x)?[0-9a-f]{10,64}\b", re.IGNORECASE)
+RESOURCE_FILE_REGEX = re.compile(r"\"[^\"]+\.(?:safetensors|ckpt|pth|pt|bin)\"", re.IGNORECASE)
 
 PARAMS_BLACKLIST = [
     "Template", "Version", "Hires prompt", "Hires negative",
