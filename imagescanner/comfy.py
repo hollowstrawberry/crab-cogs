@@ -156,7 +156,7 @@ class ComfyMetadata:
         return output
 
     def resource_hint_strings(self) -> list[str]:
-        return self.resource_hints.hashes + [cand.value for cand in self.resource_hints.candidates if RESOURCE_EXT_RE.match(cand.value)]
+        return self.resource_hints.hashes + [cand.value for cand in self.resource_hints.candidates if RESOURCE_EXT_RE.search(cand.value)]
 
 
 @dataclass
