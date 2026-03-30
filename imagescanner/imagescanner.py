@@ -346,9 +346,10 @@ class ImageScanner(commands.Cog):
         if hash_only:
             params["hashOnly"] = "1"
         try:
-            async with self.session.get(url) as resp:
+            api_key = (await self.bot.get_shared_api_tokens("arcenciel")).get("api_key")
+            headers = {"x-api-key": api_key} if api_key else {}
+            async with self.session.get(url, params=params, headers = headers) as resp:
                 resp.raise_for_status()
-                log.info(resp.url)
                 data = await resp.json()
         except aiohttp.ClientError as error:
             if isinstance(error, aiohttp.ClientResponseError) and error.status == 404:
@@ -401,7 +402,7 @@ class ImageScanner(commands.Cog):
                 cache[hint] = hyperlink
 
     def build_arcenciel_hyperlink(self, model: dict) -> str:
-        return f"{self.arcenciel_emoji} [{model['title']}](https://arcenciel.io/models/{model['id']})"
+        return f"{self.arcenciel_emoji} `{model['type']}` [{model['title']}](https://arcenciel.io/models/{model['id']})"
 
 
 
