@@ -48,6 +48,8 @@ class ImageScanner(ImageScannerCommands):
         self.bot.tree.remove_command(self.context_menu.name, type=self.context_menu.type)
         if self.image_cache:
             self.image_cache.clear()
+        if self.session:
+            await self.session.close()
 
     async def is_valid_red_message(self, message: discord.Message) -> bool:
         return await self.bot.allowed_by_whitelist_blacklist(message.author) \
@@ -330,7 +332,9 @@ class ImageScanner(ImageScannerCommands):
 
     async def resolve_arcenciel_resources(self, metadata: ComfyMetadata) -> list[str]:
         hyperlinks: set[str] = set()
-        for hint in metadata.resource_hint_strings():
+        hints = metadata.resource_hint_strings()
+        log.info(f"hints {hints}")
+        for hint in hints:
             if hint not in self.model_cache_arcenciel and hint in self.model_not_found_cache_arcenciel:
                 continue
             if hint in self.model_cache_arcenciel:
