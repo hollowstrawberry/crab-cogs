@@ -127,43 +127,45 @@ class ImageScanner(commands.Cog):
             if comfy_data:
                 resources = await self.resolve_arcenciel_resources(comfy_data)
                 embed.description += "\n" + "\n".join(resources)
-        else:
-            if self.use_civitai:
-                desc_ext = []
-                if MODEL_HASH in params:
-                    link = await self.grab_civitai_model_link(params[MODEL_HASH])
+            return embed
+        if self.use_civitai:
+            desc_ext = []
+            if MODEL_HASH in params:
+                link = await self.grab_civitai_model_link(params[MODEL_HASH])
+                if link:
+                    if MODEL in params:
+                        desc_ext.append(f"{self.civitai_emoji} `CHECKPOINT` [{params[MODEL]}]({link})")
+                    else:
+                        desc_ext.append(f"{self.civitai_emoji} `CHECKPOINT` [Model]({link})")
+                    utils.remove_field(embed, MODEL_HASH)
+            utils.remove_field(embed, VAE_HASH) #  vae hashes seem to be bugged in automatic1111 webui
+            if params.get(LORA_HASHES):
+                hashes = PARAM_REGEX.findall(params[LORA_HASHES].strip('"')+",") # trailing comma for the regex
+                log.debug(hashes)
+                links = {name: await self.grab_civitai_model_link(short_hash)
+                            for name, short_hash in hashes}
+                for name, link in links.items():
                     if link:
-                        desc_ext.append(f"{self.civitai_emoji} [{params[MODEL]}]({link})" if MODEL in params else f"{self.civitai_emoji} [Model]({link})")
-                        utils.remove_field(embed, MODEL_HASH)
-                utils.remove_field(embed, VAE_HASH) #  vae hashes seem to be bugged in automatic1111 webui
-                if params.get(LORA_HASHES):
-                    hashes = PARAM_REGEX.findall(params[LORA_HASHES].strip('"')+",") # trailing comma for the regex
-                    log.debug(hashes)
-                    links = {name: await self.grab_civitai_model_link(short_hash)
-                                for name, short_hash in hashes}
-                    for name, link in links.items():
-                        if link:
-                            desc_ext.append(f"{self.civitai_emoji} [{name}]({link})")
-                if desc_ext:
-                    embed.description += "\n" + "\n".join(desc_ext)
-            if self.use_arcenciel:
-                desc_ext = []
-                if MODEL_HASH in params:
-                    models = await self.search_arcenciel_resource(params[MODEL_HASH], hash_only=True)
+                        desc_ext.append(f"{self.civitai_emoji} `LORA` [{name}]({link})")
+            if desc_ext:
+                embed.description += "\n" + "\n".join(desc_ext)
+        if self.use_arcenciel:
+            desc_ext = []
+            if MODEL_HASH in params:
+                models = await self.search_arcenciel_resource(params[MODEL_HASH], hash_only=True)
+                if models:
+                    desc_ext.append(self.build_arcenciel_hyperlink(models[0]))
+                    utils.remove_field(embed, MODEL_HASH)
+            utils.remove_field(embed, VAE_HASH) #  vae hashes seem to be bugged in automatic1111 webui
+            if params.get(LORA_HASHES):
+                hashes = PARAM_REGEX.findall(params[LORA_HASHES].strip('"')+",") # trailing comma for the regex
+                log.debug(hashes)
+                for _, hash in hashes:
+                    models = await self.search_arcenciel_resource(hash, hash_only=True)
                     if models:
                         desc_ext.append(self.build_arcenciel_hyperlink(models[0]))
-                        utils.remove_field(embed, MODEL_HASH)
-                utils.remove_field(embed, VAE_HASH) #  vae hashes seem to be bugged in automatic1111 webui
-                if params.get(LORA_HASHES):
-                    hashes = PARAM_REGEX.findall(params[LORA_HASHES].strip('"')+",") # trailing comma for the regex
-                    log.debug(hashes)
-                    for _, hash in hashes:
-                        models = await self.search_arcenciel_resource(hash, hash_only=True)
-                        if models:
-                            desc_ext.append(self.build_arcenciel_hyperlink(models[0]))
-                if desc_ext:
-                    embed.description += "\n" + "\n".join(desc_ext)
-
+            if desc_ext:
+                embed.description += "\n" + "\n".join([f"{self.arcenciel_emoji} {link}" for link in desc_ext])
         return embed
 
 
@@ -402,7 +404,7 @@ class ImageScanner(commands.Cog):
                 cache[hint] = hyperlink
 
     def build_arcenciel_hyperlink(self, model: dict) -> str:
-        return f"{self.arcenciel_emoji} `{model['type']}` [{model['title']}](https://arcenciel.io/models/{model['id']})"
+        return f"`{model['type']}` [{model['title']}](https://arcenciel.io/models/{model['id']})"
 
 
 
