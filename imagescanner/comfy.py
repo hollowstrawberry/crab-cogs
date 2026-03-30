@@ -536,7 +536,7 @@ class ComfyMetadataReader:
 
         merged.is_comfy = True
         merged.resource_hints = ComfyResourceHintExtractor.from_sources(merged, meta)
-        merged.raw = str(meta)
+        merged.raw = ", ".join(str(val) for val in meta.values())
         return merged
 
     @classmethod
