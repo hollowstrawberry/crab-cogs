@@ -39,6 +39,7 @@ class ImageScanner(ImageScannerCommands):
         self.arcenciel_emoji = await self.config.arcenciel_emoji()
         self.model_cache_civitai = await self.config.model_cache_v2()
         self.model_cache_arcenciel = await self.config.model_cache_arcenciel()
+        log.info("model cache", self.model_cache_arcenciel)
         self.image_cache_size = await self.config.image_cache_size()
         self.image_cache = ExpiringDict(max_len=self.image_cache_size, max_age_seconds=24*60*60)
         self.always_scan_generated_images = await self.config.always_scan_generated_images()
