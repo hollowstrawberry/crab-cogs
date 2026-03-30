@@ -90,8 +90,8 @@ class ImageScanner(ImageScannerCommands):
         if "Comfy" in metadata._tool:
             comfy_data = ComfyMetadataReader.from_info(metadata._info)
             if comfy_data:
-                resources = await self.resolve_arcenciel_resources(comfy_data)
-                embed.description += "\n" + "\n".join(resources)
+                hyperlinks = await self.resolve_arcenciel_resources(comfy_data)
+                embed.description += "\n" + "\n".join([f"{self.arcenciel_emoji} {link}" for link in hyperlinks])
             return embed
         if self.use_civitai:
             desc_ext = []
