@@ -156,59 +156,7 @@ class ComfyMetadata:
         return output
 
     def resource_hint_strings(self) -> list[str]:
-        return self.resource_hints.hashes + [candidate.value for candidate in self.resource_hints.candidates]
-
-    def resource_query_groups(self, max_groups: int = 48, max_variants_per_candidate: int = 2) -> list[tuple[str, list[str]]]:
-        groups: list[tuple[str, list[str]]] = []
-
-        for hash_value in self.resource_hints.hashes:
-            normalized = str(hash_value or "").strip()
-            if not normalized:
-                continue
-            groups.append(("hash", [normalized]))
-            if len(groups) >= max_groups:
-                return groups
-
-        for candidate in self.resource_hints.candidates:
-            queries: list[str] = []
-            seen: set[str] = set()
-
-            def push(value: str | None) -> None:
-                normalized = str(value or "").strip()
-                if not normalized:
-                    return
-                key = normalized.lower()
-                if key in seen:
-                    return
-                seen.add(key)
-                queries.append(normalized)
-
-            push(candidate.value)
-            for variant in candidate.variants:
-                if len(queries) >= (1 + max_variants_per_candidate):
-                    break
-                push(variant)
-
-            if queries:
-                groups.append((candidate.kind, queries))
-                if len(groups) >= max_groups:
-                    break
-
-        return groups
-
-    def resource_query_hints(self, max_queries: int = 96, max_variants_per_candidate: int = 2) -> list[tuple[str, str]]:
-        queries: list[tuple[str, str]] = []
-        seen: set[str] = set()
-        for kind, group in self.resource_query_groups(max_groups=max_queries, max_variants_per_candidate=max_variants_per_candidate):
-            for value in group:
-                key = f"{kind}:{value.lower()}"
-                if key in seen:
-                    continue
-                seen.add(key)
-                queries.append((kind, value))
-                if len(queries) >= max_queries:
-                    return queries
-        return queries
+        return self.resource_hints.hashes + [cand.value for cand in self.resource_hints.candidates if RESOURCE_EXT_RE.match(cand.value)]
 
 
 @dataclass
