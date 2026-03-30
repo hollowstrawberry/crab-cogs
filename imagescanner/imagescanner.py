@@ -368,6 +368,7 @@ class ImageScanner(ImageScannerCommands):
             self.model_cache_arcenciel[hint] = hyperlink
             async with self.config.model_cache_arcenciel() as cache:
                 cache[hint] = hyperlink
+            log.info("model cache", await self.config.model_cache_arcenciel())
 
     def build_arcenciel_hyperlink(self, model: dict) -> str:
         return f"`{model['type']}` [{model['title']}](https://arcenciel.io/models/{model['id']})"
