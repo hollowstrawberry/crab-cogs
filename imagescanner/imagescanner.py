@@ -1,6 +1,6 @@
 import io
+import os
 import asyncio
-import re
 import aiohttp
 import discord
 from hashlib import md5
@@ -334,7 +334,7 @@ class ImageScanner(ImageScannerCommands):
     async def resolve_arcenciel_resources(self, metadata: ComfyMetadata) -> list[str]:
         hyperlinks: set[str] = set()
         hints = metadata.resource_hint_strings()
-        files = RESOURCE_FILE_REGEX.findall(metadata.raw or "")
+        files = [str(os.path.basename(filename.strip(' "'))) for filename in RESOURCE_FILE_REGEX.findall(metadata.raw or "")]
         log.info(f"hints {hints} /// files {files}")
         for hint in hints + files:
             if hint not in self.model_cache_arcenciel and hint in self.model_not_found_cache_arcenciel:
