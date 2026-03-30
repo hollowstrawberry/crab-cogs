@@ -1,3 +1,4 @@
+import os
 import re
 import math
 import json
@@ -18,13 +19,72 @@ NEGATIVE_HINTS = (
     "deformed",
     "blurry",
 )
+
+RESOURCE_HASH_KEYS = {
+    "hash",
+    "sha256",
+    "sha256webui",
+    "modelhash",
+    "model_hash",
+    "sshsmodelhash",
+}
+
+RESOURCE_KIND_BY_KEY = {
+    "model": "checkpoint",
+    "model_name": "checkpoint",
+    "modelname": "checkpoint",
+    "ckpt_name": "checkpoint",
+    "checkpoint_name": "checkpoint",
+    "checkpoint": "checkpoint",
+    "unet_name": "checkpoint",
+    "lora": "lora",
+    "lora_name": "lora",
+    "vae": "vae",
+    "vae_name": "vae",
+    "upscale_model": "upscaler",
+    "upscale_model_name": "upscaler",
+    "upscaler": "upscaler",
+    "upscaler_name": "upscaler",
+    "model_name_upscaler": "upscaler",
+    "filename": "resource",
+    "file_name": "resource",
+    "filepath": "resource",
+    "file_path": "resource",
+    "name": "resource",
+}
+
 LORA_INPUT_KEY_RE = re.compile(r"^lora_\d+$", re.IGNORECASE)
+RESOURCE_EXT_RE = re.compile(r"\.(?:safetensors|ckpt|pth|pt|bin)$", re.IGNORECASE)
+RESOURCE_HASH_RE = re.compile(r"\b(?:0x)?[0-9a-f]{10,64}\b", re.IGNORECASE)
+LORA_TAG_RE = re.compile(r"<lora:([^:>]+):", re.IGNORECASE)
+UUID_PREFIX_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[-_ ]+", re.IGNORECASE)
+NUMERIC_PREFIX_RE = re.compile(r"^(?:\d{3,}[_-]){2,}")
+LORA_PREFIX_RE = re.compile(r'^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9]+(?:_[0-9]+)?)_',re.IGNORECASE)
+
+def clean_model(name: str) -> str:
+    name = UUID_PREFIX_RE.sub("", name)
+    name = NUMERIC_PREFIX_RE.sub("", name)
+    name = LORA_PREFIX_RE.sub("", name)
+    return name
 
 
 @dataclass
 class ComfyLora:
     name: str
     weight: float = 1.0
+
+
+@dataclass
+class ComfyResourceCandidate:
+    kind: str
+    value: str
+    variants: list[str] = field(default_factory=list)
+
+
+@dataclass
+class ComfyResourceHints:
+    candidates: list[ComfyResourceCandidate] = field(default_factory=list)
+    hashes: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -46,6 +106,7 @@ class ComfyMetadata:
     adetailer_model: str | None = None
     adetailer_denoise: float | None = None
     loras: list[ComfyLora] = field(default_factory=list)
+    resource_hints: ComfyResourceHints = field(default_factory=ComfyResourceHints)
     error: str | None = None
 
     def as_dict(self) -> OrderedDict[str, Any]:
@@ -91,6 +152,9 @@ class ComfyMetadata:
 
         return output
 
+    def resource_hint_strings(self) -> list[str]:
+        return self.resource_hints.hashes + [candidate.value for candidate in self.resource_hints.candidates]
+
 
 @dataclass
 class Node:
@@ -98,6 +162,299 @@ class Node:
     node_type: str
     inputs: dict[str, Any]
     widgets: list[Any]
+
+
+class ComfyResourceHintExtractor:
+    @staticmethod
+    def normalize_hash_token(value: str) -> str | None:
+        normalized = str(value or "").strip().lower().removeprefix("0x")
+        if len(normalized) < 10 or len(normalized) > 64:
+            return None
+        if not re.fullmatch(r"[0-9a-f]+", normalized):
+            return None
+        if not re.search(r"[a-f]", normalized):
+            return None
+        return normalized
+
+    @staticmethod
+    def normalize_name_candidate(value: str) -> str | None:
+        candidate = str(value or "").strip().replace("\\", "/")
+        if not candidate or len(candidate) > 300:
+            return None
+        if candidate.lower() in ("true", "false", "null", "undefined"):
+            return None
+        if re.fullmatch(r"[+-]?\d+(?:[.,]\d+)?", candidate):
+            return None
+        return candidate
+
+    @staticmethod
+    def canonical_name(value: str) -> str:
+        normalized = str(value or "").strip().replace("\\", "/")
+        base = os.path.basename(normalized)
+        without_ext = RESOURCE_EXT_RE.sub("", base)
+        return clean_model(without_ext).strip().lower()
+
+    @classmethod
+    def name_variants(cls, value: str) -> list[str]:
+        candidate = cls.normalize_name_candidate(value)
+        if not candidate:
+            return []
+
+        variants: list[str] = []
+        seen: set[str] = set()
+
+        def push(raw: str) -> None:
+            normalized = cls.normalize_name_candidate(raw)
+            if not normalized:
+                return
+            key = normalized.lower()
+            if key in seen:
+                return
+            seen.add(key)
+            variants.append(normalized)
+
+        normalized = candidate.replace("\\", "/")
+        base = os.path.basename(normalized)
+        base_no_ext = RESOURCE_EXT_RE.sub("", base)
+        canonical = clean_model(base_no_ext)
+
+        push(candidate)
+        push(normalized)
+        push(base)
+        push(base_no_ext)
+        push(canonical)
+
+        if canonical:
+            push(f"{canonical}.safetensors")
+            push(f"{canonical}.ckpt")
+
+        return variants
+
+    @staticmethod
+    def parse_json_like(value: Any) -> dict[str, Any] | list[Any] | None:
+        if isinstance(value, dict):
+            return value
+
+        if isinstance(value, list):
+            if value and all(isinstance(item, dict) for item in value):
+                return value
+            return None
+
+        if not isinstance(value, str):
+            return None
+
+        value = value.strip()
+        if not value:
+            return None
+        try:
+            parsed = json.loads(value)
+            if isinstance(parsed, (dict, list)):
+                return parsed
+        except json.JSONDecodeError:
+            start = value.find("{")
+            end = value.rfind("}")
+            if start >= 0 and end > start:
+                try:
+                    parsed = json.loads(value[start : end + 1])
+                    if isinstance(parsed, (dict, list)):
+                        return parsed
+                except json.JSONDecodeError:
+                    return None
+        return None
+
+    @classmethod
+    def _add_candidate(
+        cls,
+        hints: ComfyResourceHints,
+        seen: set[tuple[str, str]],
+        kind: str,
+        value: str | None,
+    ) -> None:
+        normalized = cls.normalize_name_candidate(value or "")
+        if not normalized:
+            return
+        key = (kind, normalized.lower())
+        if key in seen:
+            return
+        seen.add(key)
+        hints.candidates.append(
+            ComfyResourceCandidate(
+                kind=kind, value=normalized, variants=cls.name_variants(normalized)
+            )
+        )
+
+    @classmethod
+    def _add_hash(
+        cls, hints: ComfyResourceHints, seen: set[str], value: str | None
+    ) -> None:
+        if not value:
+            return
+        normalized = cls.normalize_hash_token(value)
+        if not normalized or normalized in seen:
+            return
+        seen.add(normalized)
+        hints.hashes.append(normalized)
+
+    @classmethod
+    def _kind_from_key(cls, key: str, *, default_kind: str = "resource") -> str:
+        key_lower = key.lower()
+        if key_lower in RESOURCE_KIND_BY_KEY:
+            return RESOURCE_KIND_BY_KEY[key_lower]
+        if "lora" in key_lower:
+            return "lora"
+        if "vae" in key_lower:
+            return "vae"
+        if "upscale" in key_lower:
+            return "upscaler"
+        if "model" in key_lower or "checkpoint" in key_lower or "ckpt" in key_lower:
+            return "checkpoint"
+        return default_kind
+
+    @classmethod
+    def _collect_from_unknown(
+        cls,
+        value: Any,
+        hints: ComfyResourceHints,
+        seen_names: set[tuple[str, str]],
+        seen_hashes: set[str],
+        *,
+        default_kind: str = "resource",
+        allow_bare_names: bool = False,
+        depth: int = 0,
+    ) -> None:
+        if value is None or depth > 8:
+            return
+
+        if isinstance(value, str):
+            parsed = cls.parse_json_like(value)
+            if parsed is not None:
+                cls._collect_from_unknown(
+                    parsed,
+                    hints,
+                    seen_names,
+                    seen_hashes,
+                    default_kind=default_kind,
+                    allow_bare_names=True,
+                    depth=depth + 1,
+                )
+                return
+
+            for hash_match in RESOURCE_HASH_RE.findall(value):
+                cls._add_hash(hints, seen_hashes, hash_match)
+
+            for lora_match in LORA_TAG_RE.findall(value):
+                cls._add_candidate(hints, seen_names, "lora", lora_match)
+
+            normalized = cls.normalize_name_candidate(value)
+            if not normalized:
+                return
+
+            if allow_bare_names or RESOURCE_EXT_RE.search(normalized):
+                cls._add_candidate(hints, seen_names, default_kind, normalized)
+            return
+
+        if isinstance(value, (list, tuple, set)):
+            for item in value:
+                cls._collect_from_unknown(
+                    item,
+                    hints,
+                    seen_names,
+                    seen_hashes,
+                    default_kind=default_kind,
+                    allow_bare_names=allow_bare_names,
+                    depth=depth + 1,
+                )
+            return
+
+        if not isinstance(value, dict):
+            return
+
+        for raw_key, nested in value.items():
+            key = str(raw_key or "")
+            key_lower = key.lower()
+            key_kind = cls._kind_from_key(key, default_kind=default_kind)
+            targeted_key = (
+                key_lower in RESOURCE_KIND_BY_KEY
+                or key_lower in RESOURCE_HASH_KEYS
+                or any(
+                    token in key_lower
+                    for token in (
+                        "lora",
+                        "model",
+                        "checkpoint",
+                        "ckpt",
+                        "vae",
+                        "upscale",
+                        "file",
+                        "hash",
+                    )
+                )
+            )
+
+            if key_lower in RESOURCE_HASH_KEYS and isinstance(nested, str):
+                cls._add_hash(hints, seen_hashes, nested)
+
+            if isinstance(nested, str):
+                normalized = cls.normalize_name_candidate(nested)
+                if normalized:
+                    if targeted_key and (
+                        RESOURCE_EXT_RE.search(normalized)
+                        or len(normalized) >= 6
+                        or "/" in normalized
+                        or "\\" in normalized
+                    ):
+                        cls._add_candidate(hints, seen_names, key_kind, normalized)
+
+            cls._collect_from_unknown(
+                nested,
+                hints,
+                seen_names,
+                seen_hashes,
+                default_kind=key_kind if targeted_key else default_kind,
+                allow_bare_names=allow_bare_names or targeted_key,
+                depth=depth + 1,
+            )
+
+    @classmethod
+    def from_sources(
+        cls,
+        metadata: ComfyMetadata | None,
+        raw_info: dict[str, Any] | None,
+        payload: dict[str, Any] | None = None,
+    ) -> ComfyResourceHints:
+        hints = ComfyResourceHints()
+        seen_names: set[tuple[str, str]] = set()
+        seen_hashes: set[str] = set()
+
+        if metadata:
+            cls._add_candidate(hints, seen_names, "checkpoint", metadata.checkpoint)
+            cls._add_candidate(hints, seen_names, "vae", metadata.vae)
+            cls._add_candidate(hints, seen_names, "upscaler", metadata.upscaler)
+            for lora in metadata.loras:
+                cls._add_candidate(hints, seen_names, "lora", lora.name)
+            if metadata.prompt:
+                for lora_name in LORA_TAG_RE.findall(metadata.prompt):
+                    cls._add_candidate(hints, seen_names, "lora", lora_name)
+
+        if payload:
+            model_name = payload.get("modelName")
+            if isinstance(model_name, str):
+                cls._add_candidate(hints, seen_names, "checkpoint", model_name)
+            vae_name = payload.get("vaeName")
+            if isinstance(vae_name, str):
+                cls._add_candidate(hints, seen_names, "vae", vae_name)
+            loras = payload.get("loras")
+            if isinstance(loras, list):
+                for lora in loras:
+                    if isinstance(lora, dict):
+                        cls._add_candidate(hints, seen_names, "lora", lora.get("name"))
+
+        if raw_info:
+            cls._collect_from_unknown(raw_info, hints, seen_names, seen_hashes)
+
+        hints.candidates = hints.candidates[:32]
+        hints.hashes = hints.hashes[:32]
+        return hints
 
 
 class ComfyMetadataReader:
@@ -115,7 +472,11 @@ class ComfyMetadataReader:
     def from_info(cls, meta: dict[str, Any]) -> ComfyMetadata:
         candidates = cls.extract_workflow_candidates(meta)
         if not candidates:
-            return ComfyMetadata(error="Workflow not found")
+            result = ComfyMetadata(error="Workflow not found")
+            result.resource_hints = ComfyResourceHintExtractor.from_sources(
+                result, meta
+            )
+            return result
 
         merged = ComfyMetadata(is_comfy=True)
         parsed_any = False
@@ -135,11 +496,29 @@ class ComfyMetadataReader:
             parsed_any = True
 
         if not parsed_any:
-            error = candidate_errors[0] if candidate_errors else "Workflow nodes not found"
-            return ComfyMetadata(error=error)
+            error = (
+                candidate_errors[0] if candidate_errors else "Workflow nodes not found"
+            )
+            result = ComfyMetadata(error=error)
+            result.resource_hints = ComfyResourceHintExtractor.from_sources(
+                result, meta
+            )
+            return result
 
         merged.is_comfy = True
+        merged.resource_hints = ComfyResourceHintExtractor.from_sources(merged, meta)
         return merged
+
+    @classmethod
+    def extract_resource_hints(
+        cls,
+        meta: dict[str, Any],
+        *,
+        payload: dict[str, Any] | None = None,
+        parsed: ComfyMetadata | None = None,
+    ) -> ComfyResourceHints:
+        metadata = parsed or cls.from_info(meta)
+        return ComfyResourceHintExtractor.from_sources(metadata, meta, payload)
 
     @staticmethod
     def extract_workflow_candidates(meta: dict[str, Any]) -> list[dict[str, Any]]:
@@ -194,7 +573,11 @@ class ComfyMetadataReader:
             parsed = json.loads(value)
             if isinstance(parsed, dict):
                 return parsed
-            if isinstance(parsed, list) and parsed and all(isinstance(item, dict) for item in parsed):
+            if (
+                isinstance(parsed, list)
+                and parsed
+                and all(isinstance(item, dict) for item in parsed)
+            ):
                 return {"nodes": parsed}
             return None
         except json.JSONDecodeError:
@@ -219,12 +602,20 @@ class ComfyMetadataReader:
             for raw in flow["nodes"]:
                 if not isinstance(raw, dict):
                     continue
-                node_type = ComfyMetadataReader.as_text(raw.get("type") or raw.get("class_type"))
+                node_type = ComfyMetadataReader.as_text(
+                    raw.get("type") or raw.get("class_type")
+                )
                 if not node_type:
                     continue
                 node_id = ComfyMetadataReader.as_text(raw.get("id")) or ""
-                inputs = raw.get("inputs") if isinstance(raw.get("inputs"), dict) else {}
-                widgets = raw.get("widgets_values") if isinstance(raw.get("widgets_values"), list) else []
+                inputs = (
+                    raw.get("inputs") if isinstance(raw.get("inputs"), dict) else {}
+                )
+                widgets = (
+                    raw.get("widgets_values")
+                    if isinstance(raw.get("widgets_values"), list)
+                    else []
+                )
                 nodes.append(Node(node_id, node_type, inputs or {}, widgets or []))
             return nodes
 
@@ -232,7 +623,9 @@ class ComfyMetadataReader:
         for key, value in flow.items():
             if not isinstance(value, dict):
                 continue
-            node_type = ComfyMetadataReader.as_text(value.get("class_type") or value.get("type"))
+            node_type = ComfyMetadataReader.as_text(
+                value.get("class_type") or value.get("type")
+            )
             if not node_type:
                 continue
             sort_key = int(key) if str(key).isdigit() else 10**9
@@ -241,9 +634,22 @@ class ComfyMetadataReader:
 
         nodes: list[Node] = []
         for _, key, value in sortable_entries:
-            inputs = value.get("inputs") if isinstance(value.get("inputs"), dict) else {}
-            widgets = value.get("widgets_values") if isinstance(value.get("widgets_values"), list) else []
-            nodes.append(Node(key, str(value.get("class_type") or value.get("type")), inputs or {}, widgets or []))
+            inputs = (
+                value.get("inputs") if isinstance(value.get("inputs"), dict) else {}
+            )
+            widgets = (
+                value.get("widgets_values")
+                if isinstance(value.get("widgets_values"), list)
+                else []
+            )
+            nodes.append(
+                Node(
+                    key,
+                    str(value.get("class_type") or value.get("type")),
+                    inputs or {},
+                    widgets or [],
+                )
+            )
         return nodes
 
     @staticmethod
@@ -365,7 +771,10 @@ class ComfyMetadataReader:
             "error",
         )
         for field_name in fields:
-            if getattr(target, field_name) is None and getattr(source, field_name) is not None:
+            if (
+                getattr(target, field_name) is None
+                and getattr(source, field_name) is not None
+            ):
                 setattr(target, field_name, getattr(source, field_name))
         for lora in source.loras:
             ComfyMetadataReader.add_lora(target, lora.name, lora.weight)
@@ -378,11 +787,17 @@ class ComfyMetadataReader:
         if payload.get("on") is False:
             return None
 
-        name = cls.first_text(payload.get("lora"), payload.get("lora_name"), payload.get("name"))
+        name = cls.first_text(
+            payload.get("lora"), payload.get("lora_name"), payload.get("name")
+        )
         if not name:
             return None
 
-        weight = cls.first_float(payload.get("strength_model"), payload.get("strength"), payload.get("weight"))
+        weight = cls.first_float(
+            payload.get("strength_model"),
+            payload.get("strength"),
+            payload.get("weight"),
+        )
         if weight is None:
             weight = 1.0
         return name, weight
@@ -399,35 +814,61 @@ class ComfyMetadataReader:
                 continue
 
         if not meta.prompt and text_candidates:
-            non_negative = [text for text, is_neg in text_candidates if not is_neg and not cls.looks_negative(text)]
+            non_negative = [
+                text
+                for text, is_neg in text_candidates
+                if not is_neg and not cls.looks_negative(text)
+            ]
             meta.prompt = non_negative[0] if non_negative else text_candidates[0][0]
 
         if not meta.negative_prompt and text_candidates:
-            negatives = [text for text, is_neg in text_candidates if is_neg or cls.looks_negative(text)]
+            negatives = [
+                text
+                for text, is_neg in text_candidates
+                if is_neg or cls.looks_negative(text)
+            ]
             if negatives:
                 meta.negative_prompt = negatives[0]
             elif len(text_candidates) > 1:
                 meta.negative_prompt = text_candidates[1][0]
 
     @classmethod
-    def parse_single_node(cls, node: Node, meta: ComfyMetadata, text_candidates: list[tuple[str, bool]]) -> None:
+    def parse_single_node(
+        cls, node: Node, meta: ComfyMetadata, text_candidates: list[tuple[str, bool]]
+    ) -> None:
         node_type_lower = node.node_type.lower()
         inputs = node.inputs
 
         cls.set_if_missing(
             meta,
             "checkpoint",
-            cls.first_text(inputs.get("ckpt_name"), inputs.get("checkpoint_name"), inputs.get("unet_name")),
+            cls.first_text(
+                inputs.get("ckpt_name"),
+                inputs.get("checkpoint_name"),
+                inputs.get("unet_name"),
+            ),
         )
-        cls.set_if_missing(meta, "vae", cls.first_text(inputs.get("vae_name"), inputs.get("vae")))
+        cls.set_if_missing(
+            meta, "vae", cls.first_text(inputs.get("vae_name"), inputs.get("vae"))
+        )
         cls.set_if_missing(
             meta,
             "scheduler",
-            cls.first_text(inputs.get("scheduler"), inputs.get("scheduler_name"), inputs.get("schedulerName")),
+            cls.first_text(
+                inputs.get("scheduler"),
+                inputs.get("scheduler_name"),
+                inputs.get("schedulerName"),
+            ),
         )
 
-        if ("checkpoint" in node_type_lower and "upscale" not in node_type_lower) or "unetloader" in node_type_lower:
-            cls.set_if_missing(meta, "checkpoint", cls.first_text(inputs.get("model_name"), inputs.get("model")))
+        if (
+            "checkpoint" in node_type_lower and "upscale" not in node_type_lower
+        ) or "unetloader" in node_type_lower:
+            cls.set_if_missing(
+                meta,
+                "checkpoint",
+                cls.first_text(inputs.get("model_name"), inputs.get("model")),
+            )
             if node.widgets:
                 cls.set_if_missing(meta, "checkpoint", cls.as_text(node.widgets[0]))
 
@@ -441,14 +882,22 @@ class ComfyMetadataReader:
             cls.set_if_missing(
                 meta,
                 "upscaler",
-                cls.first_text(inputs.get("model_name"), inputs.get("upscale_model"), inputs.get("upscale_model_name")),
+                cls.first_text(
+                    inputs.get("model_name"),
+                    inputs.get("upscale_model"),
+                    inputs.get("upscale_model_name"),
+                ),
             )
             if node.widgets:
                 cls.set_if_missing(meta, "upscaler", cls.as_text(node.widgets[0]))
 
         if "adetailer" in node_type_lower:
-            cls.set_if_missing(meta, "adetailer_model", cls.as_text(inputs.get("model")))
-            cls.set_if_missing(meta, "adetailer_denoise", cls.as_float(inputs.get("denoise")))
+            cls.set_if_missing(
+                meta, "adetailer_model", cls.as_text(inputs.get("model"))
+            )
+            cls.set_if_missing(
+                meta, "adetailer_denoise", cls.as_float(inputs.get("denoise"))
+            )
 
         is_text_node = (
             "textencode" in node_type_lower
@@ -468,9 +917,15 @@ class ComfyMetadataReader:
                     cls.set_if_missing(meta, "negative_prompt", text_value)
 
         if "lora" in node_type_lower:
-            lora_name = cls.first_text(inputs.get("lora_name"), inputs.get("lora"), inputs.get("name"))
+            lora_name = cls.first_text(
+                inputs.get("lora_name"), inputs.get("lora"), inputs.get("name")
+            )
             if lora_name:
-                weight = cls.first_float(inputs.get("strength_model"), inputs.get("weight"), inputs.get("strength"))
+                weight = cls.first_float(
+                    inputs.get("strength_model"),
+                    inputs.get("weight"),
+                    inputs.get("strength"),
+                )
                 cls.add_lora(meta, lora_name, 1.0 if weight is None else weight)
 
             for input_key, value in inputs.items():
@@ -493,11 +948,23 @@ class ComfyMetadataReader:
 
             cls.set_if_missing(meta, "steps", cls.as_int(inputs.get("steps")))
             cls.set_if_missing(meta, "cfg", cls.as_float(inputs.get("cfg")))
-            cls.set_if_missing(meta, "sampler", cls.first_text(inputs.get("sampler_name"), inputs.get("sampler"), inputs.get("samplerName")))
+            cls.set_if_missing(
+                meta,
+                "sampler",
+                cls.first_text(
+                    inputs.get("sampler_name"),
+                    inputs.get("sampler"),
+                    inputs.get("samplerName"),
+                ),
+            )
             cls.set_if_missing(
                 meta,
                 "scheduler",
-                cls.first_text(inputs.get("scheduler"), inputs.get("scheduler_name"), inputs.get("schedulerName")),
+                cls.first_text(
+                    inputs.get("scheduler"),
+                    inputs.get("scheduler_name"),
+                    inputs.get("schedulerName"),
+                ),
             )
 
             if meta.seed is None and len(node.widgets) > 0:
@@ -515,10 +982,17 @@ class ComfyMetadataReader:
             if meta.scheduler is None and len(node.widgets) > 5:
                 cls.set_if_missing(meta, "scheduler", cls.as_text(node.widgets[5]))
 
-            denoise = cls.first_float(inputs.get("denoise"), node.widgets[6] if len(node.widgets) > 6 else None)
+            denoise = cls.first_float(
+                inputs.get("denoise"),
+                node.widgets[6] if len(node.widgets) > 6 else None,
+            )
             if denoise is not None:
                 if meta.denoise is None:
-                    if denoise < 0.999 or node.id == "upscale_0_sampler" or "upscale" in node_type_lower:
+                    if (
+                        denoise < 0.999
+                        or node.id == "upscale_0_sampler"
+                        or "upscale" in node_type_lower
+                    ):
                         meta.denoise = denoise
                 elif meta.denoise >= 0.999 and denoise < 0.999:
                     meta.denoise = denoise

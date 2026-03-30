@@ -10,6 +10,7 @@ METADATA_REGEX = re.compile(r"(?:(?P<Prompt>[\S\s]+?)\n)?(?:Negative prompt: ?(?
 LOOKAHEAD_PATTERN = r'(?=(?:[^"]*"[^"]*")*[^"]*$)'  # ensures the characters surrounding the lookahead are not inside quotes
 PARAM_REGEX = re.compile(rf" ?([^:]+): (.+?),{LOOKAHEAD_PATTERN}")
 PARAM_GROUP_REGEX = re.compile(rf", [^:]+: {{.+?{LOOKAHEAD_PATTERN}}}")
+RESOURCE_HASH_REGEX = re.compile(r"\b(?:0x)?[0-9a-f]{10,64}\b", re.IGNORECASE)
 
 PARAMS_BLACKLIST = [
     "Template", "Version", "Hires prompt", "Hires negative",

@@ -11,9 +11,11 @@ from redbot.core.bot import Red
 from sd_prompt_reader.constants import SUPPORTED_FORMATS
 from sd_prompt_reader.image_data_reader import ImageDataReader
 
+from imagescanner.comfy import ComfyMetadata, ComfyMetadataReader
 import imagescanner.utils as utils
 from imagescanner.imageview import ImageView
-from imagescanner.constants import log, IMAGE_TYPES, HEADERS, PARAM_REGEX
+from imagescanner.constants import log, IMAGE_TYPES, HEADERS, PARAM_REGEX, RESOURCE_HASH_REGEX
+
 
 ImageCache = Dict[int, Tuple[Dict[int, ImageDataReader], Dict[int, bytes]]]
 
@@ -38,12 +40,13 @@ class ImageScanner(commands.Cog):
         self.use_arcenciel = True
         self.arcenciel_emoji = ""
         self.model_cache_civitai: Dict[str, Tuple[Any, Any]] = {}
-        self.model_cache_arcenciel: Dict[str, int] = {}
+        self.model_cache_arcenciel: Dict[str, str] = {}
         self.model_not_found_cache_civitai: Dict[str, bool] = ExpiringDict(max_len=100, max_age_seconds=24*60*60)
         self.model_not_found_cache_arcenciel: Dict[str, bool] = ExpiringDict(max_len=100, max_age_seconds=24*60*60)
         self.image_cache: Optional[ImageCache] = None
         self.image_cache_size = 100
         self.always_scan_generated_images = False
+        self.session = aiohttp.ClientSession(headers=HEADERS)
         defaults = {
             "channels": [],
             "scanlimit": self.scan_limit,
@@ -119,45 +122,47 @@ class ImageScanner(commands.Cog):
         if total > 1:
             embed.title = f"{embed.title or ''} ({i+1}/{total})"
 
-        if self.use_civitai:
-            desc_ext = []
-            if MODEL_HASH in params:
-                link = await self.grab_civitai_model_link(params[MODEL_HASH])
-                if link:
-                    desc_ext.append(f"[{params[MODEL]}]({link})" if MODEL in params else f"[Model]({link})")
-                    utils.remove_field(embed, MODEL_HASH)
-            utils.remove_field(embed, VAE_HASH) #  vae hashes seem to be bugged in automatic1111 webui
-            if params.get(LORA_HASHES):
-                hashes = PARAM_REGEX.findall(params[LORA_HASHES].strip('"')+",") # trailing comma for the regex
-                log.debug(hashes)
-                links = {name: await self.grab_civitai_model_link(short_hash)
-                            for name, short_hash in hashes}
-                for name, link in links.items():
+        if "Comfy" in metadata._tool:
+            comfy_data = ComfyMetadataReader.from_info(metadata._info)
+            if comfy_data:
+                resources = await self.resolve_arcenciel_resources(comfy_data)
+                embed.description += "\n" + "\n".join(resources)
+        else:
+            if self.use_civitai:
+                desc_ext = []
+                if MODEL_HASH in params:
+                    link = await self.grab_civitai_model_link(params[MODEL_HASH])
                     if link:
-                        desc_ext.append(f"[{name}]({link})")
-            if desc_ext:
-                embed.description += f"\n{self.civitai_emoji} " if self.civitai_emoji else "\n🔗 **Civitai:** "
-                embed.description += " • ".join(desc_ext)
-
-        if self.use_arcenciel:
-            desc_ext = []
-            if MODEL_HASH in params:
-                link = await self.grab_arcenciel_model_link(params[MODEL_HASH])
-                if link:
-                    desc_ext.append(f"[{params[MODEL]}]({link})" if MODEL in params else f"[Model]({link})")
-                    utils.remove_field(embed, MODEL_HASH)
-            utils.remove_field(embed, VAE_HASH) #  vae hashes seem to be bugged in automatic1111 webui
-            if params.get(LORA_HASHES):
-                hashes = PARAM_REGEX.findall(params[LORA_HASHES].strip('"')+",") # trailing comma for the regex
-                log.debug(hashes)
-                links = {name: await self.grab_arcenciel_model_link(short_hash)
-                            for name, short_hash in hashes}
-                for name, link in links.items():
-                    if link:
-                        desc_ext.append(f"[{name}]({link})")
-            if desc_ext:
-                embed.description += f"\n{self.arcenciel_emoji} " if self.arcenciel_emoji else "\n🔗 **AEC:** "
-                embed.description += " • ".join(desc_ext)
+                        desc_ext.append(f"{self.civitai_emoji} [{params[MODEL]}]({link})" if MODEL in params else f"{self.civitai_emoji} [Model]({link})")
+                        utils.remove_field(embed, MODEL_HASH)
+                utils.remove_field(embed, VAE_HASH) #  vae hashes seem to be bugged in automatic1111 webui
+                if params.get(LORA_HASHES):
+                    hashes = PARAM_REGEX.findall(params[LORA_HASHES].strip('"')+",") # trailing comma for the regex
+                    log.debug(hashes)
+                    links = {name: await self.grab_civitai_model_link(short_hash)
+                                for name, short_hash in hashes}
+                    for name, link in links.items():
+                        if link:
+                            desc_ext.append(f"{self.civitai_emoji} [{name}]({link})")
+                if desc_ext:
+                    embed.description += "\n" + "\n".join(desc_ext)
+            if self.use_arcenciel:
+                desc_ext = []
+                if MODEL_HASH in params:
+                    models = await self.search_arcenciel_resource(params[MODEL_HASH], hash_only=True)
+                    if models:
+                        desc_ext.append(self.build_arcenciel_hyperlink(models[0]))
+                        utils.remove_field(embed, MODEL_HASH)
+                utils.remove_field(embed, VAE_HASH) #  vae hashes seem to be bugged in automatic1111 webui
+                if params.get(LORA_HASHES):
+                    hashes = PARAM_REGEX.findall(params[LORA_HASHES].strip('"')+",") # trailing comma for the regex
+                    log.debug(hashes)
+                    for _, hash in hashes:
+                        models = await self.search_arcenciel_resource(hash, hash_only=True)
+                        if models:
+                            desc_ext.append(self.build_arcenciel_hyperlink(models[0]))
+                if desc_ext:
+                    embed.description += "\n" + "\n".join(desc_ext)
 
         return embed
 
@@ -309,10 +314,9 @@ class ImageScanner(commands.Cog):
         else:
             url = f"https://civitai.com/api/v1/model-versions/by-hash/{short_hash}"
             try:
-                async with aiohttp.ClientSession(headers=HEADERS) as session:
-                    async with session.get(url) as resp:
-                        resp.raise_for_status()
-                        data = await resp.json()
+                async with self.session.get(url) as resp:
+                    resp.raise_for_status()
+                    data = await resp.json()
             except aiohttp.ClientError as error:
                 if isinstance(error, aiohttp.ClientResponseError) and error.status == 404:
                     log.debug(f"Civitai model {short_hash} not found")
@@ -331,36 +335,73 @@ class ImageScanner(commands.Cog):
         return f"https://civitai.com/models/{model_id[0]}?modelVersionId={model_id[1]}"
 
 
-    async def grab_arcenciel_model_link(self, short_hash: str) -> Optional[str]:
-        if not short_hash:
-            return None
-        elif short_hash in self.model_cache_arcenciel:
-            m_id = self.model_cache_arcenciel[short_hash]
-        elif short_hash in self.model_not_found_cache_arcenciel:
-            return None
+    async def search_arcenciel_resource(self, query: str, *, hash_only: bool = False) -> list[dict]:
+        if not query.strip():
+            return []
+        url = "https://arcenciel.io/api/models/search"
+        params = {
+            "search": query,
+            "limit": 10,
+        }
+        if hash_only:
+            params["hashOnly"] = "1"
+        try:
+            async with self.session.get(url) as resp:
+                resp.raise_for_status()
+                data = await resp.json()
+        except aiohttp.ClientError as error:
+            if isinstance(error, aiohttp.ClientResponseError) and error.status == 404:
+                log.debug(f"Arcenciel model {query} not found")
+            else:
+                log.warning(f"Trying to grab model {query} from Arcenciel: {type(error).__name__}: {error}")
+            return []
+        return data["data"]
+    
+
+    async def resolve_arcenciel_resources(self, metadata: ComfyMetadata) -> list[str]:
+        hyperlinks: set[str] = set()
+        for hint in metadata.resource_hint_strings():
+            if hint not in self.model_cache_arcenciel and hint in self.model_not_found_cache_arcenciel:
+                continue
+            if hint in self.model_cache_arcenciel:
+                hyperlinks.add(self.model_cache_arcenciel[hint])
+                continue
+            is_hash = RESOURCE_HASH_REGEX.match(hint) is not None
+            resources = await self.search_arcenciel_resource(hint, hash_only=is_hash)
+            log.info(f"Resource matches for {hint} /// " + ", ".join([model["id"] for model in resources]))
+            if not resources:
+                await self.arcenciel_cache_set(hint, None)
+                continue
+            if is_hash or len(resources) == 1:
+                choice = resources[0]
+            else:
+                choice = None
+                for model in resources:
+                    version_names = []
+                    for version in model["versions"]:
+                        version_names += [version.get("fileName", ""), version.get("filePath", ""), version.get("originalName")]
+                    if any(hint in name for name in version_names):
+                        choice = model
+                        break
+            if choice:
+                link = self.build_arcenciel_hyperlink(choice)
+                await self.arcenciel_cache_set(hint, link)
+                hyperlinks.add(link)
+        return list(hyperlinks)
+    
+
+    async def arcenciel_cache_set(self, hint: str, hyperlink: str | None) -> None:
+        if hyperlink is None:
+            self.model_not_found_cache_arcenciel[hint] = True
         else:
-            url = f"https://arcenciel.io/api/models/search?search={short_hash}&hashOnly=true"
-            try:
-                async with aiohttp.ClientSession(headers=HEADERS) as session:
-                    async with session.get(url) as resp:
-                        resp.raise_for_status()
-                        data = await resp.json()
-            except aiohttp.ClientError as error:
-                if isinstance(error, aiohttp.ClientResponseError) and error.status == 404:
-                    log.debug(f"Arcenciel model {short_hash} not found")
-                else:
-                    log.warning(f"Trying to grab model {short_hash} from Arcenciel: {type(error).__name__}: {error}")
-                return None
+            self.model_cache_arcenciel[hint] = hyperlink
+            async with self.config.model_cache_arcenciel() as cache:
+                cache[hint] = hyperlink
 
-            if not data or not data.get("data") or "id" not in data["data"][0]:
-                self.model_not_found_cache_arcenciel[short_hash] = True
-                return None
-            m_id = data["data"][0]["id"]
-            self.model_cache_arcenciel[short_hash] = m_id
-            async with self.config.model_cache_arcenciel() as model_cache:
-                model_cache[short_hash] = m_id
+    @staticmethod
+    def build_arcenciel_hyperlink(model: dict) -> str:
+        return f"[[{model['type']}] {model['title']}](https://arcenciel.io/models/{model['id']})"
 
-        return f"https://arcenciel.io/models/{m_id}"
 
 
     # Config commands
