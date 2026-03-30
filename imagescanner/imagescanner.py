@@ -388,7 +388,7 @@ class ImageScanner(commands.Cog):
                 link = self.build_arcenciel_hyperlink(choice)
                 await self.arcenciel_cache_set(hint, link)
                 hyperlinks.add(link)
-        return list(hyperlinks)
+        return sorted(list(hyperlinks))
     
 
     async def arcenciel_cache_set(self, hint: str, hyperlink: str | None) -> None:
@@ -399,9 +399,8 @@ class ImageScanner(commands.Cog):
             async with self.config.model_cache_arcenciel() as cache:
                 cache[hint] = hyperlink
 
-    @staticmethod
-    def build_arcenciel_hyperlink(model: dict) -> str:
-        return f"[[{model['type']}] {model['title']}](https://arcenciel.io/models/{model['id']})"
+    def build_arcenciel_hyperlink(self, model: dict) -> str:
+        return f"{self.arcenciel_emoji} [{model['title']}](https://arcenciel.io/models/{model['id']})"
 
 
 
