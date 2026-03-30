@@ -40,7 +40,6 @@ class ImageScanner(ImageScannerCommands):
         self.arcenciel_emoji = await self.config.arcenciel_emoji()
         self.model_cache_civitai = await self.config.model_cache_v2()
         self.model_cache_arcenciel = await self.config.model_cache_arcenciel()
-        log.info(f"model cache {self.model_cache_arcenciel}")
         self.image_cache_size = await self.config.image_cache_size()
         self.image_cache = ExpiringDict(max_len=self.image_cache_size, max_age_seconds=24*60*60)
         self.always_scan_generated_images = await self.config.always_scan_generated_images()
@@ -335,7 +334,6 @@ class ImageScanner(ImageScannerCommands):
         hyperlinks: set[str] = set()
         hints = metadata.resource_hint_strings()
         files = [str(os.path.basename(filename.strip(' "'))) for filename in RESOURCE_FILE_REGEX.findall(metadata.raw or "")]
-        log.info(f"hints {hints} /// files {files}")
         for hint in set(hints + files):
             if hint not in self.model_cache_arcenciel and hint in self.model_not_found_cache_arcenciel:
                 continue
@@ -374,7 +372,6 @@ class ImageScanner(ImageScannerCommands):
             self.model_cache_arcenciel[hint] = hyperlink
             async with self.config.model_cache_arcenciel() as cache:
                 cache[hint] = hyperlink
-            log.info(f"model cache {await self.config.model_cache_arcenciel()}")
 
     def build_arcenciel_hyperlink(self, model: dict) -> str:
         return f"`{model['type']}` [{model['title']}](https://arcenciel.io/models/{model['id']})"
