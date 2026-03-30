@@ -379,7 +379,7 @@ class ImageScanner(commands.Cog):
                 for model in resources:
                     version_names = []
                     for version in model["versions"]:
-                        version_names += [version.get("fileName", ""), version.get("filePath", ""), version.get("originalName")]
+                        version_names += [version.get("fileName", ""), version.get("filePath", ""), version.get("originalName", "")]
                     if any(hint in name for name in version_names):
                         choice = model
                         break
