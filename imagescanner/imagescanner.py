@@ -336,7 +336,7 @@ class ImageScanner(ImageScannerCommands):
         hints = metadata.resource_hint_strings()
         files = [str(os.path.basename(filename.strip(' "'))) for filename in RESOURCE_FILE_REGEX.findall(metadata.raw or "")]
         log.info(f"hints {hints} /// files {files}")
-        for hint in hints + files:
+        for hint in set(hints + files):
             if hint not in self.model_cache_arcenciel and hint in self.model_not_found_cache_arcenciel:
                 continue
             if hint in self.model_cache_arcenciel:
