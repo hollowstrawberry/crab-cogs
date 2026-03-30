@@ -20,6 +20,18 @@ NEGATIVE_HINTS = (
     "blurry",
 )
 
+LORA_INPUT_KEY_RE = re.compile(r"^lora_\d+$", re.IGNORECASE)
+RESOURCE_EXT_RE = re.compile(r"\.(?:safetensors|ckpt|pth|pt|bin)$", re.IGNORECASE)
+RESOURCE_HASH_RE = re.compile(r"\b(?:0x)?[0-9a-f]{10,64}\b", re.IGNORECASE)
+LORA_TAG_RE = re.compile(r"<lora:([^:>]+):", re.IGNORECASE)
+LABELLED_HASH_RE = re.compile(r"(?:^|[\s,;])(?:model|vae|lora|lycoris|checkpoint|hash|sha256)[^:\n]{0,24}:\s*(0x?[0-9a-f]{10,64})", re.IGNORECASE)
+BRACKET_HASH_RE = re.compile(r"\[([0-9a-f]{10,64})\]", re.IGNORECASE)
+UUID_TOKEN_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?:[-_][a-z0-9._-]+)?$", re.IGNORECASE)
+STORAGE_PREFIX_RE = re.compile(r"^(?:generator|images|thumbnails|uploads|output|outputs|temp|tmp)/", re.IGNORECASE)
+UUID_PREFIX_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[-_ ]+", re.IGNORECASE)
+NUMERIC_PREFIX_RE = re.compile(r"^(?:\d{3,}[_-]){2,}")
+LORA_PREFIX_RE = re.compile(r'^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9]+(?:_[0-9]+)?)_',re.IGNORECASE)
+
 RESOURCE_HASH_KEYS = {
     "hash",
     "sha256",
@@ -53,20 +65,11 @@ RESOURCE_KIND_BY_KEY = {
     "name": "resource",
 }
 
-LORA_INPUT_KEY_RE = re.compile(r"^lora_\d+$", re.IGNORECASE)
-RESOURCE_EXT_RE = re.compile(r"\.(?:safetensors|ckpt|pth|pt|bin)$", re.IGNORECASE)
-RESOURCE_HASH_RE = re.compile(r"\b(?:0x)?[0-9a-f]{10,64}\b", re.IGNORECASE)
-LORA_TAG_RE = re.compile(r"<lora:([^:>]+):", re.IGNORECASE)
-UUID_PREFIX_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[-_ ]+", re.IGNORECASE)
-NUMERIC_PREFIX_RE = re.compile(r"^(?:\d{3,}[_-]){2,}")
-LORA_PREFIX_RE = re.compile(r'^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9]+(?:_[0-9]+)?)_',re.IGNORECASE)
-
 def clean_model(name: str) -> str:
     name = UUID_PREFIX_RE.sub("", name)
     name = NUMERIC_PREFIX_RE.sub("", name)
     name = LORA_PREFIX_RE.sub("", name)
     return name
-
 
 @dataclass
 class ComfyLora:
@@ -154,6 +157,58 @@ class ComfyMetadata:
 
     def resource_hint_strings(self) -> list[str]:
         return self.resource_hints.hashes + [candidate.value for candidate in self.resource_hints.candidates]
+
+    def resource_query_groups(self, max_groups: int = 48, max_variants_per_candidate: int = 2) -> list[tuple[str, list[str]]]:
+        groups: list[tuple[str, list[str]]] = []
+
+        for hash_value in self.resource_hints.hashes:
+            normalized = str(hash_value or "").strip()
+            if not normalized:
+                continue
+            groups.append(("hash", [normalized]))
+            if len(groups) >= max_groups:
+                return groups
+
+        for candidate in self.resource_hints.candidates:
+            queries: list[str] = []
+            seen: set[str] = set()
+
+            def push(value: str | None) -> None:
+                normalized = str(value or "").strip()
+                if not normalized:
+                    return
+                key = normalized.lower()
+                if key in seen:
+                    return
+                seen.add(key)
+                queries.append(normalized)
+
+            push(candidate.value)
+            for variant in candidate.variants:
+                if len(queries) >= (1 + max_variants_per_candidate):
+                    break
+                push(variant)
+
+            if queries:
+                groups.append((candidate.kind, queries))
+                if len(groups) >= max_groups:
+                    break
+
+        return groups
+
+    def resource_query_hints(self, max_queries: int = 96, max_variants_per_candidate: int = 2) -> list[tuple[str, str]]:
+        queries: list[tuple[str, str]] = []
+        seen: set[str] = set()
+        for kind, group in self.resource_query_groups(max_groups=max_queries, max_variants_per_candidate=max_variants_per_candidate):
+            for value in group:
+                key = f"{kind}:{value.lower()}"
+                if key in seen:
+                    continue
+                seen.add(key)
+                queries.append((kind, value))
+                if len(queries) >= max_queries:
+                    return queries
+        return queries
 
 
 @dataclass
@@ -273,6 +328,8 @@ class ComfyResourceHintExtractor:
         normalized = cls.normalize_name_candidate(value or "")
         if not normalized:
             return
+        if cls._is_noise_candidate(normalized, kind):
+            return
         key = (kind, normalized.lower())
         if key in seen:
             return
@@ -294,6 +351,24 @@ class ComfyResourceHintExtractor:
             return
         seen.add(normalized)
         hints.hashes.append(normalized)
+
+    @staticmethod
+    def _is_noise_candidate(value: str, kind: str) -> bool:
+        normalized = value.replace("\\", "/").strip()
+        if not normalized:
+            return True
+        base = os.path.basename(normalized).strip()
+        if not base:
+            return True
+        base_without_ext = RESOURCE_EXT_RE.sub("", base)
+        has_extension = RESOURCE_EXT_RE.search(base) is not None
+        if STORAGE_PREFIX_RE.match(normalized) and not has_extension:
+            return True
+        if UUID_TOKEN_RE.fullmatch(base_without_ext):
+            return True
+        if kind == "resource" and not has_extension:
+            return True
+        return False
 
     @classmethod
     def _kind_from_key(cls, key: str, *, default_kind: str = "resource") -> str:
@@ -339,7 +414,12 @@ class ComfyResourceHintExtractor:
                 )
                 return
 
-            for hash_match in RESOURCE_HASH_RE.findall(value):
+            cls._add_hash(hints, seen_hashes, value)
+
+            for hash_match in LABELLED_HASH_RE.findall(value):
+                cls._add_hash(hints, seen_hashes, hash_match)
+
+            for hash_match in BRACKET_HASH_RE.findall(value):
                 cls._add_hash(hints, seen_hashes, hash_match)
 
             for lora_match in LORA_TAG_RE.findall(value):
