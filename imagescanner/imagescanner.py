@@ -368,7 +368,7 @@ class ImageScanner(commands.Cog):
                 continue
             is_hash = RESOURCE_HASH_REGEX.match(hint) is not None
             resources = await self.search_arcenciel_resource(hint, hash_only=is_hash)
-            log.info(f"Resource matches for {hint} /// " + ", ".join([model["id"] for model in resources]))
+            log.info(f"Resource matches for {hint} /// " + ", ".join([str(model["id"]) for model in resources]))
             if not resources:
                 await self.arcenciel_cache_set(hint, None)
                 continue
