@@ -85,7 +85,7 @@ class ImageScanner(ImageScannerCommands):
         if total > 1:
             embed.title = f"{embed.title or ''} ({i+1}/{total})"
         # new
-        if isinstance(metadata, ComfyMetadata):
+        if metadata.source == "comfy":
             hyperlinks = await self.resolve_arcenciel_resources(metadata)
             embed.description += "\n" + "\n".join([f"{self.arcenciel_emoji} {link}" for link in hyperlinks])
             return embed
