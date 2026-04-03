@@ -21,6 +21,11 @@ PARAMS_BLACKLIST = [
 class Metadata(ABC):
     raw: str | None = None
 
+    @property
+    @abstractmethod
+    def source(self) -> str:
+        pass
+
     @abstractmethod
     def as_dict(self) -> OrderedDict[str, Any]:
         pass
@@ -28,6 +33,7 @@ class Metadata(ABC):
 
 @dataclass
 class WebuiMetadata(Metadata):
+    source = "webui"
 
     def as_dict(self):
         if not self.raw:
