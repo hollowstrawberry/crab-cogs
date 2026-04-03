@@ -1,15 +1,15 @@
 import aiohttp
 from typing import Any
 from expiringdict import ExpiringDict
-from sd_prompt_reader.image_data_reader import ImageDataReader
 from redbot.core import commands
 from redbot.core.bot import Red, Config
 
+from imagescanner.metadata import Metadata
 from imagescanner.constants import HEADERS
 
-ImageData = dict[int, bytes]
-ImageMetadata = dict[int, ImageDataReader]
-ImageCache = dict[int, tuple[ImageMetadata, ImageData]]
+ImageCacheData = dict[int, bytes]
+ImageCacheMetadata = dict[int, Metadata]
+ImageCache = dict[int, tuple[ImageCacheMetadata, ImageCacheData]]
 
 
 class ImageScannerBase(commands.Cog):

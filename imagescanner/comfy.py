@@ -8,6 +8,8 @@ from collections import OrderedDict
 from dataclasses import dataclass, field
 from PIL import Image
 
+from imagescanner.metadata import Metadata
+
 NEGATIVE_HINTS = (
     "negative prompt",
     "worst quality",
@@ -91,7 +93,8 @@ class ComfyResourceHints:
 
 
 @dataclass
-class ComfyMetadata:
+class ComfyMetadata(Metadata):
+    source = "comfy"
     is_comfy: bool = False
     prompt: str | None = None
     negative_prompt: str | None = None

@@ -5,15 +5,14 @@ import aiohttp
 import discord
 from hashlib import md5
 from expiringdict import ExpiringDict
+from imagescanner.metadata import Metadata
 from redbot.core import commands, app_commands
 from redbot.core.bot import Red
-from sd_prompt_reader.constants import SUPPORTED_FORMATS
-from sd_prompt_reader.image_data_reader import ImageDataReader
 
 import imagescanner.utils as utils
 from imagescanner.comfy import ComfyMetadata, ComfyMetadataReader
 from imagescanner.commands import ImageScannerCommands
-from imagescanner.constants import log, IMAGE_TYPES, PARAM_REGEX, RESOURCE_HASH_REGEX, RESOURCE_FILE_REGEX
+from imagescanner.constants import log, SUPPORTED_FORMATS, PARAM_REGEX, RESOURCE_HASH_REGEX, RESOURCE_FILE_REGEX
 from imagescanner.imageview import ImageView
 
 MODEL = "Model"
@@ -68,9 +67,9 @@ class ImageScanner(ImageScannerCommands):
         elif not message.attachments:
             return {}
         else:
-            metadata: dict[int, ImageDataReader] = {}
+            metadata: dict[int, Metadata] = {}
             image_bytes: dict[int, bytes] = {}
-            tasks = [utils.read_attachment_metadata(i, attachment, metadata, image_bytes)
+            tasks = [utils.grab_attachment_metadata(i, attachment, metadata, image_bytes)
                     for i, attachment in enumerate(message.attachments)]
             await asyncio.gather(*tasks)
             if metadata and self.image_cache_size > 0:
@@ -82,20 +81,19 @@ class ImageScanner(ImageScannerCommands):
             return {}
         
 
-    async def prepare_embed(self, message: discord.Message, metadata: ImageDataReader, i: int, total=1) -> discord.Embed:
+    async def prepare_embed(self, message: discord.Message, metadata: Metadata, i: int, total=1) -> discord.Embed:
         assert isinstance(message.author, discord.Member)
         params = utils.get_params_from_metadata(metadata)
-        embed = utils.get_embed(params, message.author)
+        embed = utils.build_embed(params, message.author)
         embed.description = message.jump_url if self.civitai_emoji else f":arrow_right: {message.jump_url}"
         if total > 1:
             embed.title = f"{embed.title or ''} ({i+1}/{total})"
-
-        if "Comfy" in metadata._tool:
-            comfy_data = ComfyMetadataReader.from_info(metadata._info)
-            if comfy_data:
-                hyperlinks = await self.resolve_arcenciel_resources(comfy_data)
-                embed.description += "\n" + "\n".join([f"{self.arcenciel_emoji} {link}" for link in hyperlinks])
+        # new
+        if isinstance(metadata, ComfyMetadata):
+            hyperlinks = await self.resolve_arcenciel_resources(metadata)
+            embed.description += "\n" + "\n".join([f"{self.arcenciel_emoji} {link}" for link in hyperlinks])
             return embed
+        # this is old and ugly don't look at it
         if self.use_civitai:
             desc_ext = []
             if MODEL_HASH in params:
@@ -146,15 +144,16 @@ class ImageScanner(ImageScannerCommands):
         channel_perms = message.channel.permissions_for(message.guild.me)
         if not channel_perms.add_reactions:
             return
-        attachments = [a for a in message.attachments if a.filename.lower().endswith(tuple(SUPPORTED_FORMATS)) and a.size < self.scan_limit]
+        attachments = [a for a in message.attachments
+                       if a.filename.lower().endswith(SUPPORTED_FORMATS) and a.size < self.scan_limit]
         if not attachments:
             return
         if not await self.is_valid_red_message(message):
             return
 
-        metadata: dict[int, ImageDataReader] = {}
+        metadata: dict[int, Metadata] = {}
         image_bytes: dict[int, bytes] = {}
-        tasks = [utils.read_attachment_metadata(i, attachment, metadata, image_bytes)
+        tasks = [utils.grab_attachment_metadata(i, attachment, metadata, image_bytes)
                  for i, attachment in enumerate(attachments)]
         await asyncio.gather(*tasks)
 
@@ -184,7 +183,7 @@ class ImageScanner(ImageScannerCommands):
         if ctx.channel_id not in self.scan_channels and message.author.id != self.bot.user.id:
             return
 
-        attachments = [a for a in message.attachments if a.filename.lower().endswith(IMAGE_TYPES)]
+        attachments = [a for a in message.attachments if a.filename.lower().endswith(SUPPORTED_FORMATS)]
         if not attachments:
             return
 
@@ -194,16 +193,16 @@ class ImageScanner(ImageScannerCommands):
         if message.id in self.image_cache:
             metadata, image_bytes = self.image_cache[message.id]
         else:
-            metadata: dict[int, ImageDataReader] = {}
+            metadata: dict[int, Metadata] = {}
             image_bytes: dict[int, bytes] = {}
-            tasks = [utils.read_attachment_metadata(i, attachment, metadata, image_bytes)
+            tasks = [utils.grab_attachment_metadata(i, attachment, metadata, image_bytes)
                      for i, attachment in enumerate(attachments)]
             await asyncio.gather(*tasks)
             if self.image_cache_size > 0:
                 self.image_cache[message.id] = (metadata, image_bytes)
 
         if not metadata:
-            embed = utils.get_embed({}, message.author)
+            embed = utils.build_embed({}, message.author)
             embed.description = f"{message.jump_url}\nThis post contains no image generation data."
             embed.set_thumbnail(url=attachments[0].url)
             try:
@@ -212,9 +211,9 @@ class ImageScanner(ImageScannerCommands):
                 log.debug(f"User {ctx.member.id} does not accept DMs")
             return
         
-        for i, data in sorted(metadata.items()):
-            embed = await self.prepare_embed(message, data, i, len(attachments))
-            view = ImageView(data.raw, [embed], ephemeral=False)
+        for i, md in sorted(metadata.items(), key=lambda m: m[0]):
+            embed = await self.prepare_embed(message, md, i, len(attachments))
+            view = ImageView(md.raw, [embed], ephemeral=False)
             if self.attach_images and i in image_bytes:
                 img = io.BytesIO(image_bytes[i])
                 filename = md5(image_bytes[i]).hexdigest() + ".png"
@@ -239,7 +238,7 @@ class ImageScanner(ImageScannerCommands):
     async def scanimage_app(self, interaction: discord.Interaction, message: discord.Message):
         """Get image metadata"""
         assert self.image_cache
-        attachments = [a for a in message.attachments if a.filename.lower().endswith(tuple(SUPPORTED_FORMATS))]
+        attachments = [a for a in message.attachments if a.filename.lower().endswith(SUPPORTED_FORMATS)]
         if not attachments:
             await interaction.response.send_message("This post contains no images.", ephemeral=True)
             return
@@ -250,7 +249,7 @@ class ImageScanner(ImageScannerCommands):
             metadata, image_bytes = self.image_cache[message.id]
         else:
             metadata, image_bytes = {}, {}
-            tasks = [utils.read_attachment_metadata(i, attachment, metadata, image_bytes)
+            tasks = [utils.grab_attachment_metadata(i, attachment, metadata, image_bytes)
                      for i, attachment in enumerate(attachments)]
             await asyncio.gather(*tasks)
 
@@ -263,8 +262,7 @@ class ImageScanner(ImageScannerCommands):
             return
         
         embeds = []
-        metadata_sorted = sorted(metadata.items(), key=lambda m: m[0])
-        for i, data in metadata_sorted:
+        for i, data in sorted(metadata.items(), key=lambda m: m[0]):
             embed = await self.prepare_embed(message, data, i, len(attachments))
             embed.set_thumbnail(url=attachments[i].url or attachments[i].proxy_url or None)
             embeds.append(embed)
