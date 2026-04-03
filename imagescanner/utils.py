@@ -7,6 +7,7 @@ from PIL.Image import Image
 from PIL import PngImagePlugin
 from typing import Any, Dict
 from collections import OrderedDict
+from concurrent.futures import ProcessPoolExecutor
 from sd_prompt_reader.constants import SUPPORTED_FORMATS
 from sd_prompt_reader.image_data_reader import ImageDataReader
 
@@ -91,15 +92,7 @@ async def read_attachment_metadata(i: int, attachment: discord.Attachment, metad
         b = BytesIO(current_image_bytes)
         img = PIL.Image.open(b)
         await asyncio.to_thread(img.load)
-        if (img.mode == "RGBA"):  # in rare cases, when ImageDataReader reads an RGBA image, it gets stuck in an infinite loop
-            log.info("before remove transparency")
-            b = await asyncio.to_thread(remove_transparency, img)
-            log.info("after remove transparency")
-        del img
-        b.seek(0)
-
-        image_metadata = None # await asyncio.to_thread(ImageDataReader, b)
-
+        image_metadata = await run_metadata_scanner_process(img)
     except Exception:
         log.exception("Processing attachment")
         return
@@ -107,16 +100,18 @@ async def read_attachment_metadata(i: int, attachment: discord.Attachment, metad
         image_bytes[i] = current_image_bytes
         metadata[i] = image_metadata
 
-def remove_transparency(img: Image):
-    info = img.info.copy()
-    new = PIL.Image.new("RGB", img.size, (0, 0, 0))
-    new.paste(img, mask=img.split()[-1])
-    pnginfo = PngImagePlugin.PngInfo()
-    for key, value in info.items():
-        pnginfo.add_text(key, str(value))
-    b = BytesIO()
-    img.save(b, format="PNG", pnginfo=pnginfo)
-    return b
+# this metadata reader package is ass and may get stuck on an infinite loop
+async def run_metadata_scanner_process(img) -> ImageDataReader | None:
+    with ProcessPoolExecutor(max_workers=1) as executor:
+        loop = asyncio.get_event_loop()
+        try:
+            return await asyncio.wait_for(
+                loop.run_in_executor(executor, ImageDataReader, img), 
+                timeout=0.1
+            )
+        except asyncio.TimeoutError:
+            log.warning("Metadata reader timed out")
+            return None
 
 def remove_field(embed: discord.Embed, field_name: str):
     for i, field in enumerate(embed.fields):
