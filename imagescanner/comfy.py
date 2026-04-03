@@ -94,7 +94,6 @@ class ComfyResourceHints:
 
 @dataclass
 class ComfyMetadata(Metadata):
-    source = "comfy"
     is_comfy: bool = False
     prompt: str | None = None
     negative_prompt: str | None = None

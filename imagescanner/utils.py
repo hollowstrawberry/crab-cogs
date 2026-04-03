@@ -46,3 +46,9 @@ async def grab_attachment_metadata(i: int, attachment: discord.Attachment, metad
     if current_image_metadata:
         image_bytes[i] = current_image_bytes
         metadata[i] = current_image_metadata
+
+def remove_field(embed: discord.Embed, field_name: str):
+    for i, field in enumerate(embed.fields):
+        if field.name == field_name:
+            embed.remove_field(i)
+            return

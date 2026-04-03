@@ -1,13 +1,10 @@
 import re
 from abc import ABC, abstractmethod
-from typing import Any, Literal
+from typing import Any
 from collections import OrderedDict
 from dataclasses import dataclass
 
-METADATA_REGEX = re.compile(r"(?:(?P<Prompt>[\S\s]+?)\n)?(?:Negative prompt: ?(?P<NegativePrompt>[\S\s]*)\n)?(?P<Params>[^\n:]+: .+)", re.IGNORECASE)
-LOOKAHEAD_PATTERN = r'(?=(?:[^"]*"[^"]*")*[^"]*$)'  # ensures the characters surrounding the lookahead are not inside quotes
-PARAM_REGEX = re.compile(rf" ?([^:]+): (.+?),{LOOKAHEAD_PATTERN}")
-PARAM_GROUP_REGEX = re.compile(rf", [^:]+: {{.+?{LOOKAHEAD_PATTERN}}}")
+from imagescanner.constants import METADATA_REGEX, PARAM_GROUP_REGEX, PARAM_REGEX
 
 PARAMS_BLACKLIST = [
     "Template", "Version", "Hires prompt", "Hires negative",
@@ -24,11 +21,6 @@ PARAMS_BLACKLIST = [
 class Metadata(ABC):
     raw: str | None = None
 
-    @property
-    @abstractmethod
-    def source(self):
-        pass
-
     @abstractmethod
     def as_dict(self) -> OrderedDict[str, Any]:
         pass
@@ -36,7 +28,6 @@ class Metadata(ABC):
 
 @dataclass
 class WebuiMetadata(Metadata):
-    source = "webui"
 
     def as_dict(self):
         if not self.raw:

@@ -5,15 +5,15 @@ import aiohttp
 import discord
 from hashlib import md5
 from expiringdict import ExpiringDict
-from imagescanner.metadata import Metadata
 from redbot.core import commands, app_commands
 from redbot.core.bot import Red
 
 import imagescanner.utils as utils
-from imagescanner.comfy import ComfyMetadata, ComfyMetadataReader
+from imagescanner.comfy import ComfyMetadata
 from imagescanner.commands import ImageScannerCommands
-from imagescanner.constants import log, SUPPORTED_FORMATS, PARAM_REGEX, RESOURCE_HASH_REGEX, RESOURCE_FILE_REGEX
+from imagescanner.metadata import Metadata
 from imagescanner.imageview import ImageView
+from imagescanner.constants import PARAM_REGEX, log, SUPPORTED_FORMATS, RESOURCE_HASH_REGEX, RESOURCE_FILE_REGEX
 
 MODEL = "Model"
 MODEL_HASH = "Model hash"
@@ -55,10 +55,6 @@ class ImageScanner(ImageScannerCommands):
                and await self.bot.ignored_channel_or_guild(message) \
                and not await self.bot.cog_disabled_in_guild(self, message.guild)
 
-    @staticmethod
-    def convert_novelai_info(img_info: dict):  # used by novelai cog
-        return utils.convert_novelai_info(img_info)
-    
     async def grab_metadata_dict(self, message: discord.Message) -> dict:  # used by gptmemory from holo-cogs
         assert self.image_cache is not None
         
@@ -76,14 +72,14 @@ class ImageScanner(ImageScannerCommands):
                 self.image_cache[message.id] = (metadata, image_bytes)
 
         if metadata:
-            return utils.get_params_from_metadata(metadata[0])
+            return metadata[0].as_dict()
         else:
             return {}
         
 
     async def prepare_embed(self, message: discord.Message, metadata: Metadata, i: int, total=1) -> discord.Embed:
         assert isinstance(message.author, discord.Member)
-        params = utils.get_params_from_metadata(metadata)
+        params = metadata.as_dict()
         embed = utils.build_embed(params, message.author)
         embed.description = message.jump_url if self.civitai_emoji else f":arrow_right: {message.jump_url}"
         if total > 1:
@@ -213,7 +209,7 @@ class ImageScanner(ImageScannerCommands):
         
         for i, md in sorted(metadata.items(), key=lambda m: m[0]):
             embed = await self.prepare_embed(message, md, i, len(attachments))
-            view = ImageView(md.raw, [embed], ephemeral=False)
+            view = ImageView(md.raw or "", [embed], ephemeral=False)
             if self.attach_images and i in image_bytes:
                 img = io.BytesIO(image_bytes[i])
                 filename = md5(image_bytes[i]).hexdigest() + ".png"
@@ -266,7 +262,7 @@ class ImageScanner(ImageScannerCommands):
             embed = await self.prepare_embed(message, data, i, len(attachments))
             embed.set_thumbnail(url=attachments[i].url or attachments[i].proxy_url or None)
             embeds.append(embed)
-        params = "\n\n".join(data.raw for data in metadata.values() if data)
+        params = "\n\n".join(data.raw or "" for data in metadata.values() if data)
         view = ImageView(params, embeds, ephemeral=True)
 
         await interaction.followup.send(embed=embeds[0], view=view)
