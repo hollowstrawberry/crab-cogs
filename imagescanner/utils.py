@@ -98,7 +98,7 @@ async def read_attachment_metadata(i: int, attachment: discord.Attachment, metad
         del img
         b.seek(0)
 
-        image_metadata = await asyncio.to_thread(ImageDataReader, b)
+        image_metadata = None # await asyncio.to_thread(ImageDataReader, b)
 
     except Exception:
         log.exception("Processing attachment")
