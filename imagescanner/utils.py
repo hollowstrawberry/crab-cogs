@@ -90,7 +90,7 @@ async def read_attachment_metadata(i: int, attachment: discord.Attachment, metad
         log.info("grabbing image")
         current_image_bytes = await attachment.read()
         b = BytesIO(current_image_bytes)
-        logs.info("opening image")
+        log.info("opening image")
         img = PIL.Image.open(b)
         await asyncio.to_thread(img.load)
         if (img.mode == "RGBA"):  # in rare cases, when ImageDataReader reads an RGBA image, it gets stuck in an infinite loop
