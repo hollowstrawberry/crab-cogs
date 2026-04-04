@@ -115,6 +115,8 @@ class ComfyMetadata(Metadata):
     resource_hints: ComfyResourceHints = field(default_factory=ComfyResourceHints)
     error: str | None = None
     raw: str | None = None
+    width: int | None = None
+    height: int | None = None
 
     def as_dict(self) -> OrderedDict[str, Any]:
         output: OrderedDict[str, Any] = OrderedDict()
