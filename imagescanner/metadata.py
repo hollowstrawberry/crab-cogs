@@ -20,6 +20,8 @@ PARAMS_BLACKLIST = [
 @dataclass
 class Metadata(ABC):
     raw: str | None = None
+    width: int | None = None
+    height: int | None = None
 
     @property
     @abstractmethod
@@ -60,5 +62,8 @@ class WebuiMetadata(Metadata):
             if len(key) > 255:
                 key = key[:252] + "..."
             output_dict[key] = value
+
+        if self.width and self.height:
+            output_dict["Size"] = f"{self.width}x{self.height}"
 
         return output_dict
