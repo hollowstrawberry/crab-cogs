@@ -149,6 +149,8 @@ class ComfyMetadata(Metadata):
             output["ADetailer Model"] = self.adetailer_model
         if self.adetailer_denoise is not None:
             output["ADetailer Denoising"] = self.adetailer_denoise
+        if self.width and self.height:
+            output["Size"] = f"{self.width}x{self.height}"
 
         if output.get("Prompt"):
             for lora in self.loras:
@@ -495,13 +497,13 @@ class ComfyMetadataReader:
         result = ComfyMetadata()
         try:
             image = Image.open(BytesIO(b))
-            return cls.from_info(image.info)
+            return cls.from_info(image.info, image.width, image.height)
         except Exception as error:
             result.error = f"{type(error).__name__}: {error}"
         return result
 
     @classmethod
-    def from_info(cls, meta: dict[str, Any]) -> ComfyMetadata:
+    def from_info(cls, meta: dict[str, Any], width: int, height: int) -> ComfyMetadata:
         candidates = cls.extract_workflow_candidates(meta)
         if not candidates:
             result = ComfyMetadata(error="Workflow not found")
@@ -540,6 +542,7 @@ class ComfyMetadataReader:
         merged.is_comfy = True
         merged.resource_hints = ComfyResourceHintExtractor.from_sources(merged, meta)
         merged.raw = ", ".join(str(val) for val in meta.values())
+        merged.width, merged.height = width, height
         return merged
 
     @classmethod
