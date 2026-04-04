@@ -26,7 +26,7 @@ def read_metadata(image_data: bytes) -> Metadata | None:
     b = BytesIO(image_data)
     img = PIL.Image.open(b)
     raw = img.info.get("parameters") or img.getexif().get(0x9286)
-    metadata = WebuiMetadata(raw, img.width, img.height)
+    metadata = WebuiMetadata(raw)
     if metadata.as_dict():
         return metadata
     metadata = ComfyMetadataReader.from_info(img.info, img.width, img.height)
