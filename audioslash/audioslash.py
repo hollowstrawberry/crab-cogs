@@ -400,8 +400,13 @@ class AudioSlash(Cog):
 
         try:
             ydl = YoutubeDL(EXTRACT_CONFIG)  # type: ignore
-            results = await extract_info(ydl, f"ytsearch{MAX_OPTIONS - len(lst)}:{current}")
+            results = await asyncio.wait_for(
+                extract_info(ydl, f"ytsearch{MAX_OPTIONS - len(lst)}:{current}"),
+                timeout=2.5
+            )
             lst += [app_commands.Choice(name=format_youtube(res), value=res["url"]) for res in results["entries"]]
+        except asyncio.TimeoutError:
+            log.warning("YouTube autocomplete timed out for query: %s", current)
         except YoutubeDLError:
             log.exception("Retrieving youtube results", stack_info=True)
 
