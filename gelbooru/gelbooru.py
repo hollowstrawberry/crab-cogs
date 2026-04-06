@@ -14,7 +14,7 @@ from gelbooru.constants import RATING_EXPLICIT, RATING_GENERAL, RATING_QUESTIONA
 from gelbooru.image_view import ImageView
 from gelbooru.utils import is_nsfw, prepare_query
 
-log = logging.getLogger("red.crab-cogs.boorucog")
+log = logging.getLogger("red.crab-cogs.gelbooru")
 
 
 class Booru(BooruBase):
@@ -110,7 +110,7 @@ class Booru(BooruBase):
             await ctx.send(f"No matches for `{tag_search}`")
 
 
-    @booru.autocomplete("tags")
+    @booru_cmd.autocomplete("tags")
     async def booru_tags_autocomplete(self, interaction: discord.Interaction, current: str):
         return await self.tags_autocomplete(interaction, current)
 
