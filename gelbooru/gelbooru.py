@@ -93,8 +93,8 @@ class Booru(BooruBase):
             embed.set_footer(text=f"⭐ {result.get('score', 0)}")
             view = ImageView(self, ctx.channel, user, query, result.get("tags", ""))
             msg = await send(embed=embed, view=view, file=file)
-            if msg and msg.attachments:
-                view.image_url = msg.attachments[0].url
+            if msg and msg.embeds:
+                view.image_url = msg.embeds[0].image.url
         except Exception as error:
             log.error(f"{type(error).__name__}: {error} {post_url=}")
             await send("Sorry, there was an error trying to grab the image from Gelbooru! Please try again or contact the bot owner.")
