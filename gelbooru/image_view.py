@@ -5,6 +5,7 @@ from redbot.core.bot import Red
 
 from gelbooru.base import BooruBase
 from gelbooru.constants import EMBED_COLOR, EMBED_ICON, VIEW_TIMEOUT
+from gelbooru.utils import display_query
 
 log = logging.getLogger("red.holo-cogs.aimage")
 
@@ -23,7 +24,7 @@ class ImageView(discord.ui.View):
         self.channel = channel
         self.og_user = user
         self.query = query
-        self.tags = result_tags or ""
+        self.tags = result_tags or "(none)"
         self.booru = cog.booru
         self.message: discord.Message | None = None
 
@@ -46,8 +47,8 @@ class ImageView(discord.ui.View):
         embed = discord.Embed(color=EMBED_COLOR)
         embed.description = f"```{self.tags[:4000]}```"
         embed.set_author(name="Booru Post", icon_url=EMBED_ICON)
-        embed.add_field(name="Query", value=f"`{self.query}`", inline=False)
-        await interaction.followup.send(embed=embed, ephemeral=True)
+        embed.add_field(name="Query", value=f"`{display_query(self.query)}`", inline=False)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     async def reroll_image(self, interaction: discord.Interaction):
         await self.booru(interaction, self.query)
@@ -64,14 +65,14 @@ class ImageView(discord.ui.View):
             return await interaction.response.send_message(content, ephemeral=True)
         
         await interaction.message.delete()
-        
-        if interaction.user.id == self.og_user.id:
-            content = f"{self.og_user.mention} deleted their requested image with query `{self.query}` and tags: ```{self.tags}```"
-        else:
-            content = f'{interaction.user.mention} deleted an image requested by {self.og_user.mention} with query `{self.query}` and tags: ```{self.tags}```'
-        await interaction.response.send_message(content, allowed_mentions=discord.AllowedMentions.none(), ephemeral=True)
-        
         self.stop()
+        
+        query = display_query(self.query)
+        if interaction.user.id == self.og_user.id:
+            content = f"{self.og_user.mention} deleted their requested image with query `{query}` and tags: ```{self.tags}```"
+        else:
+            content = f'{interaction.user.mention} deleted an image requested by {self.og_user.mention} with query `{query}` and tags: ```{self.tags}```'
+        await interaction.response.send_message(content, allowed_mentions=discord.AllowedMentions.none(), ephemeral=True)
 
     async def check_if_can_delete(self, interaction: discord.Interaction):
         is_og_user = interaction.user.id == self.og_user.id

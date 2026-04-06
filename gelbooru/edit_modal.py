@@ -1,22 +1,18 @@
 import discord
 import discord.ui as ui
 
-from gelbooru.constants import TAG_BLACKLIST
 from gelbooru.image_view import ImageView
-from gelbooru.utils import is_nsfw
+from gelbooru.utils import display_query
 
 
 class EditModal(ui.Modal):
     def __init__(self, parent_view: ImageView):
         super().__init__(title="Search Booru Posts")
         self.booru = parent_view.booru
-        query = parent_view.query
-
-        for tag in TAG_BLACKLIST: # cleanup, gets added back later
-            query = query.replace(f"-{tag}", "").strip()
-
+        query = display_query(parent_view.query)
         self.query_edit = ui.Label(
             text="Tags",
+            description="Tags contain underscores and are separated by spaces",
             component=ui.TextInput(
                 style=discord.TextStyle.long,
                 default=query,
@@ -27,6 +23,4 @@ class EditModal(ui.Modal):
         
     async def on_submit(self, interaction: discord.Interaction):
         assert isinstance(self.query_edit.component, discord.ui.TextInput)
-        query = self.query_edit.component.value
-        await interaction.response.defer(thinking=True)
-        await self.booru(interaction, query)
+        await self.booru(interaction, self.query_edit.component.value)

@@ -91,7 +91,8 @@ class Booru(BooruBase):
                 else:
                     embed.description = f"🔗 Original Source: {result['source']}"
             embed.set_footer(text=f"⭐ {result.get('score', 0)}")
-            await send(embed=embed, file=file)
+            view = ImageView(self, ctx.channel, user, query, result.get("tags", ""))
+            await send(embed=embed, view=view, file=file)
         except Exception as error:
             log.error(f"{type(error).__name__}: {error} {post_url=}")
             await send("Sorry, there was an error trying to grab the image from Gelbooru! Please try again or contact the bot owner.")
