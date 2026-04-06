@@ -2,7 +2,7 @@ import aiohttp
 import discord
 from typing import Dict, List
 from expiringdict import ExpiringDict, Union
-from discord.ext import commands
+from redbot.core import commands
 from redbot.core.bot import Red, Config
 
 from gelbooru.constants import HEADERS
