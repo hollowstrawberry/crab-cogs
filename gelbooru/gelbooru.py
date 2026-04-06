@@ -92,7 +92,8 @@ class Booru(BooruBase):
                     embed.description = f"🔗 Original Source: {result['source']}"
             embed.set_footer(text=f"⭐ {result.get('score', 0)}")
             view = ImageView(self, ctx.channel, user, query, result.get("tags", ""))
-            msg = await send(embed=embed, view=view, file=file)
+            content = f"-# Requested by {user.mention}"
+            msg = await send(content, embed=embed, view=view, file=file, allowed_mentions=discord.AllowedMentions.none())
             if msg and msg.embeds:
                 view.image_url = msg.embeds[0].image.url
         except Exception as error:
