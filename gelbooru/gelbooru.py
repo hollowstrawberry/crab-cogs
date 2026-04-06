@@ -37,7 +37,7 @@ class Booru(BooruBase):
         await ctx.tick(message="Booru cache deleted")
 
 
-    @commands.hybrid_command(aliases=["gelbooru"])  # type: ignore
+    @commands.hybrid_command(name="booru", aliases=["gelbooru"])  # type: ignore
     @app_commands.describe(tags="Will suggest tags with autocomplete. Separate tags with spaces.")
     async def booru_cmd(self, ctx: commands.Context, *, tags: str):
         """Finds an image on Gelbooru. Type tags separated by spaces.
