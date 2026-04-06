@@ -27,7 +27,6 @@ class ImageView(discord.ui.View):
         self.tags = result_tags or "(none)"
         self.booru = cog.booru
         self.message: Optional[discord.Message] = None
-        self.image_url: Optional[str] = None
 
         self.button_caption = discord.ui.Button(emoji='🔎')
         self.button_caption.callback = self.get_caption
@@ -49,8 +48,8 @@ class ImageView(discord.ui.View):
         embed.description = f"```{self.tags[:4000]}```"
         embed.set_author(name="Booru Post", icon_url=EMBED_ICON)
         embed.add_field(name="Query", value=f"`{display_query(self.query)}`", inline=False)
-        if self.image_url:
-            embed.set_thumbnail(url=self.image_url)
+        if self.message and self.message.embeds:
+            embed.set_thumbnail(url=self.message.embeds[0].image.url)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     async def reroll_image(self, interaction: discord.Interaction):

@@ -94,8 +94,7 @@ class Booru(BooruBase):
             view = ImageView(self, ctx.channel, user, query, result.get("tags", ""))
             content = f"-# Requested by {user.mention}"
             msg = await send(content, embed=embed, view=view, file=file, allowed_mentions=discord.AllowedMentions.none())
-            if msg and msg.embeds:
-                view.image_url = msg.embeds[0].image.url
+            view.message = msg
         except Exception as error:
             log.error(f"{type(error).__name__}: {error} {post_url=}")
             await send("Sorry, there was an error trying to grab the image from Gelbooru! Please try again or contact the bot owner.")
