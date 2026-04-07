@@ -16,7 +16,7 @@ class Link:
     fixed: str
 
 
-GENERIC_LINK = re.compile(r"(?<!<)https?://[^\s|)>\]]+")
+GENERIC_LINK = re.compile(r"(?<!<)(https?://[^\s|)>\]]+)")
 
 ALL_LINKS = [
     Link(
