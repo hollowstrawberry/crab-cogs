@@ -14,8 +14,8 @@ class BooruBase(commands.Cog):
         self.bot = bot
         self.session = aiohttp.ClientSession(headers=HEADERS)
         self.tag_cache: Dict[str, str] = {}
-        self.image_cache: Dict[int, List[int]] = ExpiringDict(max_len=100, max_age_seconds=24*60*60)
-        self.query_cache: Dict[str, List[Dict[str, Any]] = ExpiringDict(max_len=100, max_age_seconds=24*60*60)
+        self.image_cache: ExpiringDict[int, List[int]] = ExpiringDict(max_len=100, max_age_seconds=24*60*60)
+        self.query_cache: ExpiringDict[str, List[Dict[str, Any]] = ExpiringDict(max_len=100, max_age_seconds=24*60*60)
         self.config = Config.get_conf(self, identifier=62667275)
         self.config.register_global(tag_cache={})
 
