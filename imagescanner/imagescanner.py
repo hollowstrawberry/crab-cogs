@@ -86,7 +86,7 @@ class ImageScanner(ImageScannerCommands):
             embed.title = f"{embed.title or ''} ({i+1}/{total})"
         # new
         if metadata.source == "comfy":
-            hyperlinks = await self.resolve_arcenciel_resources(metadata)
+            hyperlinks = await self.resolve_arcenciel_resources(metadata)  # type: ignore
             embed.description += "\n" + "\n".join([f"{self.arcenciel_emoji} {link}" for link in hyperlinks])
             return embed
         # this is old and ugly don't look at it
@@ -209,7 +209,7 @@ class ImageScanner(ImageScannerCommands):
         
         for i, md in sorted(metadata.items(), key=lambda m: m[0]):
             embed = await self.prepare_embed(message, md, i, len(attachments))
-            view = ImageView(md.raw or "", [embed], ephemeral=False)
+            view = ImageView([md.raw or ""], [embed], ephemeral=False)
             if self.attach_images and i in image_bytes:
                 img = io.BytesIO(image_bytes[i])
                 filename = md5(image_bytes[i]).hexdigest() + ".png"
@@ -258,11 +258,12 @@ class ImageScanner(ImageScannerCommands):
             return
         
         embeds = []
+        params = []
         for i, data in sorted(metadata.items(), key=lambda m: m[0]):
             embed = await self.prepare_embed(message, data, i, len(attachments))
             embed.set_thumbnail(url=attachments[i].url or attachments[i].proxy_url or None)
             embeds.append(embed)
-        params = "\n\n".join(data.raw or "" for data in metadata.values() if data)
+            params.append(data.raw or "")
         view = ImageView(params, embeds, ephemeral=True)
 
         await interaction.followup.send(embed=embeds[0], view=view)
