@@ -217,28 +217,30 @@ class Booru(BooruBase):
 
 
     async def grab_image(self, query: str, channel_id: int) -> dict:
-        params = {
-            "page": "dapi",
-            "s": "post",
-            "q": "index",
-            "json": 1,
-            "limit": 100,
-            "tags": query,
-        }
-
-        api = await self.bot.get_shared_api_tokens("gelbooru")
-        api_key, user_id = api.get("api_key"), api.get("user_id")
-        if api_key and user_id:
-            params.update({"api_key": api_key, "user_id": user_id})
-
-        async with self.session.get("https://gelbooru.com/index.php", params=params, headers=HEADERS) as resp:
-            resp.raise_for_status()
-            data = await resp.json()
-
-        if not data or "post" not in data:
-            return {}
-        images = [img for img in data["post"] if img["file_url"].endswith(IMAGE_TYPES)]
-
+        if query in self.query_cache:
+            images = self.query_cache[query]
+        else:
+            params = {
+                "page": "dapi",
+                "s": "post",
+                "q": "index",
+                "json": 1,
+                "limit": 500,
+                "tags": query,
+            }
+            api = await self.bot.get_shared_api_tokens("gelbooru")
+            api_key, user_id = api.get("api_key"), api.get("user_id")
+            if api_key and user_id:
+                params.update({"api_key": api_key, "user_id": user_id})
+            async with self.session.get("https://gelbooru.com/index.php", params=params, headers=HEADERS) as resp:
+                resp.raise_for_status()
+                data = await resp.json()
+            if not data or "post" not in data:
+                self.query_cache[query] = []
+                return {}
+            images = [img for img in data["post"] if img["file_url"].endswith(IMAGE_TYPES)]
+        # refresh expiringdict
+        self.query_cache[query] = images 
         # prevent duplicates
         if channel_id not in self.image_cache:
             self.image_cache[channel_id] = []
@@ -246,7 +248,7 @@ class Booru(BooruBase):
             self.image_cache[channel_id] = self.image_cache[channel_id][-1:]
         if len(images) > 1:
             images = [img for img in images if img["id"] not in self.image_cache[channel_id]]
-
+        # pick image
         choice = random.choice(images)
         self.image_cache[channel_id].append(choice["id"])
         return choice
