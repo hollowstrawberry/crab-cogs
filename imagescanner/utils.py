@@ -13,12 +13,19 @@ from imagescanner.constants import SUPPORTED_FORMATS, log
 def build_embed(embed_dict: Dict[str, Any], author: discord.Member) -> discord.Embed:
     embed = discord.Embed(title="Here's your image!", color=author.color)
     for key in embed_dict.keys():
-        if len(str(embed_dict[key])) > 1000:
+        if key == "Prompt" and len(str(embed_dict[key])) > 4000:
+            embed.description = str(embed_dict[key])[:3997] + "..."
+        elif len(str(embed_dict[key])) > 1000:
             embed_dict[key] = str(embed_dict[key])[:997] + "..."
+        elif isinstance(embed_dict[key], float):
+            embed_dict[key] = f"{embed_dict[key]:.4f}".rstrip("0")
     for key, value in embed_dict.items():
         if "hashes" in key:
             continue
-        embed.add_field(name=key, value=value, inline="Prompt" not in key)
+        if key == "Prompt":
+            embed.description = value
+        else:
+            embed.add_field(name=key, value=value, inline="Prompt" not in key)
     embed.set_footer(text=f"Posted by {author}", icon_url=author.display_avatar.url)
     return embed
 
