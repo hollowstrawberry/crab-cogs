@@ -85,6 +85,7 @@ class LinkFixer(commands.Cog):
         matched_links: List[str] = list(dict.fromkeys(GENERIC_LINK.findall(message.content)))
         for i in range(len(matched_links)):
             spoilered = f"||{matched_links[i]}||"
+            log.info(spoilered)
             if spoilered in message.content:
                 matched_links[i] = spoilered
 
