@@ -45,7 +45,7 @@ class ImageView(View):
             content = self.raw_metadata[self.current]
             ext = "yaml"
 
-        if len(self.raw_metadata) < 1980:
+        if len(content) < 1980:
             await interaction.response.send_message(f"```{ext}\n{content}```", ephemeral=self.ephemeral)
         else:
             with io.StringIO() as f:
@@ -53,7 +53,7 @@ class ImageView(View):
                 f.seek(0)
                 file = discord.File(f, f"parameters.{ext}")  # type: ignore
                 await interaction.response.send_message(file=file, ephemeral=self.ephemeral)
-                
+
         if interaction.message and len(self.embeds) == 1:
             try:
                 await interaction.message.edit(view=None)
