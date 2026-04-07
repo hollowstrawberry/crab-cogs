@@ -81,6 +81,8 @@ class Booru(BooruBase):
             async with self.session.get(image_url, allow_redirects=False, headers=HEADERS) as resp:
                 image_data = await resp.read()
             filename = image_url.split("/")[-1]
+            if result.get("rating") in ("explicit", "questionable"):
+                filename = "SPOILER_" + filename
             file = discord.File(io.BytesIO(image_data), filename=filename)
             embed = discord.Embed(color=EMBED_COLOR)
             embed.set_author(name="Booru Post", url=post_url, icon_url=EMBED_ICON)
