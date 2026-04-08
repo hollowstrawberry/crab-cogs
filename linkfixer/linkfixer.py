@@ -85,9 +85,11 @@ class LinkFixer(commands.Cog):
         matched_links: List[str] = list(dict.fromkeys(GENERIC_LINK.findall(message.content)))
         for i in range(len(matched_links)):
             spoilered = f"||{matched_links[i]}||"
-            log.info(spoilered)
             if spoilered in message.content:
                 matched_links[i] = spoilered
+        
+        if not matched_links:
+            return
 
         any_fixed = False
         link_types = [link for link in ALL_LINKS if link.name not in self.disabled_links.get(message.guild.id, [])]
@@ -97,7 +99,10 @@ class LinkFixer(commands.Cog):
                 if match := link_type.pattern.search(link):
                     any_fixed = True
                     tail = [g for g in match.groups() if g][-1].split("?")[0]
+                    log.info(f"{match.string=}")
+                    log.info(f"{link=}")
                     matched_links[i] = link.replace(match.string, f"{link_type.fixed}{tail}")
+                    
 
         if not any_fixed:
             return
