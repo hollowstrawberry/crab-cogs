@@ -1,5 +1,6 @@
 import re
 import logging
+import asyncio
 import discord
 from emoji import is_emoji
 from random import random
