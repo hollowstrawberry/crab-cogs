@@ -19,7 +19,6 @@ NEGATIVE_HINTS = (
     "jpeg artifacts",
     "watermark",
     "deformed",
-    "blurry",
 )
 
 LORA_INPUT_KEY_RE = re.compile(r"^lora_\d+$", re.IGNORECASE)
