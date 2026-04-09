@@ -1,4 +1,5 @@
 import io
+import json
 import discord
 from discord.ui import View
 from typing import List, Optional
@@ -7,7 +8,7 @@ from imagescanner.constants import VIEW_TIMEOUT
 
 
 class ImageView(View):
-    def __init__(self, raw_metadata: str, embeds: List[discord.Embed], ephemeral: bool):
+    def __init__(self, raw_metadata: List[str], embeds: List[discord.Embed], ephemeral: bool):
         super().__init__(timeout=VIEW_TIMEOUT)
         self.raw_metadata = raw_metadata
         self.embeds = embeds
@@ -35,16 +36,27 @@ class ImageView(View):
         if len(self.embeds) == 1:
             self.pressed = True
             self.stop()
-        if len(self.raw_metadata) < 1980:
-            await interaction.response.send_message(f"```yaml\n{self.raw_metadata}```", ephemeral=self.ephemeral)
+
+        try:
+            j = json.loads(self.raw_metadata[self.current])
+            content = json.dumps(j, indent=2)  # prettify
+            ext = "json"
+        except json.JSONDecodeError:
+            content = self.raw_metadata[self.current]
+            ext = "yaml"
+
+        if len(content) < 1980:
+            await interaction.response.send_message(f"```{ext}\n{content}```", ephemeral=self.ephemeral)
         else:
             with io.StringIO() as f:
-                f.write(self.raw_metadata)
+                f.write(content)
                 f.seek(0)
-                await interaction.response.send_message(file=discord.File(f, "parameters.yaml"), ephemeral=self.ephemeral) # type: ignore
+                file = discord.File(f, f"parameters_{interaction.id}.{ext}")  # type: ignore
+                await interaction.response.send_message(file=file, ephemeral=self.ephemeral)
+
         if interaction.message and len(self.embeds) == 1:
             try:
-                await interaction.message.edit(view=None, embed=self.embeds[0])
+                await interaction.message.edit(view=None)
             except discord.NotFound:
                 pass
 
@@ -66,6 +78,6 @@ class ImageView(View):
     async def on_timeout(self) -> None:
         if self.message and not self.pressed and len(self.embeds) == 1:
             try:
-                await self.message.edit(view=None, embed=self.embeds[0])
+                await self.message.edit(view=None)
             except discord.NotFound:
                 pass
