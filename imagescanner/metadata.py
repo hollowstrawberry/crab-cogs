@@ -4,17 +4,7 @@ from typing import Any
 from collections import OrderedDict
 from dataclasses import dataclass
 
-from imagescanner.constants import METADATA_REGEX, PARAM_GROUP_REGEX, PARAM_REGEX
-
-PARAMS_BLACKLIST = [
-    "Template", "Version", "Hires prompt", "Hires negative",
-    "ADetailer mask", "ADetailer dilate", "ADetailer prompt", "ADetailer use", "ADetailer checkpoint", "ADetailer sampler", "ADetailer scheduler",
-    "ADetailer inpaint", "ADetailer min", "ADetailer method", "ADetailer hires",
-    "RP Divide", "RP Ma", "RP Prompt", "RP Calc", "RP Ratio", "RP Base", "RP Use", "RP LoRA", "RP Options", "RP Flip", "RP threshold",
-    "FreeU Stages", "FreeU Schedule",
-    "Mimic", "Separate Feature Channels", "Scaling Startpoint", "Variability Measure",  # Dynamic thresholding
-    "Interpolate Phi", "Threshold percentile",
-]
+from imagescanner.constants import METADATA_REGEX, PARAM_GROUP_REGEX, PARAM_REGEX, WEBUI_PARAMS_BLACKLIST
 
 
 @dataclass
@@ -55,7 +45,7 @@ class WebuiMetadata(Metadata):
         for key, value in param_list:
             if len(output_dict) >= 25 or key in output_dict:
                 continue
-            if any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
+            if any(blacklisted in key for blacklisted in WEBUI_PARAMS_BLACKLIST):
                 continue
             if len(key) > 255:
                 key = key[:252] + "..."
