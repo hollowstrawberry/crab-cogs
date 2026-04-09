@@ -16,7 +16,7 @@ class Link:
     fixed: str
 
 
-GENERIC_LINK = re.compile(r"(?<!<)https?://[^\s|)>\]]+")
+GENERIC_LINK = re.compile(r"(?<!<)(https?://[^\s|)>\]]+)")
 
 ALL_LINKS = [
     Link(
@@ -74,7 +74,7 @@ class LinkFixer(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_without_command(self, message: discord.Message):
-        if not message.guild or message.guild.id not in self.enabled_guilds or message.author == message.guild.me:
+        if not message.guild or message.guild.id not in self.enabled_guilds or not isinstance(message.author, discord.Member) or message.author == message.guild.me:
             return
         perms = message.channel.permissions_for(message.guild.me)
         if not perms.send_messages or not perms.embed_links:
@@ -87,6 +87,9 @@ class LinkFixer(commands.Cog):
             spoilered = f"||{matched_links[i]}||"
             if spoilered in message.content:
                 matched_links[i] = spoilered
+        
+        if not matched_links:
+            return
 
         any_fixed = False
         link_types = [link for link in ALL_LINKS if link.name not in self.disabled_links.get(message.guild.id, [])]
@@ -96,8 +99,8 @@ class LinkFixer(commands.Cog):
                 if match := link_type.pattern.search(link):
                     any_fixed = True
                     tail = [g for g in match.groups() if g][-1].split("?")[0]
-                    matched_links[i] = link.replace(match.string, f"{link_type.fixed}{tail}")
-
+                    matched_links[i] = link.replace(match.group(0), f"{link_type.fixed}{tail}")
+                    
         if not any_fixed:
             return
         
