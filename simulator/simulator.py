@@ -164,7 +164,7 @@ class Simulator(commands.Cog):
         await ctx.send(embed=embed)
 
     @simulator.command(name="stats")
-    async def simulator_stats(self, ctx: commands.Context, user: Optional[discord.Member] = None):
+    async def simulator_stats(self, ctx: commands.Context, *, user: Optional[discord.Member] = None):
         """Statistics about the simulator, globally or for a user"""
         if not await self.check_participant(ctx):
             return
@@ -343,7 +343,7 @@ class Simulator(commands.Cog):
 
     @simulator_set.command(name="inputrole")
     @commands.is_owner()
-    async def simulator_set_inputrole(self, ctx: commands.Context, role: discord.Role):
+    async def simulator_set_inputrole(self, ctx: commands.Context, *, role: discord.Role):
         """Members must have this role to participate in the simulator."""
         await self.config.participant_role_id.set(role.id)
         self.role = role
