@@ -33,7 +33,7 @@ class Metadata(ABC):
 
 @dataclass
 class WebuiMetadata(Metadata):
-    source = "webui"
+    source = "webui"  # type: ignore
 
     def as_dict(self):
         if not self.raw:

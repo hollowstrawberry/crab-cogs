@@ -94,7 +94,7 @@ class ComfyResourceHints:
 
 @dataclass
 class ComfyMetadata(Metadata):
-    source = "comfy"
+    source = "comfy"  # type: ignore
     is_comfy: bool = False
     prompt: str | None = None
     negative_prompt: str | None = None
@@ -555,7 +555,7 @@ class ComfyMetadataReader:
         payload: dict[str, Any] | None = None,
         parsed: ComfyMetadata | None = None,
     ) -> ComfyResourceHints:
-        metadata = parsed or cls.from_info(meta)
+        metadata = parsed or cls.from_info(meta, 0, 0)
         return ComfyResourceHintExtractor.from_sources(metadata, meta, payload)
 
     @staticmethod

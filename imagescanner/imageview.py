@@ -51,7 +51,7 @@ class ImageView(View):
             with io.StringIO() as f:
                 f.write(content)
                 f.seek(0)
-                file = discord.File(f, f"parameters.{ext}")  # type: ignore
+                file = discord.File(f, f"parameters_{interaction.id}.{ext}")  # type: ignore
                 await interaction.response.send_message(file=file, ephemeral=self.ephemeral)
 
         if interaction.message and len(self.embeds) == 1:
