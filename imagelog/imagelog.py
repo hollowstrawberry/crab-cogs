@@ -120,18 +120,23 @@ class ImageLog(commands.Cog):
                 embed.add_field(name="Missing audit log permission", value="Oops")
 
             img = io.BytesIO()
+            file = None
             try:
                 await attachment.save(img, use_cached=True)
+            except discord.NotFound:
+                log.warning(f"Image {attachment.url} not found")
+                pass
             except discord.DiscordException:
                 log.exception("Trying to save attachment")
-                file = ...
             else:
                 file = discord.File(img, filename=attachment.filename)
                 embed.set_image(url=f"attachment://{attachment.filename}")
 
             assert isinstance(log_channel, discord.abc.Messageable)
-            await log_channel.send(embed=embed, file=file)
-
+            if file:
+                await log_channel.send(embed=embed, file=file)
+            else:
+                await log_channel.send(embed=embed)
 
     @commands.group(invoke_without_command=True)  # type: ignore
     @commands.has_permissions(manage_guild=True)
