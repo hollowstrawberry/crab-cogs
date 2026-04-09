@@ -1,5 +1,6 @@
 import re
 import logging
+import asyncio
 import discord
 from emoji import is_emoji
 from random import random
@@ -77,6 +78,7 @@ class Autoreact(commands.Cog):
         if not await self.is_valid_red_message(message):
             return
         try:
+            await asyncio.sleep(1 + 2 * random())
             await message.add_reaction(reaction.emoji)
         except Exception as error:
             log.warning(f"Failed to react with {reaction.emoji} - {type(error).__name__}: {error}", exc_info=True)
