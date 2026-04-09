@@ -37,7 +37,7 @@ class Draw(commands.Cog):
     @commands.hybrid_command()
     @commands.guild_only()
     @app_commands.describe(user="The person whose avatar you want to see.")
-    async def avatar(self, ctx: commands.Context, user: Optional[discord.Member]):
+    async def avatar(self, ctx: commands.Context, *, user: Optional[discord.Member]):
         """Simply shows your avatar or somebody else's."""
         assert isinstance(ctx.author, discord.Member)
         if not user:
@@ -52,14 +52,14 @@ class Draw(commands.Cog):
     async def avatar_app_command(self, inter: discord.Interaction, member: discord.Member):
         """Gets the avatar for a user quietly."""
         ctx = await commands.Context.from_interaction(inter)
-        await self.avatar(ctx, member)
+        await self.avatar(ctx, user=member)
 
     @staticmethod
     def draw_effect(fp: BytesIO) -> BytesIO:
         img = prepare_image(fp, cv2.IMREAD_GRAYSCALE)
         del fp
-        img_blurred = cv2.bitwise_not(cv2.GaussianBlur(cv2.bitwise_not(img), (65, 65), 0))
-        img_divided = cv2.divide(img, img_blurred, scale=256)
+        img_blurred = cv2.bitwise_not(cv2.GaussianBlur(cv2.bitwise_not(img), (65, 65), 0))  # type: ignore
+        img_divided = cv2.divide(img, img_blurred, scale=256)  # type: ignore
         del img
         del img_blurred
         img_normalized = cv2.normalize(img_divided, None, 20, 255, cv2.NORM_MINMAX)  # type: ignore
@@ -75,7 +75,7 @@ class Draw(commands.Cog):
         img = prepare_image(fp, cv2.IMREAD_COLOR)
         del fp
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (8, 8))
-        img_morphed = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
+        img_morphed = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)  # type: ignore
         del img
         img_normalized = cv2.normalize(img_morphed, None, 20, 255, cv2.NORM_MINMAX)  # type: ignore
         del img_morphed
@@ -90,7 +90,7 @@ class Draw(commands.Cog):
     @commands.bot_has_permissions(attach_files=True)
     @commands.guild_only()
     @app_commands.describe(user="The person whose avatar I should draw.")
-    async def draw(self, ctx: commands.Context, user: Optional[discord.Member]):
+    async def draw(self, ctx: commands.Context, *, user: Optional[discord.Member]):
         """Produces a pencil drawing of you or someone else."""
         assert isinstance(ctx.author, discord.Member)
         user = user or ctx.author
@@ -113,7 +113,7 @@ class Draw(commands.Cog):
     @commands.bot_has_permissions(attach_files=True)
     @commands.guild_only()
     @app_commands.describe(user="The person whose avatar I should paint.")
-    async def paint(self, ctx: commands.Context, user: Optional[discord.Member]):
+    async def paint(self, ctx: commands.Context, *, user: Optional[discord.Member]):
         """Produces an oil painting of you or someone else."""
         assert isinstance(ctx.author, discord.Member)
         user = user or ctx.author
