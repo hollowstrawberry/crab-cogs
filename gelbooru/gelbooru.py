@@ -3,44 +3,22 @@ import re
 import html
 import random
 import logging
-import urllib.parse
 import aiohttp
 import discord
-from typing import Optional, List, Dict, Union
-from expiringdict import ExpiringDict
-from redbot.core import commands, app_commands, Config
-from redbot.core.bot import Red
+from typing import Optional, List, Union
+from redbot.core import commands, app_commands
 
-log = logging.getLogger("red.crab-cogs.boorucog")
+from gelbooru.base import BooruBase
+from gelbooru.constants import EMBED_COLOR, EMBED_ICON, HEADERS, IMAGE_TYPES, MAX_OPTION_SIZE, MAX_OPTIONS, URL_PATTERN
+from gelbooru.constants import RATING_EXPLICIT, RATING_GENERAL, RATING_QUESTIONABLE, RATING_SENSITIVE
+from gelbooru.image_view import ImageView
+from gelbooru.utils import is_nsfw, prepare_query
 
-EMBED_COLOR = 0xD7598B
-EMBED_ICON = "https://i.imgur.com/FeRu6Pw.png"
-IMAGE_TYPES = (".png", ".jpeg", ".jpg", ".webp", ".gif")
-TAG_BLACKLIST = ["loli", "shota", "guro", "video"]
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0",
-    "Referer": "https://gelbooru.com/",
-}
-RATING_GENERAL = "rating:general"
-RATING_SENSITIVE = "rating:sensitive"
-RATING_QUESTIONABLE = "rating:questionable"
-RATING_EXPLICIT = "rating:explicit"
-
-MAX_OPTIONS = 25
-MAX_OPTION_SIZE = 100
+log = logging.getLogger("red.crab-cogs.gelbooru")
 
 
-class Booru(commands.Cog):
+class Booru(BooruBase):
     """Searches images on Gelbooru with slash command and tag completion support."""
-
-    def __init__(self, bot: Red):
-        super().__init__()
-        self.bot = bot
-        self.session = aiohttp.ClientSession(headers=HEADERS)
-        self.tag_cache: Dict[str, str] = {}
-        self.image_cache: Dict[int, List[int]] = ExpiringDict(max_len=100, max_age_seconds=24*60*60)
-        self.config = Config.get_conf(self, identifier=62667275)
-        self.config.register_global(tag_cache={})
 
     async def cog_load(self):
         self.tag_cache = await self.config.tag_cache()
@@ -59,9 +37,9 @@ class Booru(commands.Cog):
         await ctx.tick(message="Booru cache deleted")
 
 
-    @commands.hybrid_command(aliases=["gelbooru"])
+    @commands.hybrid_command(name="booru", aliases=["gelbooru"])  # type: ignore
     @app_commands.describe(tags="Will suggest tags with autocomplete. Separate tags with spaces.")
-    async def booru(self, ctx: commands.Context, *, tags: str):
+    async def booru_cmd(self, ctx: commands.Context, *, tags: str):
         """Finds an image on Gelbooru. Type tags separated by spaces.
 
         As a slash command, will provide suggestions for the latest tag typed.
@@ -70,48 +48,61 @@ class Booru(commands.Cog):
         Type - before a tag to exclude it.
         You can add score:>NUMBER to have a minimum score above a number.
         You can add rating:general / rating:sensitive / rating:questionable / rating:explicit"""
+        await self.booru(ctx, tags)
         
-        tags = tags.strip()
-        if tags.lower() in ["none", "error"]:
-            tags = ""
-        if not self.is_nsfw(ctx.channel):
-            tags = re.sub(r"\s?rating:\S+", "", tags)
-            tags += f" {RATING_GENERAL}"
+
+    async def booru(self, ctx: Union[discord.Interaction, commands.Context], query: str):
+        assert isinstance(ctx.channel, Union[discord.TextChannel, discord.Thread])
+
+        send = ctx.send if isinstance(ctx, commands.Context) else  ctx.followup.send
+        user = ctx.author if isinstance(ctx, commands.Context) else ctx.user
+        query = prepare_query(query, is_nsfw(ctx.channel))
+
+        if isinstance(ctx, discord.Interaction):
+            await ctx.response.defer(thinking=True)
 
         try:
-            result = await self.grab_image(tags, ctx)
+            result = await self.grab_image(query, ctx.channel.id)
         except (aiohttp.ClientError, KeyError):
             log.exception("Failed to grab image from Gelbooru")
-            await ctx.send("Sorry, there was an error trying to grab an image from Gelbooru! Please try again or contact the bot owner.")
-            return
+            return await send("Sorry, there was an error trying to grab an image from Gelbooru! Please try again or contact the bot owner.")
 
         if not result:
             description = "💨 No results..."
-            if not self.is_nsfw(ctx.channel):
+            if not is_nsfw(ctx.channel):
                 description += " (safe mode)"
-            await ctx.send(embed=discord.Embed(description=description, color=EMBED_COLOR))
-            return
+            embed = discord.Embed(description=description, color=EMBED_COLOR)
+            view = ImageView(self, ctx.channel, user, query, None)
+            return await send(embed=embed, view=view)
 
         image_url = result.get("sample_url", "") or result["file_url"]
         post_url = f"https://gelbooru.com/index.php?page=post&s=view&id={result['id']}"
         try:
             async with self.session.get(image_url, allow_redirects=False, headers=HEADERS) as resp:
                 image_data = await resp.read()
-                filename = image_url.split("/")[-1]
-                file = discord.File(io.BytesIO(image_data), filename=filename)
-                embed = discord.Embed(color=EMBED_COLOR)
-                embed.set_author(name="Booru Post", url=post_url, icon_url=EMBED_ICON)
-                embed.set_image(url=f"attachment://{filename}")
-                if result.get("source", ""):
+            filename = image_url.split("/")[-1]
+            if result.get("rating") in ("explicit", "questionable"):
+                filename = "SPOILER_" + filename
+            file = discord.File(io.BytesIO(image_data), filename=filename)
+            embed = discord.Embed(color=EMBED_COLOR)
+            embed.set_author(name="Booru Post", url=post_url, icon_url=EMBED_ICON)
+            embed.set_image(url=f"attachment://{filename}")
+            if result.get("source", ""):
+                if URL_PATTERN.match(result["source"]):
                     embed.description = f"[🔗 Original Source]({result['source']})"
-                embed.set_footer(text=f"⭐ {result.get('score', 0)}")
-                await ctx.send(embed=embed, file=file)
+                else:
+                    embed.description = f"🔗 Original Source: {result['source']}"
+            embed.set_footer(text=f"⭐ {result.get('score', 0)}")
+            view = ImageView(self, ctx.channel, user, query, result.get("tags", ""))
+            content = f"-# Requested by {user.mention}"
+            msg = await send(content, embed=embed, view=view, file=file, allowed_mentions=discord.AllowedMentions.none())
+            view.message = msg
         except Exception as error:
             log.error(f"{type(error).__name__}: {error} {post_url=}")
-            await ctx.send("Sorry, there was an error trying to grab the image from Gelbooru! Please try again or contact the bot owner.")
+            await send("Sorry, there was an error trying to grab the image from Gelbooru! Please try again or contact the bot owner.")
 
 
-    @commands.hybrid_command(aliases=["boorutags"])
+    @commands.hybrid_command(aliases=["boorutags"])  # type: ignore
     async def boorutag(self, ctx: commands.Context, *, tag_search: str):
         """Searches for tags on Gelbooru."""
         tag_search = tag_search.replace(" ", "_").strip()
@@ -123,7 +114,7 @@ class Booru(commands.Cog):
             await ctx.send(f"No matches for `{tag_search}`")
 
 
-    @booru.autocomplete("tags")
+    @booru_cmd.autocomplete("tags")
     async def booru_tags_autocomplete(self, interaction: discord.Interaction, current: str):
         return await self.tags_autocomplete(interaction, current)
 
@@ -137,7 +128,7 @@ class Booru(commands.Cog):
 
         excluded = last.startswith('-')
         last = last.lstrip('-')
-        is_nsfw = interaction and isinstance(interaction.channel, discord.abc.Messageable) and self.is_nsfw(interaction.channel)
+        nsfw = interaction and isinstance(interaction.channel, discord.abc.Messageable) and is_nsfw(interaction.channel)
 
         if not last and not excluded:
             # suggestions
@@ -148,11 +139,11 @@ class Booru(commands.Cog):
                 results.append("-excluded_tag")
             if "score" not in previous:
                 results += ["score:>10", "score:>100"]
-            if is_nsfw and "rating" not in previous:
+            if nsfw and "rating" not in previous:
                 results += [RATING_GENERAL, RATING_SENSITIVE, RATING_QUESTIONABLE, RATING_EXPLICIT]
 
         elif "rating" in last.lower():
-            if is_nsfw:
+            if nsfw:
                 ratings = [RATING_GENERAL, RATING_SENSITIVE, RATING_QUESTIONABLE, RATING_EXPLICIT]
                 results = []
                 for r in tuple(ratings):
@@ -227,50 +218,39 @@ class Booru(commands.Cog):
         return results
 
 
-    async def grab_image(self, query: str, ctx: commands.Context) -> dict:
-        tags = [tag for tag in query.split(' ') if tag]
-        tags = [tag for tag in tags if tag not in TAG_BLACKLIST]
-        tags += [f"-{tag}" for tag in TAG_BLACKLIST]
-        params = {
-            "page": "dapi",
-            "s": "post",
-            "q": "index",
-            "json": 1,
-            "limit": 1000,
-            "tags": ' '.join(tags)
-        }
-
-        api = await self.bot.get_shared_api_tokens("gelbooru")
-        api_key, user_id = api.get("api_key"), api.get("user_id")
-        if api_key and user_id:
-            params.update({"api_key": api_key, "user_id": user_id})
-
-        async with self.session.get("https://gelbooru.com/index.php", params=params, headers=HEADERS) as resp:
-            resp.raise_for_status()
-            data = await resp.json()
-
-        if not data or "post" not in data:
-            return {}
-        images = [img for img in data["post"] if img["file_url"].endswith(IMAGE_TYPES)]
-
-        # prevent duplicates
-        key = ctx.channel.id
-        if key not in self.image_cache:
-            self.image_cache[key] = []
-        if all(img["id"] in self.image_cache[key] for img in images):
-            self.image_cache[key] = self.image_cache[key][-1:]
-        if len(images) > 1:
-            images = [img for img in images if img["id"] not in self.image_cache[key]]
-
-        choice = random.choice(images)
-        self.image_cache[key].append(choice["id"])
-        return choice
-    
-    @staticmethod
-    def is_nsfw(channel: discord.abc.Messageable):
-        if isinstance(channel, discord.TextChannel):
-            return channel.nsfw
-        elif isinstance(channel, discord.Thread) and channel.parent:
-            return channel.parent.nsfw
+    async def grab_image(self, query: str, channel_id: int) -> dict:
+        if query in self.query_cache:
+            images = self.query_cache[query]
         else:
-            return False
+            params = {
+                "page": "dapi",
+                "s": "post",
+                "q": "index",
+                "json": 1,
+                "limit": 500,
+                "tags": query,
+            }
+            api = await self.bot.get_shared_api_tokens("gelbooru")
+            api_key, user_id = api.get("api_key"), api.get("user_id")
+            if api_key and user_id:
+                params.update({"api_key": api_key, "user_id": user_id})
+            async with self.session.get("https://gelbooru.com/index.php", params=params, headers=HEADERS) as resp:
+                resp.raise_for_status()
+                data = await resp.json()
+            if not data or "post" not in data:
+                self.query_cache[query] = []
+                return {}
+            images = [img for img in data["post"] if img["file_url"].endswith(IMAGE_TYPES)]
+        # refresh expiringdict
+        self.query_cache[query] = images 
+        # prevent duplicates
+        if channel_id not in self.image_cache:
+            self.image_cache[channel_id] = []
+        if all(img["id"] in self.image_cache[channel_id] for img in images):
+            self.image_cache[channel_id] = self.image_cache[channel_id][-1:]
+        if len(images) > 1:
+            images = [img for img in images if img["id"] not in self.image_cache[channel_id]]
+        # pick image
+        choice = random.choice(images)
+        self.image_cache[channel_id].append(choice["id"])
+        return choice
