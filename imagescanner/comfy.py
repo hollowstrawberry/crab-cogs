@@ -32,6 +32,8 @@ STORAGE_PREFIX_RE = re.compile(r"^(?:generator|images|thumbnails|uploads|output|
 UUID_PREFIX_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[-_ ]+", re.IGNORECASE)
 NUMERIC_PREFIX_RE = re.compile(r"^(?:\d{3,}[_-]){2,}")
 LORA_PREFIX_RE = re.compile(r'^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9]+(?:_[0-9]+)?)_',re.IGNORECASE)
+AC_PROMPT_ID_RE = re.compile(r"^ac_prompt_(\d+)$", re.IGNORECASE)
+TRAILING_INDEX_RE = re.compile(r"(?:^|_)(\d+)$")
 
 RESOURCE_HASH_KEYS = {
     "hash",
@@ -841,7 +843,7 @@ class ComfyMetadataReader:
 
     @classmethod
     def parse_nodes(cls, nodes: list[Node], meta: ComfyMetadata) -> None:
-        text_candidates: list[tuple[str, bool]] = []
+        text_candidates: list[tuple[str, str, bool]] = []
 
         for node in nodes:
             try:
@@ -850,28 +852,120 @@ class ComfyMetadataReader:
                 # Keep metadata extraction resilient even when one node has exotic structure.
                 continue
 
+        regional_prompt = cls.build_regional_prompt(nodes, text_candidates)
+        if regional_prompt:
+            meta.prompt = regional_prompt
+
         if not meta.prompt and text_candidates:
             non_negative = [
                 text
-                for text, is_neg in text_candidates
+                for _, text, is_neg in text_candidates
                 if not is_neg and not cls.looks_negative(text)
             ]
-            meta.prompt = non_negative[0] if non_negative else text_candidates[0][0]
+            meta.prompt = non_negative[0] if non_negative else text_candidates[0][1]
 
         if not meta.negative_prompt and text_candidates:
             negatives = [
                 text
-                for text, is_neg in text_candidates
+                for _, text, is_neg in text_candidates
                 if is_neg or cls.looks_negative(text)
             ]
             if negatives:
                 meta.negative_prompt = negatives[0]
             elif len(text_candidates) > 1:
-                meta.negative_prompt = text_candidates[1][0]
+                meta.negative_prompt = text_candidates[1][1]
+
+    @classmethod
+    def build_regional_prompt(
+        cls, nodes: list[Node], text_candidates: list[tuple[str, str, bool]]
+    ) -> str | None:
+        if not text_candidates:
+            return None
+
+        positive_by_id: dict[str, str] = {}
+        region_by_index: dict[int, str] = {}
+
+        for node_id, text, is_negative in text_candidates:
+            if is_negative:
+                continue
+            normalized_id = str(node_id or "").strip()
+            if normalized_id:
+                positive_by_id[normalized_id] = text
+            ac_prompt_match = AC_PROMPT_ID_RE.match(normalized_id)
+            if ac_prompt_match:
+                region_by_index.setdefault(int(ac_prompt_match.group(1)), text)
+
+        for node in nodes:
+            node_type_lower = node.node_type.lower()
+            if "attentioncoupleregion" not in node_type_lower:
+                continue
+
+            cond = node.inputs.get("cond")
+            cond_node_id: str | None = None
+            if isinstance(cond, (list, tuple)) and cond:
+                first = cond[0]
+                if isinstance(first, str):
+                    cond_node_id = first.strip()
+            elif isinstance(cond, str):
+                cond_node_id = cond.strip()
+
+            if not cond_node_id:
+                continue
+
+            region_text = positive_by_id.get(cond_node_id)
+            if not region_text:
+                continue
+
+            region_index = cls.extract_region_index(node.id) or cls.extract_region_index(
+                cond_node_id
+            )
+            if region_index is None:
+                continue
+            region_by_index.setdefault(region_index, region_text)
+
+        if len(region_by_index) < 2:
+            return None
+
+        ordered = [
+            text.strip()
+            for _, text in sorted(region_by_index.items(), key=lambda item: item[0])
+            if text and text.strip()
+        ]
+        if len(ordered) < 2:
+            return None
+
+        unique_ordered: list[str] = []
+        seen: set[str] = set()
+        for text in ordered:
+            key = text.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            unique_ordered.append(text)
+
+        if len(unique_ordered) < 2:
+            return None
+        return " || ".join(unique_ordered)
+
+    @staticmethod
+    def extract_region_index(node_id: str | None) -> int | None:
+        normalized = str(node_id or "").strip()
+        if not normalized:
+            return None
+        ac_prompt_match = AC_PROMPT_ID_RE.match(normalized)
+        if ac_prompt_match:
+            return int(ac_prompt_match.group(1))
+        trailing_match = TRAILING_INDEX_RE.search(normalized)
+        if trailing_match:
+            return int(trailing_match.group(1))
+        return None
 
     @classmethod
     def parse_single_node(
-        cls, node: Node, meta: ComfyMetadata, text_candidates: list[tuple[str, bool]]
+        cls,
+        node: Node,
+        meta: ComfyMetadata,
+        text_candidates: list[tuple[str, str, bool]],
     ) -> None:
         node_type_lower = node.node_type.lower()
         inputs = node.inputs
@@ -949,7 +1043,7 @@ class ComfyMetadataReader:
                 text_value = cls.as_text(node.widgets[0])
             if text_value and cls.is_useful_text_candidate(text_value):
                 is_negative = "negative" in node_type_lower or "neg" in node_type_lower
-                text_candidates.append((text_value, is_negative))
+                text_candidates.append((node.id, text_value, is_negative))
                 if is_negative:
                     cls.set_if_missing(meta, "negative_prompt", text_value)
 
