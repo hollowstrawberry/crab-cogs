@@ -30,7 +30,7 @@ class ImageView(discord.ui.View):
 
         self.button_caption = discord.ui.Button(emoji='🔎')
         self.button_caption.callback = self.get_caption
-        self.button_reroll = discord.ui.Button(emoji="🔄")
+        self.button_reroll = discord.ui.Button(emoji="🎲")
         self.button_reroll.callback = self.reroll_image
         self.button_edit = discord.ui.Button(emoji='📝')
         self.button_edit.callback = self.edit_image
