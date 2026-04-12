@@ -9,9 +9,9 @@ from logs.navigate_view import NavigateView
 
 
 class LogsView(View):
-    def __init__(self, filepath: str, embeds: list[discord.Embed], bot: Red):
+    def __init__(self, file: discord.File, embeds: list[discord.Embed], bot: Red):
         super().__init__(timeout=VIEW_TIMEOUT)
-        self.filepath = filepath
+        self.file = file
         self.embeds = embeds
         self.bot = bot
         self.message: Optional[discord.Message] = None
@@ -41,15 +41,13 @@ class LogsView(View):
     async def show_file(self, interaction: discord.Interaction):
         if not await self.check_owner(interaction):
             return
-        file = discord.File(self.filepath)
-        await interaction.response.send_message(file=file, ephemeral=True)
+        await interaction.response.send_message(file=self.file, ephemeral=True)
 
     async def save_dm(self, interaction: discord.Interaction):
         if not await self.check_owner(interaction):
             return
-        file = discord.File(self.filepath)
         try:
-            await interaction.user.send(file=file)
+            await interaction.user.send(file=self.file)
         except discord.Forbidden:
             await interaction.response.send_message("It appears you don't accept DMs, so I can't send you the logs file.", ephemeral=True)
         else:

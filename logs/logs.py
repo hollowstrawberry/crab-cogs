@@ -42,23 +42,24 @@ class Logs(commands.Cog):
                         else:
                             break
                     pages.append(f"```py\n{BACKTICK_PATTERN.sub('`', page).strip()}\n```")
-
+            
             if not pages:
-                await ctx.send("*No logs*")
-            else:
-                embeds = []
-                for i, page in enumerate(reversed(pages)):
-                    embed = discord.Embed(description=page)
-                    if len(pages) > 1:
-                        embed.set_footer(text=f"Page {i+1}/{len(pages)}")
-                    embeds.append(embed)
-                view = LogsView(logs_file or "", embeds, self.bot)
-                view.message = await ctx.send(view=view)
-                if ctx.bot_permissions.manage_messages:
-                    try:
-                        await ctx.message.delete()
-                    except discord.NotFound:
-                        pass
+                return await ctx.send("*No logs*")
+            
+            embeds = []
+            for i, page in enumerate(reversed(pages)):
+                embed = discord.Embed(description=page)
+                if len(pages) > 1:
+                    embed.set_footer(text=f"Page {i+1}/{len(pages)}")
+                embeds.append(embed)
+            file = discord.File(logs_file or "", filename=f"red_logs_{int(ctx.message.created_at.timestamp())}.txt")
+            view = LogsView(file, embeds, self.bot)
+            view.message = await ctx.send(view=view)
+            if ctx.bot_permissions.manage_messages:
+                try:
+                    await ctx.message.delete()
+                except discord.NotFound:
+                    pass
 
         except Exception as ex:  # Since logs is an important command, all possible errors should be covered
             await ctx.send(f"{type(ex).__name__}: {ex}")
