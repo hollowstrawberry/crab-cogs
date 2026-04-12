@@ -52,8 +52,7 @@ class Logs(commands.Cog):
                 if len(pages) > 1:
                     embed.set_footer(text=f"Page {i+1}/{len(pages)}")
                 embeds.append(embed)
-            file = discord.File(logs_file or "", filename=f"red_logs_{int(ctx.message.created_at.timestamp())}.txt")
-            view = LogsView(file, embeds, self.bot)
+            view = LogsView(logs_file or "", embeds, self.bot)
             view.message = await ctx.send(view=view)
             if ctx.bot_permissions.manage_messages:
                 try:

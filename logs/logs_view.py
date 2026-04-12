@@ -1,7 +1,6 @@
 import discord
 from typing import Optional
 from discord.ui import View
-from redbot.core import commands
 from redbot.core.bot import Red
 
 from imagescanner.constants import VIEW_TIMEOUT
@@ -9,9 +8,9 @@ from logs.navigate_view import EphemeralNavigationView
 
 
 class LogsView(View):
-    def __init__(self, file: discord.File, embeds: list[discord.Embed], bot: Red):
+    def __init__(self, filepath: str, embeds: list[discord.Embed], bot: Red):
         super().__init__(timeout=VIEW_TIMEOUT)
-        self.file = file
+        self.filepath = filepath
         self.embeds = embeds
         self.bot = bot
         self.message: Optional[discord.Message] = None
@@ -44,13 +43,15 @@ class LogsView(View):
     async def show_file(self, interaction: discord.Interaction):
         if not await self.check_owner(interaction):
             return
-        await interaction.response.send_message(file=self.file, ephemeral=True)
+        file = discord.File(self.filepath, filename=f"red_logs_{int(interaction.created_at.timestamp())}.txt")
+        await interaction.response.send_message(file=file, ephemeral=True)
 
     async def save_dm(self, interaction: discord.Interaction):
         if not await self.check_owner(interaction):
             return
         try:
-            await interaction.user.send(file=self.file)
+            file = discord.File(self.filepath, filename=f"red_logs_{int(interaction.created_at.timestamp())}.txt")
+            await interaction.user.send(file=file)
         except discord.Forbidden:
             await interaction.response.send_message("It appears you don't accept DMs, so I can't send you the logs file.", ephemeral=True)
         else:
