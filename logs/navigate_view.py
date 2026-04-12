@@ -10,7 +10,7 @@ class NavigateView(View):
             raise ValueError("invalid starting_pos")
         self.current = starting_pos
 
-        self.button_delete = discord.ui.Button(emoji='❌', style=discord.ButtonStyle.red)
+        self.button_delete = discord.ui.Button(emoji='✖️', style=discord.ButtonStyle.red)
         self.button_delete.callback = self.delete
         self.button_start = discord.ui.Button(emoji="⏮️")
         self.button_start.callback = self.start

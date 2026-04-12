@@ -36,7 +36,7 @@ class LogsView(View):
         if not await self.check_owner(interaction):
             return
         view = NavigateView(VIEW_TIMEOUT, self.embeds, len(self.embeds) - 1)
-        await interaction.response.send_message(embed=self.embeds[-1], view=view)
+        await interaction.response.send_message(embed=self.embeds[-1], view=view, ephemeral=True)
 
     async def show_file(self, interaction: discord.Interaction):
         if not await self.check_owner(interaction):
