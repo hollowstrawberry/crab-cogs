@@ -31,6 +31,7 @@ class NavigateView(View):
             self.add_item(self.button_right)
         if len(embeds) > 2:
             self.add_item(self.button_end)
+        self.update_buttons()
 
     def update_buttons(self):
         self.button_start.disabled = self.current == 0
