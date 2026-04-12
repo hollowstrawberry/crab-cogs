@@ -35,8 +35,7 @@ class LogsView(View):
     async def show_logs(self, interaction: discord.Interaction):
         if not await self.check_owner(interaction):
             return
-        ctx = await commands.Context.from_interaction(interaction)
-        await SimpleMenu(self.embeds, timeout=VIEW_TIMEOUT, page_start=len(self.embeds)-1).start(ctx, ephemeral=True)  # type: ignore
+        await SimpleMenu(self.embeds, timeout=VIEW_TIMEOUT, page_start=len(self.embeds)-1).start(interaction.context, ephemeral=True)  # type: ignore
 
     async def show_file(self, interaction: discord.Interaction):
         if not await self.check_owner(interaction):
