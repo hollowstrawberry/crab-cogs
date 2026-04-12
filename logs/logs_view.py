@@ -2,10 +2,10 @@ import discord
 from typing import Optional
 from discord.ui import View
 from redbot.core import commands
-from redbot.core.utils.views import SimpleMenu
 from redbot.core.bot import Red
 
 from imagescanner.constants import VIEW_TIMEOUT
+from logs.navigate_view import NavigateView
 
 
 class LogsView(View):
@@ -35,7 +35,8 @@ class LogsView(View):
     async def show_logs(self, interaction: discord.Interaction):
         if not await self.check_owner(interaction):
             return
-        await SimpleMenu(self.embeds, timeout=VIEW_TIMEOUT, page_start=len(self.embeds)-1).start(interaction.context, ephemeral=True)  # type: ignore
+        view = NavigateView(VIEW_TIMEOUT, self.embeds, len(self.embeds) - 1)
+        await interaction.response.send_message(embed=self.embeds[-1], view=view)
 
     async def show_file(self, interaction: discord.Interaction):
         if not await self.check_owner(interaction):
