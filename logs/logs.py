@@ -20,18 +20,15 @@ class Logs(commands.Cog):
 
     @commands.group(invoke_without_command=True) # type: ignore
     @commands.is_owner()
-    async def logs(self, ctx: commands.Context, lines: Optional[int]):
-        """Opens the logs view with the last n lines of the latest log file (default 100)."""
+    async def logs(self, ctx: commands.Context):
+        """Sends an owner-only logs view."""
         try:
-            if not lines or lines < 0:
-                lines = 100
-
             pages: list[str] = []
             logs_file = await get_logs_file()
             if logs_file:
                 async with aiofiles.open(logs_file, 'r', encoding="utf8") as f:
                     f_lines = await f.readlines()
-                    result = [line.strip() for line in f_lines[-lines:]]
+                    result = [line.strip() for line in f_lines[-1000:]]
                 while result:
                     page = ""
                     while result:
