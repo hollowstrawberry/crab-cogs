@@ -1,11 +1,10 @@
 import discord
 import aiofiles
-from typing import Optional
 from redbot.core import commands, Config
 from redbot.core.bot import Red
 
 from logs.logs_view import LogsView
-from logs.utils import get_logs_file, MAX_PAGE_LENGTH, BACKTICK_PATTERN
+from logs.utils import get_logs_file, MAX_PAGE_LENGTH, BACKTICK_PATTERN, LOG_LINES
 
 
 class Logs(commands.Cog):
@@ -28,7 +27,7 @@ class Logs(commands.Cog):
             if logs_file:
                 async with aiofiles.open(logs_file, 'r', encoding="utf8") as f:
                     f_lines = await f.readlines()
-                    result = [line.strip() for line in f_lines[-1000:]]
+                    result = [line.strip() for line in f_lines[-LOG_LINES:]]
                 while result:
                     page = ""
                     while result:
@@ -43,13 +42,11 @@ class Logs(commands.Cog):
             if not pages:
                 return await ctx.send("*No logs*")
             
-            embeds = []
-            for i, page in enumerate(reversed(pages)):
-                embed = discord.Embed(description=page)
-                if len(pages) > 1:
-                    embed.set_footer(text=f"Page {i+1}/{len(pages)}")
-                embeds.append(embed)
-            view = LogsView(logs_file or "", embeds, self.bot)
+            pages.reverse()
+            if len(pages) > 1:
+                for i in range(len(pages)):
+                    pages[i] += f"`Page {i+1}/{len(pages)}`"
+            view = LogsView(logs_file or "", pages, self.bot)
             view.message = await ctx.send(view=view)
             if ctx.bot_permissions.manage_messages:
                 try:

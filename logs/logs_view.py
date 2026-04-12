@@ -8,10 +8,10 @@ from logs.navigate_view import EphemeralNavigationView
 
 
 class LogsView(View):
-    def __init__(self, filepath: str, embeds: list[discord.Embed], bot: Red):
+    def __init__(self, filepath: str, pages: list[str], bot: Red):
         super().__init__(timeout=VIEW_TIMEOUT)
         self.filepath = filepath
-        self.embeds = embeds
+        self.pages = pages
         self.bot = bot
         self.message: Optional[discord.Message] = None
         self.logs_button = discord.ui.Button(emoji="📜", label="Logs", style=discord.ButtonStyle.blurple)
@@ -34,11 +34,11 @@ class LogsView(View):
     async def show_logs(self, interaction: discord.Interaction):
         if not await self.check_owner(interaction):
             return
-        if len(self.embeds) > 1:
-            view = EphemeralNavigationView(VIEW_TIMEOUT, self.embeds, len(self.embeds) - 1)
-            await interaction.response.send_message(embed=self.embeds[-1], view=view, ephemeral=True)
+        if len(self.pages) > 1:
+            view = EphemeralNavigationView(VIEW_TIMEOUT, self.pages, len(self.pages) - 1)
+            await interaction.response.send_message(self.pages[-1], view=view, ephemeral=True)
         else:
-            await interaction.response.send_message(embed=self.embeds[-1], ephemeral=True)
+            await interaction.response.send_message(self.pages[-1], ephemeral=True)
 
     async def show_file(self, interaction: discord.Interaction):
         if not await self.check_owner(interaction):
