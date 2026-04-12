@@ -2,7 +2,7 @@ import discord
 from typing import List
 from discord.ui import View
 
-class NavigateView(View):
+class EphemeralNavigationView(View):
     def __init__(self, timeout: int, embeds: List[discord.Embed], starting_pos: int):
         super().__init__(timeout=timeout)
         self.embeds = embeds
@@ -10,8 +10,6 @@ class NavigateView(View):
             raise ValueError("invalid starting_pos")
         self.current = starting_pos
 
-        self.button_delete = discord.ui.Button(emoji='✖️', style=discord.ButtonStyle.red)
-        self.button_delete.callback = self.delete
         self.button_start = discord.ui.Button(emoji="⏮️")
         self.button_start.callback = self.start
         self.button_left = discord.ui.Button(emoji="⬅️")
@@ -22,7 +20,6 @@ class NavigateView(View):
         self.button_end = discord.ui.Button(emoji="⏭️")
         self.button_end.callback = self.end
 
-        self.add_item(self.button_delete)
         if len(embeds) > 2:
             self.add_item(self.button_start)
         if len(embeds) > 1:
@@ -38,10 +35,6 @@ class NavigateView(View):
         self.button_left.disabled = self.current == 0
         self.button_right.disabled = self.current == len(self.embeds) - 1
         self.button_end.disabled = self.current == len(self.embeds) - 1
-
-    async def delete(self, interaction: discord.Interaction):
-        assert interaction.message
-        await interaction.message.delete()
 
     async def start(self, interaction: discord.Interaction):
         self.current = 0

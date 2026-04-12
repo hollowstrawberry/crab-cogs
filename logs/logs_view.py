@@ -5,7 +5,7 @@ from redbot.core import commands
 from redbot.core.bot import Red
 
 from imagescanner.constants import VIEW_TIMEOUT
-from logs.navigate_view import NavigateView
+from logs.navigate_view import EphemeralNavigationView
 
 
 class LogsView(View):
@@ -35,8 +35,11 @@ class LogsView(View):
     async def show_logs(self, interaction: discord.Interaction):
         if not await self.check_owner(interaction):
             return
-        view = NavigateView(VIEW_TIMEOUT, self.embeds, len(self.embeds) - 1)
-        await interaction.response.send_message(embed=self.embeds[-1], view=view, ephemeral=True)
+        if len(self.embeds) > 1:
+            view = EphemeralNavigationView(VIEW_TIMEOUT, self.embeds, len(self.embeds) - 1)
+            await interaction.response.send_message(embed=self.embeds[-1], view=view, ephemeral=True)
+        else:
+            await interaction.response.send_message(embed=self.embeds[-1], ephemeral=True)
 
     async def show_file(self, interaction: discord.Interaction):
         if not await self.check_owner(interaction):
