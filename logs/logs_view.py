@@ -3,7 +3,7 @@ from typing import Optional
 from discord.ui import View
 from redbot.core.bot import Red
 
-from imagescanner.constants import VIEW_TIMEOUT
+from logs.utils import VIEW_TIMEOUT
 from logs.navigate_view import EphemeralNavigationView
 
 
