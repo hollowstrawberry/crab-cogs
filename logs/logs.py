@@ -16,8 +16,8 @@ class Logs(commands.Cog):
         self.config = Config.get_conf(self, identifier=66677363)
         self.config.register_global()
 
-    @commands.command(name="logs")
     @commands.is_owner()
+    @commands.command(name="logs")
     async def logs(self, ctx: commands.Context):
         """Sends an owner-only logs view."""
         try:
