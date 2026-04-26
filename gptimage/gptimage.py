@@ -3,13 +3,14 @@ import io
 import base64
 import discord
 import logging
-from typing import Optional, Dict
+from typing import List, Literal, Optional, Dict, Union
 from datetime import datetime, timedelta
 from redbot.core import commands, app_commands, Config
 from redbot.core.bot import Red
 
 from openai import AsyncOpenAI, APIError, APIStatusError, NotGiven
-from gptimage.imageview import ImageView
+from gptimage.base import GptImageBase
+from gptimage.views.image import ImageView
 
 log = logging.getLogger("red.crab-cogs.gptimage")
 
@@ -23,24 +24,8 @@ MODELS = { # model name -> quality name list
 }
 
 
-class GptImage(commands.Cog):
+class GptImage(GptImageBase):
     """Generate images with OpenAI"""
-
-    def __init__(self, bot: Red):
-        super().__init__()
-        self.bot = bot
-        self.client: Optional[AsyncOpenAI] = None
-        self.generating: Dict[int, bool] = {}
-        self.user_last_img: Dict[int, datetime] = {}
-        self.loading_emoji = ""
-        self.config = Config.get_conf(self, identifier=64616665)
-        defaults_global = {
-            "vip": [],
-            "cooldown": 0,
-            "model": "gpt-image-1",
-            "quality": "low",
-        }
-        self.config.register_global(**defaults_global)
 
     async def cog_load(self):
         await self.try_create_client()
@@ -57,69 +42,112 @@ class GptImage(commands.Cog):
         if api_key:
             self.client = AsyncOpenAI(api_key=api_key)
 
+
     @app_commands.command(name="imagine", description="Generate AI images with OpenAI")
-    @app_commands.describe(prompt="What you want to make.")
+    @app_commands.describe(
+        prompt="What you want to make.",
+        reference1="A possible input image for the AI to use.",
+        reference2="A possible input image for the AI to use.",
+        reference3="A possible input image for the AI to use.",
+    )
+    @app_commands.choices(resolution=[
+        app_commands.Choice(name="Square", value="1024x1024"),
+        app_commands.Choice(name="Portrait", value="1024x1536"),
+        app_commands.Choice(name="Landscape", value="1536x1024"),
+    ])
     @app_commands.guild_only()
-    async def imagine_app(self, ctx: discord.Interaction, prompt: str):
-        await self.imagine(ctx, prompt)
+    async def imagine_app(self,
+                          interaction: discord.Interaction,
+                          prompt: str,
+                          resolution: Optional[str],
+                          reference1: Optional[discord.Attachment],
+                          reference2: Optional[discord.Attachment],
+                          reference3: Optional[discord.Attachment]):
+        references = [ref for ref in [reference1, reference2, reference3] if ref is not None]
+        for ref in references:
+            if not ref.content_type or "image" not in ref.content_type:
+                return await interaction.response.send_message("One of the references you uploaded is not an image.", ephemeral=True)
+        
+        await interaction.response.defer(thinking=True)
 
-    async def imagine(self, ctx: discord.Interaction, prompt: str):
-        assert isinstance(ctx.channel, discord.abc.Messageable)
+        fp = [io.BytesIO() for _ in references]
+        for i in range(len(references)):
+            await references[i].save(fp[i], seek_begin=True)
+        images = [b.read() for b in fp]
+
+        resolution = resolution or "1536x1024"
+        await self.imagine(interaction, resolution, prompt, images)
+
+    async def imagine(self,
+                      ctx: Union[discord.Interaction, commands.Context],
+                      resolution: str,
+                      prompt: str,
+                      images: List[bytes]):
+        user = ctx.user if isinstance(ctx, discord.Interaction) else ctx.author
+        send = ctx.followup.send if isinstance(ctx, discord.Interaction) else ctx.reply
+        assert isinstance(user, discord.Member) and isinstance(ctx.channel, discord.abc.Messageable)
         if not self.client:
-            return await ctx.response.send_message("OpenAI key not set.", ephemeral=True)
+            return await send("OpenAI key not set.", ephemeral=True)
         prompt = prompt.strip()
-        if len(prompt) < 2:
-            return await ctx.response.send_message("Prompt too short.", ephemeral=True)
-        if ctx.user.id not in await self.config.vip():
+        if len(prompt) < 3:
+            return await send("Prompt too short.", ephemeral=True)
+        if user.id not in await self.config.vip():
             cooldown = await self.config.cooldown()
-            if self.generating.get(ctx.user.id, False):
+            if self.generating.get(user.id, False):
                 content = "Your current image must finish generating before you can request another one."
-                return await ctx.response.send_message(content, ephemeral=True)
-            if ctx.user.id in self.user_last_img and \
-                    (datetime.now() - self.user_last_img[ctx.user.id]).total_seconds() < cooldown:
-                eta = self.user_last_img[ctx.user.id] + timedelta(seconds=cooldown)
+                return await send(content, ephemeral=True)
+            if user.id in self.user_last_img and \
+                    (datetime.now() - self.user_last_img[user.id]).total_seconds() < cooldown:
+                eta = self.user_last_img[user.id] + timedelta(seconds=cooldown)
                 content = f"You may use this command again {discord.utils.format_dt(eta, 'R')}."
-                return await ctx.response.send_message(content, ephemeral=True)
+                return await send(content, ephemeral=True)
 
-        await ctx.response.defer(thinking=True)
+        if isinstance(ctx, discord.Interaction):
+            await ctx.response.defer(thinking=True)
+
         result = None
         try:
-            self.generating[ctx.user.id] = True
+            self.generating[user.id] = True
             model = await self.config.model()
-            quality = NotGiven() if model == "dall-e-2" else await self.config.quality()
-            response_format = NotGiven() if "gpt-image" in model else "b64_json"
-            moderation = NotGiven() if "gpt-image" in model or not self.is_nsfw(ctx.channel) else "low"
-            result = await self.client.images.generate(
-                n=1,
-                size="1024x1024",
-                prompt=prompt,
-                model=model,
-                quality=quality,
-                response_format=response_format,
-                moderation=moderation
-            )
+            args = {
+                "n": 1,
+                "model": model,
+                "quality": NotGiven() if model == "dall-e-2" else await self.config.quality(),
+                "response_format": NotGiven() if "gpt-image" in model else "b64_json",
+                "moderation": "low" if self.is_nsfw(ctx.channel) else NotGiven(),
+                "size": resolution,
+            }
+            if images:
+                result = await self.client.images.edit(image=images, **args)  # type: ignore
+            else:
+                result = await self.client.images.generate(**args)  # type: ignore
         except APIStatusError as e:
-            return await ctx.followup.send(content=f":warning: Failed to generate image: {e.response.json()['error']['message']}")
+            return await send(content=f":warning: Failed to generate image: {e.response.json()['error']['message']}")
         except APIError as e:
-            return await ctx.followup.send(content=f":warning: Failed to generate image: {e.message}")
+            return await send(content=f":warning: Failed to generate image: {e.message}")
         except Exception:  # noqa, reason: user-facing error
             log.exception(msg="Trying to generate image with OpenAI", stack_info=True)
         finally:
-            self.generating[ctx.user.id] = False
+            self.generating[user.id] = False
 
         if not result or not result.data or not result.data[0].b64_json:
-            return await ctx.followup.send(content=":warning: Sorry, there was a problem trying to generate your image.")
+            return await send(content=":warning: Sorry, there was a problem trying to generate your image.")
 
-        self.user_last_img[ctx.user.id] = datetime.now()
+        self.user_last_img[user.id] = datetime.now()
         
         image_data = io.BytesIO(base64.b64decode(result.data[0].b64_json))
         timestamp = f"{datetime.utcnow().timestamp():.6f}"
         filename = f"gptimage_{timestamp.replace('.', '_')}.png"
         file = discord.File(fp=image_data, filename=filename)
-        content = f"Reroll requested by {ctx.user.mention}" if ctx.type == discord.InteractionType.component else ""
-        message = await ctx.original_response()
-        view = ImageView(self, message, prompt)
-        await ctx.followup.send(content=content, view=view, file=file, allowed_mentions=discord.AllowedMentions.none())
+        if isinstance(ctx, commands.Context) or ctx.type == discord.InteractionType.component:
+            content = f"Reroll requested by {user.mention}"
+        else:
+            content = ""
+        message = await ctx.original_response() if isinstance(ctx, discord.Interaction) else None
+        view = ImageView(self, message, prompt, resolution, images)
+        message = await send(content=content, view=view, file=file, allowed_mentions=discord.AllowedMentions.none())
+        if isinstance(ctx, commands.Context):
+            view.message = message
 
     @commands.group() # type: ignore
     @commands.is_owner()
