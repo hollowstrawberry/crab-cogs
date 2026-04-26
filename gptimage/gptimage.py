@@ -63,7 +63,7 @@ class GptImage(GptImageSettings):
 
     # context menu added in cog_load
     async def remix_app_command(self, interaction: discord.Interaction, message: discord.Message):
-        """Edits an image with nanobanana. Approved users only."""
+        """Edits an image with OpenAI."""
         attachments = [att for att in message.attachments if att.content_type and "image" in att.content_type]
         if not attachments:
             return await interaction.response.send_message("This message doesn't have an image to remix.", ephemeral=True)
@@ -71,7 +71,7 @@ class GptImage(GptImageSettings):
         await interaction.response.send_modal(modal)
 
 
-    @app_commands.command(name="imagine", description="Generate AI images with OpenAI")
+    @app_commands.command(name="imagine", description="Generate images with OpenAI")
     @app_commands.describe(
         prompt="What you want to make.",
         reference1="A possible input image for the AI to use.",
@@ -181,10 +181,17 @@ class GptImage(GptImageSettings):
                 result = await self.client.images.generate(moderation="low", **args)  # type: ignore
 
         except APIStatusError as e:
-            return await send(content=f":warning: Failed to generate image. {e.response.json().get('error', {}).get('message')}")
+            message = e.response.json().get('error', {}).get('message')
+            if "safety" in message:
+                return await send(content=f":warning: Request rejected by the safety system.")
+            else:
+                return await send(content=f":warning: Failed to generate image. {message}")
         except APIError as e:
-            return await send(content=f":warning: Failed to generate image: {e.message}")
-        except Exception:  # noqa, reason: user-facing error
+            if "safety" in e.message:
+                return await send(content=f":warning: Request rejected by the safety system.")
+            else:
+                return await send(content=f":warning: Failed to generate image. {e.message}")
+        except Exception:
             log.exception(msg="Trying to generate image with OpenAI", stack_info=True)
         finally:
             self.generating[user.id] = False
