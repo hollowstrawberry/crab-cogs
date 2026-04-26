@@ -11,7 +11,7 @@ class GptImageSettings(GptImageBase):
     @commands.group(name="gptimage", aliases=["gptimageset"]) # type: ignore
     @commands.is_owner()
     async def gptimage_cmd(self, _):
-        """Configure /imagine bot-wide."""
+        """Configure /imagine bot-wide"""
         pass
 
     @gptimage_cmd.command(name="enable")
@@ -58,16 +58,11 @@ class GptImageSettings(GptImageBase):
             quality = quality.lower().strip()
             qualities = MODELS.get(model, [])
             if quality not in qualities:
-                if not qualities:
-                    await ctx.reply(f"The {model} model does not support qualities")
-                else:
-                    await ctx.reply("Quality must be one of: " + ",".join([f'`{m}`' for m in (qualities)]))
-                return
+                return await ctx.reply("Quality must be one of: " + ",".join([f'`{m}`' for m in (qualities)]))
             await self.config.quality.set(quality)
         await ctx.reply(f"The /imagine command will use {quality} quality.")
 
     @gptimage_cmd.command(name="loading_emoji")
-    @commands.is_owner()
     async def loading_emoji_cmd(self, ctx: commands.Context, emoji: str):
         """
         Sets a loading emoji for the progress message
@@ -75,26 +70,24 @@ class GptImageSettings(GptImageBase):
         await self.config.loading_emoji.set(emoji)
         await ctx.tick()
 
-    @gptimage_cmd.group(name="vip")
-    @checks.is_owner()
-    @checks.bot_in_a_guild()
-    async def vip_cmd(self, _: commands.Context):
+    @gptimage_cmd.command(name="quota", aliases=["limit"])
+    async def quota_cmd(self, ctx: commands.Context, gens: int):
         """
-        Manage the VIP role for image generation, which can generate as many images as they want
-        """
-        pass
-
-    @vip_cmd.command(name="quota")
-    async def vip_quota(self, ctx: commands.Context, gens: int):
-        """
-        Sets the number of gens a user can do per hour
+        Sets the number of images a non-vip user can generate per hour
         """
         if gens < 0 or gens > 1000:
             return await ctx.send("Valid quota values range from 0 to 1000")
         await self.config.quota.set(gens)
         await ctx.send(f"Hourly quota set to {gens}")
 
-    @vip_cmd.command(name="view")
+    @gptimage_cmd.group(name="vip")
+    async def vip_cmd(self, _: commands.Context):
+        """
+        Manage the VIP role for image generation, which can generate as many images as they want
+        """
+        pass
+
+    @vip_cmd.command(name="view", aliases=["show", "list"])
     async def vip_view(self, ctx: commands.Context):
         """
         View the VIP role
@@ -116,14 +109,18 @@ class GptImageSettings(GptImageBase):
         await self.config.guild(ctx.guild).vip_role.set(role.id)
         await ctx.send(f"VIP role set to {role.mention}", allowed_mentions=discord.AllowedMentions.none())
 
-    @vip_cmd.command(name="user")
+    @vip_cmd.command(name="user", aliases=["users"])
     async def vip_user(self, ctx: commands.Context, *, user: discord.User):
         """
         Toggles whether a user is VIP
         """
-        new = not await self.config.user(user).vip() 
-        await self.config.user(user).vip.set(new)
-        await ctx.send(f"User {user.mention} is {'now VIP' if new else 'no longer VIP'}", allowed_mentions=discord.AllowedMentions.none())
+        vip_list = await self.config.vip()
+        if ctx.author.id in vip_list:
+            vip_list.remove(ctx.author.id)
+        else:
+            vip_list.append(ctx.author.id)
+        await self.config.vip.set(vip_list)
+        await ctx.send(f"User {user.mention} is {'now VIP' if ctx.author.id in vip_list else 'no longer VIP'}", allowed_mentions=discord.AllowedMentions.none())
 
     @staticmethod
     def is_nsfw(channel: discord.abc.Messageable):
