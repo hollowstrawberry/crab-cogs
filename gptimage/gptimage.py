@@ -112,13 +112,12 @@ class GptImage(GptImageBase):
                 "prompt": prompt,
                 "quality": NotGiven() if model == "dall-e-2" else await self.config.quality(),
                 "response_format": NotGiven() if "gpt-image" in model else "b64_json",
-                "moderation": "low" if self.is_nsfw(ctx.channel) else NotGiven(),
                 "size": resolution,
             }
             if images:
                 result = await self.client.images.edit(image=images, **args)  # type: ignore
             else:
-                result = await self.client.images.generate(**args)  # type: ignore
+                result = await self.client.images.generate(moderation="low", **args)  # type: ignore
         except APIStatusError as e:
             return await send(content=f":warning: Failed to generate image: {e.response.json()['error']['message']}")
         except APIError as e:
@@ -134,8 +133,8 @@ class GptImage(GptImageBase):
         self.user_last_img[user.id] = datetime.now()
         
         image_data = io.BytesIO(base64.b64decode(result.data[0].b64_json))
-        timestamp = f"{datetime.utcnow().timestamp():.6f}"
-        filename = f"gptimage_{timestamp.replace('.', '_')}.png"
+        fid = ctx.id if isinstance(ctx, discord.Interaction) else ctx.message.id
+        filename = f"gptimage_{fid}.png"
         file = discord.File(fp=image_data, filename=filename)
         if isinstance(ctx, commands.Context) or ctx.type == discord.InteractionType.component:
             content = f"Reroll requested by {user.mention}"
@@ -145,7 +144,7 @@ class GptImage(GptImageBase):
         message = await send(content=content, view=view, file=file, allowed_mentions=discord.AllowedMentions.none())
         view.message = message
 
-    @commands.group() # type: ignore
+    @commands.group(name="gptimage", aliases=["gptimageset"]) # type: ignore
     @commands.is_owner()
     async def gptimage(self, _):
         """Configure /imagine bot-wide."""

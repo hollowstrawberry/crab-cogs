@@ -28,6 +28,7 @@ class ImageView(View):
     @discord.ui.button(emoji="🎲", style=discord.ButtonStyle.grey)
     async def recycle(self, interaction: discord.Interaction, _: discord.ui.Button):
         assert interaction.message
+        await interaction.response.defer(thinking=True)
         await self.cog.imagine(interaction, self.resolution, self.prompt, self.images)
 
     @discord.ui.button(emoji="📝", style=discord.ButtonStyle.grey)
