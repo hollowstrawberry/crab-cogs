@@ -124,12 +124,16 @@ class GptImage(GptImageSettings):
         embed.description = f"{await self.config.loading_emoji()} Generating image..."
         embed.set_footer(text=user.display_name, icon_url=user.display_avatar.url)
         view = GeneratingView(prompt, await self.bot.get_embed_color(ctx.channel))
+        
         if isinstance(ctx, discord.Interaction):
             progress_message = None
             await send(embed=embed, view=view)
             async def edit_original_response(**kwargs):
                 if "view" not in kwargs:
                     kwargs["view"] = None
+                if "file" in kwargs:
+                    kwargs["attachments"] = [kwargs["file"]]
+                    del kwargs["file"]
                 await ctx.edit_original_response(**kwargs)
             send = edit_original_response
         else:
