@@ -87,8 +87,8 @@ class GptImage(commands.Cog):
             self.generating[ctx.user.id] = True
             model = await self.config.model()
             quality = NotGiven() if model == "dall-e-2" else await self.config.quality()
-            response_format = NotGiven() if model == "gpt-image-1" else "b64_json"
-            moderation = NotGiven() if model != "gpt-image-1" or not self.is_nsfw(ctx.channel) else "low"
+            response_format = NotGiven() if "gpt-image" in model else "b64_json"
+            moderation = NotGiven() if "gpt-image" in model or not self.is_nsfw(ctx.channel) else "low"
             result = await self.client.images.generate(
                 n=1,
                 size="1024x1024",
