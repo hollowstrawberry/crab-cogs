@@ -3,10 +3,10 @@
     "min_bot_version": "3.5.0",
     "description": "Generate images with OpenAI",
     "hidden": false,
-    "install_msg": "🖼 __**GPT Image**__\n:warning: **Important:** OpenAI's models cost money every time they are used. Please check <https://openai.com/api/pricing/> and use this cog with care.\n```Cog installed. Instructions:\n1. Load it with [p]load gptimage\n2. Add your OpenAI API key with [p]set api openai api_key,INSERT_API_KEY\n3. Enable slash commands with [p]slash enablecog gptimage\n4. Sync slash commands with [p]slash sync\n5. You may need to restart Discord to see the new commands.\n5. Use /imagine to start generating images.```",
+    "install_msg": "🖼 __**GPT Image**__\n:warning: **Important:** OpenAI's models cost money every time they are used. Please check <https://openai.com/api/pricing/> and use this cog with care. These can range from 1 cent to 20+ cents per image depending on the config.\n```Cog installed. Instructions:\n1. Load it with [p]load gptimage\n2. Add your OpenAI API key with [p]set api openai api_key,INSERT_API_KEY\n3. Enable the /imagine slash command and the Remix app command with [p]slash enablecog gptimage\n4. Sync slash commands with [p]slash sync\n5. You may need to restart Discord to see the new commands.\n5. The bot owner can enable image generation in specific guilds and manage quotas, with the [p]gptimage command.\n6. Enjoy!```",
     "required_cogs": {},
     "requirements": [],
     "short": "Generate images with OpenAI",
     "end_user_data_statement": "This cog does not store user data.",
-    "tags": ["crab", "image", "ai", "generation", "imagine", "dalle", "dall-e", "openai"]
+    "tags": ["crab", "image", "ai", "generation", "imagine", "gpt", "openai", "gpt-image-2", "remix"]
 }
