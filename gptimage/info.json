@@ -1,7 +1,7 @@
 {
     "author": ["hollowstrawberry"],
     "min_bot_version": "3.5.0",
-    "description": "Generate images with OpenAI",
+    "description": "Connects to OpenAI's gpt-image-2 to generate images, with an /imagine slash command an a Remix app command. Requires an api key and ongoing monetary cost. Depending on the setting, it may cost 1 cent to 20+ cents per image. Configurable hourly quota per user, with an option to add a VIP role and specific VIP users that can generate as much as they want.",
     "hidden": false,
     "install_msg": "🖼 __**GPT Image**__\n:warning: **Important:** OpenAI's models cost money every time they are used. Please check <https://openai.com/api/pricing/> and use this cog with care. These can range from 1 cent to 20+ cents per image depending on the config.\n```Cog installed. Instructions:\n1. Load it with [p]load gptimage\n2. Add your OpenAI API key with [p]set api openai api_key,INSERT_API_KEY\n3. Enable the /imagine slash command and the Remix app command with [p]slash enablecog gptimage\n4. Sync slash commands with [p]slash sync\n5. You may need to restart Discord to see the new commands.\n5. The bot owner can enable image generation in specific guilds and manage quotas, with the [p]gptimage command.\n6. Enjoy!```",
     "required_cogs": {},
