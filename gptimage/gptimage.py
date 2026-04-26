@@ -115,7 +115,7 @@ class GptImage(GptImageBase):
                 "size": resolution,
             }
             if images:
-                result = await self.client.images.edit(images, **args)  # type: ignore
+                result = await self.client.images.edit(image=images, **args)  # type: ignore
             else:
                 result = await self.client.images.generate(moderation="low", **args)  # type: ignore
         except APIStatusError as e:
