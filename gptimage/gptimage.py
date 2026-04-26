@@ -9,8 +9,8 @@ from discord.ext import tasks
 from redbot.core import commands, app_commands
 from openai import AsyncOpenAI, APIError, APIStatusError, NotGiven
 
+from gptimage.utils import normalize_image, MODELS
 from gptimage.settings import GptImageSettings
-from gptimage.utils import normalize_image
 from gptimage.views.edit import EditModal
 from gptimage.views.image import ImageView
 from gptimage.views.generating import GeneratingView
@@ -114,14 +114,17 @@ class GptImage(GptImageSettings):
         user = ctx.user if isinstance(ctx, discord.Interaction) else ctx.author
         send = ctx.followup.send if isinstance(ctx, discord.Interaction) else ctx.reply
         assert ctx.guild and isinstance(user, discord.Member) and isinstance(ctx.channel, discord.abc.Messageable)
-        
+
         if not self.client:
-            return await send("OpenAI key not set.", ephemeral=True)
+            return await send("OpenAI key not set.")
         prompt = prompt.strip()
         if len(prompt) < 3:
             return await send("Prompt too short.", ephemeral=True)
         if not await self.config.guild(ctx.guild).enabled():
             return await send(content=":warning: The generator is not enabled for this server.")
+        model = await self.config.model()
+        if model not in MODELS:
+            return await send("The available image generation models have changed. Please configure the cog to change the model.")
         
         vip_role = await self.config.guild(ctx.guild).vip_role()
         is_vip = user.id in await self.config.vip() or any(role.id == vip_role for role in user.roles)
@@ -165,13 +168,11 @@ class GptImage(GptImageSettings):
         result = None
         try:
             self.generating[user.id] = True
-            model = await self.config.model()
             args = {
                 "n": 1,
                 "model": model,
                 "prompt": prompt,
-                "quality": NotGiven() if model == "dall-e-2" else await self.config.quality(),
-                "response_format": NotGiven() if "gpt-image" in model else "b64_json",
+                "quality": await self.config.quality(),
                 "size": resolution,
             }
             if images:
