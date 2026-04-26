@@ -24,7 +24,7 @@ def normalize_image(b: bytes | BytesIO) -> Tuple[bytes, str]:
     width, height = image.width, image.height
     if width*height > MAX_PIXELS:
         width, height = scale_to_size(width, height, MAX_PIXELS)
-    elif width*height < MAX_PIXELS:
+    elif width*height < MIN_PIXELS:
         width, height = scale_to_size(width, height, MIN_PIXELS)
     if width % MULTIPLE != 0 or height % MULTIPLE != 0:
         width, height = round_to_nearest(width, MULTIPLE), round_to_nearest(height, MULTIPLE)
