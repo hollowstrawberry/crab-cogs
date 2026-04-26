@@ -98,6 +98,8 @@ class GptImage(GptImageSettings):
         prompt = prompt.strip()
         if len(prompt) < 3:
             return await send("Prompt too short.", ephemeral=True)
+        if not await self.config.guild(ctx.guild).enabled():
+            return await send(content=":warning: The generator is not enabled for this server.")
         
         vip_role = await self.config.guild(ctx.guild).vip_role()
         is_vip = user.id in await self.config.vip() or any(role.id == vip_role for role in user.roles)
