@@ -14,7 +14,5 @@ class GeneratingView(ui.View):
     async def inspect(self, interaction: discord.Interaction):
         embed = discord.Embed(color=self.embed_color)
         embed.title = "Image Request"
-        if len(self.prompt) > 1000:
-            self.prompt = self.prompt[:997] + "..."
-        embed.add_field(name="Prompt", value=self.prompt, inline=False)
+        embed.description = f"```\n{self.prompt}\n```"
         await interaction.response.send_message(embed=embed, ephemeral=True)

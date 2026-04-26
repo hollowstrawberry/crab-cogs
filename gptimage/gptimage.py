@@ -126,9 +126,11 @@ class GptImage(GptImageSettings):
         view = GeneratingView(prompt, await self.bot.get_embed_color(ctx.channel))
         if isinstance(ctx, discord.Interaction):
             progress_message = None
-            await ctx.followup.send(embed=embed, view=view)
+            await send(embed=embed, view=view)
             async def edit_original_response(**kwargs):
-                await ctx.edit_original_response(**kwargs, view=None)
+                if "view" not in kwargs:
+                    kwargs["view"] = None
+                await ctx.edit_original_response(**kwargs)
             send = edit_original_response
         else:
             progress_message = await send(embed=embed, view=view)
