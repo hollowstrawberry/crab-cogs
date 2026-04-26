@@ -27,7 +27,7 @@ class GptImageBase(commands.Cog):
 
     async def imagine(self,
                       ctx: Union[discord.Interaction, commands.Context],
-                      prompt: str,
                       resolution: str,
+                      prompt: str,
                       images: List[bytes]):
         raise NotImplementedError
