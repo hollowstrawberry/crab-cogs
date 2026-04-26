@@ -102,9 +102,6 @@ class GptImage(GptImageBase):
                 content = f"You may use this command again {discord.utils.format_dt(eta, 'R')}."
                 return await send(content, ephemeral=True)
 
-        if isinstance(ctx, discord.Interaction):
-            await ctx.response.defer(thinking=True)
-
         result = None
         try:
             self.generating[user.id] = True
