@@ -1,8 +1,8 @@
-import asyncio
 import io
 import base64
-import discord
 import logging
+import asyncio
+import discord
 from typing import Coroutine, List, Optional, Union
 from datetime import datetime, timezone
 from discord.ext import tasks
@@ -10,6 +10,7 @@ from redbot.core import commands, app_commands
 from openai import AsyncOpenAI, APIError, APIStatusError, NotGiven
 
 from gptimage.settings import GptImageSettings
+from gptimage.views.generating import GeneratingView
 from gptimage.views.image import ImageView
 
 log = logging.getLogger("red.crab-cogs.gptimage")
@@ -119,13 +120,18 @@ class GptImage(GptImageSettings):
                     embed.add_field(name="Time remaining", value=f"{int(60 - (elapsed_last_refresh // 60))} minutes.")
                 return await send(embed=embed, ephemeral=True)
 
+        embed = discord.Embed(color=await self.bot.get_embed_color(ctx.channel))
+        embed.description = f"{await self.config.loading_emoji()} Generating image..."
+        embed.set_footer(text=user.display_name, icon_url=user.display_avatar.url)
+        view = GeneratingView(prompt, await self.bot.get_embed_color(ctx.channel))
         if isinstance(ctx, discord.Interaction):
             progress_message = None
+            await ctx.followup.send(embed=embed, view=view)
+            async def edit_original_response(**kwargs):
+                await ctx.edit_original_response(**kwargs, view=None)
+            send = edit_original_response
         else:
-            embed = discord.Embed(color=await self.bot.get_embed_color(ctx.channel))
-            embed.description = f"{await self.config.loading_emoji()} Generating image..."
-            embed.set_footer(text=user.display_name, icon_url=user.display_avatar.url)
-            progress_message = await send(embed=embed)
+            progress_message = await send(embed=embed, view=view)
 
         result = None
         try:
@@ -144,8 +150,9 @@ class GptImage(GptImageSettings):
                 result = await self.client.images.edit(image=formatted_images, **args)  # type: ignore
             else:
                 result = await self.client.images.generate(moderation="low", **args)  # type: ignore
+
         except APIStatusError as e:
-            return await send(content=f":warning: Failed to generate image: {e.response.json()['error']['message']}")
+            return await send(content=f":warning: Failed to generate image. {e.response.json().get('error', {}).get('message')}")
         except APIError as e:
             return await send(content=f":warning: Failed to generate image: {e.message}")
         except Exception:  # noqa, reason: user-facing error

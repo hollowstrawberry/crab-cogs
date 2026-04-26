@@ -9,7 +9,6 @@ from redbot.core.bot import Red
 
 
 class GptImageBase(commands.Cog):
-
     def __init__(self, bot: Red):
         super().__init__()
         self.bot = bot
