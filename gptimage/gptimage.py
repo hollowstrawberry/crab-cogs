@@ -166,7 +166,7 @@ class GptImage(GptImageSettings):
         filename = f"gptimage_{fid}.png"
         file = discord.File(fp=image_data, filename=filename)
         if isinstance(ctx, commands.Context) or ctx.type == discord.InteractionType.component:
-            content = f"Reroll requested by {user.mention}"
+            content = f"-# Requested by {user.mention}"
         else:
             content = ""
         view = ImageView(self, prompt, resolution, images)
