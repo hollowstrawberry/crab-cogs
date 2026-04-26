@@ -115,7 +115,8 @@ class GptImage(GptImageBase):
                 "size": resolution,
             }
             if images:
-                result = await self.client.images.edit(image=images, **args)  # type: ignore
+                formatted_images = [("image.webp", img, "image/webp") for img in images]
+                result = await self.client.images.edit(image=formatted_images, **args)  # type: ignore
             else:
                 result = await self.client.images.generate(moderation="low", **args)  # type: ignore
         except APIStatusError as e:
