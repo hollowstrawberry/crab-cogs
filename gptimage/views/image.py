@@ -33,8 +33,9 @@ class ImageView(View):
 
     @discord.ui.button(emoji="📝", style=discord.ButtonStyle.grey)
     async def modify_image(self, interaction: discord.Interaction, _: discord.ui.Button):
-        from gptimage.views.modify import ModifyModal
-        modal = ModifyModal(self)
+        assert self.message
+        from gptimage.views.edit import EditModal
+        modal = EditModal(self.cog, self.message)
         await interaction.response.send_modal(modal)
 
     @discord.ui.button(emoji="🗑️", style=discord.ButtonStyle.grey)

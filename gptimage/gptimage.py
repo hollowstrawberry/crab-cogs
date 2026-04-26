@@ -1,17 +1,19 @@
-import io
 import base64
 import logging
 import asyncio
 import discord
-from typing import Coroutine, List, Optional, Union
+from io import BytesIO
+from typing import Coroutine, List, Optional, Tuple, Union
 from datetime import datetime, timezone
 from discord.ext import tasks
 from redbot.core import commands, app_commands
 from openai import AsyncOpenAI, APIError, APIStatusError, NotGiven
 
 from gptimage.settings import GptImageSettings
-from gptimage.views.generating import GeneratingView
+from gptimage.utils import normalize_image
+from gptimage.views.edit import EditModal
 from gptimage.views.image import ImageView
+from gptimage.views.generating import GeneratingView
 
 log = logging.getLogger("red.crab-cogs.gptimage")
 
@@ -20,14 +22,17 @@ class GptImage(GptImageSettings):
     """Generate images with OpenAI"""
 
     async def cog_load(self):
+        self.remix_context_menu = app_commands.ContextMenu(name='Remix', type=discord.AppCommandType.message, callback=self.remix_app_command)
+        self.bot.tree.add_command(self.remix_context_menu)
         await self.try_create_client()
         self.clear_quota.start()
         self.loading_emoji = await self.config.loading_emoji()
 
     async def cog_unload(self):
+        self.bot.tree.remove_command(self.remix_context_menu.name, type=self.remix_context_menu.type)
+        self.clear_quota.stop()
         if self.client:
             await self.client.close()
-        self.clear_quota.stop()
 
     @tasks.loop(hours=1)
     async def clear_quota(self):
@@ -46,6 +51,26 @@ class GptImage(GptImageSettings):
         if api_key:
             self.client = AsyncOpenAI(api_key=api_key)
 
+    @staticmethod
+    async def normalize_attachments(attachments: List[discord.Attachment]) -> Tuple[List[bytes], str]:
+        fp = [BytesIO() for _ in attachments]
+        for i in range(len(attachments)):
+            await attachments[i].save(fp[i])
+        results = [await asyncio.to_thread(normalize_image, b) for b in fp]
+        images = [img[0] for img in results]
+        resolution = results[0][1] if results else "1536x1024"
+        return images, resolution
+
+
+    # context menu added in __init__
+    async def remix_app_command(self, interaction: discord.Interaction, message: discord.Message):
+        """Edits an image with nanobanana. Approved users only."""
+        attachments = [att for att in message.attachments if att.content_type and "image" in att.content_type]
+        if not attachments:
+            return await interaction.response.send_message("This message doesn't have an image to remix.", ephemeral=True)
+        modal = EditModal(self, message)
+        await interaction.response.send_modal(modal)
+
 
     @app_commands.command(name="imagine", description="Generate AI images with OpenAI")
     @app_commands.describe(
@@ -55,6 +80,7 @@ class GptImage(GptImageSettings):
         reference3="A possible input image for the AI to use.",
     )
     @app_commands.choices(resolution=[
+        app_commands.Choice(name="Same as reference", value=""),
         app_commands.Choice(name="Square", value="1024x1024"),
         app_commands.Choice(name="Portrait", value="1024x1536"),
         app_commands.Choice(name="Landscape", value="1536x1024"),
@@ -73,14 +99,9 @@ class GptImage(GptImageSettings):
                 return await interaction.response.send_message("One of the references you uploaded is not an image.", ephemeral=True)
         
         await interaction.response.defer(thinking=True)
-
-        fp = [io.BytesIO() for _ in references]
-        for i in range(len(references)):
-            await references[i].save(fp[i])
-        images = [b.getvalue() for b in fp]
-
-        resolution = resolution or "1536x1024"
-        await self.imagine(interaction, resolution, prompt, images)
+        image_bytes, first_resolution = await self.normalize_attachments(references)
+        resolution = resolution or first_resolution
+        await self.imagine(interaction, resolution, prompt, image_bytes)
 
 
     async def imagine(self,
@@ -176,7 +197,7 @@ class GptImage(GptImageSettings):
             return await send(content=":warning: Sorry, there was a problem trying to generate your image.")
 
         self.gen_count[user.id] += 1
-        image_data = io.BytesIO(base64.b64decode(result.data[0].b64_json))
+        image_data = BytesIO(base64.b64decode(result.data[0].b64_json))
         fid = ctx.id if isinstance(ctx, discord.Interaction) else ctx.message.id
         filename = f"gptimage_{fid}.png"
         file = discord.File(fp=image_data, filename=filename)
