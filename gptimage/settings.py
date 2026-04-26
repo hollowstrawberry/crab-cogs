@@ -1,6 +1,6 @@
 import discord
 from typing import Optional
-from redbot.core import commands, checks
+from redbot.core import commands
 
 from gptimage.base import GptImageBase
 from gptimage.utils import MODELS

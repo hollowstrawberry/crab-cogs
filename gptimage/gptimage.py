@@ -7,7 +7,7 @@ from typing import Coroutine, List, Optional, Tuple, Union
 from datetime import datetime, timezone
 from discord.ext import tasks
 from redbot.core import commands, app_commands
-from openai import AsyncOpenAI, APIError, APIStatusError, NotGiven
+from openai import AsyncOpenAI, APIError, APIStatusError
 
 from gptimage.utils import normalize_image, MODELS
 from gptimage.settings import GptImageSettings
@@ -26,7 +26,6 @@ class GptImage(GptImageSettings):
         self.bot.tree.add_command(self.remix_context_menu)
         await self.try_create_client()
         self.clear_quota.start()
-        self.loading_emoji = await self.config.loading_emoji()
 
     async def cog_unload(self):
         self.bot.tree.remove_command(self.remix_context_menu.name, type=self.remix_context_menu.type)
@@ -62,7 +61,7 @@ class GptImage(GptImageSettings):
         return images, resolution
 
 
-    # context menu added in __init__
+    # context menu added in cog_load
     async def remix_app_command(self, interaction: discord.Interaction, message: discord.Message):
         """Edits an image with nanobanana. Approved users only."""
         attachments = [att for att in message.attachments if att.content_type and "image" in att.content_type]
