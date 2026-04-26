@@ -142,7 +142,7 @@ Sends a configured message when a guild member starts playing a specific game or
 
 ### 🖼 GPTimage
 
-Connects to OpenAI's Dall-E 3 and newer models to generate images. Requires an api key and ongoing monetary cost. Configurable cooldown per user, with an option to add VIP users that skip the cooldown.
+Connects to OpenAI's gpt-image-2 to generate images, with an /imagine slash command an a Remix app command. Requires an api key and ongoing monetary cost. Depending on the setting, it may cost 1 cent to 20+ cents per image. Configurable hourly quota per user, with an option to add a VIP role and specific VIP users that can generate as much as they want.
 
 ### 🖼 NovelAI
 
