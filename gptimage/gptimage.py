@@ -3,10 +3,10 @@ import io
 import base64
 import discord
 import logging
-from typing import List, Optional, Union
-from datetime import datetime, timedelta, timezone
+from typing import Coroutine, List, Optional, Union
+from datetime import datetime, timezone
 from discord.ext import tasks
-from redbot.core import commands, app_commands, checks
+from redbot.core import commands, app_commands
 
 from openai import AsyncOpenAI, APIError, APIStatusError, NotGiven
 from gptimage.settings import GptImageSettings
@@ -86,7 +86,8 @@ class GptImage(GptImageSettings):
                       ctx: Union[discord.Interaction, commands.Context],
                       resolution: str,
                       prompt: str,
-                      images: List[bytes]
+                      images: List[bytes],
+                      callback: Optional[Coroutine] = None,
                      ):
         user = ctx.user if isinstance(ctx, discord.Interaction) else ctx.author
         send = ctx.followup.send if isinstance(ctx, discord.Interaction) else ctx.reply
@@ -150,7 +151,9 @@ class GptImage(GptImageSettings):
         finally:
             self.generating[user.id] = False
             if progress_message:
-                await asyncio.create_task(progress_message.delete())
+                asyncio.create_task(progress_message.delete())
+            if callback:
+                asyncio.create_task(callback)
 
         if not result or not result.data or not result.data[0].b64_json:
             return await send(content=":warning: Sorry, there was a problem trying to generate your image.")

@@ -1,8 +1,8 @@
 
 import discord
-from collections import defaultdict
 from typing import List, Optional, Dict, Union
 from datetime import datetime
+from collections import defaultdict
 from openai import AsyncOpenAI
 from redbot.core import commands, Config
 from redbot.core.bot import Red
