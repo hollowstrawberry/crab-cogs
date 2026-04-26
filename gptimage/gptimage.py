@@ -134,6 +134,8 @@ class GptImage(GptImageSettings):
                 if "file" in kwargs:
                     kwargs["attachments"] = [kwargs["file"]]
                     del kwargs["file"]
+                if "embed" not in kwargs:
+                    kwargs["embed"] = None
                 await ctx.edit_original_response(**kwargs)
             send = edit_original_response
         else:
