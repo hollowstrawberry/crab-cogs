@@ -2,8 +2,12 @@ from io import BytesIO
 from PIL import Image
 from typing import Tuple, Union
 
+MODELS = {
+    "gpt-image-2": ["low", "medium", "high"],
+}
+
 MIN_PIXELS = 700000
-MAX_PIXELS = 1280*1280
+MAX_PIXELS = 1024*1536
 MULTIPLE = 16
 
 def round_to_nearest(value: Union[int, float], multiple: int) -> int:
