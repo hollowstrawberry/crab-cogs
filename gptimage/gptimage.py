@@ -18,7 +18,8 @@ SIMPLE_PROMPT = "I NEED to test how the tool works with extremely simple prompts
 MODELS = { # model name -> quality name list
     "dall-e-2": [],
     "dall-e-3": ["standard", "hd"],
-    "gpt-image-1": ["low", "medium", "high"]
+    "gpt-image-1": ["low", "medium", "high"],
+    "gpt-image-2": ["low", "medium", "high"],
 }
 
 
