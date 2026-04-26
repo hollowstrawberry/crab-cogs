@@ -7,13 +7,13 @@ from gptimage.base import GptImageBase
 
 
 class ImageView(View):
-    def __init__(self, cog: GptImageBase, message: Optional[discord.Message], prompt: str, resolution: str, images: List[bytes]):
+    def __init__(self, cog: GptImageBase, prompt: str, resolution: str, images: List[bytes]):
         super().__init__(timeout=600)
         self.cog = cog
         self.prompt = prompt
         self.resolution = resolution
         self.images = images
-        self.message = message
+        self.message: Optional[discord.Message] = None
         self.deleted = False
 
     @discord.ui.button(emoji="🔎", style=discord.ButtonStyle.grey)
