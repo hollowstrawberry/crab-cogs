@@ -7,8 +7,8 @@ from typing import Coroutine, List, Optional, Union
 from datetime import datetime, timezone
 from discord.ext import tasks
 from redbot.core import commands, app_commands
-
 from openai import AsyncOpenAI, APIError, APIStatusError, NotGiven
+
 from gptimage.settings import GptImageSettings
 from gptimage.views.image import ImageView
 
