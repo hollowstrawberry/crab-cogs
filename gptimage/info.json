@@ -1,12 +1,13 @@
 {
     "author": ["hollowstrawberry"],
     "min_bot_version": "3.5.0",
-    "description": "Generate images with OpenAI",
+    "min_python_version": [3,9,0],
+    "description": "Connects to OpenAI to generate images, with an /imagine slash command and a Remix app command. Requires an api key and ongoing monetary cost per image (depending on settings, may be fractions of a cent or fractions of a dollar). Configurable hourly quota per user, with an option to add a VIP role and specific VIP users that can generate as much as they want.",
     "hidden": false,
-    "install_msg": "🖼 __**GPT Image**__\n:warning: **Important:** OpenAI's models cost money every time they are used. Please check <https://openai.com/api/pricing/> and use this cog with care.\n**Also, as of the time of writing, you need to verify the identity of your OpenAI account in order to use the gpt-image-1 models, but not for dall-e.**\n```Cog installed. Instructions:\n1. Load it with [p]load gptimage\n2. Add your OpenAI API key with [p]set api openai api_key,INSERT_API_KEY\n3. Enable slash commands with [p]slash enablecog gptimage\n4. Sync slash commands with [p]slash sync\n5. You may need to restart Discord to see the new commands.\n5. Use /imagine to start generating images.```",
+    "install_msg": "🖼 __**GPT Image**__\n:warning: **Important:** OpenAI's models cost money every time they are used. Please check [the docs](<https://developers.openai.com/api/docs/guides/image-generation#calculating-costs>) for prices and use this cog with care. (As of writing, GPT Image 2 costs ~0.5 cents in low quality, and 16+ cents in high quality, slightly higher for image editing)\n```Cog installed. Instructions:\n1. Load it with [p]load gptimage\n2. Add your OpenAI API key with [p]set api openai api_key,INSERT_API_KEY\n3. Enable the /imagine slash command and the Remix app command with [p]slash enablecog gptimage\n4. Sync slash commands with [p]slash sync\n5. You may need to restart Discord to see the new commands.\n5. The bot owner can enable image generation in specific guilds and manage quotas, with the [p]gptimage command.\n6. Enjoy!```",
     "required_cogs": {},
-    "requirements": ["openai==1.109.1"],
+    "requirements": ["openai==1.109.1", "Pillow"],
     "short": "Generate images with OpenAI",
     "end_user_data_statement": "This cog does not store user data.",
-    "tags": ["crab", "image", "ai", "generation", "imagine", "dalle", "dall-e", "openai"]
+    "tags": ["crab", "image", "ai", "generation", "imagine", "gpt", "openai", "gpt-image-2", "remix"]
 }

@@ -46,6 +46,10 @@ Sends modified links to embed content from popular social media sites: Twitter, 
 
 Converts several Economy cog commands into slash commands. Also adds a configurable bonus for the `[p]payday` command, which activates at a greater time interval.
 
+### 🖼 GPTimage
+
+Connects to OpenAI to generate images, with an `/imagine` slash command and a `Remix` app command. Requires an api key and ongoing monetary cost. Please check [the docs](https://developers.openai.com/api/docs/guides/image-generation#calculating-costs) for prices and use this cog with care. (As of writing, GPT Image 2 costs ~0.5 cents in low quality, and 16+ cents in high quality, slightly higher for image editing.) To manage this, the cog features a configurable hourly quota per user, with an option to add a VIP role and specific VIP users that can generate as much as they want. If you need more granular control, let me know and I may add it.
+
 # Game cogs
 
 Interactive games for your users, with economy support. Only one game of each type may be active per channel, but it works in threads, and inactive games may be ended by any user. Chess and Checkers games persist after a bot restart.
@@ -139,16 +143,6 @@ Another feature is for the bot owner to set regex patterns that will cause the b
 ### 📢 GameAlert
 
 Sends a configured message when a guild member starts playing a specific game or has been playing for some time. The purpose is to alert friends or just to be silly.
-
-### 🖼 GPTimage
-
-Connects to OpenAI's Dall-E 3 and newer models to generate images. Requires an api key and ongoing monetary cost. Configurable cooldown per user, with an option to add VIP users that skip the cooldown.
-
-### 🖼 NovelAI
-
-Connects to this AI anime generation service to generate images with novelai3. If you want it updated let me know. Most parameters are available, as well as img2img. Requires a subscription. Connects with ImageScanner and ImageLog.
-
-**⚠️ Usage Warning:** This cog is capable of generating NSFW content. Be mindful.
 
 ### 📎 ImageScanner
 
