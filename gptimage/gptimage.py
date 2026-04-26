@@ -141,11 +141,9 @@ class GptImage(GptImageBase):
             content = f"Reroll requested by {user.mention}"
         else:
             content = ""
-        message = await ctx.original_response() if isinstance(ctx, discord.Interaction) else None
-        view = ImageView(self, message, prompt, resolution, images)
+        view = ImageView(self, prompt, resolution, images)
         message = await send(content=content, view=view, file=file, allowed_mentions=discord.AllowedMentions.none())
-        if isinstance(ctx, commands.Context):
-            view.message = message
+        view.message = message
 
     @commands.group() # type: ignore
     @commands.is_owner()
