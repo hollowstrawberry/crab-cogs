@@ -109,6 +109,7 @@ class GptImage(GptImageBase):
             args = {
                 "n": 1,
                 "model": model,
+                "prompt": prompt,
                 "quality": NotGiven() if model == "dall-e-2" else await self.config.quality(),
                 "response_format": NotGiven() if "gpt-image" in model else "b64_json",
                 "moderation": "low" if self.is_nsfw(ctx.channel) else NotGiven(),
