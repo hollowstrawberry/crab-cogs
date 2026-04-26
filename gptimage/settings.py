@@ -3,13 +3,7 @@ from typing import Optional
 from redbot.core import commands, checks
 
 from gptimage.base import GptImageBase
-
-MODELS = { # model name -> quality name list
-    "dall-e-2": [],
-    "dall-e-3": ["standard", "hd"],
-    "gpt-image-1": ["low", "medium", "high"],
-    "gpt-image-2": ["low", "medium", "high"],
-}
+from gptimage.utils import MODELS
 
 
 class GptImageSettings(GptImageBase):
