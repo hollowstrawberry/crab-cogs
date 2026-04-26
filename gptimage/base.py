@@ -21,7 +21,6 @@ class GptImageBase(commands.Cog):
         defaults_global = {
             "vip": [],
             "quota": 5,
-            "cooldown": 0,
             "model": "gpt-image-2",
             "quality": "low",
             "loading_emoji": "⏳",
