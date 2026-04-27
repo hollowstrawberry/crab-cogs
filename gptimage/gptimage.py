@@ -144,7 +144,7 @@ class GptImage(GptImageSettings):
                 return await send(embed=embed, ephemeral=True)
 
         embed = discord.Embed(color=await self.bot.get_embed_color(ctx.channel))
-        embed.description = f"{await self.config.loading_emoji()} Generating image..."
+        embed.description = f"{await self.config.loading_emoji()} Generating GPT image..."
         embed.set_footer(text=user.display_name, icon_url=user.display_avatar.url)
         view = GeneratingView(prompt, await self.bot.get_embed_color(ctx.channel))
         
