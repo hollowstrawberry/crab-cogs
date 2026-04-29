@@ -21,27 +21,27 @@ GENERIC_LINK = re.compile(r"(?<!<)(https?://[^\s|)>\]]+)")
 ALL_LINKS = [
     Link(
         "twitter",
-        re.compile(r"(?<!<)(https?://(?:www\.|m\.)?(?:x|twitter)\.com/([^\s]+status/[^\s|)>\]]+))(?:\?[^\s|)>\]]+)?"),
+        re.compile(r"(?<!<)(https?://(?:www\.|m\.)?(?:x|twitter)\.com/([^\s]+status/[^\s|)>\]]+))"),
         "https://fxtwitter.com/"
     ),
     Link(
         "tiktok",
-        re.compile(r"(?<!<)(https?://(?:www\.)?tiktok\.com/([^/]+/[^/]+/[^\s|)>\]]+)|https?://vm\.tiktok\.com/([^\s|)>\]]+))(?:\?[^\s|)>\]]+)?"),
+        re.compile(r"(?<!<)(https?://(?:www\.)?tiktok\.com/([^\s/]+/[^/]+/[^\s|)>\]]+)|https?://vm\.tiktok\.com/([^\s|)>\]]+))"),
         "https://tiktokez.com/"
     ),
     Link(
         "instagram",
-        re.compile(r"(?<!<)(https?://(?:www\.)?instagram\.com/([^/]+/[^\s|)>\]]+))(?:\?[^\s|)>\]]+)?"),
+        re.compile(r"(?<!<)(https?://(?:www\.)?instagram\.com/([^\s/]+/[^\s|)>\]]+))"),
         "https://kkinstagram.com/"
     ),
     Link(
         "reddit",
-        re.compile(r"(?<!<)(https?://(?:www\.|old\.)?reddit\.com/(r/[^/]+/[^\s|)>\]]+))(?:\?[^\s|)>\]]+)?"),
+        re.compile(r"(?<!<)(https?://(?:www\.|old\.)?reddit\.com/(r/[^\s/]+/[^\s|)>\]]+))"),
         "https://rxddit.com/"
     ),
     Link(
         "pixiv",
-        re.compile(r"(?<!<)(https?://(?:www\.)?pixiv\.net/([^\s|)>\]]+))(?:\?[^\s|)>\]]+)?"),
+        re.compile(r"(?<!<)(https?://(?:www\.)?pixiv\.net/([^\s|)>\]]+))"),
         "https://phixiv.net/"
     ),
 ]
