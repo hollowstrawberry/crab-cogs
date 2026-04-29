@@ -186,6 +186,7 @@ class GptImage(GptImageSettings):
                 return await send(content=f":warning: Failed to generate image. {e.message}")
         except Exception:
             log.exception(msg="Trying to generate image with OpenAI", stack_info=True)
+        
         finally:
             self.generating[user.id] = False
             if isinstance(ctx, commands.Context):
