@@ -147,7 +147,7 @@ class GptImage(GptImageSettings):
         embed.description = f"{await self.config.loading_emoji()} Generating GPT image..."
         embed.set_footer(text=user.display_name, icon_url=user.display_avatar.url)
         view = GeneratingView(prompt, await self.bot.get_embed_color(ctx.channel))
-        progress_message = view.message = await send(embed=embed, view=view)
+        progress_message = await send(embed=embed, view=view)
 
         if isinstance(ctx, discord.Interaction):
             async def edit_original_response(**kwargs):
@@ -189,7 +189,7 @@ class GptImage(GptImageSettings):
         
         finally:
             self.generating[user.id] = False
-            if isinstance(ctx, commands.Context):
+            if progress_message and isinstance(ctx, commands.Context):
                 asyncio.create_task(progress_message.delete())
             if callback:
                 asyncio.create_task(callback)
