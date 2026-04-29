@@ -35,6 +35,7 @@ class ImageView(View):
     async def modify_image(self, interaction: discord.Interaction, _: discord.ui.Button):
         assert self.message
         from gptimage.views.edit import EditModal
+        log.info(f"view {self.message=}")
         modal = EditModal(self.cog, self.message)
         await interaction.response.send_modal(modal)
 
