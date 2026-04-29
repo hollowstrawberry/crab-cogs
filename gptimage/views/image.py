@@ -5,9 +5,6 @@ from typing import List, Optional
 
 from gptimage.base import GptImageBase
 
-import logging
-log = logging.getLogger("test")
-
 
 class ImageView(View):
     def __init__(self, cog: GptImageBase, prompt: str, resolution: str, images: List[bytes]):
