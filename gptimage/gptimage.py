@@ -152,6 +152,7 @@ class GptImage(GptImageSettings):
             progress_message = None
             await send(embed=embed, view=view)
             view.message = await ctx.original_response()
+            log.info(f"{view.message=}")
             async def edit_original_response(**kwargs):
                 if "view" not in kwargs:
                     kwargs["view"] = None
