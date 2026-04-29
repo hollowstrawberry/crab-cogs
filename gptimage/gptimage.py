@@ -150,9 +150,10 @@ class GptImage(GptImageSettings):
         
         if isinstance(ctx, discord.Interaction):
             progress_message = None
-            await send(embed=embed, view=view)
-            view.message = await ctx.original_response()
-            log.info(f"{view.message=}")
+            a = await ctx.original_response()
+            b = await send(embed=embed, view=view)
+            c = await ctx.original_response()
+            log.info(f"{a is None = }, {b is None = }, {c is None = }")
             async def edit_original_response(**kwargs):
                 if "view" not in kwargs:
                     kwargs["view"] = None
