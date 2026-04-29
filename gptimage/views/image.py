@@ -5,6 +5,9 @@ from typing import List, Optional
 
 from gptimage.base import GptImageBase
 
+import logging
+log = logging.getLogger("test")
+
 
 class ImageView(View):
     def __init__(self, cog: GptImageBase, prompt: str, resolution: str, images: List[bytes]):
@@ -27,15 +30,14 @@ class ImageView(View):
 
     @discord.ui.button(emoji="🎲", style=discord.ButtonStyle.grey)
     async def recycle(self, interaction: discord.Interaction, _: discord.ui.Button):
-        assert interaction.message
         await interaction.response.defer(thinking=True)
         await self.cog.imagine(interaction, self.resolution, self.prompt, self.images)
 
     @discord.ui.button(emoji="📝", style=discord.ButtonStyle.grey)
     async def modify_image(self, interaction: discord.Interaction, _: discord.ui.Button):
-        assert interaction.message
+        log.info(f"modify {self.message=}")
         from gptimage.views.edit import EditModal
-        modal = EditModal(self.cog, interaction.message)
+        modal = EditModal(self.cog, self.message)
         await interaction.response.send_modal(modal)
 
     @discord.ui.button(emoji="🗑️", style=discord.ButtonStyle.grey)
