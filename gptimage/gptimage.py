@@ -144,26 +144,18 @@ class GptImage(GptImageSettings):
                 return await send(embed=embed, ephemeral=True)
 
         embed = discord.Embed(color=await self.bot.get_embed_color(ctx.channel))
-        embed.description = f"{await self.config.loading_emoji()} Generating image..."
+        embed.description = f"{await self.config.loading_emoji()} Generating GPT image..."
         embed.set_footer(text=user.display_name, icon_url=user.display_avatar.url)
         view = GeneratingView(prompt, await self.bot.get_embed_color(ctx.channel))
-        
+        progress_message = await send(embed=embed, view=view)
+
         if isinstance(ctx, discord.Interaction):
-            progress_message = None
-            view.message = await send(embed=embed, view=view)
             async def edit_original_response(**kwargs):
-                if "view" not in kwargs:
-                    kwargs["view"] = None
-                if "file" in kwargs:
-                    kwargs["attachments"] = [kwargs["file"]]
-                    del kwargs["file"]
-                if "embed" not in kwargs:
-                    kwargs["embed"] = None
+                kwargs["view"] = kwargs.get("view", None)
+                kwargs["embed"] = kwargs.get("embed", None)
+                kwargs["attachments"] = [kwargs.pop("file")] if "file" in kwargs else None
                 await ctx.edit_original_response(**kwargs)
             send = edit_original_response
-        else:
-            progress_message = await send(embed=embed, view=view)
-            view.message = progress_message
 
         result = None
         try:
@@ -194,9 +186,10 @@ class GptImage(GptImageSettings):
                 return await send(content=f":warning: Failed to generate image. {e.message}")
         except Exception:
             log.exception(msg="Trying to generate image with OpenAI", stack_info=True)
+        
         finally:
             self.generating[user.id] = False
-            if progress_message:
+            if progress_message and isinstance(ctx, commands.Context):
                 asyncio.create_task(progress_message.delete())
             if callback:
                 asyncio.create_task(callback)
@@ -209,10 +202,9 @@ class GptImage(GptImageSettings):
         fid = ctx.id if isinstance(ctx, discord.Interaction) else ctx.message.id
         filename = f"gptimage_{fid}.png"
         file = discord.File(fp=image_data, filename=filename)
+        content = ""
         if isinstance(ctx, commands.Context) or ctx.type == discord.InteractionType.component:
             content = f"-# Requested by {user.mention}"
-        else:
-            content = ""
         view = ImageView(self, prompt, resolution, images)
         message = await send(content=content, view=view, file=file, allowed_mentions=discord.AllowedMentions.none())
-        view.message = message
+        view.message = message or progress_message

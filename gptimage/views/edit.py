@@ -25,6 +25,8 @@ class EditModal(ui.Modal):
         prompt = self.prompt_edit.component.value
         await interaction.response.defer(thinking=True)
         fp = BytesIO()
+        if not self.message.attachments:  # refresh interaction message
+            self.message = await self.message.channel.fetch_message(self.message.id)
         await self.message.attachments[0].save(fp)
         image_bytes, resolution = await asyncio.to_thread(normalize_image, fp)
         await self.cog.imagine(interaction, resolution, prompt, [image_bytes])
