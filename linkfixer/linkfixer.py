@@ -47,7 +47,7 @@ ALL_LINKS = [
     Link(
         "threads",
         re.compile(r"(?<!<)(https?://(?:www\.)?threads\.com/(@[^\s/]+/[^\s|)>\]]+))"),
-        "https://viewthreads.net/"
+        "https://viewthreads.com/"
     ),
 ]
 
