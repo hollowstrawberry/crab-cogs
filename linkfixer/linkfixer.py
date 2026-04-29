@@ -44,6 +44,11 @@ ALL_LINKS = [
         re.compile(r"(?<!<)(https?://(?:www\.)?pixiv\.net/([^\s|)>\]]+))"),
         "https://phixiv.net/"
     ),
+    Link(
+        "threads",
+        re.compile(r"(?<!<)(https?://(?:www\.)?threads\.com/(@[^\s/]+/[^\s|)>\]]+))"),
+        "https://viewthreads.com/"
+    ),
 ]
 
 
