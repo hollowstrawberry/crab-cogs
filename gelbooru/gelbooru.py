@@ -270,7 +270,7 @@ class Booru(BooruBase):
         """Commands to configure the booru tag blacklist bot-wide."""
         pass
 
-    @booruset.command(name="show", aliases=["view", "list"])
+    @boorublacklist.command(name="show", aliases=["view", "list"])
     async def boorublacklistshow(self, ctx: commands.Context):
         """Show the current tag blacklist."""
         current_blacklist = await self.config.tag_blacklist()
