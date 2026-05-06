@@ -275,7 +275,7 @@ class Booru(BooruBase):
         """Show the current tag blacklist."""
         current_blacklist = await self.config.tag_blacklist()
         all = await self.config.all()
-        all.remove("tag_cache")
+        all.pop("tag_cache")
         log.info(f"{all=}")
         await ctx.send("Current blacklist: " + display_tags(current_blacklist))
 
