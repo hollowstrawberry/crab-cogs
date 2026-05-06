@@ -274,6 +274,7 @@ class Booru(BooruBase):
     async def boorublacklistshow(self, ctx: commands.Context):
         """Show the current tag blacklist."""
         current_blacklist = await self.config.tag_blacklist()
+        log.info(await self.config.all())
         await ctx.send("Current blacklist: " + display_tags(current_blacklist))
 
     @boorublacklist.command(name="add")
