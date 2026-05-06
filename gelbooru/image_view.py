@@ -4,8 +4,7 @@ from typing import Optional, Union
 from redbot.core.bot import Red
 
 from gelbooru.base import BooruBase
-from gelbooru.constants import EMBED_COLOR, EMBED_ICON, VIEW_TIMEOUT
-from gelbooru.utils import display_query
+from gelbooru.constants import EMBED_COLOR, EMBED_ICON, HARDCODED_BLACKLIST, VIEW_TIMEOUT
 
 log = logging.getLogger("red.holo-cogs.aimage")
 
@@ -47,7 +46,7 @@ class ImageView(discord.ui.View):
         embed = discord.Embed(color=EMBED_COLOR)
         embed.description = f"```{self.tags[:4000]}```"
         embed.set_author(name="Booru Post", icon_url=EMBED_ICON)
-        embed.add_field(name="Query", value=f"`{display_query(self.query)}`", inline=False)
+        embed.add_field(name="Query", value=f"`{await self.display_query(self.query)}`", inline=False)
         if self.message and self.message.embeds:
             embed.set_thumbnail(url=self.message.embeds[0].image.url)
         await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -57,7 +56,7 @@ class ImageView(discord.ui.View):
 
     async def edit_image(self, interaction: discord.Interaction):
         from gelbooru.edit_modal import EditModal
-        modal = EditModal(self)
+        modal = EditModal(self, await self.display_query(self.query))
         await interaction.response.send_modal(modal)
 
     async def delete_image(self, interaction: discord.Interaction):
@@ -69,7 +68,7 @@ class ImageView(discord.ui.View):
         await interaction.message.delete()
         self.stop()
         
-        query = display_query(self.query)
+        query = await self.display_query(self.query)
         if interaction.user.id == self.og_user.id:
             content = f"{self.og_user.mention} deleted their requested image with query `{query}` and tags: ```{self.tags}```"
         else:
@@ -86,6 +85,12 @@ class ImageView(discord.ui.View):
         can_delete = await self.bot.is_owner(member) or interaction.channel.permissions_for(member).manage_messages
 
         return is_og_user or can_delete
+    
+    async def display_query(self, query: str) -> str:
+        blacklist = HARDCODED_BLACKLIST + await self.config.tag_blacklist()
+        for tag in blacklist:
+            query = query.replace(f"-{tag}", "").strip()
+        return query
 
     async def on_timeout(self):
         await super().on_timeout()

@@ -3,7 +3,8 @@ import re
 EMBED_COLOR = 0xD7598B
 EMBED_ICON = "https://i.imgur.com/FeRu6Pw.png"
 IMAGE_TYPES = (".png", ".jpeg", ".jpg", ".webp", ".gif")
-TAG_BLACKLIST = ["lolidom", "shotadom", "loli", "shota", "vore", "peeing", "pregnant", "guro", "video"]
+HARDCODED_BLACKLIST = ["video"]
+DEFAULT_BLACKLIST = ["lolidom", "shotadom", "loli", "shota", "vore", "peeing", "pregnant", "guro"]
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0",
     "Referer": "https://gelbooru.com/",
