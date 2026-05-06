@@ -5,14 +5,14 @@ import random
 import logging
 import aiohttp
 import discord
-from typing import Optional, List, Union
+from typing import Dict, Optional, List, OrderedDict, Union
 from redbot.core import commands, app_commands
 
 from gelbooru.base import BooruBase
-from gelbooru.constants import EMBED_COLOR, EMBED_ICON, HEADERS, IMAGE_TYPES, MAX_OPTION_SIZE, MAX_OPTIONS, URL_PATTERN
+from gelbooru.utils import is_nsfw, display_tags
+from gelbooru.constants import EMBED_COLOR, EMBED_ICON, HARDCODED_BLACKLIST, HEADERS, IMAGE_TYPES, MAX_OPTION_SIZE, MAX_OPTIONS, RATING_PATTERN, URL_PATTERN
 from gelbooru.constants import RATING_EXPLICIT, RATING_GENERAL, RATING_QUESTIONABLE, RATING_SENSITIVE
 from gelbooru.image_view import ImageView
-from gelbooru.utils import is_nsfw, prepare_query
 
 log = logging.getLogger("red.crab-cogs.gelbooru")
 
@@ -26,15 +26,6 @@ class Booru(BooruBase):
     async def cog_unload(self):
         if self.session:
             await self.session.close()
-
-    @commands.is_owner()
-    @commands.command()
-    async def boorudeletecache(self, ctx: commands.Context):
-        del self.tag_cache
-        self.tag_cache = {}
-        async with self.config.tag_cache() as tag_cache:
-            tag_cache.clear()
-        await ctx.tick(message="Booru cache deleted")
 
 
     @commands.hybrid_command(name="booru", aliases=["gelbooru"])  # type: ignore
@@ -56,7 +47,7 @@ class Booru(BooruBase):
 
         send = ctx.send if isinstance(ctx, commands.Context) else  ctx.followup.send
         user = ctx.author if isinstance(ctx, commands.Context) else ctx.user
-        query = prepare_query(query, is_nsfw(ctx.channel))
+        query = await self.prepare_query(query, is_nsfw(ctx.channel))
 
         if isinstance(ctx, discord.Interaction):
             await ctx.response.defer(thinking=True)
@@ -254,3 +245,74 @@ class Booru(BooruBase):
         choice = random.choice(images)
         self.image_cache[channel_id].append(choice["id"])
         return choice
+
+
+    async def prepare_query(self, query: str, nsfw: bool) -> str:
+        if not nsfw:
+            query = RATING_PATTERN.sub("", query) + f" {RATING_GENERAL}"
+        query = query.replace(",", " ")
+        blacklist = HARDCODED_BLACKLIST + await self.config.tag_blacklist()
+        tags = OrderedDict.fromkeys([tag for tag in query.split(' ') if tag and tag not in blacklist])
+        tags.update(OrderedDict.fromkeys([f"-{tag}" for tag in blacklist]))
+        return " ".join(tags)
+
+
+    # Config
+    
+    @commands.group(name="booruset", invoke_without_command=True)  # type: ignore
+    @commands.is_owner()
+    async def booruset(self, _: commands.Context):
+        """Commands to configure the gelbooru cog bot-wide."""
+        pass
+
+    @booruset.group(name="blacklist")
+    async def boorublacklist(self, _: commands.Context):
+        """Commands to configure the booru tag blacklist bot-wide."""
+        pass
+
+    @booruset.command(name="show", aliases=["view", "list"])
+    async def boorublacklistshow(self, ctx: commands.Context):
+        """Show the current tag blacklist."""
+        current_blacklist = await self.config.tag_blacklist()
+        await ctx.send("Current blacklist: " + display_tags(current_blacklist))
+
+    @boorublacklist.command(name="add")
+    async def boorublacklistadd(self, ctx: commands.Context, *tags: str):
+        """Add one or more booru tags to the blacklist, separated by spaces."""
+        current_blacklist: Dict[str, None] = OrderedDict.fromkeys(await self.config.tag_blacklist())  # we use as ordered set
+        if not tags:
+            return await ctx.reply("You didn't specify which tags to add.")
+        add_tags = list(tags)
+        if len(tags) == 1 and "," in tags:
+            add_tags = add_tags[0].split(",")
+        add_tags = [tag.strip(" `,") for tag in add_tags]
+        add_tags = [tag for tag in add_tags if tag]
+        current_blacklist.update(OrderedDict.fromkeys(add_tags))
+        final_blacklist = list(current_blacklist)
+        await self.config.tag_blacklist.set(final_blacklist)
+        await ctx.send("Updated blacklist: " + display_tags(final_blacklist))
+
+    @boorublacklist.command(name="remove")
+    async def boorublacklistremove(self, ctx: commands.Context, *tags: str):
+        """Remove one or more booru tags to the blacklist, separated by spaces."""
+        current_blacklist: Dict[str, None] = OrderedDict.fromkeys(await self.config.tag_blacklist())  # we use as ordered set
+        if not tags:
+            return await ctx.reply("You didn't specify which tags to remove.")
+        remove_tags = list(tags)
+        if len(tags) == 1 and "," in tags:
+            remove_tags = remove_tags[0].split(",")
+        remove_tags = [tag.strip(" `,") for tag in remove_tags]
+        remove_tags = [tag for tag in remove_tags if tag]
+        current_blacklist = {key: None for key in current_blacklist if key not in remove_tags}
+        final_blacklist = list(current_blacklist)
+        await self.config.tag_blacklist.set(final_blacklist)
+        await ctx.send("Updated blacklist: " + display_tags(final_blacklist))
+
+    @booruset.command(name="deletecache")
+    async def boorudeletecache(self, ctx: commands.Context):
+        """Deletes the booru tag search cache, don't use unless you have a good reason."""
+        del self.tag_cache
+        self.tag_cache = {}
+        async with self.config.tag_cache() as tag_cache:
+            tag_cache.clear()
+        await ctx.tick(message="Booru cache deleted")
