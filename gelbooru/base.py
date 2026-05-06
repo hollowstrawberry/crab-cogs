@@ -5,7 +5,7 @@ from expiringdict import ExpiringDict, Union
 from redbot.core import commands
 from redbot.core.bot import Red, Config
 
-from gelbooru.constants import HEADERS
+from gelbooru.constants import HEADERS, DEFAULT_BLACKLIST
 
 
 class BooruBase(commands.Cog):
@@ -17,7 +17,11 @@ class BooruBase(commands.Cog):
         self.image_cache: Dict[int, List[int]] = ExpiringDict(max_len=100, max_age_seconds=24*60*60)
         self.query_cache: Dict[str, List[Dict[str, Any]]] = ExpiringDict(max_len=100, max_age_seconds=24*60*60)
         self.config = Config.get_conf(self, identifier=62667275)
-        self.config.register_global(tag_cache={})
+        config = {
+            "tag_cache": {},
+            "tag_blacklist": DEFAULT_BLACKLIST,
+        }
+        self.config.register_global(**config)
 
     async def booru(self, ctx: Union[discord.Interaction, commands.Context], query: str):
         raise NotImplementedError()
