@@ -159,6 +159,8 @@ class Booru(BooruBase):
         else:
             try:
                 results = await self.grab_tags(last)
+                if not results:
+                    return []
             except (aiohttp.ClientError, KeyError):
                 log.exception("Failed to load Gelbooru tags")
                 results = ["Error"]
