@@ -1,11 +1,36 @@
 import re
+import json
 from abc import ABC, abstractmethod
 from typing import Any
 from collections import OrderedDict
 from dataclasses import dataclass, field
 
-from imagescanner.utils import extract_json, normalize_hash
-from imagescanner.constants import METADATA_REGEX, PARAM_GROUP_REGEX, PARAM_REGEX, WEBUI_PARAMS_BLACKLIST, STABLE_SWARM_IDENTIFIERS
+from imagescanner.constants import METADATA_REGEX, PARAM_GROUP_REGEX, PARAM_REGEX, RESOURCE_HASH_REGEX
+from imagescanner.constants import WEBUI_PARAMS_BLACKLIST, STABLE_SWARM_IDENTIFIERS
+
+
+def extract_json(raw: Any) -> dict[str, Any] | None:
+    if isinstance(raw, dict):
+        return raw
+    text = str(raw).strip()
+    start, end = text.find("{"), text.rfind("}")
+    if start < 0 or end <= start:
+        return None
+    try:
+        return json.loads(text[start : end + 1])
+    except json.JSONDecodeError:
+        return None
+
+def normalize_hash(value: str) -> str | None:
+    if not value:
+        return None
+    match = RESOURCE_HASH_REGEX.search(value)
+    if not match:
+        return None
+    token = match.group(0).lower().removeprefix("0x")
+    if not re.search(r"[a-f]", token):
+        return None
+    return token
 
 
 @dataclass

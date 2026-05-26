@@ -58,26 +58,3 @@ def remove_field(embed: discord.Embed, field_name: str):
         if field.name == field_name:
             embed.remove_field(i)
             return
-
-def extract_json(raw: Any) -> dict[str, Any] | None:
-    if isinstance(raw, dict):
-        return raw
-    text = str(raw).strip()
-    start, end = text.find("{"), text.rfind("}")
-    if start < 0 or end <= start:
-        return None
-    try:
-        return json.loads(text[start : end + 1])
-    except json.JSONDecodeError:
-        return None
-
-def normalize_hash(value: str) -> str | None:
-    if not value:
-        return None
-    match = RESOURCE_HASH_REGEX.search(value)
-    if not match:
-        return None
-    token = match.group(0).lower().removeprefix("0x")
-    if not re.search(r"[a-f]", token):
-        return None
-    return token
