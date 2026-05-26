@@ -32,7 +32,7 @@ ALL_LINKS = [
     Link(
         "instagram",
         re.compile(r"(?<!<)(https?://(?:www\.)?instagram\.com/([^\s/]+/[^\s|)>\]]+))"),
-        "https://kkinstagram.com/"
+        "https://fixembed.app/embed?url=instagram.com/"
     ),
     Link(
         "reddit",
