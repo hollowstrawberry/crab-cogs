@@ -34,6 +34,62 @@ NUMERIC_PREFIX_RE = re.compile(r"^(?:\d{3,}[_-]){2,}")
 LORA_PREFIX_RE = re.compile(r'^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9]+(?:_[0-9]+)?)_',re.IGNORECASE)
 AC_PROMPT_ID_RE = re.compile(r"^ac_prompt_(\d+)$", re.IGNORECASE)
 TRAILING_INDEX_RE = re.compile(r"(?:^|_)(\d+)$")
+PROMPT_NODE_FALLBACK_RE = re.compile(
+    r"encode.*text|prompt.*encode|clip.*text|positive|text\s*multiline|text\s*concatenate",
+    re.IGNORECASE,
+)
+NEGATIVE_NODE_FALLBACK_RE = re.compile(
+    r"((negative|negativ).*prompt|negp|negpip|negative)",
+    re.IGNORECASE,
+)
+
+TEXT_NOISE_VALUES = {
+    "meta",
+    "metadata",
+    "parameters",
+    "prompt",
+    "workflow",
+    "none",
+    "null",
+    "true",
+    "false",
+    "{}",
+    "[]",
+}
+
+PROMPT_NODE_TYPES = {
+    "cliptextencode",
+    "cliptextencodesdxl",
+    "cliptextencodesdxlrefiner",
+    "cliptextencodesd3",
+    "clip text encode (shinsplat)",
+    "clip text encode alt (shinsplat)",
+    "fooocus positive",
+    "cliptextencodeflux",
+    "cliptextencodehidream",
+    "clip advancedtextencode|fofo",
+    "cliptextencodeprompttoprompt",
+    "smolvlm_flux_cliptextencode",
+    "cliptextencodeandenhance",
+    "text multiline",
+    "text concatenate",
+    "text to conditioning",
+}
+
+NEGATIVE_NODE_TYPES = {
+    "fooocus negative",
+    "clipnegpip",
+    "negative prompt",
+}
+
+WAN_PROMPT_NODE_TYPES = {
+    "wanvideotextencode",
+    "wanvideotextembedbridge",
+}
+
+SPECIAL_TEXT_NODE_RULES: dict[str, tuple[tuple[str, int], ...]] = {
+    "stringfunction|pysssss": (("prompt", 5),),
+}
 
 RESOURCE_HASH_KEYS = {
     "hash",
@@ -770,7 +826,32 @@ class ComfyMetadataReader:
         stripped = text.strip()
         if not stripped:
             return False
+        if stripped.lower() in TEXT_NOISE_VALUES:
+            return False
+        if stripped.startswith("{") and stripped.endswith("}"):
+            return False
         return any(char.isalnum() for char in stripped)
+
+    @staticmethod
+    def node_type_key(node_type: str) -> str:
+        return re.sub(r"\s+", " ", str(node_type or "").strip().lower())
+
+    @classmethod
+    def text_node_rules(cls, node_type: str) -> tuple[tuple[str, int], ...]:
+        node_key = cls.node_type_key(node_type)
+        if node_key in SPECIAL_TEXT_NODE_RULES:
+            return SPECIAL_TEXT_NODE_RULES[node_key]
+        if node_key in WAN_PROMPT_NODE_TYPES:
+            return (("prompt", 0), ("negative_prompt", 1))
+        if node_key in NEGATIVE_NODE_TYPES:
+            return (("negative_prompt", 0),)
+        if node_key in PROMPT_NODE_TYPES:
+            return (("prompt", 0),)
+        if NEGATIVE_NODE_FALLBACK_RE.search(node_type):
+            return (("negative_prompt", 0),)
+        if PROMPT_NODE_FALLBACK_RE.search(node_type):
+            return (("prompt", 0),)
+        return ()
 
     @staticmethod
     def set_if_missing(meta: ComfyMetadata, key: str, value: Any) -> None:
@@ -1030,19 +1111,18 @@ class ComfyMetadataReader:
                 meta, "adetailer_denoise", cls.as_float(inputs.get("denoise"))
             )
 
-        is_text_node = (
-            "textencode" in node_type_lower
-            or "text encode" in node_type_lower
-            or "prompt" in node_type_lower
-            or "text multiline" in node_type_lower
-            or "text concatenate" in node_type_lower
-        )
-        if is_text_node:
-            text_value = cls.as_text(inputs.get("text"))
-            if text_value is None and node.widgets:
-                text_value = cls.as_text(node.widgets[0])
+        for result_key, widget_index in cls.text_node_rules(node.node_type):
+            text_value = (
+                cls.as_text(node.widgets[widget_index])
+                if len(node.widgets) > widget_index
+                else None
+            )
+            if text_value is None and widget_index == 0:
+                text_value = cls.as_text(inputs.get("text"))
             if text_value and cls.is_useful_text_candidate(text_value):
-                is_negative = "negative" in node_type_lower or "neg" in node_type_lower
+                is_negative = result_key == "negative_prompt" or cls.looks_negative(
+                    text_value
+                )
                 text_candidates.append((node.id, text_value, is_negative))
                 if is_negative:
                     cls.set_if_missing(meta, "negative_prompt", text_value)
@@ -1098,20 +1178,48 @@ class ComfyMetadataReader:
                 ),
             )
 
-            if meta.seed is None and len(node.widgets) > 0:
-                widget_seed = cls.as_int(node.widgets[0])
+            seed_widget_index = 1 if "samplercustom" in node_type_lower else 0
+            steps_widget_index = None if "samplercustom" in node_type_lower else 2
+            cfg_widget_index = 3
+            sampler_widget_index = None if "samplercustom" in node_type_lower else 4
+            scheduler_widget_index = None if "samplercustom" in node_type_lower else 5
+
+            if meta.seed is None and len(node.widgets) > seed_widget_index:
+                widget_seed = cls.as_int(node.widgets[seed_widget_index])
                 if widget_seed is not None:
                     cls.set_if_missing(meta, "seed", widget_seed)
                 else:
-                    cls.set_if_missing(meta, "seed", cls.as_text(node.widgets[0]))
-            if meta.steps is None and len(node.widgets) > 2:
-                cls.set_if_missing(meta, "steps", cls.as_int(node.widgets[2]))
-            if meta.cfg is None and len(node.widgets) > 3:
-                cls.set_if_missing(meta, "cfg", cls.as_float(node.widgets[3]))
-            if meta.sampler is None and len(node.widgets) > 4:
-                cls.set_if_missing(meta, "sampler", cls.as_text(node.widgets[4]))
-            if meta.scheduler is None and len(node.widgets) > 5:
-                cls.set_if_missing(meta, "scheduler", cls.as_text(node.widgets[5]))
+                    cls.set_if_missing(
+                        meta, "seed", cls.as_text(node.widgets[seed_widget_index])
+                    )
+            if (
+                steps_widget_index is not None
+                and meta.steps is None
+                and len(node.widgets) > steps_widget_index
+            ):
+                cls.set_if_missing(
+                    meta, "steps", cls.as_int(node.widgets[steps_widget_index])
+                )
+            if meta.cfg is None and len(node.widgets) > cfg_widget_index:
+                cls.set_if_missing(
+                    meta, "cfg", cls.as_float(node.widgets[cfg_widget_index])
+                )
+            if (
+                sampler_widget_index is not None
+                and meta.sampler is None
+                and len(node.widgets) > sampler_widget_index
+            ):
+                cls.set_if_missing(
+                    meta, "sampler", cls.as_text(node.widgets[sampler_widget_index])
+                )
+            if (
+                scheduler_widget_index is not None
+                and meta.scheduler is None
+                and len(node.widgets) > scheduler_widget_index
+            ):
+                cls.set_if_missing(
+                    meta, "scheduler", cls.as_text(node.widgets[scheduler_widget_index])
+                )
 
             denoise = cls.first_float(
                 inputs.get("denoise"),

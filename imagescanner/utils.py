@@ -1,3 +1,4 @@
+import re
 import json
 import asyncio
 import discord
@@ -6,8 +7,8 @@ from io import BytesIO
 from typing import Any, Dict
 
 from imagescanner.comfy import ComfyMetadataReader
-from imagescanner.metadata import Metadata, WebuiMetadata
-from imagescanner.constants import SUPPORTED_FORMATS, log
+from imagescanner.metadata import Metadata, StableSwarmMetadata, WebuiMetadata
+from imagescanner.constants import SUPPORTED_FORMATS, RESOURCE_HASH_REGEX, log
 
 
 def build_embed(embed_dict: Dict[str, Any], author: discord.Member) -> discord.Embed:
@@ -28,6 +29,9 @@ def read_metadata(image_data: bytes) -> Metadata | None:
     b = BytesIO(image_data)
     img = PIL.Image.open(b)
     raw = img.info.get("parameters") or img.getexif().get(0x9286)
+    metadata = StableSwarmMetadata(raw)
+    if metadata.is_stable_swarm:
+        return metadata
     metadata = WebuiMetadata(raw)
     if metadata.as_dict():
         return metadata
@@ -54,3 +58,26 @@ def remove_field(embed: discord.Embed, field_name: str):
         if field.name == field_name:
             embed.remove_field(i)
             return
+
+def extract_json(raw: Any) -> dict[str, Any] | None:
+    if isinstance(raw, dict):
+        return raw
+    text = str(raw).strip()
+    start, end = text.find("{"), text.rfind("}")
+    if start < 0 or end <= start:
+        return None
+    try:
+        return json.loads(text[start : end + 1])
+    except json.JSONDecodeError:
+        return None
+
+def normalize_hash(value: str) -> str | None:
+    if not value:
+        return None
+    match = RESOURCE_HASH_REGEX.search(value)
+    if not match:
+        return None
+    token = match.group(0).lower().removeprefix("0x")
+    if not re.search(r"[a-f]", token):
+        return None
+    return token
