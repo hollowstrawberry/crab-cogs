@@ -31,8 +31,8 @@ ALL_LINKS = [
     ),
     Link(
         "instagram",
-        re.compile(r"(?<!<)(https?://(?:www\.)?instagram\.com/([^\s/]+/[^\s|)>\]]+))"),
-        "https://fixembed.app/embed?url=instagram.com/"
+        re.compile(r"(?<!<)(https?://(?:www\.)?instagram\.com/reels?/([^\s|)>\]]+))"),
+        "https://fixembed.app/embed?url=instagram.com/reel/"
     ),
     Link(
         "reddit",
