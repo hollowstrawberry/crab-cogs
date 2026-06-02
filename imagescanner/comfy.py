@@ -34,14 +34,8 @@ NUMERIC_PREFIX_RE = re.compile(r"^(?:\d{3,}[_-]){2,}")
 LORA_PREFIX_RE = re.compile(r'^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9]+(?:_[0-9]+)?)_',re.IGNORECASE)
 AC_PROMPT_ID_RE = re.compile(r"^ac_prompt_(\d+)$", re.IGNORECASE)
 TRAILING_INDEX_RE = re.compile(r"(?:^|_)(\d+)$")
-PROMPT_NODE_FALLBACK_RE = re.compile(
-    r"encode.*text|prompt.*encode|clip.*text|positive|text\s*multiline|text\s*concatenate",
-    re.IGNORECASE,
-)
-NEGATIVE_NODE_FALLBACK_RE = re.compile(
-    r"((negative|negativ).*prompt|negp|negpip|negative)",
-    re.IGNORECASE,
-)
+PROMPT_NODE_FALLBACK_RE = re.compile(r"encode.*text|text.*encode|clip.*text|prompt|positive|text.*multiline|text.*concatenate", re.IGNORECASE)
+NEGATIVE_NODE_FALLBACK_RE = re.compile(r"negat|negp", re.IGNORECASE)
 
 TEXT_NOISE_VALUES = {
     "meta",
@@ -62,6 +56,7 @@ PROMPT_NODE_TYPES = {
     "cliptextencodesdxl",
     "cliptextencodesdxlrefiner",
     "cliptextencodesd3",
+    "pclazytextencode",
     "clip text encode (shinsplat)",
     "clip text encode alt (shinsplat)",
     "fooocus positive",
