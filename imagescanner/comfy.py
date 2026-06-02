@@ -17,6 +17,8 @@ NEGATIVE_HINTS = (
     "bad anatomy",
     "bad hands",
     "jpeg artifacts",
+    "lowres",
+    "score_1",
     "watermark",
     "deformed",
 )
