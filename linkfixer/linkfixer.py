@@ -105,6 +105,8 @@ class LinkFixer(commands.Cog):
                     any_fixed = True
                     tail = [g for g in match.groups() if g][-1].split("?")[0]
                     matched_links[i] = link.replace(match.group(0), f"{link_type.fixed}{tail}")
+                    if "fxtwitter" in link_type.fixed:
+                        matched_links[i] = matched_links[i].rstrip("/") + "/en"
                     
         if not any_fixed:
             return
