@@ -32,7 +32,7 @@ ALL_LINKS = [
     Link(
         "vmtiktok",
         re.compile(r"(?<!<)(https?://vm\.tiktok\.com/([^\s|)>\]]+))"),
-        "https://vm.tiktokez.com/
+        "https://vm.tiktokez.com/"
     ),
     Link(
         "instagram",
