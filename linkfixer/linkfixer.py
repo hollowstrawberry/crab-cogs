@@ -26,8 +26,13 @@ ALL_LINKS = [
     ),
     Link(
         "tiktok",
-        re.compile(r"(?<!<)(https?://(?:www\.)?tiktok\.com/([^\s/]+/[^/]+/[^\s|)>\]]+)|https?://vm\.tiktok\.com/([^\s|)>\]]+))"),
+        re.compile(r"(?<!<)(https?://(?:www\.)?tiktok\.com/([^\s/]+/[^/]+/[^\s|)>\]]+))"),
         "https://tiktokez.com/"
+    ),
+    Link(
+        "vmtiktok",
+        re.compile(r"(?<!<)(https?://vm\.tiktok\.com/([^\s|)>\]]+))"),
+        "https://vm.tiktokez.com/
     ),
     Link(
         "instagram",
