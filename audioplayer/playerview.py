@@ -122,7 +122,10 @@ class AudioPlayerView(View):
                 new_kwargs["view"] = kwargs["view"]
             resp = await inter.response.send_message(content, **new_kwargs) # type: ignore
             # this is cursed and has the sole purpose of the queue button's view's info button to work
-            resp.__class__ = type("InteractionCallbackResponse", (discord.InteractionCallbackResponse,), {"edit": inter.response.edit_message})
+            resp.__class__ = type(resp.__class__.__name__, (resp.__class__,), {
+                "edit": inter.response.edit_message,
+                "__slots__": (),
+            })
             return resp
         ctx.send = types.MethodType(send, ctx)
 
