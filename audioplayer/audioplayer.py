@@ -184,7 +184,7 @@ class AudioPlayer(Cog):
             self.channel[ctx.guild.id] = channel_id
             await self.config.guild(ctx.guild).channel.set(0)
             if channel_id == 0:
-                await ctx.reply("AudioPlayer is not set to any channel. The player will not appear in this server.")
+                await ctx.reply("AudioPlayer is not set to any channel and will not appear in this server.\nIt must be set to a text channel, recommended to be a spam or music channel where people would normally use music commands in your server.")
             else:
                 await ctx.reply("AudioPlayer channel cleared. The player will not appear in this server.")
         else:
