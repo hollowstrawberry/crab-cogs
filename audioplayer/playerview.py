@@ -116,7 +116,7 @@ class AudioPlayerView(View):
             new_kwargs = {"embed": kwargs.get("embed")}
             if view := kwargs.pop("view", None):
                 new_kwargs["view"] = view
-            await inter.response.send_message(content, **new_kwargs, ephemeral=ephemeral, allowed_mentions=discord.AllowedMentions.none()) # type: ignore
+            return await inter.response.send_message(content, **new_kwargs, ephemeral=ephemeral, allowed_mentions=discord.AllowedMentions.none()) # type: ignore
         ctx.send = types.MethodType(send, ctx)
 
         return ctx
