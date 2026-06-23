@@ -106,10 +106,10 @@ class Booru(BooruBase):
 
 
     @booru_cmd.autocomplete("tags")
-    async def booru_tags_autocomplete(self, interaction: discord.Interaction, current: str):
+    async def booru_tags_autocomplete(self, interaction: discord.Interaction, current: str) -> List[discord.app_commands.Choice]:
         return await self.tags_autocomplete(interaction, current)
 
-    async def tags_autocomplete(self, interaction: Optional[discord.Interaction], current: str):
+    async def tags_autocomplete(self, interaction: Optional[discord.Interaction], current: str) -> List[discord.app_commands.Choice]:
         if current is None:
             current = ""
         if ' ' in current:
@@ -159,6 +159,8 @@ class Booru(BooruBase):
         else:
             try:
                 results = await self.grab_tags(last)
+                if not results:
+                    return []
             except (aiohttp.ClientError, KeyError):
                 log.exception("Failed to load Gelbooru tags")
                 results = ["Error"]
@@ -172,7 +174,7 @@ class Booru(BooruBase):
                 previous = previous.split(' ', maxsplit=1)[1]
             results = [f"{previous} {res}" for res in results]
 
-        return [discord.app_commands.Choice(name=i, value=i) for i in results]
+        return [discord.app_commands.Choice(name=i, value=i) for i in results if i]
 
 
     async def grab_tags(self, query) -> List[str]:
