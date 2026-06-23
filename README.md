@@ -32,7 +32,7 @@ Live audio player with queue/pause/play/skip/stop buttons for the audio cog. Sta
 
 ⚠️ Discord doesn't like when things update periodically without human input, even when it follows ratelimits, so use this at your own risk. It *should* be fine conceptually as it requires humans to be listening in voice chat, but you never know.
 
-![demonstration](https://github.com/user-attachments/assets/7c77467c-7cac-4dac-a02e-ca06b9f296b5)
+![demonstration](https://i.imgur.com/CAig9PX.png)
 
 
 ### 😶 EmojiSteal
