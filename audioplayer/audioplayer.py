@@ -74,7 +74,8 @@ class AudioPlayer(Cog):
                 player = None
             if not player:
                 continue
-            if all(member.bot or not member.voice or member.voice.deaf for member in player.channel.members):
+            if all(member.bot or not member.voice or member.voice.deaf or member.voice.self_deaf or member.voice.afk
+                   for member in player.channel.members):
                 continue
 
             now = datetime.utcnow()
