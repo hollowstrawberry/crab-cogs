@@ -24,7 +24,7 @@ MARKER_SYMBOL = "💠"
 
 class AudioPlayer(Cog):
     """
-    Live player interface for the audio cog. Stays at the bottom of chat for as long as there is audio playing.
+    Live player interface for the audio cog. Stays at the bottom of chat for as long as there are people listening.
     """
 
     def __init__(self, bot: Red, *args, **kwargs):
@@ -72,6 +72,11 @@ class AudioPlayer(Cog):
                 player = lavalink.get_player(guild.id)
             except lavalink.errors.RedLavalinkException:
                 player = None
+            if not player:
+                continue
+            if all(member.bot for member in player.channel.members):
+                continue
+
             now = datetime.utcnow()
             current_song = player.current if player else None
             changed_song = current_song != self.last_song.get(guild.id)

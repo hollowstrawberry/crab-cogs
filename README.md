@@ -22,13 +22,13 @@ These may prove the most useful to most people.
 
 ### 🎵 AudioSlash
 
-Converts many Audio cog commands into slash commands. The fun part is it will autocomplete YouTube search results as well as available playlists. It will also offer convenient options such as making `bumpplay` a setting of `/play` and offering shuffle with `/playlist play`.
+Converts most commands from the builtin Audio cog into slash commands. The fun part is it will autocomplete YouTube search results as well as available playlists. It will also offer convenient options such as making `bumpplay` a setting of `/play` and offering shuffle with `/playlist play`.
 
 ![demonstration](https://i.imgur.com/EDJybmH.png)
 
 ## 🎶 AudioPlayer
 
-Live audio player with buttons for queue/pause/play/skip/stop, updates every 10 seconds. Stays at the bottom of the designated chat for as long as there is audio playing.
+Live audio player with queue/pause/play/skip/stop buttons for the audio cog. Stays at the bottom of the designated chat for as long as there are people listening and updates every 10 seconds.
 
 ⚠️ Discord doesn't like when things update periodically without human input, even when it follows ratelimits, so use this at your own risk. It *should* be fine conceptually as it requires humans to be listening in voice chat, but you never know.
 

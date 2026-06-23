@@ -2,12 +2,12 @@
     "author": ["hollowstrawberry"],
     "min_bot_version": "3.5.0",
     "min_python_version": [3,11,0],
-    "description": "Live audio player with buttons for queue/pause/play/skip/stop, updates every 10 seconds. Stays at the bottom of the designated chat for as long as there is audio playing.",
+    "description": "Live audio player with queue/pause/play/skip/stop buttons for the audio cog. Stays at the bottom of the designated chat for as long as there are people listening and updates every 10 seconds.",
     "hidden": false,
     "install_msg": "🎶 __**AudioPlayer**__\n:warning: **Important:** Discord doesn't like when things update periodically without human input, even when it follows ratelimits, so use this at your own risk. It *should* be fine conceptually as it requires humans to be listening in voice chat, but you never know. ```Cog installed. Instructions:\n1. Load it with [p]load audioplayer\n2. Enable in a server with [p]audioplayer channel [channel]```",
     "required_cogs": {},
     "requirements": [],
-    "short": "Live player interface for the audio cog.",
+    "short": "Live audio player with buttons for the audio cog.",
     "end_user_data_statement": "This cog does not store user data.",
     "tags": ["crab", "voice", "audio", "music", "player", "buttons", "live"]
 }
