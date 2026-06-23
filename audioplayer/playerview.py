@@ -109,26 +109,19 @@ class AudioPlayerView(View):
         fake_message.content = prefix + command_name
         fake_message.author = inter.user
         ctx: commands.Context = await self.cog.bot.get_context(fake_message)
-
+        await inter.response.defer()
         # convert command responses into interaction responses
         async def send(self, *args, **kwargs):
-            content = f"-# {inter.user.mention} pressed a button" if not ephemeral else ""
             new_kwargs = {
+                "content": f"-# {inter.user.mention} pressed a button" if not ephemeral else "",
                 "embed": kwargs.get("embed"),
                 "ephemeral": ephemeral,
                 "allowed_mentions": discord.AllowedMentions.none(),
             }
             if "view" in kwargs:
                 new_kwargs["view"] = kwargs["view"]
-            resp = await inter.response.send_message(content, **new_kwargs) # type: ignore
-            # this is cursed and has the sole purpose of the queue button's view's info button to work
-            resp.__class__ = type(resp.__class__.__name__, (resp.__class__,), {
-                "edit": inter.response.edit_message,
-                "__slots__": (),
-            })
-            return resp
+            return await inter.followup.send(**new_kwargs)  # type: ignore
         ctx.send = types.MethodType(send, ctx)
-
         return ctx
 
     async def can_run_command(self, ctx: commands.Context, command_name: str) -> bool:
