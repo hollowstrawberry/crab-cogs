@@ -23,7 +23,7 @@ class AudioPlayerView(View):
     def set_paused(self, paused: bool):
         self.pause.emoji = "▶️" if paused else "⏸️"
 
-    @discord.ui.button(emoji="🔽", style=discord.ButtonStyle.grey)
+    @discord.ui.button(emoji="🇶", style=discord.ButtonStyle.grey)
     async def queue(self, inter: discord.Interaction, _):
         audio: Audio = self.cog.bot.get_cog("Audio")
         ctx = await self.get_context(inter, "queue", ephemeral=True)
@@ -34,7 +34,8 @@ class AudioPlayerView(View):
             await audio.command_queue(ctx)
         except Exception: # user-facing error
             log.error("queue button", exc_info=True)
-            await inter.response.send_message("Oops! Try again.")
+            if not inter.response.is_done():
+                await inter.response.send_message(ERROR_UNKNOWN)
 
     @discord.ui.button(emoji="⏪", style=discord.ButtonStyle.grey)
     async def previous(self, inter: discord.Interaction, _):
@@ -47,7 +48,8 @@ class AudioPlayerView(View):
             await audio.command_prev(ctx)
         except Exception: # user-facing error
             log.error("previous button", exc_info=True)
-            await inter.response.send_message(ERROR_UNKNOWN)
+            if not inter.response.is_done():
+                await inter.response.send_message(ERROR_UNKNOWN)
         else:
             await self.update_player(ctx, audio)
 
@@ -62,7 +64,8 @@ class AudioPlayerView(View):
             await audio.command_pause(ctx)
         except Exception: # user-facing error
             log.error("pause button", exc_info=True)
-            await inter.response.send_message(ERROR_UNKNOWN)
+            if not inter.response.is_done():
+                await inter.response.send_message(ERROR_UNKNOWN)
         else:
             await self.update_player(ctx, audio)
 
@@ -77,7 +80,8 @@ class AudioPlayerView(View):
             await audio.command_skip(ctx)
         except Exception: # user-facing error
             log.error("skip button", exc_info=True)
-            await inter.response.send_message(ERROR_UNKNOWN)
+            if not inter.response.is_done():
+                await inter.response.send_message(ERROR_UNKNOWN)
         else:
             await self.update_player(ctx, audio)
 
@@ -92,7 +96,8 @@ class AudioPlayerView(View):
             await audio.command_stop(ctx)
         except Exception: # user-facing error
             log.error("stop button", exc_info=True)
-            await inter.response.send_message(ERROR_UNKNOWN)
+            if not inter.response.is_done():
+                await inter.response.send_message(ERROR_UNKNOWN)
         else:
             await self.update_player(ctx, audio)
 
