@@ -26,6 +26,15 @@ Converts many Audio cog commands into slash commands. The fun part is it will au
 
 ![demonstration](https://i.imgur.com/EDJybmH.png)
 
+## 🎶 AudioPlayer
+
+Live audio player with buttons for queue/pause/play/skip/stop, updates every 10 seconds. Stays at the bottom of the designated chat for as long as there is audio playing.
+
+⚠️ Discord doesn't like when things update periodically without human input, even when it follows ratelimits, so use this at your own risk. It *should* be fine conceptually as it requires humans to be listening in voice chat, but you never know.
+
+![demonstration](https://github.com/user-attachments/assets/7c77467c-7cac-4dac-a02e-ca06b9f296b5)
+
+
 ### 😶 EmojiSteal
 
 Lets anyone steal emojis and stickers sent by other people, and lets moderators upload them to the current server instantly. Supports context menus. Specially useful if you're on mobile as the Discord app doesn't let you copy emoji links or upload stickers, but this cog has commands for those. Animated stickers are annoying but there's a workaround.
@@ -49,6 +58,10 @@ Converts several Economy cog commands into slash commands. Also adds a configura
 ### 🖼 GPTimage
 
 Connects to OpenAI to generate images, with an `/imagine` slash command and a `Remix` app command. Requires an api key and ongoing monetary cost. Please check [the docs](https://developers.openai.com/api/docs/guides/image-generation#calculating-costs) for prices and use this cog with care. (As of writing, GPT Image 2 costs ~0.5 cents in low quality, and 16+ cents in high quality, slightly higher for image editing.) To manage this, the cog features a configurable hourly quota per user, with an option to add a VIP role and specific VIP users that can generate as much as they want. If you need more granular control, let me know and I may add it.
+
+## 🚪 GPTwelcome
+
+Uses AI to give a unique welcome message for each new user, according to their username and avatar. This may sound useless at first, but generic welcome messages are often ignored, and even something simple as saying something unique about someone may catch their attention. The prompt is customizable, you should read the default one first. Make sure your server has welcome messages enabled, as the bot replies to those. Uses either OpenAI or OpenRouter endpoints.
 
 # Game cogs
 
