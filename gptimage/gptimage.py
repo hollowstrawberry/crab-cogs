@@ -153,7 +153,8 @@ class GptImage(GptImageSettings):
             async def edit_original_response(**kwargs):
                 kwargs["view"] = kwargs.get("view", None)
                 kwargs["embed"] = kwargs.get("embed", None)
-                kwargs["attachments"] = [kwargs.pop("file")] if "file" in kwargs else None
+                kwargs["attachments"] = [kwargs.pop("file")] if "file" in kwargs else []
+                kwargs.pop("ephemeral", None)
                 await ctx.edit_original_response(**kwargs)
             send = edit_original_response
 
