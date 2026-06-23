@@ -6,7 +6,7 @@ from redbot.core.bot import Red
 from gelbooru.base import BooruBase
 from gelbooru.constants import EMBED_COLOR, EMBED_ICON, HARDCODED_BLACKLIST, VIEW_TIMEOUT
 
-log = logging.getLogger("red.holo-cogs.aimage")
+log = logging.getLogger("red.crab-cogs.gelbooru")
 
 
 class ImageView(discord.ui.View):

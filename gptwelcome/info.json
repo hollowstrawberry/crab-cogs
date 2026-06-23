@@ -1,0 +1,13 @@
+{
+    "author": ["hollowstrawberry"],
+    "min_bot_version": "3.5.0",
+    "min_python_version": [3,9,0],
+    "description": "Uses AI to give a unique welcome message for each new user, according to their username and avatar. This may sound useless at first, but generic welcome messages are often ignored, and even something simple as saying something unique about someone may catch their attention.",
+    "hidden": false,
+    "install_msg": "🚪 __**GPT Welcome**__\n:warning: **Important:** Utilizes either OpenAI or OpenRouter API, which will cost you a fraction of a penny every time it is used, highly dependent on the model you pick.\n```Cog installed. Instructions:\n1. Load it with [p]load gptwelcome\n2. Add your OpenAI api_key or OpenRouter api_key with [p]set api\n3. To enable in the current server, the bot owner must use [p]gptwelcome enable\n4. Admins can check and customize the prompt with [p]gptwelcome prompt\n5. Test it with [p]gptwelcome test\n6. Make sure your server has welcome messages enabled, as the bot replies to those.```",
+    "required_cogs": {},
+    "requirements": ["openai==1.109.1"],
+    "short": "Uses AI to give a unique welcome message for each new user.",
+    "end_user_data_statement": "This cog sends to OpenAI the name and avatar of new users joining the server.",
+    "tags": ["crab", "ai", "gpt", "llm", "chatgpt", "chatbot", "welcome", "openai", "openrouter"]
+}
