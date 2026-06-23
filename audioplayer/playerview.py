@@ -99,9 +99,11 @@ class AudioPlayerView(View):
         # permissions
         try:
             command = ctx.bot.get_command(command_name)
-            if not await command.can_run(ctx, check_all_parents=True, change_permission_state=False):
-                return None
+            allowed = await command.can_run(ctx, check_all_parents=True, change_permission_state=False)
         except commands.CommandError:
+            allowed = False
+        if not allowed:
+            await inter.response.send_message(ERROR_FORBIDDEN, ephemeral=True)
             return None
         # deferring allows me to only send followups, regular interaction responses cause weird edge cases with my hacky setup
         await inter.response.defer()
