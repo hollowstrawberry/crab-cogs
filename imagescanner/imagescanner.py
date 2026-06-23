@@ -11,7 +11,7 @@ from redbot.core.bot import Red
 import imagescanner.utils as utils
 from imagescanner.comfy import ComfyMetadata
 from imagescanner.commands import ImageScannerCommands
-from imagescanner.metadata import Metadata
+from imagescanner.metadata import Metadata, WebuiMetadata, StableSwarmMetadata
 from imagescanner.imageview import ImageView
 from imagescanner.constants import PARAM_REGEX, log, SUPPORTED_FORMATS, RESOURCE_HASH_REGEX, RESOURCE_FILE_REGEX
 
@@ -85,8 +85,8 @@ class ImageScanner(ImageScannerCommands):
         if total > 1:
             embed.title = f"{embed.title or ''} ({i+1}/{total})"
         # new
-        if metadata.source == "comfy":
-            hyperlinks = await self.resolve_arcenciel_resources(metadata)  # type: ignore
+        if isinstance(metadata, (ComfyMetadata, StableSwarmMetadata)):
+            hyperlinks = await self.resolve_arcenciel_resources(metadata)
             embed.description += "\n" + "\n".join([f"{self.arcenciel_emoji} {link}" for link in hyperlinks])
             return embed
         # this is old and ugly don't look at it
@@ -100,9 +100,9 @@ class ImageScanner(ImageScannerCommands):
                     else:
                         desc_ext.append(f"{self.civitai_emoji} `CHECKPOINT` [Model]({link})")
                     utils.remove_field(embed, MODEL_HASH)
-            utils.remove_field(embed, VAE_HASH) #  vae hashes seem to be bugged in automatic1111 webui
+            utils.remove_field(embed, VAE_HASH)  # vae hashes seem to be bugged in automatic1111 webui
             if params.get(LORA_HASHES):
-                hashes = PARAM_REGEX.findall(params[LORA_HASHES].strip('"')+",") # trailing comma for the regex
+                hashes = PARAM_REGEX.findall(params[LORA_HASHES].strip('"')+",")  # trailing comma for the regex
                 log.debug(hashes)
                 links = {name: await self.grab_civitai_model_link(short_hash)
                             for name, short_hash in hashes}
@@ -325,7 +325,7 @@ class ImageScanner(ImageScannerCommands):
         return data["data"]
     
 
-    async def resolve_arcenciel_resources(self, metadata: ComfyMetadata) -> list[str]:
+    async def resolve_arcenciel_resources(self, metadata: ComfyMetadata | StableSwarmMetadata) -> list[str]:
         hyperlinks: set[str] = set()
         hints = metadata.resource_hint_strings()
         files = [str(os.path.basename(filename.strip(' "'))) for filename in RESOURCE_FILE_REGEX.findall(metadata.raw or "")]

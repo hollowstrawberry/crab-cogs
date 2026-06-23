@@ -1,3 +1,4 @@
+import re
 import json
 import asyncio
 import discord
@@ -6,8 +7,8 @@ from io import BytesIO
 from typing import Any, Dict
 
 from imagescanner.comfy import ComfyMetadataReader
-from imagescanner.metadata import Metadata, WebuiMetadata
-from imagescanner.constants import SUPPORTED_FORMATS, log
+from imagescanner.metadata import Metadata, StableSwarmMetadata, WebuiMetadata
+from imagescanner.constants import SUPPORTED_FORMATS, RESOURCE_HASH_REGEX, log
 
 
 def build_embed(embed_dict: Dict[str, Any], author: discord.Member) -> discord.Embed:
@@ -28,6 +29,9 @@ def read_metadata(image_data: bytes) -> Metadata | None:
     b = BytesIO(image_data)
     img = PIL.Image.open(b)
     raw = img.info.get("parameters") or img.getexif().get(0x9286)
+    metadata = StableSwarmMetadata(raw)
+    if metadata.is_stable_swarm:
+        return metadata
     metadata = WebuiMetadata(raw)
     if metadata.as_dict():
         return metadata

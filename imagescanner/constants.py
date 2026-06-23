@@ -27,3 +27,5 @@ WEBUI_PARAMS_BLACKLIST = [
     "Mimic", "Separate Feature Channels", "Scaling Startpoint", "Variability Measure",  # Dynamic thresholding
     "Interpolate Phi", "Threshold percentile",
 ]
+
+STABLE_SWARM_IDENTIFIERS = ["sui_image_params", "swarm_version", "sui_models"]
