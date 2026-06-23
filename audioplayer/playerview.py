@@ -113,9 +113,10 @@ class AudioPlayerView(View):
         # convert command responses into interaction responses
         async def send(self, *args, **kwargs):
             content = f"-# {inter.user.mention} pressed a button" if not ephemeral else ""
-            kwargs["ephemeral"] = ephemeral,
-            kwargs["allowed_mentions"] = discord.AllowedMentions.none()
-            await inter.response.send_message(content, **kwargs)
+            new_kwargs = {"embed": kwargs.get("embed")}
+            if view := kwargs.pop("view"):
+                new_kwargs["view"] = view
+            await inter.response.send_message(content, **new_kwargs, ephemeral=ephemeral, allowed_mentions=discord.AllowedMentions.none()) # type: ignore
         ctx.send = types.MethodType(send, ctx)
 
         return ctx
