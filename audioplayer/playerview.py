@@ -102,6 +102,7 @@ class AudioPlayerView(View):
             await self.update_player(ctx, audio)
 
     async def get_context(self, inter: discord.Interaction, command_name: str, ephemeral: bool) -> commands.Context:
+        # spoof a context where the user legitimately called the audio cog's command
         prefix = await self.cog.bot.get_prefix(self.message)
         prefix = prefix[0] if isinstance(prefix, list) else prefix
         assert self.message is not None
@@ -109,6 +110,7 @@ class AudioPlayerView(View):
         fake_message.content = prefix + command_name
         fake_message.author = inter.user
         ctx: commands.Context = await self.cog.bot.get_context(fake_message)
+        # deferring allows me to only send followups, regular interaction responses cause weird edge cases with my hacky setup
         await inter.response.defer()
         # convert command responses into interaction responses
         async def send(self, *args, **kwargs):
