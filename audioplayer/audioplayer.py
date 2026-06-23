@@ -72,12 +72,10 @@ class AudioPlayer(Cog):
                 player = lavalink.get_player(guild.id)
             except lavalink.errors.RedLavalinkException:
                 player = None
-            if not player:
+            if player and all(
+                    member.bot or not member.voice or member.voice.deaf or member.voice.self_deaf or member.voice.afk
+                    for member in player.channel.members):
                 continue
-            if all(member.bot or not member.voice or member.voice.deaf or member.voice.self_deaf or member.voice.afk
-                   for member in player.channel.members):
-                continue
-
             now = datetime.utcnow()
             current_song = player.current if player else None
             changed_song = current_song != self.last_song.get(guild.id)
