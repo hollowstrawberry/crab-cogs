@@ -1,0 +1,13 @@
+{
+    "author": ["hollowstrawberry"],
+    "min_bot_version": "3.5.0",
+    "min_python_version": [3,10,0],
+    "description": "Generate and remix images with Google's NanoBanana. Uses openrouter API.",
+    "hidden": true,
+    "install_msg": "🍌 __**NanoBanana Image Generation**__\n:warning: **Important:** This  is expensive, around 14 cents per image. Only approved roles and users by the bot owner may use it.\n```Cog installed. Instructions:\n1. Load it with [p]load nanobanana\n2. Add your OpenRouter API key with [p]set api openrouter api_key,INSERT_API_KEY\n3. Add approved roles with [p]nanobananaset roles add @role\n4. Enable application commands with [p]slash enablecog nanobanana, then [p]slash sync, then restart your Discord client.\n5. Use the /nanobanana slash command, or use Apps->Remix in the context menu of a message.```",
+    "required_cogs": {},
+    "requirements": [],
+    "short": "Generate and remix images with Google's NanoBanana.",
+    "end_user_data_statement": "This cog allows users to send images in your server's chat to Google for remixing.",
+    "tags": ["holo", "ai", "gpt", "google", "gemini", "nanobanana", "openrouter"]
+}

@@ -55,7 +55,7 @@ class ImageScanner(ImageScannerCommands):
                and await self.bot.ignored_channel_or_guild(message) \
                and not await self.bot.cog_disabled_in_guild(self, message.guild)
 
-    async def grab_metadata_dict(self, message: discord.Message) -> dict:  # used by gptmemory from holo-cogs
+    async def grab_metadata_dict(self, message: discord.Message) -> dict:  # used by agent cog
         assert self.image_cache is not None
         
         if message.id in self.image_cache:
