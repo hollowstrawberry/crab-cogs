@@ -37,11 +37,21 @@ class AudioPlayerView(View):
 
     @discord.ui.button(emoji="⏪", style=discord.ButtonStyle.grey)
     async def previous(self, inter: discord.Interaction, _):
+        assert inter.guild
         audio: Audio = self.cog.bot.get_cog("Audio")
-        if not (ctx := await self.get_context(inter, "prev", ephemeral=False)):
+        player = lavalink.get_player(inter.guild.id)
+        current_song = player.current
+        if not current_song:
+            await inter.followup.send(ERROR_UNKNOWN)
+            return
+        action = "seek" if player.position > 10000 else "prev"
+        if not (ctx := await self.get_context(inter, action, ephemeral=False)):
             return
         try:
-            await audio.command_prev(ctx)
+            if action == "seek":
+                await audio.command_seek(ctx, "00:00")
+            elif await audio.command_prev(ctx) is None: 
+                player.queue.insert(0, current_song)
         except Exception: # user-facing error
             log.error("previous button", exc_info=True)
             await inter.followup.send(ERROR_UNKNOWN)
