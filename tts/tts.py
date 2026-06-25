@@ -4,7 +4,6 @@ import logging
 import asyncio
 import lavalink
 from gtts import gTTS
-from copy import copy, deepcopy
 from typing import Optional
 from googletrans import Translator
 from discord.ext import tasks
@@ -18,7 +17,7 @@ log = logging.getLogger("red.crab-cogs.tts")
 
 
 class TextToSpeech(Cog):
-    """Plays text to speech in voice chat. Overrides music."""
+    """Plays text to speech in voice chat. Briefly interrupts music."""
 
     def __init__(self, bot: Red, *args, **kwargs):
         super().__init__(*args, **kwargs)
