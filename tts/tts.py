@@ -2,9 +2,9 @@ import os
 import shutil
 import logging
 import asyncio
-import discord
 import lavalink
 from gtts import gTTS
+from copy import deepcopy
 from typing import Optional
 from googletrans import Translator
 from discord.ext import tasks
@@ -53,7 +53,7 @@ class TextToSpeech(Cog):
         if audio is None:
             return await ctx.send("Audio cog is not loaded!")
         if not ctx.guild.me.voice:
-            if await ctx.invoke(audio.command_summon):  # noqa, reason: should work despite type hint
+            if await ctx.invoke(audio.command_summon):
                 return  # failed to join voicechat
 
         try:
@@ -81,11 +81,15 @@ class TextToSpeech(Cog):
             log.error(load_result.exception_message)
             return
 
-        if player:
-            await player.stop()
-        player.add(requester=ctx.author, track=load_result.tracks[0])  # type: ignore
+        if player and player.current:
+            old_track = deepcopy(player.current)
+            player.queue.insert(0, old_track)
+        new_track = load_result.tracks[0]
+        new_track.requester = ctx.author  # type: ignore
+        player.queue.insert(0, new_track)
         await player.play()
+
         if ctx.interaction:
-            await ctx.reply("🗣")
+            await ctx.reply("🗣 Playing speech...")
         else:
             await ctx.react_quietly("🗣")
