@@ -78,7 +78,7 @@ class TextToSpeech(Cog):
         load_result = await player.load_tracks(audio_path)
         if load_result.has_error or load_result.load_type != lavalink.enums.LoadType.TRACK_LOADED:
             await ctx.send("There was an error playing the voice message. Check the logs for more details.")
-            log.error(load_result.exception_message)
+            log.error(f"Failed to load the TTS track: {load_result._raw}")
             return
 
         if player and player.current:
