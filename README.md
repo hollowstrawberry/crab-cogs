@@ -115,7 +115,7 @@ Developer cog that opens an interactive view of your bot's console output within
 
 ### 🗣 TTS
 
-Plays text to speech in voice chat, intended as an accessibility feature. Detects the language automatically. The voice cannot be changed for now. Unfortunately will override music if it is playing.
+Plays text to speech in voice chat, intended as an accessibility feature. Detects the language automatically. The voice cannot be changed for now. Briefly interrupts music and resumes where it paused at.
 
 ### 🟫 Minecraft
 

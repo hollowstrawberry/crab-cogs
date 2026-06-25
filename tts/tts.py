@@ -2,7 +2,6 @@ import os
 import shutil
 import logging
 import asyncio
-import discord
 import lavalink
 from gtts import gTTS
 from typing import Optional
@@ -18,7 +17,7 @@ log = logging.getLogger("red.crab-cogs.tts")
 
 
 class TextToSpeech(Cog):
-    """Plays text to speech in voice chat. Overrides music."""
+    """Plays text to speech in voice chat. Briefly interrupts music."""
 
     def __init__(self, bot: Red, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -53,7 +52,7 @@ class TextToSpeech(Cog):
         if audio is None:
             return await ctx.send("Audio cog is not loaded!")
         if not ctx.guild.me.voice:
-            if await ctx.invoke(audio.command_summon):  # noqa, reason: should work despite type hint
+            if await ctx.invoke(audio.command_summon):
                 return  # failed to join voicechat
 
         try:
@@ -78,14 +77,19 @@ class TextToSpeech(Cog):
         load_result = await player.load_tracks(audio_path)
         if load_result.has_error or load_result.load_type != lavalink.enums.LoadType.TRACK_LOADED:
             await ctx.send("There was an error playing the voice message. Check the logs for more details.")
-            log.error(load_result.exception_message)
+            log.error(f"Failed to load the TTS track: {load_result._raw}")
             return
 
-        if player:
-            await player.stop()
-        player.add(requester=ctx.author, track=load_result.tracks[0])  # type: ignore
+        if player and player.current:
+            player.current.start_timestamp = player.position
+            player.queue.insert(0, player.current)
+
+        tts_track = load_result.tracks[0]
+        tts_track.requester = ctx.author  # type: ignore
+        player.queue.insert(0, tts_track)
         await player.play()
+
         if ctx.interaction:
-            await ctx.reply("🗣")
+            await ctx.reply("🗣 Playing speech...")
         else:
             await ctx.react_quietly("🗣")
