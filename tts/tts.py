@@ -83,12 +83,13 @@ class TextToSpeech(Cog):
 
         if player and player.current:
             old_track = player.current
-            old_track.start_timestamp = old_track.position
+            old_timestamp = old_track.position
             player.queue.insert(0, old_track)
         new_track = load_result.tracks[0]
         new_track.requester = ctx.author  # type: ignore
         player.queue.insert(0, new_track)
         await player.play()
+        player.queue[0].start_timestamp = old_timestamp
 
         if ctx.interaction:
             await ctx.reply("🗣 Playing speech...")
