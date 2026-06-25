@@ -83,7 +83,7 @@ class TextToSpeech(Cog):
 
         if player and player.current:
             old_track = player.current
-            old_timestamp = old_track.position
+            old_track.start_timestamp = old_track.position
             player.queue.insert(0, old_track)
         new_track = load_result.tracks[0]
         new_track.requester = ctx.author  # type: ignore
