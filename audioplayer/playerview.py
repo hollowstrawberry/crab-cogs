@@ -51,7 +51,7 @@ class AudioPlayerView(View):
         try:
             if action == "seek":
                 await audio.command_seek(ctx, -1 - (player.position // 1000))
-                await asyncio.sleep(1)  # wait for track to load to reset position
+                await asyncio.sleep(0.2)  # wait for track to load to reset position
             elif await audio.command_prev(ctx) is None: 
                 player.queue.insert(0, current_song)
         except Exception: # user-facing error
