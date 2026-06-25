@@ -49,7 +49,7 @@ class AudioPlayerView(View):
             return
         try:
             if action == "seek":
-                await audio.command_seek(ctx, -player.position // 1000)
+                await audio.command_seek(ctx, -1 - (player.position // 1000))
             elif await audio.command_prev(ctx) is None: 
                 player.queue.insert(0, current_song)
         except Exception: # user-facing error
