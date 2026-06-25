@@ -50,9 +50,8 @@ class AudioPlayerView(View):
             return
         try:
             if action == "seek":
-                log.info(player.position)
                 await audio.command_seek(ctx, -1 - (player.position // 1000))
-                log.info(player.position)
+                await asyncio.sleep(1)  # wait for track to load to reset position
             elif await audio.command_prev(ctx) is None: 
                 player.queue.insert(0, current_song)
         except Exception: # user-facing error
@@ -60,9 +59,6 @@ class AudioPlayerView(View):
             await inter.followup.send(ERROR_UNKNOWN)
         else:
             await self.update_player(ctx, audio)
-            log.info(player.position)
-            await asyncio.sleep(1)
-            log.info(player.position)
 
     @discord.ui.button(style=discord.ButtonStyle.grey)
     async def pause(self, inter: discord.Interaction, _):
