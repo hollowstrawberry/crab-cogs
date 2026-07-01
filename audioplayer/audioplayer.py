@@ -21,6 +21,7 @@ INTERVAL = 9.9
 PLAYER_WIDTH = 21
 MARKER_SYMBOL = "💠"
 LINE_SYMBOLS = "┣━┨"
+EMPTY = "ᅠ"
 START_SYMBOL, LINE_SYMBOL, END_SYMBOL = LINE_SYMBOLS
 
 
@@ -124,8 +125,6 @@ class AudioPlayer(Cog):
         else:
             embed.title = f"{icon} {track_name}"
         embed.description = ""
-        if player.current.requester:
-            embed.set_footer(text=f"Requested by {player.current.requester.display_name}", icon_url=player.current.requester.display_avatar.url)
 
         ratio = (player.position / player.current.length) if player.current.length else 0.5
         filled = round(PLAYER_WIDTH * ratio)
@@ -146,9 +145,13 @@ class AudioPlayer(Cog):
             if total_length // 3600:
                 formatted_time += f"{total_length // 3600}:"
             formatted_time += f"{total_length//60%60:02}:{total_length%60:02}"
-            embed.description += f"\n\n{len(player.queue)} more in queue ({formatted_time})"
+            embed.description += f"\n{len(player.queue)} more in queue ({formatted_time})"
         else:
-            embed.description += "\n\nNo more in queue"
+            embed.description += "\nNo more in queue"
+        if player.current.requester:
+            embed.description += EMPTY
+            embed.set_footer(text=f"Track added by {player.current.requester.display_name}", icon_url=player.current.requester.display_avatar.url)
+
         
         if player.current.thumbnail:
             embed.set_thumbnail(url=player.current.thumbnail)
