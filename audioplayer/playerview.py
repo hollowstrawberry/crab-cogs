@@ -5,7 +5,7 @@ import discord
 import lavalink
 from copy import copy
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from discord.ui import View
 from redbot.core import commands
 from redbot.cogs.audio.core import Audio
@@ -140,6 +140,6 @@ class AudioPlayerView(View):
         except lavalink.errors.PlayerNotFound:
             pass
         else:
-            self.cog.last_updated[ctx.guild.id] = datetime.utcnow()
+            self.cog.last_updated[ctx.guild.id] = datetime.now(timezone.utc)
             self.cog.last_song[ctx.guild.id] = player.current if player else None
-            await self.cog.update_player(ctx.guild, ctx.channel, audio, player)
+            await self.cog.update_player(ctx.channel, audio, player)
