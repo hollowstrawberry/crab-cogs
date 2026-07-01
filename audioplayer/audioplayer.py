@@ -34,9 +34,9 @@ class AudioPlayer(Cog):
         self.config = Config.get_conf(self, identifier=772413491)
         self.inline_guilds: list[int] = []
         self.designated_channel: dict[int, int] = defaultdict(int)
-        self.view: dict[int, Optional[AudioPlayerView]] = defaultdict(None)
-        self.last_message: dict[int, Optional[discord.Message]] = defaultdict(None)
-        self.last_song: dict[int, Optional[lavalink.Track]] = defaultdict(None)
+        self.view: dict[int, Optional[AudioPlayerView]] = defaultdict(lambda: None)
+        self.last_message: dict[int, Optional[discord.Message]] = defaultdict(lambda: None)
+        self.last_song: dict[int, Optional[lavalink.Track]] = defaultdict(lambda: None)
         self.last_updated: dict[int, datetime] = defaultdict(lambda: datetime.min.replace(tzinfo=timezone.utc))
         self.config.register_guild(**{
             "channel": 0,
