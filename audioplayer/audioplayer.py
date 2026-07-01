@@ -115,7 +115,7 @@ class AudioPlayer(Cog):
         # Format the player message
         embed = discord.Embed()
         embed.color = await self.bot.get_embed_color(channel)
-        icon = "⏸️" if player.paused else "▶️"
+        icon = "🔈" if player.paused else "🔊"
         track_name = await audio.get_track_description(player.current, audio.local_folder_current_path) # type: ignore
         title_match = re.match(r"^\[(.*)\]\((.*)\)$", track_name.strip(" *") if track_name else "")
         if title_match:
@@ -125,8 +125,8 @@ class AudioPlayer(Cog):
             embed.title = f"{icon} {track_name}"
         embed.description = ""
         if player.current.requester:
-            embed.set_author(name=player.current.requester.display_name, icon_url=player.current.requester.display_avatar.url)
-            #embed.description += f"-# Requested by {player.current.requester.display_name}\n\n"
+            #embed.set_author(name=player.current.requester.display_name, icon_url=player.current.requester.display_avatar.url)
+            embed.description += f"-# Requested by {player.current.requester.display_name}\n\n"
 
         ratio = (player.position / player.current.length) if player.current.length else 0.5
         filled = round(PLAYER_WIDTH * ratio)
