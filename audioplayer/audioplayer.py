@@ -126,21 +126,19 @@ class AudioPlayer(Cog):
         embed.description = ""
         if player.current.requester:
             embed.description += f"\n-# Requested by {player.current.requester}\n\n"
-        if not player.current.is_stream and player.current.length:
-            ratio = player.position / player.current.length
-            filled = round(PLAYER_WIDTH * ratio) 
-            pos = round(player.position / 1000)
-            length = round(player.current.length / 1000)
-            line = START_SYMBOL + (filled * LINE_SYMBOL) + MARKER_SYMBOL + ((PLAYER_WIDTH - 1 - filled) * LINE_SYMBOL) + END_SYMBOL
-            pos_str = f"{pos//60:02}:{pos%60:02}"
-            length_str = f"{length//60:02}:{length%60:02}"
-            under_line = pos_str + (' ' * (len(line) + 1 - len(pos_str) - len(length_str))) + length_str
-            embed.description += f"`{line}`\n`{under_line}`"
-        else:
-            pos = round(player.position / 1000)
-            length = 0
-            line = START_SYMBOL + ((PLAYER_WIDTH // 2) * LINE_SYMBOL) + MARKER_SYMBOL + ((PLAYER_WIDTH // 2) * LINE_SYMBOL) + END_SYMBOL
-            embed.description += f"`{pos//60:02}:{pos%60:02}{line}unknown`"
+
+        ratio = (player.position / player.current.length) if player.current.length else 0.5
+        filled = round(PLAYER_WIDTH * ratio)
+        pos = round(player.position / 1000)
+        length = round(player.current.length / 1000) if player.current.length else 0
+        pos_str = f"{pos//60:02}:{pos%60:02}"
+        length_str = f"{length//60:02}:{length%60:02}" if length else "unknown"
+        line = START_SYMBOL + (filled * LINE_SYMBOL) + MARKER_SYMBOL + ((PLAYER_WIDTH - 1 - filled) * LINE_SYMBOL) + END_SYMBOL
+        under_line = pos_str + (' ' * (len(line) + 1 - len(pos_str) - len(length_str))) + length_str
+        estimate = f"Last updated <t:{int(datetime.now(timezone.utc).timestamp())}:R>"
+        
+        embed.description += f"`{line}`\n`{under_line}`\n-# {estimate}"
+        
         if player.queue:
             total_length = round(sum(track.length or 180000 for track in player.queue) / 1000)
             if length > 0:
@@ -152,6 +150,7 @@ class AudioPlayer(Cog):
             embed.description += f"\n\n{len(player.queue)} more in queue ({formatted_time})"
         else:
             embed.description += "\n\nNo more in queue"
+        
         if player.current.thumbnail:
             embed.set_thumbnail(url=player.current.thumbnail)
 
