@@ -125,7 +125,8 @@ class AudioPlayer(Cog):
             embed.title = f"{icon} {track_name}"
         embed.description = ""
         if player.current.requester:
-            embed.description += f"-# Requested by {player.current.requester.display_name}\n\n"
+            embed.set_author(name=player.current.requester.display_name, icon_url=player.current.requester.display_avatar.url)
+            #embed.description += f"-# Requested by {player.current.requester.display_name}\n\n"
 
         ratio = (player.position / player.current.length) if player.current.length else 0.5
         filled = round(PLAYER_WIDTH * ratio)
