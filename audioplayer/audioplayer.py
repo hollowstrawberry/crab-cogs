@@ -18,7 +18,7 @@ from audioplayer.playerview import AudioPlayerView
 log = logging.getLogger("red.crab-cogs.audioplayer")
 
 INTERVAL = 9.9
-PLAYER_WIDTH = 25
+PLAYER_WIDTH = 21
 MARKER_SYMBOL = "💠"
 LINE_SYMBOLS = "┣━┨"
 START_SYMBOL, LINE_SYMBOL, END_SYMBOL = LINE_SYMBOLS
