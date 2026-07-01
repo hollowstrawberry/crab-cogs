@@ -125,7 +125,7 @@ class AudioPlayer(Cog):
             embed.title = f"{icon} {track_name}"
         embed.description = ""
         if player.current.requester:
-            embed.description += f"\n-# Requested by {player.current.requester}\n\n"
+            embed.set_footer(text=f"Requested by {player.current.requester.display_name}", icon_url=player.current.requester.display_avatar.url)
 
         ratio = (player.position / player.current.length) if player.current.length else 0.5
         filled = round(PLAYER_WIDTH * ratio)
@@ -135,7 +135,7 @@ class AudioPlayer(Cog):
         length_str = f"{length//60:02}:{length%60:02}" if length else "unknown"
         line = START_SYMBOL + (filled * LINE_SYMBOL) + MARKER_SYMBOL + ((PLAYER_WIDTH - 1 - filled) * LINE_SYMBOL) + END_SYMBOL
         under_line = pos_str + (' ' * (len(line) + 1 - len(pos_str) - len(length_str))) + length_str
-        
+
         embed.description += f"`{line}`\n`{under_line}`"
         
         if player.queue:
