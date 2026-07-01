@@ -3,8 +3,9 @@ import logging
 import asyncio
 import discord
 import lavalink
-from typing import Coroutine
+from typing import Coroutine, Optional, Union
 from datetime import datetime, timezone
+from collections import defaultdict
 
 from discord.ext import tasks
 from redbot.core import commands
@@ -20,7 +21,6 @@ INTERVAL = 9.9
 PLAYER_WIDTH = 19
 LINE_SYMBOL = "⎯"
 MARKER_SYMBOL = "💠"
-MIN_TIME = datetime.min.replace(tzinfo=timezone.utc)
 
 
 class AudioPlayer(Cog):
@@ -32,12 +32,12 @@ class AudioPlayer(Cog):
         super().__init__(*args, **kwargs)
         self.bot = bot
         self.config = Config.get_conf(self, identifier=772413491)
-        self.designated_channel: dict[int, int] = {}
         self.inline_guilds: list[int] = []
-        self.view: dict[int, AudioPlayerView | None] = {}
-        self.last_message: dict[int, discord.Message | None] = {}
-        self.last_song: dict[int, lavalink.Track | None] = {}
-        self.last_updated: dict[int, datetime] = {}
+        self.designated_channel: dict[int, int] = defaultdict(int)
+        self.view: dict[int, Optional[AudioPlayerView]] = defaultdict(None)
+        self.last_message: dict[int, Optional[discord.Message]] = defaultdict(None)
+        self.last_song: dict[int, Optional[lavalink.Track]] = defaultdict(None)
+        self.last_updated: dict[int, datetime] = defaultdict(lambda: datetime.min.replace(tzinfo=timezone.utc))
         self.config.register_guild(**{
             "channel": 0,
             "inline": False,
@@ -59,7 +59,7 @@ class AudioPlayer(Cog):
 
     @tasks.loop(seconds=1, reconnect=True)
     async def player_loop(self):
-        audio: Audio | None = self.bot.get_cog("Audio") # type: ignore
+        audio: Optional[Audio] = self.bot.get_cog("Audio") # type: ignore
         if not audio:
             return
         
@@ -76,8 +76,8 @@ class AudioPlayer(Cog):
                 continue
             now = datetime.now(timezone.utc)
             current_song = player.current if player else None
-            changed_song = current_song != self.last_song.get(guild_id)
-            update_due = (now - self.last_updated.get(guild_id, MIN_TIME)).total_seconds() >= INTERVAL
+            changed_song = current_song != self.last_song[guild_id]
+            update_due = (now - self.last_updated[guild_id]).total_seconds() >= INTERVAL
             if not update_due and not changed_song:
                 continue
             self.last_updated[guild_id] = now
@@ -87,7 +87,7 @@ class AudioPlayer(Cog):
                     pending.append(self.update_player(player.channel, audio, player))
                 else:
                     maybe_orphaned.append(guild_id)
-            if channel := self.bot.get_channel(self.designated_channel.get(guild_id, 0)):
+            if channel := self.bot.get_channel(self.designated_channel[guild_id]):
                 assert isinstance(channel, discord.TextChannel)
                 pending.append(self.update_player(channel, audio, player))
 
@@ -95,7 +95,7 @@ class AudioPlayer(Cog):
             if not view or not view.message or not view.message.guild:
                 continue
             channel, guild = view.message.channel, view.message.guild
-            if guild.id in maybe_orphaned and self.designated_channel.get(guild.id) != channel.id:
+            if guild.id in maybe_orphaned and self.designated_channel[guild_id] != channel.id:
                 assert isinstance(channel, discord.TextChannel)
                 pending.append(self.update_player(channel, audio, None))
 
@@ -105,7 +105,7 @@ class AudioPlayer(Cog):
                 log.error(f"{type(result).__name__}: {result}")
 
 
-    async def update_player(self, channel: discord.TextChannel | discord.VoiceChannel, audio: Audio, player: lavalink.Player | None):
+    async def update_player(self, channel: Union[discord.TextChannel, discord.VoiceChannel], audio: Audio, player: Optional[lavalink.Player]):
         # Remove orphan player
         if not player or not player.current:
             await self.destroy_player(channel.id)
@@ -151,13 +151,13 @@ class AudioPlayer(Cog):
         if player.current.thumbnail:
             embed.set_thumbnail(url=player.current.thumbnail)
 
-        view = self.view.get(channel.id) or AudioPlayerView(self)
+        view = self.view[channel.id] or AudioPlayerView(self)
         self.view[channel.id] = view
         view.set_paused(player.paused)
 
         # Update the player message
         latest_message = await channel.history(limit=1).__anext__()
-        last_message = self.last_message.get(channel.id)
+        last_message = self.last_message[channel.id]
         if latest_message == last_message:
             await latest_message.edit(embed=embed, view=view)
         else:
@@ -187,10 +187,10 @@ class AudioPlayer(Cog):
         pass
 
     @command_audioplayer.command(name="dedicated", aliases=["channel"])
-    async def command_audioplayer_dedicated(self, ctx: commands.Context, channel: discord.TextChannel | None):
+    async def command_audioplayer_dedicated(self, ctx: commands.Context, channel: Optional[discord.TextChannel]):
         """Sets or clears a dedicated channel for the AudioPlayer"""
         assert ctx.guild
-        existing_channel_id = self.designated_channel.get(ctx.guild.id, 0)
+        existing_channel_id = self.designated_channel[ctx.guild.id]
         await self.destroy_player(existing_channel_id)
 
         if not channel:
@@ -207,7 +207,7 @@ class AudioPlayer(Cog):
             self.designated_channel[ctx.guild.id] = channel.id
             await ctx.reply(f"The player will appear in {channel.mention} while audio is playing.")
         
-        audio: Audio | None = self.bot.get_cog("Audio")  # type: ignore
+        audio: Optional[Audio] = self.bot.get_cog("Audio")  # type: ignore
         if not audio:
             await ctx.send("Warning: Audio cog is not enabled, contact the bot owner for more information.")
 
@@ -231,6 +231,6 @@ class AudioPlayer(Cog):
         await self.config.guild(ctx.guild).inline.set(enabled)
         await ctx.reply(f"An AudioPlayer will {'now' if enabled else 'no longer'} appear inside the voice channel itself.")
         
-        audio: Audio | None = self.bot.get_cog("Audio")  # type: ignore
+        audio: Optional[Audio] = self.bot.get_cog("Audio")  # type: ignore
         if not audio:
             await ctx.send("Warning: Audio cog is not enabled, contact the bot owner for more information.")

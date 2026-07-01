@@ -20,7 +20,7 @@ class AudioPlayerView(View):
     def __init__(self, cog):
         super().__init__(timeout=None)
         self.cog = cog
-        self.message: discord.Message | None = None
+        self.message: Optional[discord.Message] = None
 
     def set_paused(self, paused: bool):
         self.pause.emoji = "▶️" if paused else "⏸️"

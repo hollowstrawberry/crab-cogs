@@ -1,7 +1,7 @@
 {
     "author": ["hollowstrawberry"],
     "min_bot_version": "3.5.0",
-    "min_python_version": [3,11,0],
+    "min_python_version": [3,9,0],
     "description": "Live audio player with queue/pause/play/skip/stop buttons for the audio cog. Stays at the bottom of the chat for as long as there are people listening, and updates every 10 seconds.",
     "hidden": false,
     "install_msg": "🎶 __**AudioPlayer**__\n:warning: **Important:** Discord doesn't like when things update periodically without human input, even when it follows ratelimits, so use this at your own risk. It *should* be fine conceptually as it requires humans to be listening in voice chat, but you never know. ```Cog installed. Instructions:\n1. Load it with [p]load audioplayer\n2a. Enable the player inside voice channels with [p]audioplayer auto\n2b. And/or set a dedicated channel for the player with [p]audioplayer dedicated```",
