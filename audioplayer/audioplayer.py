@@ -19,10 +19,9 @@ log = logging.getLogger("red.crab-cogs.audioplayer")
 
 INTERVAL = 9.9
 PLAYER_WIDTH = 25
-START_SYMBOL = "├"
-LINE_SYMBOL = "─"
-END_SYMBOL = "┤"
 MARKER_SYMBOL = "💠"
+LINE_SYMBOLS = "┣━┨"
+START_SYMBOL, LINE_SYMBOL, END_SYMBOL = LINE_SYMBOLS
 
 
 class AudioPlayer(Cog):
@@ -55,7 +54,7 @@ class AudioPlayer(Cog):
         self.player_loop.start()
 
     async def cog_unload(self):
-        self.player_loop.stop()
+        self.player_loop.cancel()
         await asyncio.gather(*[msg.delete() for msg in self.last_message.values() if msg is not None], return_exceptions=True)
 
 
