@@ -135,9 +135,8 @@ class AudioPlayer(Cog):
         length_str = f"{length//60:02}:{length%60:02}" if length else "unknown"
         line = START_SYMBOL + (filled * LINE_SYMBOL) + MARKER_SYMBOL + ((PLAYER_WIDTH - 1 - filled) * LINE_SYMBOL) + END_SYMBOL
         under_line = pos_str + (' ' * (len(line) + 1 - len(pos_str) - len(length_str))) + length_str
-        estimate = f"Last updated <t:{int(datetime.now(timezone.utc).timestamp())}:R>"
         
-        embed.description += f"`{line}`\n`{under_line}`\n-# {estimate}"
+        embed.description += f"`{line}`\n`{under_line}`"
         
         if player.queue:
             total_length = round(sum(track.length or 180000 for track in player.queue) / 1000)
