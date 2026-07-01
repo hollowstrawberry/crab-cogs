@@ -135,7 +135,7 @@ class AudioPlayer(Cog):
         pos_str = f"{pos//60:02}:{pos%60:02}"
         length_str = f"{length//60:02}:{length%60:02}" if length else "unknown"
         line = START_SYMBOL + (filled * LINE_SYMBOL) + MARKER_SYMBOL + ((PLAYER_WIDTH - 1 - filled) * LINE_SYMBOL) + END_SYMBOL
-        under_line = pos_str + (' ' * (len(line) + 1 - len(pos_str) - len(length_str))) + length_str
+        under_line = pos_str + (' ' * max(1, len(line) + 1 - len(pos_str) - len(length_str))) + length_str
         
         embed.description += f"`{line}`\n`{under_line}`"
         
