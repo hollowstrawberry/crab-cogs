@@ -28,7 +28,7 @@ Converts most commands from the builtin Audio cog into slash commands. The fun p
 
 ## 🎶 AudioPlayer
 
-Live audio player with queue/pause/play/skip/stop buttons for the audio cog. Stays at the bottom of the designated chat for as long as there are people listening and updates every 10 seconds.
+Live audio player with queue/pause/play/skip/stop buttons for the audio cog. Stays at the bottom of the chat for as long as there are people listening, and updates every 10 seconds.
 
 ⚠️ Discord doesn't like when things update periodically without human input, even when it follows ratelimits, so use this at your own risk. It *should* be fine conceptually as it requires humans to be listening in voice chat, but you never know.
 
