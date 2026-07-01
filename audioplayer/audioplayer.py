@@ -115,7 +115,7 @@ class AudioPlayer(Cog):
         # Format the player message
         embed = discord.Embed()
         embed.color = await self.bot.get_embed_color(channel)
-        icon = "🔈" if player.paused else "🔊"
+        icon = "🎧" #"🔈" if player.paused else "🔊s"
         track_name = await audio.get_track_description(player.current, audio.local_folder_current_path) # type: ignore
         title_match = re.match(r"^\[(.*)\]\((.*)\)$", track_name.strip(" *") if track_name else "")
         if title_match:
