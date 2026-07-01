@@ -48,8 +48,8 @@ class Logs(commands.Cog):
 
             for i in range(len(pages)):
                 if len(pages) > 1:
-                    pages[i] += f"`Page {i+1}/{len(pages)}`"
-                pages[i] += f"\n-# Last updated <t:{timestamp}:R>"
+                    pages[i] += f"`Page {i+1}/{len(pages)}` "
+                pages[i] += f"<t:{timestamp}:R>"
 
             view = LogsView(logs_file or "", pages, self.bot)
             view.message = await ctx.send(view=view)
