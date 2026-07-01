@@ -189,7 +189,7 @@ class AudioPlayer(Cog):
         """Configuration commands for AudioPlayer"""
         pass
 
-    @command_audioplayer.command(name="dedicated", aliases=["channel"])
+    @command_audioplayer.command(name="dedicated", aliases=["channel, set"])
     async def command_audioplayer_dedicated(self, ctx: commands.Context, channel: Optional[discord.TextChannel]):
         """Sets or clears a dedicated channel for the AudioPlayer"""
         assert ctx.guild
@@ -214,7 +214,7 @@ class AudioPlayer(Cog):
         if not audio:
             await ctx.send("Warning: Audio cog is not enabled, contact the bot owner for more information.")
 
-    @command_audioplayer.command(name="auto", aliases=["inline", "inset", "automatic"])
+    @command_audioplayer.command(name="auto", aliases=["automatic", "inline"])
     async def command_audiplayer_inline(self, ctx: commands.Context):
         """Toggles whether an AudioPlayer will appear inside the voice channel itself."""
         assert ctx.guild
@@ -232,7 +232,7 @@ class AudioPlayer(Cog):
             self.inline_guilds.append(ctx.guild.id)
 
         await self.config.guild(ctx.guild).inline.set(enabled)
-        await ctx.reply(f"An AudioPlayer will {'now' if enabled else 'no longer'} appear inside the voice channel itself.")
+        await ctx.reply(f"The AudioPlayer will {'now' if enabled else 'no longer'} appear inside a voice channel with audio playing.")
         
         audio: Optional[Audio] = self.bot.get_cog("Audio")  # type: ignore
         if not audio:
