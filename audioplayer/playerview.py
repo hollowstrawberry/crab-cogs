@@ -5,7 +5,7 @@ import discord
 import lavalink
 from copy import copy
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from discord.ui import View
 from redbot.core import commands
 from redbot.cogs.audio.core import Audio
@@ -20,7 +20,7 @@ class AudioPlayerView(View):
     def __init__(self, cog):
         super().__init__(timeout=None)
         self.cog = cog
-        self.message: discord.Message | None = None
+        self.message: Optional[discord.Message] = None
 
     def set_paused(self, paused: bool):
         self.pause.emoji = "▶️" if paused else "⏸️"
@@ -140,6 +140,6 @@ class AudioPlayerView(View):
         except lavalink.errors.PlayerNotFound:
             pass
         else:
-            self.cog.last_updated[ctx.guild.id] = datetime.utcnow()
+            self.cog.last_updated[ctx.guild.id] = datetime.now(timezone.utc)
             self.cog.last_song[ctx.guild.id] = player.current if player else None
-            await self.cog.update_player(ctx.guild, ctx.channel, audio, player)
+            await self.cog.update_player(ctx.channel, audio, player)
