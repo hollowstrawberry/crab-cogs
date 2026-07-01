@@ -20,6 +20,7 @@ INTERVAL = 9.9
 PLAYER_WIDTH = 19
 LINE_SYMBOL = "⎯"
 MARKER_SYMBOL = "💠"
+MIN_TIME = datetime.min.astimezone(timezone.utc)
 
 
 class AudioPlayer(Cog):
@@ -76,7 +77,7 @@ class AudioPlayer(Cog):
             now = datetime.now(timezone.utc)
             current_song = player.current if player else None
             changed_song = current_song != self.last_song.get(guild_id)
-            update_due = (now - self.last_updated.get(guild_id, datetime.min)).total_seconds() >= INTERVAL
+            update_due = (now - self.last_updated.get(guild_id, MIN_TIME)).total_seconds() >= INTERVAL
             if not update_due and not changed_song:
                 continue
             self.last_updated[guild_id] = now
@@ -89,6 +90,7 @@ class AudioPlayer(Cog):
             if channel := self.bot.get_channel(self.designated_channel.get(guild_id, 0)):
                 assert isinstance(channel, discord.TextChannel)
                 pending.append(self.update_player(channel, audio, player))
+
         for view in self.view.values():
             if not view or not view.message or not view.message.guild:
                 continue
