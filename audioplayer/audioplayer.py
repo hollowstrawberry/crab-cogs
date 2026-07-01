@@ -20,7 +20,7 @@ INTERVAL = 9.9
 PLAYER_WIDTH = 19
 LINE_SYMBOL = "⎯"
 MARKER_SYMBOL = "💠"
-MIN_TIME = datetime.min.astimezone(timezone.utc)
+MIN_TIME = datetime.min.replace(tzinfo=timezone.utc)
 
 
 class AudioPlayer(Cog):
