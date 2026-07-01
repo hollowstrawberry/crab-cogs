@@ -1,9 +1,9 @@
 {
     "author": ["hollowstrawberry"],
     "min_bot_version": "3.5.0",
-    "description": "Owner cog to show the latest logs.",
+    "description": "Creates an interactive view which lets the bot owner open or save the bot's latest logs at that point in time. The view will dissapear after a while.",
     "hidden": false,
-    "install_msg": "📜 __**Logs**__ ```Cog installed. Instructions:\n1. Load it with [p]load logs\n2. Optionally, disable private logs with [p]logs private\n3. Use [p]logs [number], or [p]logs file, to view your bot's logs.```",
+    "install_msg": "📜 __**Logs**__\n```Cog installed. Instructions:\n1. Load it with [p]load logs\n2. View your bot's logs with [p]logs```",
     "required_cogs": {},
     "requirements": ["aiofiles"],
     "short": "Owner cog to show the latest logs.",

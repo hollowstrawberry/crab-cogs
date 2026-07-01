@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 import discord
 import aiofiles
 from redbot.core import commands, Config
@@ -19,7 +21,7 @@ class Logs(commands.Cog):
     @commands.is_owner()
     @commands.command(name="logs")
     async def logs(self, ctx: commands.Context):
-        """Sends an owner-only logs view."""
+        """Lets the bot owner view the bot's latest logs."""
         try:
             pages: list[str] = []
             logs_file = await get_logs_file()
@@ -42,15 +44,19 @@ class Logs(commands.Cog):
                 return await ctx.send("*No logs*")
             
             pages.reverse()
-            if len(pages) > 1:
-                for i in range(len(pages)):
+            timestamp = int(datetime.now(timezone.utc).timestamp())
+
+            for i in range(len(pages)):
+                if len(pages) > 1:
                     pages[i] += f"`Page {i+1}/{len(pages)}`"
+                pages[i] += f"\n-# Last updated <t:{timestamp}:R>"
+
             view = LogsView(logs_file or "", pages, self.bot)
             view.message = await ctx.send(view=view)
             if ctx.bot_permissions.manage_messages:
                 try:
                     await ctx.message.delete()
-                except discord.NotFound:
+                except discord.DiscordException:
                     pass
 
         except Exception as ex:  # Since logs is an important command, all possible errors should be covered
