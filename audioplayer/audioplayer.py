@@ -212,7 +212,7 @@ class AudioPlayer(Cog):
         
         audio: Optional[Audio] = self.bot.get_cog("Audio")  # type: ignore
         if not audio:
-            await ctx.send("Warning: Audio cog is not enabled, contact the bot owner for more information.")
+            await ctx.send(":warning: Audio cog is not enabled in the bot. AudioPlayer does nothing on its own.")
 
     @command_audioplayer.command(name="auto", aliases=["automatic", "inline"])
     async def command_audiplayer_inline(self, ctx: commands.Context):
@@ -236,4 +236,4 @@ class AudioPlayer(Cog):
         
         audio: Optional[Audio] = self.bot.get_cog("Audio")  # type: ignore
         if not audio:
-            await ctx.send("Warning: Audio cog is not enabled, contact the bot owner for more information.")
+            await ctx.send(":warning: Audio cog is not enabled in the bot. AudioPlayer does nothing on its own.")
