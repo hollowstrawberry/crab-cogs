@@ -18,8 +18,10 @@ from audioplayer.playerview import AudioPlayerView
 log = logging.getLogger("red.crab-cogs.audioplayer")
 
 INTERVAL = 9.9
-PLAYER_WIDTH = 19
-LINE_SYMBOL = "⎯"
+PLAYER_WIDTH = 15
+START_SYMBOL = "├"
+LINE_SYMBOL = "─"
+END_SYMBOL = "┤"
 MARKER_SYMBOL = "💠"
 
 
@@ -130,8 +132,8 @@ class AudioPlayer(Cog):
             filled = round(PLAYER_WIDTH * ratio) 
             pos = round(player.position / 1000)
             length = round(player.current.length / 1000)
-            line = (filled * LINE_SYMBOL) + MARKER_SYMBOL + ((PLAYER_WIDTH - 1 - filled) * LINE_SYMBOL)
-            embed.description += f"`{pos//60:02}:{pos%60:02}{line}{length//60:02}:{length%60:02}`"
+            line = START_SYMBOL + (filled * LINE_SYMBOL) + MARKER_SYMBOL + ((PLAYER_WIDTH - 1 - filled) * LINE_SYMBOL) + END_SYMBOL
+            embed.description += f"`{line}{pos//60:02}:{pos%60:02}/{length//60:02}:{length%60:02}`"
         else:
             pos = round(player.position / 1000)
             length = 0
