@@ -26,9 +26,9 @@ Converts most commands from the builtin Audio cog into slash commands. The fun p
 
 ![demonstration](https://i.imgur.com/EDJybmH.png)
 
-## 🎶 AudioPlayer
+### 🎶 AudioPlayer
 
-Live audio player with queue/pause/play/skip/stop buttons for the audio cog. Stays at the bottom of the designated chat for as long as there are people listening and updates every 10 seconds.
+Live audio player with queue/pause/play/skip/stop buttons for the audio cog. Stays at the bottom of the chat for as long as there are people listening, and updates every 10 seconds.
 
 ⚠️ Discord doesn't like when things update periodically without human input, even when it follows ratelimits, so use this at your own risk. It *should* be fine conceptually as it requires humans to be listening in voice chat, but you never know.
 
@@ -54,14 +54,6 @@ Sends modified links to embed content from popular social media sites: Twitter, 
 ### 💵 EconomyTweaks
 
 Converts several Economy cog commands into slash commands. Also adds a configurable bonus for the `[p]payday` command, which activates at a greater time interval.
-
-### 🖼 GPTimage
-
-Connects to OpenAI to generate images, with an `/imagine` slash command and a `Remix` app command. Requires an api key and ongoing monetary cost. Please check [the docs](https://developers.openai.com/api/docs/guides/image-generation#calculating-costs) for prices and use this cog with care. (As of writing, GPT Image 2 costs ~0.5 cents in low quality, and 16+ cents in high quality, slightly higher for image editing.) To manage this, the cog features a configurable hourly quota per user, with an option to add a VIP role and specific VIP users that can generate as much as they want. If you need more granular control, let me know and I may add it.
-
-## 🚪 GPTwelcome
-
-Uses AI to give a unique welcome message for each new user, according to their username and avatar. This may sound useless at first, but generic welcome messages are often ignored, and even something simple as saying something unique about someone may catch their attention. The prompt is customizable, you should read the default one first. Make sure your server has welcome messages enabled, as the bot replies to those. Uses either OpenAI or OpenRouter endpoints.
 
 # Game cogs
 
@@ -95,7 +87,25 @@ Play Checkers/Draughts against your friends or the bot itself. Configure payouts
 
 ![demonstration](https://i.imgur.com/bhhBB5d.png)
 
+# AI cogs
+
+### 🖼 GPTimage
+
+Connects to OpenAI to generate images, with an `/imagine` slash command and a `Remix` app command. Requires an api key and ongoing monetary cost. Please check [the docs](https://developers.openai.com/api/docs/guides/image-generation#calculating-costs) for prices and use this cog with care. (As of writing, GPT Image 2 costs ~0.5 cents in low quality, and 16+ cents in high quality, slightly higher for image editing.) To manage this, the cog features a configurable hourly quota per user, with an option to add a VIP role and specific VIP users that can generate as much as they want. If you need more granular control, let me know and I may add it.
+
+### 🚪 GPTwelcome
+
+Uses AI to give a unique welcome message for each new user, according to their username and avatar. This may sound useless at first, but generic welcome messages are often ignored, and even something simple as saying something unique about someone may catch their attention. The prompt is customizable, you should read the default one first. Make sure your server has welcome messages enabled, as the bot replies to those. Uses either OpenAI or OpenRouter endpoints.
+
+### 📎 ImageScanner
+
+Lets you view AI image generation metadata (A1111/Forge, ComfyUI, SwarmUI). It can be accessed from a message's context menu. Additionally it can scan all images sent in specified channels and put a magnifying glass reaction button on AI images; the bot will DM the results to the users who use the magnifying glass.
+
 # Other cogs
+
+### 📜 Logs
+
+Lets the bot owner open an interactive view of the bot's console output. Useful if you're not currently in a position to access the host machine.
 
 ### 🎤 VoiceLog
 
@@ -107,23 +117,13 @@ Logs users joining and leaving voicechat, inside the text chat embedded in the v
 
 Logs and stores deleted images in a designated moderation channel. Useful for moderating servers with image boards or similar.
 
+❌ Has been partially broken for a while because Discord changed how its cdn works.
+
 **⚠️ Usage Warning:** Content saved by this method is NOT usable for reporting users to Discord. You also may be liable for keeping content that breaks Discord TOS.
-
-### 📜 Logs
-
-Developer cog that opens an interactive view of your bot's console output within Discord. Can also send the entire log file. These are sent to your DMs by default. Useful if you're not currently in a position to access the host machine.
 
 ### 🗣 TTS
 
 Plays text to speech in voice chat, intended as an accessibility feature. Detects the language automatically. The voice cannot be changed for now. Briefly interrupts music and resumes where it paused at.
-
-### 🟫 Minecraft
-
-A guild owner may associate a specific Minecraft server to their Discord server. Based on a cog from Dav-Cogs. This has 3 main features:
-
-* Users can check server status and online players without needing to open the game.
-* Admins can execute commands remotely.
-* Users can whitelist themselves. Then, if they leave the Discord server, they will automatically be removed from the Minecraft server's whitelist.
 
 ### ⛩ Booru
 
@@ -132,6 +132,14 @@ Grab images from Gelbooru that match specific tags. The slash command version fe
 **⚠️ Usage Warning:** This cog is allowed to display NSFW material in channels marked as NSFW.
 
 ![demonstration](https://i.imgur.com/KxD7pKq.png)
+
+### 🟫 Minecraft
+
+A guild owner may associate a specific Minecraft server to their Discord server. Based on a cog from Dav-Cogs. This has 3 main features:
+
+* Users can check server status and online players without needing to open the game.
+* Admins can execute commands remotely.
+* Users can whitelist themselves. Then, if they leave the Discord server, they will automatically be removed from the Minecraft server's whitelist.
 
 ### 🎲 Randomness
 
@@ -156,7 +164,3 @@ Another feature is for the bot owner to set regex patterns that will cause the b
 ### 📢 GameAlert
 
 Sends a configured message when a guild member starts playing a specific game or has been playing for some time. The purpose is to alert friends or just to be silly.
-
-### 📎 ImageScanner
-
-Lets you view AI image generation metadata, including A1111, ComfyUI, SwarmUI, and NovelAI. It can be accessed from a message's context menu. Additionally it can scan all images sent in specified channels and put a magnifying glass reaction button on AI images; the bot will DM the results to the users who use the magnifying glass.
