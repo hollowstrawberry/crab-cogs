@@ -107,6 +107,7 @@ class AudioReconnect(Cog):
             player = None
         if not player:
             return
+        log.info(f"{len(player.queue)=}")
         pickled_queue = b64encode(pickle.dumps([player.current] + player.queue)).decode()
         await self.config.guild(player.guild).queue.set(pickled_queue)
 
