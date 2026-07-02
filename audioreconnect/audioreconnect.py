@@ -73,12 +73,14 @@ class AudioReconnect(Cog):
                  and audio_config.get(guild_id, {}).get("persist_queue", True)
                  and (not guild.voice_client or not guild.voice_client.channel)]
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        successes = len([res for res in results if not isinstance(res, BaseException)])
-        errors = len([res for res in results if isinstance(res, BaseException)])
+        successes = [res for res in results if not isinstance(res, BaseException)]
+        errors = [res for res in results if isinstance(res, BaseException)]
         if successes:
-            log.warning(f"Reconnected to {successes} guilds")
+            log.warning(f"Reconnected to {len(successes)} guilds")
         if errors:
-            log.warning(f"Failed to reconnect to {errors} guilds")
+            log.warning(f"Failed to reconnect to {len(errors)} guilds")
+            for error in errors:
+                log.warning(f"{error.__class__.__name__}: {error}")
 
     async def on_lavalink_event(self, player: lavalink.Player, event_type: lavalink.LavalinkEvents, arg: Any):
         if "Track" not in event_type.value and "Queue" not in event_type.value:
