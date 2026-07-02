@@ -61,6 +61,7 @@ class AudioReconnect(Cog):
         lavalink.register_event_listener(self.on_lavalink_event)
 
         reconnect_config = await self.config.all_guilds()
+        log.info(reconnect_config)
         audio_config = await audio.config.all_guilds()
         tasks = [self.reconnect(channel, config.get("queue"), audio_config.get(guild_id, {}).get("auto_deafen", True))
                  for guild_id, config in reconnect_config.items()
@@ -107,5 +108,5 @@ class AudioReconnect(Cog):
 
     @commands.Cog.listener()
     async def on_red_audio_audio_disconnect(self, guild: discord.Guild):
-        log.info("disconnect")
         await self.config.guild(guild).channel.set(0)
+        log.info(f"channel {await self.config.guild(guild).channel()}")
