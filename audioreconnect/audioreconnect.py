@@ -109,7 +109,7 @@ class AudioReconnect(Cog):
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
         if member is member.guild.me and before.channel is None and after.channel is not None:
-            await self.config.guild(member.guild).channel.set(after.channel)
+            await self.config.guild(member.guild).channel.set(after.channel.id)
 
     @commands.Cog.listener()
     async def on_red_audio_audio_disconnect(self, guild: discord.Guild):
