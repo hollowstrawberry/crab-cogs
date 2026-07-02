@@ -1,4 +1,5 @@
 import pickle
+import copyreg
 import logging
 import asyncio
 import discord
@@ -11,6 +12,13 @@ from redbot.core.commands import Cog
 from redbot.cogs.audio.core import Audio
 
 log = logging.getLogger("red.crab-cogs.audioreconnect")
+
+
+def pickle_track(track: lavalink.Track):
+    state = track.__dict__.copy()
+    if isinstance(state.get('requester'), (discord.Member, discord.User)):
+        state['requester'] = state['requester'].id
+    return (lavalink.Track.__new__, (lavalink.Track,), state)
 
 
 class AudioReconnect(Cog):
@@ -26,6 +34,7 @@ class AudioReconnect(Cog):
         })
 
     async def cog_load(self):
+        copyreg.pickle(lavalink.Track, pickle_track)
         asyncio.create_task(self.load())
 
     async def cog_unload(self):
@@ -33,20 +42,27 @@ class AudioReconnect(Cog):
 
     async def reconnect(self, channel: discord.channel.VocalGuildChannel, pickled_queue: Optional[str], self_deaf: bool):
         player = await channel.connect(cls=lavalink.Player, self_deaf=self_deaf)  # type: ignore
-        if pickled_queue and (queue := pickle.loads(b64decode(pickled_queue))):
-            player.queue = queue
-            if player.queue[0] is None:
-                player.queue.pop(0)
-            else:
-                await player.play()
+        if not pickled_queue:
+            return
+        player.queue = pickle.loads(b64decode(pickled_queue))
+        if not player.queue:
+            return
+        for track in player.queue:
+            if isinstance(track.requester, int):
+                track.requester = channel.guild.get_member(track.requester)  # type: ignore
+        if player.queue[0] is None:
+            player.queue.pop(0)
+        else:
+            await player.play()
 
     async def load(self):
-        lavalink.register_event_listener(self.on_lavalink_event)
         await self.bot.wait_until_red_ready()
         audio: Optional[Audio] = self.bot.get_cog("Audio")  # type: ignore
         if not audio:
             log.error("Audio cog not loaded")
             return
+        await audio.cog_ready_event.wait()
+        lavalink.register_event_listener(self.on_lavalink_event)
         reconnect_config = await self.config.all_guilds()
         audio_config = await audio.config.all_guilds()
         tasks = [self.reconnect(channel, config.get("queue"), audio_config.get(guild_id, {}).get("auto_deafen", True))
