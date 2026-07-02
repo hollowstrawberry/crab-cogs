@@ -40,6 +40,46 @@ class AudioReconnect(Cog):
     async def cog_unload(self):
         lavalink.unregister_event_listener(self.on_lavalink_event)
 
+    async def wait_for_lavalink(self, audio: Audio):
+        await audio.cog_ready_event.wait()
+        if not audio.lavalink_connect_task:
+            raise RuntimeError
+        await audio.lavalink_connect_task
+        if audio.lavalink_connection_aborted:
+            raise RuntimeError
+
+    async def load(self):
+        await self.bot.wait_until_red_ready()
+        audio: Optional[Audio] = self.bot.get_cog("Audio")  # type: ignore
+        if not audio:
+            log.error("Audio cog not loaded")
+            return
+        try:
+            await self.wait_for_lavalink(audio)
+        except Exception:
+            log.error("Failed to establish lavalink connection")
+        lavalink.register_event_listener(self.on_lavalink_event)
+
+        reconnect_config = await self.config.all_guilds()
+        audio_config = await audio.config.all_guilds()
+        tasks = [self.reconnect(channel, config.get("queue"), audio_config.get(guild_id, {}).get("auto_deafen", True))
+                 for guild_id, config in reconnect_config.items()
+                 if (guild := self.bot.get_guild(guild_id))
+                 and (channel := guild.get_channel(config.get("channel", 0)))
+                 and isinstance(channel, discord.channel.VocalGuildChannel)
+                 and audio_config.get(guild_id, {}).get("persist_queue", True)
+                 and (not guild.voice_client or not guild.voice_client.channel)]
+        
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        successes = [res for res in results if not isinstance(res, BaseException)]
+        errors = [res for res in results if isinstance(res, BaseException)]
+        if successes:
+            log.warning(f"Reconnected to {len(successes)} guilds")
+        if errors:
+            log.warning(f"Failed to reconnect to {len(errors)} guilds")
+            for error in errors:
+                log.warning(f"{error.__class__.__name__}: {error}")
+
     async def reconnect(self, channel: discord.channel.VocalGuildChannel, pickled_queue: Optional[str], self_deaf: bool):
         player = await channel.connect(cls=lavalink.Player, self_deaf=self_deaf)  # type: ignore
         if not pickled_queue:
@@ -54,33 +94,6 @@ class AudioReconnect(Cog):
             player.queue.pop(0)
         else:
             await player.play()
-
-    async def load(self):
-        await self.bot.wait_until_red_ready()
-        audio: Optional[Audio] = self.bot.get_cog("Audio")  # type: ignore
-        if not audio:
-            log.error("Audio cog not loaded")
-            return
-        await audio.cog_ready_event.wait()
-        lavalink.register_event_listener(self.on_lavalink_event)
-        reconnect_config = await self.config.all_guilds()
-        audio_config = await audio.config.all_guilds()
-        tasks = [self.reconnect(channel, config.get("queue"), audio_config.get(guild_id, {}).get("auto_deafen", True))
-                 for guild_id, config in reconnect_config.items()
-                 if (guild := self.bot.get_guild(guild_id))
-                 and (channel := guild.get_channel(config.get("channel", 0)))
-                 and isinstance(channel, discord.channel.VocalGuildChannel)
-                 and audio_config.get(guild_id, {}).get("persist_queue", True)
-                 and (not guild.voice_client or not guild.voice_client.channel)]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        successes = [res for res in results if not isinstance(res, BaseException)]
-        errors = [res for res in results if isinstance(res, BaseException)]
-        if successes:
-            log.warning(f"Reconnected to {len(successes)} guilds")
-        if errors:
-            log.warning(f"Failed to reconnect to {len(errors)} guilds")
-            for error in errors:
-                log.warning(f"{error.__class__.__name__}: {error}")
 
     async def on_lavalink_event(self, player: lavalink.Player, event_type: lavalink.LavalinkEvents, arg: Any):
         if "Track" not in event_type.value and "Queue" not in event_type.value:
