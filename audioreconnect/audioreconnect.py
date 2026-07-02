@@ -88,7 +88,7 @@ class AudioReconnect(Cog):
         if not player.queue:
             return
         for track in player.queue:
-            if isinstance(track.requester, int):
+            if isinstance(track, lavalink.Track) and isinstance(track.requester, int):
                 track.requester = channel.guild.get_member(track.requester)  # type: ignore
         if player.queue[0] is None:
             player.queue.pop(0)
