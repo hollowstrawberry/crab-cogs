@@ -94,7 +94,6 @@ class AudioReconnect(Cog):
 
     @commands.Cog.listener("on_red_audio_track_enqueue")
     @commands.Cog.listener("on_red_audio_track_start")
-    @commands.Cog.listener("on_red_audio_track_end")
     @commands.Cog.listener("on_red_audio_track_queue_end")
     async def on_audio_event(self, guild: discord.Guild, *_):
         try:
