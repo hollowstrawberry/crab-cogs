@@ -57,7 +57,6 @@ class AudioReconnect(Cog):
             log.error("Failed to establish lavalink connection")
 
         reconnect_config = await self.config.all_guilds()
-        log.info(reconnect_config)
         audio_config = await audio.config.all_guilds()
         tasks = [self.reconnect(channel, config.get("queue"), audio_config.get(guild_id, {}).get("auto_deafen", True))
                  for guild_id, config in reconnect_config.items()
@@ -71,7 +70,7 @@ class AudioReconnect(Cog):
         successes = [res for res in results if not isinstance(res, BaseException)]
         errors = [res for res in results if isinstance(res, BaseException)]
         if successes:
-            log.warning(f"Reconnected to {len(successes)} guilds")
+            log.info(f"Reconnected to {len(successes)} guilds")
         if errors:
             log.warning(f"Failed to reconnect to {len(errors)} guilds")
             for error in errors:
@@ -94,7 +93,7 @@ class AudioReconnect(Cog):
 
     @commands.Cog.listener("on_red_audio_track_enqueue")
     @commands.Cog.listener("on_red_audio_track_start")
-    @commands.Cog.listener("on_red_audio_track_queue_end")
+    @commands.Cog.listener("on_red_audio_queue_end")
     async def on_audio_event(self, guild: discord.Guild, *_):
         try:
             player = lavalink.get_player(guild.id)
