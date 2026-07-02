@@ -63,6 +63,7 @@ class AudioReconnect(Cog):
             log.error("Failed to establish lavalink connection")
             return
 
+        log.info("Reconnecting to voice channels")
         reconnect_config = await self.config.all_guilds()
         audio_config = await audio.config.all_guilds()
         tasks = [self.reconnect(channel, config.get("queue"), audio_config.get(guild_id, {}).get("auto_deafen", True))
@@ -76,18 +77,19 @@ class AudioReconnect(Cog):
         results = await asyncio.gather(*tasks, return_exceptions=True)
         successes = [res for res in results if not isinstance(res, BaseException)]
         errors = [res for res in results if isinstance(res, BaseException)]
-        if successes:
-            log.info(f"Reconnected to {len(successes)} guilds")
+        log.info(f"Reconnected to {len(successes)} guilds")
         if errors:
             log.warning(f"Failed to reconnect to {len(errors)} guilds")
             for error in errors:
                 log.warning(f"{error.__class__.__name__}: {error}")
 
     async def reconnect(self, channel: discord.channel.VocalGuildChannel, pickled_queue: Optional[str], self_deaf: bool):
+        log.info(f"Reconnecting to {channel.id}")
         player = await channel.connect(cls=lavalink.Player, self_deaf=self_deaf)  # type: ignore
         if not pickled_queue:
             return
         player.queue = pickle.loads(b64decode(pickled_queue))
+        log.info(f"Loading {len(player.queue)=}")
         if not player.queue:
             return
         for track in player.queue:
@@ -97,6 +99,7 @@ class AudioReconnect(Cog):
             player.queue.pop(0)
         else:
             await player.play()
+            log.info(f"Playing {len(player.queue)=}")
 
     @commands.Cog.listener("on_red_audio_track_start")
     @commands.Cog.listener("on_red_audio_queue_end")
