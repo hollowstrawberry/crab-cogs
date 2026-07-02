@@ -42,7 +42,7 @@ class AudioReconnect(Cog):
         copyreg.pickle(lavalink.Track, pickle_track)
         asyncio.create_task(self.load())
 
-    async def con_unload(self):
+    async def cog_unload(self):
         self.unloaded = True
         self.save_current_tracks.stop()
 
@@ -87,7 +87,7 @@ class AudioReconnect(Cog):
         current_channels = {guild_id: config.get("channel", 0) for guild_id, config in reconnect_config.items()}
         current_tracks = await self.config.current_tracks()
         log.info(f"{current_tracks=}")
-        tasks = [self.reconnect(channel, current_tracks.get(guild_id), auto_deafen.get(guild_id, True))
+        tasks = [self.reconnect(channel, current_tracks.get(str(guild_id)), auto_deafen.get(guild_id, True))
                  for guild_id, channel_id in current_channels.items()
                  if (guild := self.bot.get_guild(guild_id))
                  and (channel := guild.get_channel(channel_id))
@@ -109,7 +109,7 @@ class AudioReconnect(Cog):
         if await self.bot.cog_disabled_in_guild(self, channel.guild):
             return
         player = await channel.connect(cls=lavalink.Player, self_deaf=self_deaf)  # type: ignore
-        log.info(f"{pickled_current=}")
+        log.info(f"{channel.guild.id} {pickled_current=}")
         if not pickled_current:
             return
         current: lavalink.Track = pickle.loads(b64decode(pickled_current))
@@ -124,8 +124,10 @@ class AudioReconnect(Cog):
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+        if member is not member.guild.me:
+            return
         await asyncio.sleep(1) # the idea is to hopefully prevent manual bot restarts from un-setting the current channel
-        if member is not member.guild.me or self.unloaded:
+        if self.unloaded:
             return
         log.info(f"set channel {after.channel.id if after.channel else 0}")
         await self.config.guild(member.guild).channel.set(after.channel.id if after.channel else 0)
