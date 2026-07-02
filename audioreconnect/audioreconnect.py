@@ -37,9 +37,6 @@ class AudioReconnect(Cog):
         copyreg.pickle(lavalink.Track, pickle_track)
         asyncio.create_task(self.load())
 
-    async def cog_unload(self):
-        lavalink.unregister_event_listener(self.on_lavalink_event)
-
     async def wait_for_lavalink(self, audio: Audio):
         await audio.cog_ready_event.wait()
         if not audio.lavalink_connect_task:
@@ -58,7 +55,6 @@ class AudioReconnect(Cog):
             await self.wait_for_lavalink(audio)
         except Exception:
             log.error("Failed to establish lavalink connection")
-        lavalink.register_event_listener(self.on_lavalink_event)
 
         reconnect_config = await self.config.all_guilds()
         log.info(reconnect_config)
@@ -96,18 +92,25 @@ class AudioReconnect(Cog):
         else:
             await player.play()
 
-    async def on_lavalink_event(self, player: lavalink.Player, event_type: lavalink.LavalinkEvents, arg: Any):
-        if "Track" not in event_type.value and "Queue" not in event_type.value:
+    @commands.Cog.listener("on_red_audio_track_enqueue")
+    @commands.Cog.listener("on_red_audio_track_start")
+    @commands.Cog.listener("on_red_audio_track_end")
+    @commands.Cog.listener("on_red_audio_track_queue_end")
+    async def on_audio_event(self, guild: discord.Guild, *_):
+        try:
+            player = lavalink.get_player(guild.id)
+        except lavalink.RedLavalinkException:
+            player = None
+        if not player:
             return
-        if event_type == lavalink.LavalinkEvents.QUEUE_END:
-            pickled_queue = ""
-        else:
-            pickled_queue = b64encode(pickle.dumps([player.current] + player.queue)).decode()
-        await self.config.guild(player.guild).channel.set(player.channel.id)
+        pickled_queue = b64encode(pickle.dumps([player.current] + player.queue)).decode()
         await self.config.guild(player.guild).queue.set(pickled_queue)
 
     @commands.Cog.listener()
+    async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+        if member is member.guild.me and before.channel is None and after.channel is not None:
+            await self.config.guild(member.guild).channel.set(after.channel)
+
+    @commands.Cog.listener()
     async def on_red_audio_audio_disconnect(self, guild: discord.Guild):
-        log.info(f"guild {guild.id} channel {await self.config.guild(guild).channel()}")
         await self.config.guild(guild).channel.set(0)
-        log.info(f"guild {guild.id} channel {await self.config.guild(guild).channel()}")
