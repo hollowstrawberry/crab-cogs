@@ -57,7 +57,7 @@ class AudioReconnect(Cog):
         for guild_id, current, position in data:
             current.start_timestamp = position
             current_tracks[guild_id] = b64encode(pickle.dumps(current)).decode()
-        log.info(f"set {len(current_tracks)=}")
+            log.info(f"set {guild_id=} {position=}")
         await self.config.current_tracks.set(current_tracks)
 
     async def wait_for_lavalink(self, audio: Audio):
