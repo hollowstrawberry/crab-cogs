@@ -1,0 +1,13 @@
+{
+    "author": ["hollowstrawberry"],
+    "min_bot_version": "3.5.0",
+    "min_python_version": [3,9,0],
+    "description": "Reconnects to voice channels after restarting the bot.",
+    "hidden": true,
+    "install_msg": "🛜 __**AudioReconnect**__ ```Cog installed. Instructions:\n1. Load it with [p]load audioreconnect\n2. The bot will automatically reconnect after a restart in guilds where persist_queue is enabled in the audio cog.```",
+    "required_cogs": {},
+    "requirements": [],
+    "short": "Reconnects to voice channels after restarting the bot.",
+    "end_user_data_statement": "This cog does not store user data.",
+    "tags": ["crab", "voice", "audio", "music", "reconnecct", "connection"]
+}
