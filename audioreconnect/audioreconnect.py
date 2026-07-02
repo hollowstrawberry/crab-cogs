@@ -33,7 +33,9 @@ class AudioReconnect(Cog):
         self.config = Config.get_conf(self, identifier=792413491)
         self.config.register_global(**{
             "current_tracks": {},
-            "current_channels": {}
+        })
+        self.config.register_guild(**{
+            "channel": 0,
         })
 
     async def cog_load(self):
@@ -77,15 +79,18 @@ class AudioReconnect(Cog):
             log.error("Failed to establish lavalink connection")
             return
 
-        current_tracks = await self.config.current_tracks()
-        current_channels = await self.config.current_channels()
+        reconnect_config = await self.config.all_guilds()
         audio_config = await audio.config.all_guilds()
-        tasks = [self.reconnect(channel, current_tracks.get(guild_id), audio_config.get(guild_id, {}).get("auto_deafen", True))
+        auto_deafen = {guild_id: config.get("auto_deafen", True) for guild_id, config in audio_config.items()}
+        persist_queue = {guild_id: config.get("persist_queue", True) for guild_id, config in audio_config.items()}
+        current_channels = {guild_id: config.get("channel", 0) for guild_id, config in reconnect_config.items()}
+        current_tracks = await self.config.current_tracks()
+        tasks = [self.reconnect(channel, current_tracks.get(guild_id), auto_deafen.get(guild_id, True))
                  for guild_id, channel_id in current_channels.items()
                  if (guild := self.bot.get_guild(guild_id))
                  and (channel := guild.get_channel(channel_id))
                  and isinstance(channel, discord.channel.VocalGuildChannel)
-                 and audio_config.get(guild_id, {}).get("persist_queue", True)
+                 and persist_queue.get(guild_id, True)
                  and (not guild.voice_client or not guild.voice_client.channel)]
         
         results = await asyncio.gather(*tasks, return_exceptions=True)
