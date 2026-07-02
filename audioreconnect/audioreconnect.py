@@ -105,6 +105,7 @@ class AudioReconnect(Cog):
         await self.config.guild(player.guild).channel.set(player.channel.id)
         await self.config.guild(player.guild).queue.set(pickled_queue)
 
-    @commands.Cog.listener()
-    async def on_red_audio_audio_disconnect(self, guild: discord.Guild):
+    @commands.Cog.listener("red_audio_audio_disconnect")
+    async def on_audio_disconnect(self, guild: discord.Guild):
+        log.info("disconnect")
         await self.config.guild(guild).channel.set(0)
