@@ -4,8 +4,8 @@ import logging
 import asyncio
 import discord
 import lavalink
+from typing import Optional
 from base64 import b64encode, b64decode
-from typing import Optional, Any
 from redbot.core import commands
 from redbot.core.bot import Red, Config
 from redbot.core.commands import Cog
@@ -27,6 +27,7 @@ class AudioReconnect(Cog):
     def __init__(self, bot: Red, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.bot = bot
+        self.enqueue_tasks: dict[int, asyncio.Task] = {}
         self.config = Config.get_conf(self, identifier=792413491)
         self.config.register_guild(**{
             "channel": 0,
@@ -36,6 +37,11 @@ class AudioReconnect(Cog):
     async def cog_load(self):
         copyreg.pickle(lavalink.Track, pickle_track)
         asyncio.create_task(self.load())
+
+    async def con_unload(self):
+        for task in self.enqueue_tasks.values():
+            if not task.done():
+                task.cancel()
 
     async def wait_for_lavalink(self, audio: Audio):
         await audio.cog_ready_event.wait()
@@ -55,6 +61,7 @@ class AudioReconnect(Cog):
             await self.wait_for_lavalink(audio)
         except Exception:
             log.error("Failed to establish lavalink connection")
+            return
 
         reconnect_config = await self.config.all_guilds()
         audio_config = await audio.config.all_guilds()
@@ -91,10 +98,9 @@ class AudioReconnect(Cog):
         else:
             await player.play()
 
-    @commands.Cog.listener("on_red_audio_track_enqueue")
     @commands.Cog.listener("on_red_audio_track_start")
     @commands.Cog.listener("on_red_audio_queue_end")
-    async def on_audio_event(self, guild: discord.Guild, *_):
+    async def on_audio_track(self, guild: discord.Guild, *_):
         try:
             player = lavalink.get_player(guild.id)
         except lavalink.RedLavalinkException:
@@ -105,8 +111,21 @@ class AudioReconnect(Cog):
         await self.config.guild(player.guild).queue.set(pickled_queue)
 
     @commands.Cog.listener()
+    async def on_red_audio_track_enqueue(self, guild: discord.Guild, *_):
+        """don't repickle 100 times when adding a 100 track playlist"""
+        async def enqueue():
+            try:
+                await asyncio.sleep(1)
+                await self.on_audio_track(guild)
+            except asyncio.CancelledError:
+                pass
+        if guild.id in self.enqueue_tasks and not self.enqueue_tasks[guild.id].done():
+            self.enqueue_tasks[guild.id].cancel()
+        self.enqueue_tasks[guild.id] = asyncio.create_task(enqueue())
+
+    @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
-        if member is member.guild.me and before.channel is None and after.channel is not None:
+        if member is member.guild.me and after.channel is not None and before.channel is not after.channel:
             await self.config.guild(member.guild).channel.set(after.channel.id)
 
     @commands.Cog.listener()
