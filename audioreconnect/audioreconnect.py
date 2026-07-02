@@ -108,5 +108,6 @@ class AudioReconnect(Cog):
 
     @commands.Cog.listener()
     async def on_red_audio_audio_disconnect(self, guild: discord.Guild):
+        log.info(f"guild {guild.id} channel {await self.config.guild(guild).channel()}")
         await self.config.guild(guild).channel.set(0)
-        log.info(f"channel {await self.config.guild(guild).channel()}")
+        log.info(f"guild {guild.id} channel {await self.config.guild(guild).channel()}")
