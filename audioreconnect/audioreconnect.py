@@ -86,6 +86,7 @@ class AudioReconnect(Cog):
         persist_queue = {guild_id: config.get("persist_queue", True) for guild_id, config in audio_config.items()}
         current_channels = {guild_id: config.get("channel", 0) for guild_id, config in reconnect_config.items()}
         current_tracks = await self.config.current_tracks()
+        log.info(f"{current_tracks=}")
         tasks = [self.reconnect(channel, current_tracks.get(guild_id), auto_deafen.get(guild_id, True))
                  for guild_id, channel_id in current_channels.items()
                  if (guild := self.bot.get_guild(guild_id))
