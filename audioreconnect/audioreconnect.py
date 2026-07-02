@@ -57,6 +57,7 @@ class AudioReconnect(Cog):
         for guild_id, current, position in data:
             current.start_timestamp = position
             current_tracks[guild_id] = b64encode(pickle.dumps(current)).decode()
+        log.info(f"set {len(current_tracks)=}")
         await self.config.current_tracks.set(current_tracks)
 
     async def wait_for_lavalink(self, audio: Audio):
@@ -107,9 +108,11 @@ class AudioReconnect(Cog):
         if await self.bot.cog_disabled_in_guild(self, channel.guild):
             return
         player = await channel.connect(cls=lavalink.Player, self_deaf=self_deaf)  # type: ignore
+        log.info(f"{pickled_current=}")
         if not pickled_current:
             return
         current: lavalink.Track = pickle.loads(b64decode(pickled_current))
+        log.info(f"{current=}")
         if not current:
             return
         if isinstance(current.requester, int):
@@ -123,4 +126,5 @@ class AudioReconnect(Cog):
         await asyncio.sleep(1) # the idea is to hopefully prevent manual bot restarts from un-setting the current channel
         if member is not member.guild.me or self.unloaded:
             return
+        log.info(f"set channel {after.channel.id if after.channel else 0}")
         await self.config.guild(member.guild).channel.set(after.channel.id if after.channel else 0)
