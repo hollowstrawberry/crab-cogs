@@ -4,8 +4,10 @@ import logging
 import asyncio
 import discord
 import lavalink
+import itertools
 from typing import Optional
 from base64 import b64encode, b64decode
+from discord.ext import tasks
 from redbot.core import commands
 from redbot.core.bot import Red, Config
 from redbot.core.commands import Cog
@@ -22,16 +24,16 @@ def pickle_track(track: lavalink.Track):
 
 
 class AudioReconnect(Cog):
-    """Reconnects to voice channels after restarting the bot."""
+    """Restores the current audio track progress when the bot restarts."""
 
     def __init__(self, bot: Red, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.bot = bot
-        self.enqueue_tasks: dict[int, asyncio.Task] = {}
+        self.unloaded = False
         self.config = Config.get_conf(self, identifier=792413491)
-        self.config.register_guild(**{
-            "channel": 0,
-            "queue": "",
+        self.config.register_global(**{
+            "current_tracks": {},
+            "current_channels": {}
         })
 
     async def cog_load(self):
@@ -39,9 +41,21 @@ class AudioReconnect(Cog):
         asyncio.create_task(self.load())
 
     async def con_unload(self):
-        for task in self.enqueue_tasks.values():
-            if not task.done():
-                task.cancel()
+        self.unloaded = True
+        self.save_current_tracks.stop()
+
+    @tasks.loop(seconds=5)
+    async def save_current_tracks(self):
+        nodes = lavalink.get_all_nodes()
+        players = list(itertools.chain(*[list(node.players) for node in nodes]))
+        data = [(player.guild.id, player.current, player.position)
+                for player in players
+                if player.is_playing and player.current]
+        current_tracks = {}
+        for guild_id, current, position in data:
+            current.start_timestamp = position
+            current_tracks[guild_id] = b64encode(pickle.dumps(current)).decode()
+        await self.config.current_tracks.set(current_tracks)
 
     async def wait_for_lavalink(self, audio: Audio):
         await audio.cog_ready_event.wait()
@@ -63,13 +77,13 @@ class AudioReconnect(Cog):
             log.error("Failed to establish lavalink connection")
             return
 
-        log.info("Reconnecting to voice channels")
-        reconnect_config = await self.config.all_guilds()
+        current_tracks = await self.config.current_tracks()
+        current_channels = await self.config.current_channels()
         audio_config = await audio.config.all_guilds()
-        tasks = [self.reconnect(channel, config.get("queue"), audio_config.get(guild_id, {}).get("auto_deafen", True))
-                 for guild_id, config in reconnect_config.items()
+        tasks = [self.reconnect(channel, current_tracks.get(guild_id), audio_config.get(guild_id, {}).get("auto_deafen", True))
+                 for guild_id, channel_id in current_channels.items()
                  if (guild := self.bot.get_guild(guild_id))
-                 and (channel := guild.get_channel(config.get("channel", 0)))
+                 and (channel := guild.get_channel(channel_id))
                  and isinstance(channel, discord.channel.VocalGuildChannel)
                  and audio_config.get(guild_id, {}).get("persist_queue", True)
                  and (not guild.voice_client or not guild.voice_client.channel)]
@@ -82,56 +96,26 @@ class AudioReconnect(Cog):
             log.warning(f"Failed to reconnect to {len(errors)} guilds")
             for error in errors:
                 log.warning(f"{error.__class__.__name__}: {error}")
+        self.save_current_tracks.start()
 
-    async def reconnect(self, channel: discord.channel.VocalGuildChannel, pickled_queue: Optional[str], self_deaf: bool):
-        log.info(f"Reconnecting to {channel.id}")
+    async def reconnect(self, channel: discord.channel.VocalGuildChannel, pickled_current: Optional[str], self_deaf: bool):
+        if await self.bot.cog_disabled_in_guild(self, channel.guild):
+            return
         player = await channel.connect(cls=lavalink.Player, self_deaf=self_deaf)  # type: ignore
-        if True:
+        if not pickled_current:
             return
-        player.queue = pickle.loads(b64decode(pickled_queue))
-        log.info(f"Loading {len(player.queue)=}")
-        if not player.queue:
+        current: lavalink.Track = pickle.loads(b64decode(pickled_current))
+        if not current:
             return
-        for track in player.queue:
-            if isinstance(track, lavalink.Track) and isinstance(track.requester, int):
-                track.requester = channel.guild.get_member(track.requester)  # type: ignore
-        if player.queue[0] is None:
-            player.queue.pop(0)
-        else:
-            await player.play()
-            log.info(f"Playing {len(player.queue)=}")
-
-    @commands.Cog.listener("on_red_audio_track_start")
-    @commands.Cog.listener("on_red_audio_queue_end")
-    async def on_audio_track(self, guild: discord.Guild, *_):
-        try:
-            player = lavalink.get_player(guild.id)
-        except lavalink.RedLavalinkException:
-            player = None
-        if not player:
-            return
-        log.info(f"{len(player.queue)=}")
-        pickled_queue = b64encode(pickle.dumps([player.current] + player.queue)).decode()
-        await self.config.guild(player.guild).queue.set(pickled_queue)
-
-    @commands.Cog.listener()
-    async def on_red_audio_track_enqueue(self, guild: discord.Guild, *_):
-        """don't repickle 100 times when adding a 100 track playlist"""
-        async def enqueue():
-            try:
-                await asyncio.sleep(1)
-                await self.on_audio_track(guild)
-            except asyncio.CancelledError:
-                pass
-        if guild.id in self.enqueue_tasks and not self.enqueue_tasks[guild.id].done():
-            self.enqueue_tasks[guild.id].cancel()
-        self.enqueue_tasks[guild.id] = asyncio.create_task(enqueue())
+        if isinstance(current.requester, int):
+            current.requester = channel.guild.get_member(current.requester)  # type: ignore
+        player.queue.insert(0, current)
+        await player.play()
+        # the rest of the queue gets populated by audio's persist_queue
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
-        if member is member.guild.me and after.channel is not None and before.channel is not after.channel:
-            await self.config.guild(member.guild).channel.set(after.channel.id)
-
-    @commands.Cog.listener()
-    async def on_red_audio_audio_disconnect(self, guild: discord.Guild):
-        await self.config.guild(guild).channel.set(0)
+        await asyncio.sleep(1) # the idea is to hopefully prevent manual bot restarts from un-setting the current channel
+        if member is not member.guild.me or self.unloaded:
+            return
+        await self.config.guild(member.guild).channel.set(after.channel.id if after.channel else 0)
