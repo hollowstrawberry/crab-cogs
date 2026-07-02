@@ -86,7 +86,7 @@ class AudioReconnect(Cog):
     async def reconnect(self, channel: discord.channel.VocalGuildChannel, pickled_queue: Optional[str], self_deaf: bool):
         log.info(f"Reconnecting to {channel.id}")
         player = await channel.connect(cls=lavalink.Player, self_deaf=self_deaf)  # type: ignore
-        if not pickled_queue:
+        if True:
             return
         player.queue = pickle.loads(b64decode(pickled_queue))
         log.info(f"Loading {len(player.queue)=}")
