@@ -11,7 +11,8 @@ from redbot.cogs.audio.apis.persist_queue_wrapper import QueueInterface
 
 log = logging.getLogger("red.crab-cogs.audioreconnect")
 
-QUEUE_API_METHODS = { # the queue api is a singleton
+QUEUE_API: Optional[QueueInterface] = None
+QUEUE_API_METHODS = {
     "fetch_all": None,
     "played": None,
     "enqueued": None,
@@ -32,25 +33,30 @@ def is_shutting_down(bot: Red) -> bool:
     return bot._shutdown_mode in (ExitCodes.SHUTDOWN, ExitCodes.RESTART)
 
 async def neuter_persistent_queue(queue_api: QueueInterface):
-    dummy = types.MethodType(dummy_method, queue_api)
+    global QUEUE_API, QUEUE_API_METHODS
+    QUEUE_API = queue_api
+    dummy = types.MethodType(dummy_method, QUEUE_API)
     for method in QUEUE_API_METHODS:
-        QUEUE_API_METHODS[method] = getattr(queue_api, method)
-        setattr(queue_api, method, dummy)
+        QUEUE_API_METHODS[method] = getattr(QUEUE_API, method)
+        setattr(QUEUE_API, method, dummy)
     try:
-        await asyncio.to_thread(queue_api.database.cursor().execute, queue_api.statement.drop_table)
+        await asyncio.to_thread(QUEUE_API.database.cursor().execute, QUEUE_API.statement.drop_table)
     except Exception as error:
         log.warning(f"Failed to clear existing persist_queue database. {error.__class__.__name__}: {error}")
     log.info("Blocked builtin persist_queue behavior")
 
-async def heal_persistent_queue(queue_api: QueueInterface):
+async def heal_persistent_queue():
+    global QUEUE_API, QUEUE_API_METHODS
+    if not QUEUE_API:
+        return
     for method in QUEUE_API_METHODS:
-        if QUEUE_API_METHODS[method] is not None:
-            setattr(queue_api, method, QUEUE_API_METHODS[method])
-            QUEUE_API_METHODS[method] = None
+        setattr(QUEUE_API, method, QUEUE_API_METHODS[method])
+        QUEUE_API_METHODS[method] = None
     try:
-        await asyncio.to_thread(queue_api.database.cursor().execute, queue_api.statement.create_table)
+        await asyncio.to_thread(QUEUE_API.database.cursor().execute, QUEUE_API.statement.create_table)
     except Exception as error:
         log.error(f"Failed to recreate persist_queue database. {error.__class__.__name__}: {error}")
+    QUEUE_API = None
     log.info("Restored builtin persist_queue behavior")
 
 

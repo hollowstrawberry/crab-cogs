@@ -41,6 +41,7 @@ class AudioReconnect(Cog):
         self.save_current_tracks.stop()
         if not utils.is_shutting_down(self.bot):
             await self.config.clear_all()
+            await utils.heal_persistent_queue()
 
     @tasks.loop(seconds=5)
     async def save_current_tracks(self):
