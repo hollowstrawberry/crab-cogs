@@ -1,50 +1,20 @@
-import types
 import pickle
 import copyreg
-import logging
 import asyncio
 import discord
 import lavalink
 import itertools
 from typing import Optional
 from base64 import b64encode, b64decode
-from dataclasses import dataclass
 from discord.ext import tasks
 from redbot.core import commands
 from redbot.core.bot import Red, Config
 from redbot.core.commands import Cog
 from redbot.cogs.audio.core import Audio
-from redbot.cogs.audio.apis.persist_queue_wrapper import QueueInterface
 
-log = logging.getLogger("red.crab-cogs.audioreconnect")
+from audioreconnect import utils
 
-
-def pickle_track(track: lavalink.Track):
-    state = track.__dict__.copy()
-    if isinstance(state.get('requester'), (discord.Member, discord.User)):
-        state['requester'] = state['requester'].id
-    return (lavalink.Track.__new__, (lavalink.Track,), state)
-
-
-async def neuter_persistent_queue(queue_api: QueueInterface):
-    async def dummy_fetch(self, *args, **kwargs):
-        return []
-    dummy = types.MethodType(dummy_fetch, queue_api)
-    queue_api.fetch_all = dummy
-    queue_api.played = dummy
-    queue_api.enqueued = dummy
-    queue_api.drop = dummy
-    queue_api.delete_scheduled = dummy
-    await asyncio.to_thread(queue_api.database.cursor().execute, queue_api.statement.drop_table)
-    log.info("Neutered builtin persist_queue behavior")
-
-
-@dataclass
-class Queue:
-    guild_id: int
-    position: int = 0
-    queue_id: tuple[int, ...] = ()
-    queue_pickle: Optional[str] = None
+log = utils.log
 
 
 class AudioReconnect(Cog):
@@ -53,8 +23,7 @@ class AudioReconnect(Cog):
     def __init__(self, bot: Red, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.bot = bot
-        self.unloaded = False
-        self.queues: dict[int, Queue] = {}
+        self.queues: dict[int, utils.QueueState] = {}
         self.config = Config.get_conf(self, identifier=792413491)
         self.config.register_global(**{
             "positions": {},
@@ -65,12 +34,13 @@ class AudioReconnect(Cog):
         })
 
     async def cog_load(self):
-        copyreg.pickle(lavalink.Track, pickle_track)
+        copyreg.pickle(lavalink.Track, utils.pickle_track)
         asyncio.create_task(self.load())
 
     async def cog_unload(self):
-        self.unloaded = True
         self.save_current_tracks.stop()
+        if not utils.is_shutting_down(self.bot):
+            await self.config.clear_all()
 
     @tasks.loop(seconds=5)
     async def save_current_tracks(self):
@@ -78,10 +48,10 @@ class AudioReconnect(Cog):
         players = list(itertools.chain(*[list(node.players) for node in nodes]))
         for player in players:
             guild_id = player.guild.id
-            entry = self.queues.setdefault(guild_id, Queue(guild_id))
+            entry = self.queues.setdefault(guild_id, utils.QueueState(guild_id))
             entry.position = player.position
             queue = [player.current] + player.queue
-            new_queue_id = tuple(id(track) for track in queue)
+            new_queue_id = tuple(track.track_identifier if track else None for track in queue)
             if new_queue_id != entry.queue_id:
                 entry.queue_id = new_queue_id
                 entry.queue_pickle = b64encode(pickle.dumps(queue)).decode()
@@ -93,7 +63,7 @@ class AudioReconnect(Cog):
         await audio.cog_ready_event.wait()
         if not audio.api_interface:
             raise RuntimeError
-        await neuter_persistent_queue(audio.api_interface.persistent_queue_api)
+        await utils.neuter_persistent_queue(audio.api_interface.persistent_queue_api)
         if not audio.lavalink_connect_task:
             raise RuntimeError
         await audio.lavalink_connect_task
@@ -157,10 +127,7 @@ class AudioReconnect(Cog):
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
-        if member is not member.guild.me:
-            return
-        await asyncio.sleep(1) # hopefully prevent manual bot restarts from un-setting the current channel
-        if self.unloaded:
+        if member is not member.guild.me or utils.is_shutting_down(self.bot):
             return
         if after.channel:
             await self.config.guild(member.guild).channel.set(after.channel.id)
