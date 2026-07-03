@@ -40,7 +40,6 @@ class AudioReconnect(Cog):
     async def cog_unload(self):
         self.save_current_tracks.stop()
         if not utils.is_shutting_down(self.bot):
-            log.info("Unloading")
             await self.config.clear_all()
             await utils.heal_persistent_queue()
 
