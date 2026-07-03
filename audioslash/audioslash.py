@@ -17,24 +17,30 @@ from redbot.cogs.audio.apis.playlist_interface import get_all_playlist
 
 log = logging.getLogger("red.crab-cogs.audioslash")
 
-LANGUAGE = "en"
+BASE_CONFIG = {
+    "outtmpl": "%(title).85s.mp3",
+    "extractor_args": {"youtube": {"lang": ["en"]}},
+    "quiet": True,
+    "no_warnings": True,
+    "logger": None,
+}
 EXTRACT_CONFIG = {
     "extract_flat": True,
-    "outtmpl": "%(title).85s.mp3",
-    "extractor_args": {"youtube": {"lang": [LANGUAGE]}},
+    **BASE_CONFIG,
 }
 DOWNLOAD_CONFIG = {
     "extract_audio": True,
     "format": "bestaudio",
-    "outtmpl": "%(title).85s.mp3",
-    "extractor_args": {"youtube": {"lang": [LANGUAGE]}},
+    **BASE_CONFIG,
 }
+
 DOWNLOAD_FOLDER = "backup"
 YOUTUBE_LINK_PATTERN = re.compile(r"(https?://)?(www\.)?(youtube.com/watch\?v=|youtu.be/)([\w\-]+)")
 MAX_VIDEO_LENGTH = 2000
 
 MAX_OPTIONS = 25
 MAX_OPTION_SIZE = 100
+MAX_SEARCH_RESULTS = 10
 
 async def extract_info(ydl: YoutubeDL, url: str) -> dict:
     return await asyncio.to_thread(ydl.extract_info, url, False)  # type: ignore
@@ -380,6 +386,8 @@ class AudioSlash(Cog):
     async def _youtube_autocomplete(self, inter: discord.Interaction, current: str):
         assert inter.guild
         lst = []
+        if current:
+            current = current.replace('"', "").replace("\n", "")
 
         if await self.config.guild(inter.guild).backup_mode():
             audio = await self.get_audio_cog(inter)
@@ -401,7 +409,7 @@ class AudioSlash(Cog):
         try:
             ydl = YoutubeDL(EXTRACT_CONFIG)  # type: ignore
             results = await asyncio.wait_for(
-                extract_info(ydl, f"ytsearch{MAX_OPTIONS - len(lst)}:{current}"),
+                extract_info(ydl, f'ytsearch{MAX_SEARCH_RESULTS}:"{current}"'),
                 timeout=2.5
             )
             lst += [app_commands.Choice(name=format_youtube(res), value=res["url"]) for res in results["entries"]]
