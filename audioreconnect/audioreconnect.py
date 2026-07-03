@@ -107,6 +107,14 @@ class AudioReconnect(Cog):
             log.warning(f"Failed to reconnect to {len(errors)} guilds")
             for error in errors:
                 log.warning(f"{error.__class__.__name__}: {error}")
+
+        # cold start
+        if all(channel_id == 0 for channel_id in current_channels.values()):
+            nodes = lavalink.get_all_nodes()
+            players = list(itertools.chain(*[list(node.players) for node in nodes]))
+            for player in players:
+                await self.config.guild(player.guild).channel.set(player.channel.id)
+        
         self.save_current_tracks.start()
 
     async def reconnect(self, channel: discord.channel.VocalGuildChannel, queue_pickle: Optional[str], position: int, self_deaf: bool):
