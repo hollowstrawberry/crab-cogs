@@ -3,7 +3,6 @@ import copyreg
 import asyncio
 import discord
 import lavalink
-import itertools
 from typing import Optional
 from base64 import b64encode, b64decode
 from discord.ext import tasks
@@ -45,8 +44,7 @@ class AudioReconnect(Cog):
 
     @tasks.loop(seconds=5)
     async def save_current_tracks(self):
-        nodes = lavalink.get_all_nodes()
-        players = list(itertools.chain(*[list(node.players) for node in nodes]))
+        players = utils.all_lavalink_players()
         for player in players:
             guild_id = player.guild.id
             entry = self.queues.setdefault(guild_id, utils.QueueState(guild_id))
@@ -109,8 +107,7 @@ class AudioReconnect(Cog):
                 log.warning(f"{error.__class__.__name__}: {error}")
 
         if all(channel_id == 0 for channel_id in current_channels.values()):
-            nodes = lavalink.get_all_nodes()
-            players = list(itertools.chain(*[list(node.players) for node in nodes]))
+            players = utils.all_lavalink_players()
             for player in players:
                 await self.config.guild(player.guild).channel.set(player.channel.id)
             log.info(f"Cold start of {len(players)} guilds")

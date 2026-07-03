@@ -3,6 +3,7 @@ import logging
 import asyncio
 import discord
 import lavalink
+import itertools
 from typing import Optional
 from dataclasses import dataclass
 from redbot.core.bot import Red
@@ -20,8 +21,9 @@ QUEUE_API_METHODS = {
     "delete_scheduled": None,
 }
 
-async def dummy_method(self, *args, **kwargs):
-    return []
+def all_lavalink_players():
+    nodes = lavalink.get_all_nodes()
+    return list(itertools.chain(*[list(node.players) for node in nodes]))
 
 def pickle_track(track: lavalink.Track):
     state = track.__dict__.copy()
@@ -31,6 +33,9 @@ def pickle_track(track: lavalink.Track):
 
 def is_shutting_down(bot: Red) -> bool:
     return bot._shutdown_mode in (ExitCodes.SHUTDOWN, ExitCodes.RESTART)
+
+async def dummy_method(self, *args, **kwargs):
+    return []
 
 async def neuter_persistent_queue(queue_api: QueueInterface):
     global QUEUE_API, QUEUE_API_METHODS
