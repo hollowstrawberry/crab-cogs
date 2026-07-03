@@ -36,7 +36,7 @@ async def neuter_persistent_queue(queue_api: QueueInterface):
     queue_api.drop = dummy
     queue_api.delete_scheduled = dummy
     await asyncio.to_thread(queue_api.database.cursor().execute, queue_api.statement.drop_table)
-    log.info("disabled builtin persist_queue")
+    log.info("Neutered builtin persist_queue behavior")
 
 
 @dataclass
@@ -86,7 +86,6 @@ class AudioReconnect(Cog):
                 entry.queue_id = new_queue_id
                 entry.queue_pickle = b64encode(pickle.dumps(queue)).decode()
                 await self.config.guild(player.guild).queue.set(entry.queue_pickle)
-                log.info(f"set {len(queue)=}")
         positions = {player.guild.id: player.position for player in players}
         await self.config.positions.set(positions)
 
@@ -144,7 +143,6 @@ class AudioReconnect(Cog):
         if not queue_pickle:
             return
         queue: list[lavalink.Track] = pickle.loads(b64decode(queue_pickle))
-        log.info(f"restore {channel.guild.id=} {len(queue)=} {position=}")
         if not queue:
             return
         for track in queue:
@@ -161,8 +159,11 @@ class AudioReconnect(Cog):
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
         if member is not member.guild.me:
             return
-        await asyncio.sleep(1) # the idea is to hopefully prevent manual bot restarts from un-setting the current channel
+        await asyncio.sleep(1) # hopefully prevent manual bot restarts from un-setting the current channel
         if self.unloaded:
             return
-        log.info(f"set channel {after.channel.id if after.channel else 0}")
-        await self.config.guild(member.guild).channel.set(after.channel.id if after.channel else 0)
+        if after.channel:
+            await self.config.guild(member.guild).channel.set(after.channel.id)
+        else:
+            await self.config.guild(member.guild).channel.set(0)
+            await self.config.guild(member.guild).queue.set("")
