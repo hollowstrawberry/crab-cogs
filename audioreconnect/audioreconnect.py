@@ -27,7 +27,7 @@ def pickle_track(track: lavalink.Track):
 
 
 async def neuter_persistent_queue(queue_api: QueueInterface):
-    async def dummy_fetch(self):
+    async def dummy_fetch(self, *args):
         return []
     dummy = types.MethodType(dummy_fetch, queue_api)
     queue_api.fetch_all = dummy
