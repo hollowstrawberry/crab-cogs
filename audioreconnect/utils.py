@@ -34,6 +34,7 @@ def pickle_track(track: lavalink.Track):
     return (lavalink.Track.__new__, (lavalink.Track,), state)
 
 def is_shutting_down(bot: Red) -> bool:
+    # yes we will rely on internal values, I don't like it but it's the cleanest way
     return bot._shutdown_mode in (ExitCodes.SHUTDOWN, ExitCodes.RESTART)
 
 async def dummy_method(self, *args, **kwargs):
@@ -41,6 +42,7 @@ async def dummy_method(self, *args, **kwargs):
 
 async def neuter_persistent_queue(queue_api: QueueInterface):
     # I know this cog relies a lot on internal behavior, but I think it's worth it.
+    # Plus this behavior hasn't changed at all in over 4 years as of 3.5.24
     global QUEUE_API, QUEUE_API_METHODS
     QUEUE_API = queue_api
     dummy = types.MethodType(dummy_method, QUEUE_API)
