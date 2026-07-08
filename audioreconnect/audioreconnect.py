@@ -55,9 +55,9 @@ class AudioReconnect(Cog):
             queue = [player.current] + player.queue
             new_queue_id = tuple(track.track_identifier if track else None for track in queue)
             if new_queue_id != entry.queue_id:
-                # not computationally expensive even for hundreds of tracks
-                # it may even be more overhead than savings if we started a thread for the queue pickle
-                # storing the config is usually not significant either, but large bots would probably be using a database instead of json
+                # not computationally expensive even for hundreds of tracks.
+                # it may even be more overhead than savings if we started a thread for the queue pickle.
+                # storing the config is usually not significant either, but large bots would probably be using a database instead of json anyway
                 entry.queue_id = new_queue_id
                 entry.queue_pickle = b64encode(pickle.dumps(queue)).decode()
                 await self.config.guild(player.guild).queue.set(entry.queue_pickle)
@@ -66,7 +66,7 @@ class AudioReconnect(Cog):
 
     async def wait_for_lavalink(self, audio: Audio):
         # the timing is sensitive if we want to prevent the default persist_queue behavior.
-        # internally, red (as of 3.5.24) does the following:
+        # internally, red (whose behavior has not changed in over 4 years as of 3.5.24) does the following:
         #   [ red_ready -> audio cog apis initialize -> cog_ready_event fires -> lavalink_connect_task starts ]
         # while lavalink is trying to connect, I monkey patch the persistent queue api, such that later restore_players sees no data.
         # after some time passes and lavalink finishes loading, restore_players starts (which now does nothing) and the bot is ready to play audio.
