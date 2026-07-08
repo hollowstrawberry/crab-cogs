@@ -30,7 +30,7 @@ Converts most commands from the builtin Audio cog into slash commands. The fun p
 
 Live audio player for the Audio cog with buttons for queue/pause/play/skip/rewind/previous/stop. Stays at the bottom of the chat for as long as there are people listening, and updates every 10 seconds. If you play music on Discord with your friends a lot you'll probably find this quite practical.
 
-⚠️ Discord doesn't like when things update periodically without human input, even when it follows ratelimits, so use this at your own risk. It *should* be fine conceptually as it requires humans to be listening in voice chat, but you never know.
+⚠️ Discord guidelines don't like when things update periodically without human input, even when it follows ratelimits, so use this at your own risk. It *should* be fine conceptually as it requires humans to be listening in voice chat, but I'm not sure.
 
 ![demonstration](https://i.imgur.com/CAig9PX.png)
 
@@ -43,7 +43,7 @@ Lets anyone steal emojis and stickers sent by other people, and lets moderators 
 
 ### 🎌 EasyTranslate
 
-A simple and unobtrusive translation cog with support for context menus and autocomplete. Choose your primary language with `/setmylanguage` then right click any message to find the Translate button. Alternatively use `/translate` to send a message in a different language.
+A free, simple and unobtrusive translation cog with support for context menus and autocomplete. Choose your primary language with `/setmylanguage` then right click any message to find the Translate button. Alternatively use `/translate` to send a message in a different language.
 
 ![demonstration](https://i.imgur.com/zlc5BVJ.gif)
 
@@ -77,7 +77,7 @@ Features the following games:
 
 ### ♟️ SimpleChess
 
-Play Chess against your friends or the bot itself. Configure payouts and let users bet against each other. You can also make your bots play together. Uses [Sunfish](https://github.com/thomasahle/sunfish) as the chess engine/AI; the hardest setting has an ELO of around 1900, and the default setting is much lower, but still challenging for most players. The difficulty can be selected with the slash command.
+Play Chess against your friends or the bot itself. Configure payouts and let users bet against each other. You can also make your bots play together. Requires ImageMagick to be installed in the host machine. Uses [Sunfish](https://github.com/thomasahle/sunfish) as the chess engine/AI; the hardest setting has an ELO of around 1900, and the default setting is much lower, but still challenging for most players. The difficulty can be selected with the slash command.
 
 ![demonstration](https://i.imgur.com/6IleFWa.png)
 
@@ -125,11 +125,11 @@ Plays text to speech in voice chat, intended as an accessibility feature. Detect
 
 ### ⛩ Booru
 
-Grab images from Gelbooru that match specific tags. The slash command version features smart tag suggestions/autocompletion. It will also avoid sending the same image in the same channel twice until absolutely necessary (within 24 hours).
+Grab anime art from Gelbooru that match specific tags. Added buttons to inspect tags, grab another result, or edit your query. The slash command version features smart tag suggestions/autocompletion. This cog is kinda spammy.
 
 **⚠️ Usage Warning:** This cog is allowed to display NSFW material in channels marked as NSFW.
 
-![demonstration](https://i.imgur.com/GENZjuK.png)
+![demonstration](https://i.imgur.com/at1WsvX.png)
 
 ### 🟫 Minecraft
 
