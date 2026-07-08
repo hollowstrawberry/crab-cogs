@@ -39,11 +39,14 @@ class AudioReconnect(Cog):
     async def cog_unload(self):
         self.save_current_tracks.stop()
         if not utils.is_shutting_down(self.bot):
+            # cog got manually disabled, clear everything to prevent desyncs
             await self.config.clear_all()
             await utils.heal_persistent_queue()
 
     @tasks.loop(seconds=5)
     async def save_current_tracks(self):
+        # every n seconds, store the positions of all players at the same time
+        # and also store any player queues that have changed since the last loop
         players = utils.all_lavalink_players()
         for player in players:
             guild_id = player.guild.id
@@ -52,6 +55,9 @@ class AudioReconnect(Cog):
             queue = [player.current] + player.queue
             new_queue_id = tuple(track.track_identifier if track else None for track in queue)
             if new_queue_id != entry.queue_id:
+                # not computationally expensive even for hundreds of tracks
+                # it may even be more overhead than savings if we started a thread for the queue pickle
+                # storing the config is usually not significant either, but large bots would probably be using a database instead of json
                 entry.queue_id = new_queue_id
                 entry.queue_pickle = b64encode(pickle.dumps(queue)).decode()
                 await self.config.guild(player.guild).queue.set(entry.queue_pickle)
@@ -59,15 +65,20 @@ class AudioReconnect(Cog):
         await self.config.positions.set(positions)
 
     async def wait_for_lavalink(self, audio: Audio):
+        # the timing is sensitive if we want to prevent the default persist_queue behavior.
+        # internally, red (as of 3.5.24) does the following:
+        #   [ red_ready -> audio cog apis initialize -> cog_ready_event fires -> lavalink_connect_task starts ]
+        # while lavalink is trying to connect, I monkey patch the persistent queue api, such that later restore_players sees no data.
+        # after some time passes and lavalink finishes loading, restore_players starts (which now does nothing) and the bot is ready to play audio.
         await audio.cog_ready_event.wait()
         if not audio.api_interface:
-            raise RuntimeError
+            raise RuntimeError("audio cog's api_interface not set")
         await utils.neuter_persistent_queue(audio.api_interface.persistent_queue_api)
         if not audio.lavalink_connect_task:
-            raise RuntimeError
+            raise RuntimeError("audio cog's lavalink_connect_task never started")
         await audio.lavalink_connect_task
         if audio.lavalink_connection_aborted:
-            raise RuntimeError
+            raise RuntimeError("lavalink connection failed")
 
     async def load(self):
         await self.bot.wait_until_red_ready()
@@ -78,7 +89,7 @@ class AudioReconnect(Cog):
         try:
             await self.wait_for_lavalink(audio)
         except Exception:
-            log.error("Failed to establish lavalink connection")
+            log.exception("Failed to establish lavalink connection")
             return
 
         reconnect_config = await self.config.all_guilds()
@@ -88,8 +99,9 @@ class AudioReconnect(Cog):
         current_channels = {guild_id: config.get("channel", 0) for guild_id, config in reconnect_config.items()}
         queue_pickles = {guild_id: config.get("queue", "") for guild_id, config in reconnect_config.items()}
         positions: dict[str, int] = await self.config.positions()
-
-        tasks = [self.reconnect(channel, queue_pickles.get(guild_id), positions.get(str(guild_id), 0), auto_deafen.get(guild_id, True))
+        
+        # ngl I love list comprehensions
+        tasks = [self.reconnect(channel, queue_pickles.get(guild_id), positions.get(str(guild_id), "0"), auto_deafen.get(guild_id, True))
                  for guild_id, channel_id in current_channels.items()
                  if (guild := self.bot.get_guild(guild_id))
                  and (channel := guild.get_channel(channel_id))
@@ -107,6 +119,7 @@ class AudioReconnect(Cog):
                 log.warning(f"{error.__class__.__name__}: {error}")
 
         if all(channel_id == 0 for channel_id in current_channels.values()):
+            # cog just got enabled
             players = utils.all_lavalink_players()
             for player in players:
                 await self.config.guild(player.guild).channel.set(player.channel.id)
@@ -115,6 +128,12 @@ class AudioReconnect(Cog):
         self.save_current_tracks.start()
 
     async def reconnect(self, channel: discord.channel.VocalGuildChannel, queue_pickle: Optional[str], position: int, self_deaf: bool):
+        # I chose to replace the existing persist_queue behavior entirely (rather than just managing the current track) because:
+        #   * persist_queue does not take into account empty queues
+        #   * timing was inconsistent and hard to hook into
+        #   * manual actions on the queue (skip, remove, shuffle) don't get stored until the next track starts
+        #   * edge cases made queues get duplicated or erased, I couldn't rely on it
+        #   * restored queue tracks did not preserve the original requester user (falls back to the bot user)
         player = await channel.connect(cls=lavalink.Player, self_deaf=self_deaf)  # type: ignore
         if not queue_pickle:
             return
