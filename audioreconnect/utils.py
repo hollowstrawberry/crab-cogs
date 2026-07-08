@@ -14,6 +14,8 @@ log = logging.getLogger("red.crab-cogs.audioreconnect")
 
 QUEUE_API: Optional[QueueInterface] = None
 QUEUE_API_METHODS = {
+    # technically we only need to override fetch_all to disable the persist_queue behavior
+    # but might as well get rid of the overhead of useless database operations
     "fetch_all": None,
     "played": None,
     "enqueued": None,
@@ -38,6 +40,7 @@ async def dummy_method(self, *args, **kwargs):
     return []
 
 async def neuter_persistent_queue(queue_api: QueueInterface):
+    # I know this cog relies a lot on internal behavior, but I think it's worth it.
     global QUEUE_API, QUEUE_API_METHODS
     QUEUE_API = queue_api
     dummy = types.MethodType(dummy_method, QUEUE_API)
@@ -45,6 +48,7 @@ async def neuter_persistent_queue(queue_api: QueueInterface):
         QUEUE_API_METHODS[method] = getattr(QUEUE_API, method)
         setattr(QUEUE_API, method, dummy)
     try:
+        # I want to prevent desyncs if my cog gets manually disabled
         await asyncio.to_thread(QUEUE_API.database.cursor().execute, QUEUE_API.statement.drop_table)
     except Exception as error:
         log.warning(f"Failed to clear existing persist_queue database. {error.__class__.__name__}: {error}")
