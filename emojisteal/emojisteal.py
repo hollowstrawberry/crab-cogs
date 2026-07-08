@@ -13,16 +13,16 @@ STICKER_DIM = 320
 STICKER_TIME = 5
 
 MISSING_EMOJIS = "Can't find emojis or stickers in that message."
-MISSING_REFERENCE = "Reply to a message with this command to steal an emoji."
-MESSAGE_FAIL = "I couldn't grab that message, sorry."
+MISSING_REFERENCE = "Reply to a message using this command to steal an emote."
+MESSAGE_FAIL = "I can't find that message, sorry."
 UPLOADED_BY = "Uploaded by"
 STICKER_DESC = "Stolen sticker"
 STICKER_EMOJI = "😶"
 STICKER_FAIL = "❌ Failed to upload sticker"
 STICKER_SUCCESS = "✅ Uploaded sticker"
-STICKER_SLOTS = "⚠ This server doesn't have any more space for stickers!"
+STICKER_SLOTS = "⚠️ This server doesn't have any more space for stickers!"
 EMOJI_FAIL = "❌ Failed to upload"
-EMOJI_SLOTS = "⚠ This server doesn't have any more space for emojis!"
+EMOJI_SLOTS = "⚠️ This server doesn't have any more space for emojis!"
 INVALID_EMOJI = "Invalid emoji or emoji ID."
 STICKER_TOO_BIG = f"Stickers may only be up to {STICKER_KB} KB and {STICKER_DIM}x{STICKER_DIM} pixels and last up to {STICKER_TIME} seconds."
 STICKER_ATTACHMENT = """\
@@ -32,11 +32,12 @@ For a moving sticker, Discord limitations make it very annoying. Follow these st
 2. Convert it to APNG in that same website.
 3. Download it and put it inside a zip file.
 4. Use this command and attach that zip file.
+This prevents Discord from replacing your animated PNG with a static PNG.
 \n**Important:** """ + STICKER_TOO_BIG
 
 
 class EmojiSteal(commands.Cog):
-    """Steals emojis and stickers sent by other people and optionally uploads them to your own server. Supports context menu commands."""
+    """Steals emojis and stickers sent by other people and optionally uploads them to your own server."""
 
     def __init__(self, bot):
         super().__init__()
@@ -251,7 +252,7 @@ class EmojiSteal(commands.Cog):
             if attachment.filename.endswith(".zip"):
                 z = zipfile.ZipFile(fp)
                 files = zipfile.ZipFile.namelist(z)
-                file = next(f for f in files if f.endswith(".png"))
+                file = next([f for f in files if f.endswith(".png")], None)
                 if not file:
                     return await ctx.send(STICKER_ATTACHMENT)
                 fp = io.BytesIO(z.read(file))
