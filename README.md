@@ -37,7 +37,7 @@ Live audio player for the Audio cog with buttons for queue/pause/play/skip/rewin
 
 ### 😶 EmojiSteal
 
-Lets anyone steal emojis and stickers sent by other people, and lets moderators upload them to the current server instantly. Supports context menus. Specially useful if you're on mobile as the Discord app doesn't let you copy emoji links or upload stickers, but this cog has commands for those. Animated stickers are annoying but there's a workaround.
+Lets users grab the image file of emojis and stickers sent by other people, and additionally lets moderators add them to the current server instantly. Supports context menus. Especially useful if you're on mobile as the Discord app doesn't let you copy emoji links or upload stickers. There's an additional command to upload your own stickers manually; animated stickers are annoying but there's a workaround explained in the cog.
 
 ![demonstration](https://i.imgur.com/Mj4jbGo.png)
 
