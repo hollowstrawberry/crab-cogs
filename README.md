@@ -26,9 +26,9 @@ Converts most commands from the builtin Audio cog into slash commands. The fun p
 
 ![demonstration](https://i.imgur.com/EDJybmH.png)
 
-## 🎶 AudioPlayer
+### 🎶 AudioPlayer
 
-Live audio player with queue/pause/play/skip/stop buttons for the audio cog. Stays at the bottom of the chat for as long as there are people listening, and updates every 10 seconds.
+Live audio player for the Audio cog with buttons for queue/pause/play/skip/rewind/previous/stop. Stays at the bottom of the chat for as long as there are people listening, and updates every 10 seconds. If you play music on Discord with your friends a lot you'll probably find this quite practical.
 
 ⚠️ Discord doesn't like when things update periodically without human input, even when it follows ratelimits, so use this at your own risk. It *should* be fine conceptually as it requires humans to be listening in voice chat, but you never know.
 
@@ -43,25 +43,17 @@ Lets anyone steal emojis and stickers sent by other people, and lets moderators 
 
 ### 🎌 EasyTranslate
 
-A simple and unobtrusive translation cog with support for context menus and autocomplete. Choose your primary language with `/setmylanguage` then right click any message to find the Translate button. Alternatively use `/translate` to send a message in a different language. Heavily modified version of the translate cog from ob13-cogs.
+A simple and unobtrusive translation cog with support for context menus and autocomplete. Choose your primary language with `/setmylanguage` then right click any message to find the Translate button. Alternatively use `/translate` to send a message in a different language.
 
 ![demonstration](https://i.imgur.com/zlc5BVJ.gif)
 
 ### 🔗 LinkFixer
 
-Sends modified links to embed content from popular social media sites: Twitter, Reddit, TikTok, Instagram, Pixiv. These "fixed" links ([fxtwitter](https://github.com/FxEmbed/FxEmbed), [vxreddit](https://github.com/dylanpdx/vxReddit), etc.) have advantages such as allowing video or showing the full content instead of a snippet. Many people already use these regularly, but the cog is useful due to people that don't know them or can't be bothered to edit their links.
+Sends modified links to embed content from popular social media sites: Twitter, Reddit, TikTok, Instagram, Pixiv. These "fixed" links ([fxtwitter](https://github.com/FxEmbed/FxEmbed), [vxreddit](https://github.com/dylanpdx/vxReddit), etc.) have advantages such as allowing video or showing the full content instead of a snippet. Many people already use these regularly, but the cog is useful due to people that don't know them or can't be bothered to edit their links. Sometimes these embed providers stop working, so I do my best to keep the cog updated.
 
 ### 💵 EconomyTweaks
 
 Converts several Economy cog commands into slash commands. Also adds a configurable bonus for the `[p]payday` command, which activates at a greater time interval.
-
-### 🖼 GPTimage
-
-Connects to OpenAI to generate images, with an `/imagine` slash command and a `Remix` app command. Requires an api key and ongoing monetary cost. Please check [the docs](https://developers.openai.com/api/docs/guides/image-generation#calculating-costs) for prices and use this cog with care. (As of writing, GPT Image 2 costs ~0.5 cents in low quality, and 16+ cents in high quality, slightly higher for image editing.) To manage this, the cog features a configurable hourly quota per user, with an option to add a VIP role and specific VIP users that can generate as much as they want. If you need more granular control, let me know and I may add it.
-
-## 🚪 GPTwelcome
-
-Uses AI to give a unique welcome message for each new user, according to their username and avatar. This may sound useless at first, but generic welcome messages are often ignored, and even something simple as saying something unique about someone may catch their attention. The prompt is customizable, you should read the default one first. Make sure your server has welcome messages enabled, as the bot replies to those. Uses either OpenAI or OpenRouter endpoints.
 
 # Game cogs
 
@@ -85,17 +77,35 @@ Features the following games:
 
 ### ♟️ SimpleChess
 
-Play Chess against your friends or the bot itself. Configure payouts and let users bet against each other. You can also make your bots play together. Uses [Sunfish](https://github.com/thomasahle/sunfish) as the chess engine (AI); the hardest setting has an ELO of around 1900, and the default setting is much lower, but still challenging for most players. The difficulty can be selected with the slash command.
+Play Chess against your friends or the bot itself. Configure payouts and let users bet against each other. You can also make your bots play together. Uses [Sunfish](https://github.com/thomasahle/sunfish) as the chess engine/AI; the hardest setting has an ELO of around 1900, and the default setting is much lower, but still challenging for most players. The difficulty can be selected with the slash command.
 
 ![demonstration](https://i.imgur.com/6IleFWa.png)
 
 ### 🔴 SimpleCheckers
 
-Play Checkers/Draughts against your friends or the bot itself. Configure payouts and let users bet against each other. You can also make your bots play together. The only variant available right now is English Draughts (also known as American Checkers). Note that capturing pieces is mandatory in the rules of this game. The checkers AI used here is a simple minimax algorithm, but it may still pose a challenge to most people.
+Play Checkers/Draughts against your friends or the bot itself. Configure payouts and let users bet against each other. You can also make your bots play together. The only variant available right now is English Draughts (also known as American Checkers). Note that capturing pieces is mandatory in the rules of this game. The checkers AI used here is a simple minimax algorithm, but it may still pose a challenge to many people.
 
 ![demonstration](https://i.imgur.com/bhhBB5d.png)
 
+# AI cogs
+
+### 🖼 GPTimage
+
+Connects to OpenAI to generate images, with an `/imagine` slash command and a `Remix` app command. Requires an api key and ongoing monetary cost. Please check [the docs](https://developers.openai.com/api/docs/guides/image-generation#calculating-costs) for prices and use this cog with care. (As of writing, GPT Image 2 costs ~0.5 cents in low quality, and 16+ cents in high quality, slightly higher for image editing.) To manage this, the cog features a configurable hourly quota per user, with an option to add a VIP role and specific VIP users that can generate as much as they want. If you need more granular control, let me know and I may add it.
+
+### 🚪 GPTwelcome
+
+Uses AI to give a unique welcome message for each new user, according to their username and avatar. This may sound useless at first, but generic welcome messages are often ignored, and even something simple as saying something unique about someone may catch their attention. The prompt is customizable, you should read the default one first. Make sure your server has welcome messages enabled, as the bot replies to those. Uses either OpenAI or OpenRouter endpoints.
+
+### 📎 ImageScanner
+
+Lets you view AI image generation metadata (A1111/Forge, ComfyUI, SwarmUI). It can be accessed from a message's context menu. Additionally it can scan all images sent in specified channels and put a magnifying glass reaction button on AI images; the bot will DM the results to the users who use the magnifying glass.
+
 # Other cogs
+
+### 📜 Logs
+
+Lets the bot owner open an interactive view of the bot's console output. Useful if you're not currently in a position to access the host machine.
 
 ### 🎤 VoiceLog
 
@@ -103,25 +113,23 @@ Logs users joining and leaving voicechat, inside the text chat embedded in the v
 
 ![demonstration](https://i.imgur.com/CAzmA9R.png)
 
-### 🎐 ImageLog
-
-Logs and stores deleted images in a designated moderation channel. Useful for moderating servers with image boards or similar.
-
-**⚠️ Usage Warning:** Content saved by this method is NOT usable for reporting users to Discord. You also may be liable for keeping content that breaks Discord TOS.
-
-### 📜 Logs
-
-Developer cog that opens an interactive view of your bot's console output within Discord. Can also send the entire log file. These are sent to your DMs by default. Useful if you're not currently in a position to access the host machine.
-
 ### 🛜 AudioReconnect
 
 Restores the current audio track progress when the bot restarts (either manual or crash). It also reconnects to voice channels when the bot restarts even if there weren't any tracks currently playing, for user convenience.
 
-This reuses Audio's persist_queue setting, which normally only preserves the queue and not the current track, and does not update in real time. The cost to keep the queues updated is insignificant.
+This reuses Audio's persist_queue setting, which normally only preserves the queue and not the current track, and does not update in real time. The cost to keep the queues updated is insignificant (saves only the necessary changes every 5 seconds).
 
 ### 🗣 TTS
 
-Plays text to speech in voice chat, intended as an accessibility feature. Detects the language automatically. The voice cannot be changed for now. Briefly interrupts music and resumes where it paused at.
+Plays text to speech in voice chat, intended as an accessibility feature. Detects the language automatically. The voice cannot be changed for now, but let me know if you need that feature. Briefly interrupts music and resumes where it paused at.
+
+### ⛩ Booru
+
+Grab images from Gelbooru that match specific tags. The slash command version features smart tag suggestions/autocompletion. It will also avoid sending the same image in the same channel twice until absolutely necessary (within 24 hours).
+
+**⚠️ Usage Warning:** This cog is allowed to display NSFW material in channels marked as NSFW.
+
+![demonstration](https://i.imgur.com/GENZjuK.png)
 
 ### 🟫 Minecraft
 
@@ -130,14 +138,6 @@ A guild owner may associate a specific Minecraft server to their Discord server.
 * Users can check server status and online players without needing to open the game.
 * Admins can execute commands remotely.
 * Users can whitelist themselves. Then, if they leave the Discord server, they will automatically be removed from the Minecraft server's whitelist.
-
-### ⛩ Booru
-
-Grab images from Gelbooru that match specific tags. The slash command version features smart tag suggestions/autocompletion. It will also avoid sending the same image in the same channel twice until absolutely necessary (within 24 hours).
-
-**⚠️ Usage Warning:** This cog is allowed to display NSFW material in channels marked as NSFW.
-
-![demonstration](https://i.imgur.com/KxD7pKq.png)
 
 ### 🎲 Randomness
 
@@ -149,11 +149,11 @@ A couple fun hybrid commands involving random seeds, including:
 
 ### 🖌️ Draw
 
-A couple fun hybrid commands with image filters for you and your friends' avatars. Also includes an avatar command and an avatar context menu. May take a minute to install due to the image processing libraries (opencv and Pillow).
+A couple fun hybrid commands with image filters for you and your friends' avatars. Also includes an avatar command and an avatar context menu.
 
 ### ⏺ Autoreact
 
-You can give a chance for the bot to copy someone else's reactions, making it seem more interactive in everyday conversations.
+You can give a chance for the bot to copy someone else's reaction, making it seem more interactive in everyday conversations.
 
 Another feature is for the bot owner to set regex patterns that will cause the bot to react with a specific emoji. You may be able to think of useful or funny uses for this.
 
@@ -163,6 +163,10 @@ Another feature is for the bot owner to set regex patterns that will cause the b
 
 Sends a configured message when a guild member starts playing a specific game or has been playing for some time. The purpose is to alert friends or just to be silly.
 
-### 📎 ImageScanner
+### 🎐 ImageLog
 
-Lets you view AI image generation metadata, including A1111, ComfyUI, SwarmUI, and NovelAI. It can be accessed from a message's context menu. Additionally it can scan all images sent in specified channels and put a magnifying glass reaction button on AI images; the bot will DM the results to the users who use the magnifying glass.
+Logs and stores deleted images in a designated moderation channel. Useful for moderating servers with image boards or similar.
+
+❌ Has been partially broken for a while because Discord changed how its cdn works.
+
+**⚠️ Usage Warning:** Content saved by this method is NOT usable for reporting users to Discord. You also may be liable for keeping content that breaks Discord TOS.
