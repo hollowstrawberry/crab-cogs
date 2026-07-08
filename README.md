@@ -32,7 +32,7 @@ Live audio player for the Audio cog with buttons for queue/pause/play/skip/rewin
 
 ⚠️ Discord guidelines don't like when things update periodically without human input, even when it follows ratelimits, so use this at your own risk. It *should* be fine conceptually as it requires humans to be listening in voice chat, but I'm not sure.
 
-![demonstration](https://i.imgur.com/CAig9PX.png)
+![demonstration](https://i.imgur.com/at1WsvX.png)
 
 
 ### 😶 EmojiSteal
@@ -123,13 +123,13 @@ This reuses Audio's persist_queue setting, which normally only preserves the que
 
 Plays text to speech in voice chat, intended as an accessibility feature. Detects the language automatically. The voice cannot be changed for now, but let me know if you need that feature. Briefly interrupts music and resumes where it paused at.
 
-### ⛩ Booru
+### ⛩️ Booru
 
 Grab anime art from Gelbooru that match specific tags. Added buttons to inspect tags, grab another result, or edit your query. The slash command version features smart tag suggestions/autocompletion. This cog is kinda spammy.
 
 **⚠️ Usage Warning:** This cog is allowed to display NSFW material in channels marked as NSFW.
 
-![demonstration](https://i.imgur.com/at1WsvX.png)
+![demonstration](https://i.imgur.com/GENZjuK.png)
 
 ### 🟫 Minecraft
 
