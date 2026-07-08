@@ -113,6 +113,12 @@ Logs and stores deleted images in a designated moderation channel. Useful for mo
 
 Developer cog that opens an interactive view of your bot's console output within Discord. Can also send the entire log file. These are sent to your DMs by default. Useful if you're not currently in a position to access the host machine.
 
+### 🛜 AudioReconnect
+
+Restores the current audio track progress when the bot restarts (either manual or crash). It also reconnects to voice channels when the bot restarts even if there weren't any tracks currently playing, for user convenience.
+
+This reuses Audio's persist_queue setting, which normally only preserves the queue and not the current track, and does not update in real time. The cost to keep the queues updated is insignificant.
+
 ### 🗣 TTS
 
 Plays text to speech in voice chat, intended as an accessibility feature. Detects the language automatically. The voice cannot be changed for now. Briefly interrupts music and resumes where it paused at.
