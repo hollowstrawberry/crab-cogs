@@ -101,7 +101,7 @@ class AudioReconnect(Cog):
         positions: dict[str, int] = await self.config.positions()
         
         # ngl I love list comprehensions
-        tasks = [self.reconnect(channel, queue_pickles.get(guild_id), positions.get(str(guild_id), "0"), auto_deafen.get(guild_id, True))
+        tasks = [self.reconnect(channel, queue_pickles.get(guild_id), positions.get(str(guild_id), 0), auto_deafen.get(guild_id, True))
                  for guild_id, channel_id in current_channels.items()
                  if (guild := self.bot.get_guild(guild_id))
                  and (channel := guild.get_channel(channel_id))
