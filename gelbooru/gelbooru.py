@@ -211,7 +211,7 @@ class Booru(BooruBase):
         return results
 
 
-    async def grab_image(self, query: str, channel_id: int) -> dict:
+    async def grab_image(self, query: str, channel_id: int) -> Optional[dict]:
         if query in self.query_cache:
             images = self.query_cache[query]
         else:
@@ -235,10 +235,11 @@ class Booru(BooruBase):
                 return {}
             images = [img for img in data["post"] if img["file_url"].endswith(IMAGE_TYPES)]
         # refresh expiringdict
-        self.query_cache[query] = images 
+        self.query_cache[query] = images
+        if not images:
+            return None
         # prevent duplicates
-        if channel_id not in self.image_cache:
-            self.image_cache[channel_id] = []
+        self.image_cache.setdefault(channel_id, [])
         if all(img["id"] in self.image_cache[channel_id] for img in images):
             self.image_cache[channel_id] = self.image_cache[channel_id][-1:]
         if len(images) > 1:
