@@ -361,7 +361,7 @@ class SimpleCasino(BaseCasinoCog):
         await self.slotstats(ctx, member)
 
 
-    @commands.group(name="simplecasinoset", aliases=["setcasino"])  # type: ignore
+    @commands.group(name="simplecasinoset", aliases=["setcasino"], invoke_without_command=True)  # type: ignore
     @commands.admin_or_permissions(manage_guild=True)
     @bank.is_owner_if_bank_global()
     async def simplecasinoset(self, ctx: commands.Context):

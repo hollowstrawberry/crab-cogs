@@ -126,7 +126,7 @@ class LinkFixer(commands.Cog):
             and await self.bot.ignored_channel_or_guild(message) \
             and not await self.bot.cog_disabled_in_guild(self, message.guild)
     
-    @commands.group(name="linkfixer", aliases=["linkfix"])  # type: ignore
+    @commands.group(name="linkfixer", aliases=["linkfix"], invoke_without_command=True)  # type: ignore
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
     async def command_linkfixer(self, ctx: commands.Context):

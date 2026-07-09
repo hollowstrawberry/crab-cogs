@@ -179,7 +179,7 @@ class NanoBanana(commands.Cog):
             await interaction.followup.send(f"`The remix was rejected.`")
 
 
-    @commands.group(name="nanobananaset")  # type: ignore
+    @commands.group(name="nanobananaset", invoke_without_command=True)  # type: ignore
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
     async def nanobananaset(self, ctx: commands.Context):

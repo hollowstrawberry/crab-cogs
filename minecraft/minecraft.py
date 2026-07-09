@@ -109,7 +109,7 @@ class Minecraft(commands.Cog):
         await self.run_minecraft_command(guild, WHITELIST_RELOAD)
 
 
-    @commands.group()
+    @commands.group(invoke_without_command=True)
     @commands.guild_only()
     async def minecraft(self, ctx: commands.Context):
         """Minecraft server commands"""

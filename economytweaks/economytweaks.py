@@ -163,7 +163,7 @@ class EconomyTweaks(commands.Cog):
         await interaction.response.send_message(f"Transferred {humanize_number(amount)} {currency} to {to.mention}")
 
 
-    @commands.group(name="economytweakset", aliases=["economytweaksset"])  # type: ignore
+    @commands.group(name="economytweakset", aliases=["economytweaksset"], invoke_without_command=True)  # type: ignore
     @commands.admin_or_permissions(manage_guild=True)
     async def economytweakset(self, ctx: commands.Context):
         """Settings for the economytweaks cog."""

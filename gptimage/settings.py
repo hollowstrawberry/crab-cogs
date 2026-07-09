@@ -8,7 +8,7 @@ from gptimage.utils import MODELS
 
 class GptImageSettings(GptImageBase):
     
-    @commands.group(name="gptimage", aliases=["gptimageset"]) # type: ignore
+    @commands.group(name="gptimage", aliases=["gptimageset"], invoke_without_command=True) # type: ignore
     @commands.is_owner()
     async def gptimage_cmd(self, ctx: commands.Context):
         """Configure /imagine bot-wide"""

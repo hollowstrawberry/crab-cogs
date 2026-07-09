@@ -182,7 +182,7 @@ class AudioPlayer(Cog):
                 pass
 
 
-    @commands.group(name="audioplayer")  # type: ignore
+    @commands.group(name="audioplayer", invoke_without_command=True)  # type: ignore
     @commands.admin()
     @commands.guild_only()
     async def command_audioplayer(self, ctx: commands.Context):

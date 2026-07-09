@@ -150,7 +150,7 @@ class Minigames(BaseMinigameCog):
         game.message = message if isinstance(ctx, commands.Context) else await ctx.original_response() # type: ignore
 
 
-    @commands.group(name="connect4set", aliases=["setconnect4", "c4set", "connectfourset"])  # type: ignore
+    @commands.group(name="connect4set", aliases=["setconnect4", "c4set", "connectfourset"], invoke_without_command=True)  # type: ignore
     @commands.admin_or_permissions(manage_guild=True)
     @bank.is_owner_if_bank_global()
     async def setconnect4(self, ctx: commands.Context):
@@ -173,7 +173,7 @@ class Minigames(BaseMinigameCog):
         await ctx.send(f"New payout for Connect 4 is {payout} {currency}.")
 
 
-    @commands.group(name="tictactoeset", aliases=["settictactoe", "tttset"])  # type: ignore
+    @commands.group(name="tictactoeset", aliases=["settictactoe", "tttset"], invoke_without_command=True)  # type: ignore
     @commands.admin_or_permissions(manage_guild=True)
     @bank.is_owner_if_bank_global()
     async def settictactoe(self, ctx: commands.Context):

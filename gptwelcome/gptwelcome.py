@@ -155,7 +155,7 @@ class GptWelcome(commands.Cog):
         except discord.Forbidden:
             log.error(f"Not allowed to welcome user in {ctx.guild.name}")
 
-    @commands.group(name="gptwelcome", aliases=["aiwelcome", "llmwelcome"])
+    @commands.group(name="gptwelcome", aliases=["aiwelcome", "llmwelcome"], invoke_without_command=True)
     @commands.guild_only()
     async def gptwelcome(self, ctx: commands.Context):
         """Base command for configuring the GPT Welcome cog."""

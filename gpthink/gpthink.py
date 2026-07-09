@@ -201,7 +201,7 @@ class GptThink(commands.Cog):
         await inter.response.send_modal(GptThinkModal(self, effort))
 
         
-    @commands.group() # type: ignore
+    @commands.group(invoke_without_command=True) # type: ignore
     @commands.is_owner()
     async def gpthink(self, ctx: commands.Context):
         """Configure /think bot-wide."""
