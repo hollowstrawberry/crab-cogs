@@ -105,7 +105,7 @@ Lets you view AI image generation metadata (A1111/Forge, ComfyUI, SwarmUI). It c
 
 ### 📜 Logs
 
-Lets the bot owner open an interactive view of the bot's console output. Useful if you're not currently in a position to access the host machine.
+Creates an interactive view which lets the bot owner open or save the bot's latest logs at that point in time. The view will dissapear after a while. Useful if you're not currently in a position to access the host machine.
 
 ### 🎤 VoiceLog
 
@@ -117,7 +117,7 @@ Logs users joining and leaving voicechat, inside the text chat embedded in the v
 
 Restores the current audio track progress when the bot restarts (either manual or crash). It also reconnects to voice channels when the bot restarts even if there weren't any tracks currently playing, for user convenience.
 
-This reuses Audio's persist_queue setting, which normally only preserves the queue and not the current track, and does not update in real time. The cost to keep the queues updated is insignificant (saves only the necessary changes every 5 seconds).
+This reuses Audio's persistqueue setting, which normally only preserves the queue and not the current track, and does not update in real time. The cost to keep the queues updated is insignificant (saves only the necessary changes every 5 seconds).
 
 ### 🗣 TTS
 
