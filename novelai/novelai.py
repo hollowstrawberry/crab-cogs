@@ -621,9 +621,9 @@ class NovelAI(commands.Cog):
         await ctx.response.send_message(embed=embed, ephemeral=True)
 
     @commands.group()
-    async def novelaiset(self, _):
+    async def novelaiset(self, ctx: commands.Context):
         """Configure /novelai bot-wide."""
-        pass
+        await ctx.send_help(ctx.command)
 
     @novelaiset.command()
     @commands.is_owner()

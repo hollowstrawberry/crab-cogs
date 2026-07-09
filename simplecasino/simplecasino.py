@@ -364,9 +364,9 @@ class SimpleCasino(BaseCasinoCog):
     @commands.group(name="simplecasinoset", aliases=["setcasino"])  # type: ignore
     @commands.admin_or_permissions(manage_guild=True)
     @bank.is_owner_if_bank_global()
-    async def simplecasinoset(self, _: commands.Context):
+    async def simplecasinoset(self, ctx: commands.Context):
         """Settings for the SimpleCasino cog."""
-        pass
+        await ctx.send_help(ctx.command)
 
     @simplecasinoset.command(name="bjmin", aliases=["blackjackmin"])
     async def casinoset_bjmin(self, ctx: commands.Context, bid: Optional[int]):

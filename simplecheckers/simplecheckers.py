@@ -215,9 +215,9 @@ class SimpleCheckers(BaseCheckersCog):
     @commands.group(name="setcheckers", aliases=["checkersset", "setdraughts", "draughtsset", "checkerset", "draughtset"])  # type: ignore
     @commands.admin_or_permissions(manage_guild=True)
     @bank.is_owner_if_bank_global()
-    async def setcheckers(self, _: commands.Context):
+    async def setcheckers(self, ctx: commands.Context):
         """Settings for Checkers."""
-        pass
+        await ctx.send_help(ctx.command)
 
     @setcheckers.command(name="payout", aliases=["prize"])
     async def setcheckers_payout(self, ctx: commands.Context, payout: Optional[int]):

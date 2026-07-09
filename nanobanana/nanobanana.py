@@ -182,9 +182,9 @@ class NanoBanana(commands.Cog):
     @commands.group(name="nanobananaset")  # type: ignore
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
-    async def nanobananaset(self, _: commands.Context):
+    async def nanobananaset(self, ctx: commands.Context):
         """Configuration settings for nanobanana."""
-        pass
+        await ctx.send_help(ctx.command)
 
     @nanobananaset.command(name="system_prompt", aliases=["prompt"])
     async def command_system_prompt(self, ctx: commands.Context, *, prompt: Optional[str]):
@@ -199,7 +199,7 @@ class NanoBanana(commands.Cog):
 
 
     @nanobananaset.group(name="roles", aliases=["role"])
-    async def command_roles(self, _: commands.Context):
+    async def command_roles(self, ctx: commands.Context):
         """Manage allowed roles."""
         pass
 

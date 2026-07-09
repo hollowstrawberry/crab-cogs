@@ -185,9 +185,9 @@ class AudioPlayer(Cog):
     @commands.group(name="audioplayer")  # type: ignore
     @commands.admin()
     @commands.guild_only()
-    async def command_audioplayer(self, _: commands.Context):
+    async def command_audioplayer(self, ctx: commands.Context):
         """Configuration commands for AudioPlayer"""
-        pass
+        await ctx.send_help(ctx.command)
 
     @command_audioplayer.command(name="dedicated", aliases=["channel, set"])
     async def command_audioplayer_dedicated(self, ctx: commands.Context, channel: Optional[discord.TextChannel]):

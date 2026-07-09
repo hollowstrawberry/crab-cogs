@@ -263,12 +263,12 @@ class Booru(BooruBase):
     
     @commands.group(name="booruset", invoke_without_command=True)  # type: ignore
     @commands.is_owner()
-    async def booruset(self, _: commands.Context):
+    async def booruset(self, ctx: commands.Context):
         """Commands to configure the gelbooru cog bot-wide."""
-        pass
+        await ctx.send_help(ctx.command)
 
     @booruset.group(name="blacklist")
-    async def boorublacklist(self, _: commands.Context):
+    async def boorublacklist(self, ctx: commands.Context):
         """Commands to configure the booru tag blacklist bot-wide."""
         pass
 

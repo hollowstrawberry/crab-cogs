@@ -157,9 +157,9 @@ class GptWelcome(commands.Cog):
 
     @commands.group(name="gptwelcome", aliases=["aiwelcome", "llmwelcome"])
     @commands.guild_only()
-    async def gptwelcome(self, _: commands.Context):
+    async def gptwelcome(self, ctx: commands.Context):
         """Base command for configuring the GPT Welcome cog."""
-        pass
+        await ctx.send_help(ctx.command)
 
     @gptwelcome.command("enable")
     @commands.is_owner()

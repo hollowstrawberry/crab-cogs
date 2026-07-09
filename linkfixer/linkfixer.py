@@ -129,9 +129,9 @@ class LinkFixer(commands.Cog):
     @commands.group(name="linkfixer", aliases=["linkfix"])  # type: ignore
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
-    async def command_linkfixer(self, _: commands.Context):
+    async def command_linkfixer(self, ctx: commands.Context):
         """Configure the LinkFixer cog."""
-        pass
+        await ctx.send_help(ctx.command)
 
     @command_linkfixer.command(name="enable")
     async def command_linkfixer_enable(self, ctx: commands.Context):
@@ -152,7 +152,7 @@ class LinkFixer(commands.Cog):
         await ctx.reply(f"✅ LinkFixer disabled in {ctx.guild.name}")
        
     @command_linkfixer.group(name="link", aliases=["links"])
-    async def command_linkfixer_links(self, _: commands.Context):
+    async def command_linkfixer_links(self, ctx: commands.Context):
         """List or toggle available links for the fixer."""
         pass
 

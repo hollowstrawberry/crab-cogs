@@ -165,9 +165,9 @@ class EconomyTweaks(commands.Cog):
 
     @commands.group(name="economytweakset", aliases=["economytweaksset"])  # type: ignore
     @commands.admin_or_permissions(manage_guild=True)
-    async def economytweakset(self, _: commands.Context):
+    async def economytweakset(self, ctx: commands.Context):
         """Settings for the economytweaks cog."""
-        pass
+        await ctx.send_help(ctx.command)
 
     @economytweakset.command(name="bonusamount")
     @bank.is_owner_if_bank_global()

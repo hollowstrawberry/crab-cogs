@@ -232,9 +232,9 @@ class SimpleChess(BaseChessCog):
     @commands.group(name="setchess", aliases=["chesset",  "chessset"])  # type: ignore
     @commands.admin_or_permissions(manage_guild=True)
     @bank.is_owner_if_bank_global()
-    async def setchess(self, _: commands.Context):
+    async def setchess(self, ctx: commands.Context):
         """Settings for Chess."""
-        pass
+        await ctx.send_help(ctx.command)
 
     @setchess.command(name="payout", aliases=["prize"])
     async def setchess_payout(self, ctx: commands.Context, payout: Optional[int]):

@@ -111,9 +111,9 @@ class Minecraft(commands.Cog):
 
     @commands.group()
     @commands.guild_only()
-    async def minecraft(self, _):
+    async def minecraft(self, ctx: commands.Context):
         """Minecraft server commands"""
-        pass
+        await ctx.send_help(ctx.command)
 
 
     @commands.guildowner()

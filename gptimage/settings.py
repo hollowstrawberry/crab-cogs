@@ -10,9 +10,9 @@ class GptImageSettings(GptImageBase):
     
     @commands.group(name="gptimage", aliases=["gptimageset"]) # type: ignore
     @commands.is_owner()
-    async def gptimage_cmd(self, _):
+    async def gptimage_cmd(self, ctx: commands.Context):
         """Configure /imagine bot-wide"""
-        pass
+        await ctx.send_help(ctx.command)
 
     @gptimage_cmd.command(name="enable")
     async def enable_cmd(self, ctx: commands.Context):
@@ -81,7 +81,7 @@ class GptImageSettings(GptImageBase):
         await ctx.send(f"Hourly quota set to {gens}")
 
     @gptimage_cmd.group(name="vip")
-    async def vip_cmd(self, _: commands.Context):
+    async def vip_cmd(self, ctx: commands.Context):
         """
         Manage the VIP role for image generation, which can generate as many images as they want
         """

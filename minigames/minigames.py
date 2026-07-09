@@ -153,9 +153,9 @@ class Minigames(BaseMinigameCog):
     @commands.group(name="connect4set", aliases=["setconnect4", "c4set", "connectfourset"])  # type: ignore
     @commands.admin_or_permissions(manage_guild=True)
     @bank.is_owner_if_bank_global()
-    async def setconnect4(self, _: commands.Context):
+    async def setconnect4(self, ctx: commands.Context):
         """Settings for Connect 4."""
-        pass
+        await ctx.send_help(ctx.command)
 
     @setconnect4.command(name="payout", aliases=["prize"])
     async def setconnect4_payout(self, ctx: commands.Context, payout: Optional[int]):
@@ -176,9 +176,9 @@ class Minigames(BaseMinigameCog):
     @commands.group(name="tictactoeset", aliases=["settictactoe", "tttset"])  # type: ignore
     @commands.admin_or_permissions(manage_guild=True)
     @bank.is_owner_if_bank_global()
-    async def settictactoe(self, _: commands.Context):
+    async def settictactoe(self, ctx: commands.Context):
         """Settings for Tic-Tac-Toe."""
-        pass
+        await ctx.send_help(ctx.command)
 
     @settictactoe.command(name="payout", aliases=["prize"])
     async def settictactoe_payout(self, ctx: commands.Context, payout: Optional[int]):
