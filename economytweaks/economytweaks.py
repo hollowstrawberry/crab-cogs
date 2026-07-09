@@ -167,7 +167,7 @@ class EconomyTweaks(commands.Cog):
     @commands.admin_or_permissions(manage_guild=True)
     async def economytweakset(self, ctx: commands.Context):
         """Settings for the economytweaks cog."""
-        await ctx.send_help(ctx.command)
+        await ctx.send_help()
 
     @economytweakset.command(name="bonusamount")
     @bank.is_owner_if_bank_global()

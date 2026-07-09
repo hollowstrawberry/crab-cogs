@@ -159,7 +159,7 @@ class GptWelcome(commands.Cog):
     @commands.guild_only()
     async def gptwelcome(self, ctx: commands.Context):
         """Base command for configuring the GPT Welcome cog."""
-        await ctx.send_help(ctx.command)
+        await ctx.send_help()
 
     @gptwelcome.command("enable")
     @commands.is_owner()

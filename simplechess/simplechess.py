@@ -234,7 +234,7 @@ class SimpleChess(BaseChessCog):
     @bank.is_owner_if_bank_global()
     async def setchess(self, ctx: commands.Context):
         """Settings for Chess."""
-        await ctx.send_help(ctx.command)
+        await ctx.send_help()
 
     @setchess.command(name="payout", aliases=["prize"])
     async def setchess_payout(self, ctx: commands.Context, payout: Optional[int]):

@@ -205,7 +205,7 @@ class GptThink(commands.Cog):
     @commands.is_owner()
     async def gpthink(self, ctx: commands.Context):
         """Configure /think bot-wide."""
-        await ctx.send_help(ctx.command)
+        await ctx.send_help()
 
     @gpthink.command()
     async def model(self, ctx: commands.Context, model: Optional[str]):

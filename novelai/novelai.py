@@ -623,7 +623,7 @@ class NovelAI(commands.Cog):
     @commands.group(invoke_without_command=True)
     async def novelaiset(self, ctx: commands.Context):
         """Configure /novelai bot-wide."""
-        await ctx.send_help(ctx.command)
+        await ctx.send_help()
 
     @novelaiset.command()
     @commands.is_owner()

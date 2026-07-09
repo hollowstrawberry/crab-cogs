@@ -366,7 +366,7 @@ class SimpleCasino(BaseCasinoCog):
     @bank.is_owner_if_bank_global()
     async def simplecasinoset(self, ctx: commands.Context):
         """Settings for the SimpleCasino cog."""
-        await ctx.send_help(ctx.command)
+        await ctx.send_help()
 
     @simplecasinoset.command(name="bjmin", aliases=["blackjackmin"])
     async def casinoset_bjmin(self, ctx: commands.Context, bid: Optional[int]):

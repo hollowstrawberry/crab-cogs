@@ -113,7 +113,7 @@ class Minecraft(commands.Cog):
     @commands.guild_only()
     async def minecraft(self, ctx: commands.Context):
         """Minecraft server commands"""
-        await ctx.send_help(ctx.command)
+        await ctx.send_help()
 
 
     @commands.guildowner()
