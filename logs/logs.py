@@ -1,5 +1,3 @@
-from datetime import datetime, timezone
-
 import discord
 import aiofiles
 from datetime import datetime, timezone
