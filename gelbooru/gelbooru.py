@@ -211,7 +211,7 @@ class Booru(BooruBase):
         return results
 
 
-    async def grab_image(self, query: str, channel_id: int) -> dict:
+    async def grab_image(self, query: str, channel_id: int) -> Optional[dict]:
         if query in self.query_cache:
             images = self.query_cache[query]
         else:
@@ -235,10 +235,11 @@ class Booru(BooruBase):
                 return {}
             images = [img for img in data["post"] if img["file_url"].endswith(IMAGE_TYPES)]
         # refresh expiringdict
-        self.query_cache[query] = images 
+        self.query_cache[query] = images
+        if not images:
+            return None
         # prevent duplicates
-        if channel_id not in self.image_cache:
-            self.image_cache[channel_id] = []
+        self.image_cache.setdefault(channel_id, [])
         if all(img["id"] in self.image_cache[channel_id] for img in images):
             self.image_cache[channel_id] = self.image_cache[channel_id][-1:]
         if len(images) > 1:
@@ -263,14 +264,14 @@ class Booru(BooruBase):
     
     @commands.group(name="booruset", invoke_without_command=True)  # type: ignore
     @commands.is_owner()
-    async def booruset(self, _: commands.Context):
+    async def booruset(self, ctx: commands.Context):
         """Commands to configure the gelbooru cog bot-wide."""
-        pass
+        await ctx.send_help()
 
-    @booruset.group(name="blacklist")
-    async def boorublacklist(self, _: commands.Context):
+    @booruset.group(name="blacklist", invoke_without_command=True)
+    async def boorublacklist(self, ctx: commands.Context):
         """Commands to configure the booru tag blacklist bot-wide."""
-        pass
+        await ctx.send_help()
 
     @boorublacklist.command(name="show", aliases=["view", "list"])
     async def boorublacklistshow(self, ctx: commands.Context):
