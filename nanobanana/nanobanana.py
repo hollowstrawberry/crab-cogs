@@ -179,12 +179,12 @@ class NanoBanana(commands.Cog):
             await interaction.followup.send(f"`The remix was rejected.`")
 
 
-    @commands.group(name="nanobananaset")  # type: ignore
+    @commands.group(name="nanobananaset", invoke_without_command=True)  # type: ignore
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
-    async def nanobananaset(self, _: commands.Context):
+    async def nanobananaset(self, ctx: commands.Context):
         """Configuration settings for nanobanana."""
-        pass
+        await ctx.send_help()
 
     @nanobananaset.command(name="system_prompt", aliases=["prompt"])
     async def command_system_prompt(self, ctx: commands.Context, *, prompt: Optional[str]):
@@ -198,10 +198,10 @@ class NanoBanana(commands.Cog):
             await ctx.reply(f"The current system prompt for nanobanana is: ```\n{prompt.replace('```', '`')}```")
 
 
-    @nanobananaset.group(name="roles", aliases=["role"])
-    async def command_roles(self, _: commands.Context):
+    @nanobananaset.group(name="roles", aliases=["role"], invoke_without_command=True)
+    async def command_roles(self, ctx: commands.Context):
         """Manage allowed roles."""
-        pass
+        await ctx.send_help()
 
     @command_roles.command(name="add")
     @commands.is_owner()
@@ -237,10 +237,10 @@ class NanoBanana(commands.Cog):
         
         await ctx.reply(f"Allowed roles for nanobanana: {', '.join([f'<@&{rid}>' for rid in roles_ids])}", allowed_mentions=discord.AllowedMentions.none())
 
-    @nanobananaset.group(name="users", aliases=["user"])
+    @nanobananaset.group(name="users", aliases=["user"], invoke_without_command=True)
     async def command_users(self, ctx: commands.Context):
         """Manage allowed users."""
-        pass
+        await ctx.send_help()
 
     @command_users.command(name="add")
     @commands.is_owner()

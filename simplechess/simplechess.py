@@ -229,12 +229,12 @@ class SimpleChess(BaseChessCog):
         await self.chess_bots(ctx, bot_opponent, DEFAULT_DIFFICULTY)
 
 
-    @commands.group(name="setchess", aliases=["chesset",  "chessset"])  # type: ignore
+    @commands.group(name="setchess", aliases=["chesset",  "chessset"], invoke_without_command=True)  # type: ignore
     @commands.admin_or_permissions(manage_guild=True)
     @bank.is_owner_if_bank_global()
-    async def setchess(self, _: commands.Context):
+    async def setchess(self, ctx: commands.Context):
         """Settings for Chess."""
-        pass
+        await ctx.send_help()
 
     @setchess.command(name="payout", aliases=["prize"])
     async def setchess_payout(self, ctx: commands.Context, payout: Optional[int]):

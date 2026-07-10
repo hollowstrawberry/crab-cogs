@@ -110,6 +110,8 @@ class LinkFixer(commands.Cog):
                     any_fixed = True
                     tail = [g for g in match.groups() if g][-1].split("?")[0]
                     matched_links[i] = link.replace(match.group(0), f"{link_type.fixed}{tail}")
+                    #if "fxtwitter" in link_type.fixed:
+                    #    matched_links[i] = matched_links[i].rstrip("/") + "/en"
                     
         if not any_fixed:
             return
@@ -124,12 +126,12 @@ class LinkFixer(commands.Cog):
             and await self.bot.ignored_channel_or_guild(message) \
             and not await self.bot.cog_disabled_in_guild(self, message.guild)
     
-    @commands.group(name="linkfixer", aliases=["linkfix"])  # type: ignore
+    @commands.group(name="linkfixer", aliases=["linkfix"], invoke_without_command=True)  # type: ignore
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
-    async def command_linkfixer(self, _: commands.Context):
+    async def command_linkfixer(self, ctx: commands.Context):
         """Configure the LinkFixer cog."""
-        pass
+        await ctx.send_help()
 
     @command_linkfixer.command(name="enable")
     async def command_linkfixer_enable(self, ctx: commands.Context):
@@ -149,10 +151,10 @@ class LinkFixer(commands.Cog):
             self.enabled_guilds.remove(ctx.guild.id)
         await ctx.reply(f"✅ LinkFixer disabled in {ctx.guild.name}")
        
-    @command_linkfixer.group(name="link", aliases=["links"])
-    async def command_linkfixer_links(self, _: commands.Context):
+    @command_linkfixer.group(name="link", aliases=["links"], invoke_without_command=True)
+    async def command_linkfixer_links(self, ctx: commands.Context):
         """List or toggle available links for the fixer."""
-        pass
+        await ctx.send_help()
 
     @command_linkfixer_links.command(name="list")
     async def command_linkfixer_links_list(self, ctx: commands.Context):

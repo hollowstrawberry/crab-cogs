@@ -620,10 +620,10 @@ class NovelAI(commands.Cog):
         embed.add_field(name="Model", value=const.MODELS[await self.config.user(ctx.user).model()])
         await ctx.response.send_message(embed=embed, ephemeral=True)
 
-    @commands.group()
-    async def novelaiset(self, _):
+    @commands.group(invoke_without_command=True)
+    async def novelaiset(self, ctx: commands.Context):
         """Configure /novelai bot-wide."""
-        pass
+        await ctx.send_help()
 
     @novelaiset.command()
     @commands.is_owner()
