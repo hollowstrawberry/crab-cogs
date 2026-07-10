@@ -252,7 +252,7 @@ class EmojiSteal(commands.Cog):
             if attachment.filename.endswith(".zip"):
                 z = zipfile.ZipFile(fp)
                 files = zipfile.ZipFile.namelist(z)
-                file = next([f for f in files if f.endswith(".png")], None)
+                file = next(iter(f for f in files if f.endswith(".png")), None)
                 if not file:
                     return await ctx.send(STICKER_ATTACHMENT)
                 fp = io.BytesIO(z.read(file))
