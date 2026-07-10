@@ -1,9 +1,9 @@
 {
     "author": ["hollowstrawberry"],
     "min_bot_version": "3.5.0",
-    "description": "Make the bot react along with everyone else. The bot owner may set regex patterns that the bot will react to with specific emojis.",
+    "description": "You can give a chance for the bot to copy someone else's reaction, making it seem more interactive in everyday conversations. Another feature is for the bot owner to set regex patterns that will cause the bot to react with a specific emoji. You may be able to think of useful or funny uses for this.",
     "hidden": false,
-    "install_msg": "⏺ __**Autoreact**__\n:warning: *__WARNING:__** Some regex patterns have the possibility of running infinitely, freezing the entire bot. Please research catastrophic backtracking. Only the bot owner can use regex in this cog.\n```Cog installed. Instructions:\n1. Load it with [p]load autoreact\n2a. Start adding emojis to specific text with [p]autoreact add [emoji] [regex]\n2b. Set a chance for the bot to copy any reactions with [p]coreact chance [percent]```",
+    "install_msg": "⏺ __**Autoreact**__\n:warning: *__WARNING:__** Some regex patterns have the possibility of running infinitely, freezing the entire bot. Please research catastrophic backtracking. Only the bot owner can use regex in this cog.\n```Cog installed. Instructions:\n1. Load it with [p]load autoreact\n2a. Start adding emojis to specific text with [p]autoreact add [emoji] [regex]\n2b. Set a chance for the bot to copy any reaction with [p]coreact chance [percent]```",
     "required_cogs": {},
     "requirements": ["emoji"],
     "short": "Make the bot react along with everyone else.",

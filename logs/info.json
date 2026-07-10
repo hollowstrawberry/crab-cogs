@@ -1,7 +1,7 @@
 {
     "author": ["hollowstrawberry"],
     "min_bot_version": "3.5.0",
-    "description": "Lets the bot owner open an interactive view of the bot's console output. Useful if you're not currently in a position to access the host machine.",
+    "description": "Creates an interactive view which lets the bot owner open or save the bot's latest logs at that point in time. The view will dissapear after a while. Useful if you're not currently in a position to access the host machine.",
     "hidden": false,
     "install_msg": "📜 __**Logs**__\n```Cog installed. Instructions:\n1. Load it with [p]load logs\n2. View your bot's logs with [p]logs```",
     "required_cogs": {},

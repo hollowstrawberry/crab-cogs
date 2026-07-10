@@ -28,28 +28,28 @@ Converts most commands from the builtin Audio cog into slash commands. The fun p
 
 ### 🎶 AudioPlayer
 
-Live audio player with queue/pause/play/skip/stop buttons for the audio cog. Stays at the bottom of the chat for as long as there are people listening, and updates every 10 seconds.
+Live audio player for the Audio cog with buttons for queue/pause/play/skip/rewind/previous/stop. Stays at the bottom of the chat for as long as there are people listening, and updates every 10 seconds. If you play music on Discord with your friends a lot you'll probably find this quite practical.
 
-⚠️ Discord doesn't like when things update periodically without human input, even when it follows ratelimits, so use this at your own risk. It *should* be fine conceptually as it requires humans to be listening in voice chat, but you never know.
+⚠️ Discord guidelines don't like when things update periodically without human input, even when it follows ratelimits, so use this at your own risk. It *should* be fine conceptually as it requires humans to be listening in voice chat, but I'm not sure.
 
-![demonstration](https://i.imgur.com/CAig9PX.png)
+![demonstration](https://i.imgur.com/at1WsvX.png)
 
 
 ### 😶 EmojiSteal
 
-Lets anyone steal emojis and stickers sent by other people, and lets moderators upload them to the current server instantly. Supports context menus. Specially useful if you're on mobile as the Discord app doesn't let you copy emoji links or upload stickers, but this cog has commands for those. Animated stickers are annoying but there's a workaround.
+Lets users grab the image file of emotes and stickers sent by other people, and also lets moderators add them to the current server instantly. You can do this with a command or a context menu. Especially useful if you're on mobile as the Discord app doesn't let you copy emoji links or upload stickers. There's an additional command to upload your own stickers manually; animated stickers are annoying but there's a workaround explained in the cog.
 
 ![demonstration](https://i.imgur.com/Mj4jbGo.png)
 
 ### 🎌 EasyTranslate
 
-A simple and unobtrusive translation cog with support for context menus and autocomplete. Choose your primary language with `/setmylanguage` then right click any message to find the Translate button. Alternatively use `/translate` to send a message in a different language. Heavily modified version of the translate cog from ob13-cogs.
+A free, simple and unobtrusive translation cog with support for context menus and autocomplete. Choose your primary language with `/setmylanguage` then right click any message to find the Translate button. Alternatively use `/translate` to send a message in a different language.
 
 ![demonstration](https://i.imgur.com/zlc5BVJ.gif)
 
 ### 🔗 LinkFixer
 
-Sends modified links to embed content from popular social media sites: Twitter, Reddit, TikTok, Instagram, Pixiv. These "fixed" links ([fxtwitter](https://github.com/FxEmbed/FxEmbed), [vxreddit](https://github.com/dylanpdx/vxReddit), etc.) have advantages such as allowing video or showing the full content instead of a snippet. Many people already use these regularly, but the cog is useful due to people that don't know them or can't be bothered to edit their links.
+Sends modified links to embed content from popular social media sites: Twitter, Reddit, TikTok, Instagram, Pixiv. These "fixed" links ([fxtwitter](https://github.com/FxEmbed/FxEmbed), [vxreddit](https://github.com/dylanpdx/vxReddit), etc.) have advantages such as allowing video or showing the full content instead of a snippet. Many people already use these regularly, but the cog is useful due to people that don't know them or can't be bothered to edit their links. Sometimes these embed providers stop working, so I do my best to keep the cog updated.
 
 ### 💵 EconomyTweaks
 
@@ -77,13 +77,13 @@ Features the following games:
 
 ### ♟️ SimpleChess
 
-Play Chess against your friends or the bot itself. Configure payouts and let users bet against each other. You can also make your bots play together. Uses [Sunfish](https://github.com/thomasahle/sunfish) as the chess engine (AI); the hardest setting has an ELO of around 1900, and the default setting is much lower, but still challenging for most players. The difficulty can be selected with the slash command.
+Play Chess against your friends or the bot itself. Configure payouts and let users bet against each other. You can also make your bots play together. Requires ImageMagick to be installed in the host machine. Uses [Sunfish](https://github.com/thomasahle/sunfish) as the chess engine/AI; the hardest setting has an ELO of around 1900, and the default setting is much lower, but still challenging for most players. The difficulty can be selected with the slash command.
 
 ![demonstration](https://i.imgur.com/6IleFWa.png)
 
 ### 🔴 SimpleCheckers
 
-Play Checkers/Draughts against your friends or the bot itself. Configure payouts and let users bet against each other. You can also make your bots play together. The only variant available right now is English Draughts (also known as American Checkers). Note that capturing pieces is mandatory in the rules of this game. The checkers AI used here is a simple minimax algorithm, but it may still pose a challenge to most people.
+Play Checkers/Draughts against your friends or the bot itself. Configure payouts and let users bet against each other. You can also make your bots play together. The only variant available right now is English Draughts (also known as American Checkers). Note that capturing pieces is mandatory in the rules of this game. The checkers AI used here is a simple minimax algorithm, but it may still pose a challenge to many people.
 
 ![demonstration](https://i.imgur.com/bhhBB5d.png)
 
@@ -105,7 +105,7 @@ Lets you view AI image generation metadata (A1111/Forge, ComfyUI, SwarmUI). It c
 
 ### 📜 Logs
 
-Lets the bot owner open an interactive view of the bot's console output. Useful if you're not currently in a position to access the host machine.
+Creates an interactive view which lets the bot owner open or save the bot's latest logs at that point in time. The view will dissapear after a while. Useful if you're not currently in a position to access the host machine.
 
 ### 🎤 VoiceLog
 
@@ -113,25 +113,23 @@ Logs users joining and leaving voicechat, inside the text chat embedded in the v
 
 ![demonstration](https://i.imgur.com/CAzmA9R.png)
 
-### 🎐 ImageLog
+### 🛜 AudioReconnect
 
-Logs and stores deleted images in a designated moderation channel. Useful for moderating servers with image boards or similar.
+Restores the current audio track progress when the bot restarts (either manual or crash). It also reconnects to voice channels when the bot restarts even if there weren't any tracks currently playing, for user convenience.
 
-❌ Has been partially broken for a while because Discord changed how its cdn works.
-
-**⚠️ Usage Warning:** Content saved by this method is NOT usable for reporting users to Discord. You also may be liable for keeping content that breaks Discord TOS.
+This reuses Audio's persistqueue setting, which normally only preserves the queue and not the current track, and does not update in real time. The cost to keep the queues updated is insignificant (saves only the necessary changes every 5 seconds).
 
 ### 🗣 TTS
 
-Plays text to speech in voice chat, intended as an accessibility feature. Detects the language automatically. The voice cannot be changed for now. Briefly interrupts music and resumes where it paused at.
+Plays text to speech in voice chat, intended as an accessibility feature. Detects the language automatically. The voice cannot be changed for now, but let me know if you need that feature. Briefly interrupts music and resumes where it paused at.
 
-### ⛩ Booru
+### ⛩️ Booru
 
-Grab images from Gelbooru that match specific tags. The slash command version features smart tag suggestions/autocompletion. It will also avoid sending the same image in the same channel twice until absolutely necessary (within 24 hours).
+Grab anime art from Gelbooru that match specific tags. Added buttons to inspect tags, grab another result, or edit your query. The slash command version features smart tag suggestions/autocompletion. This cog is kinda spammy.
 
 **⚠️ Usage Warning:** This cog is allowed to display NSFW material in channels marked as NSFW.
 
-![demonstration](https://i.imgur.com/KxD7pKq.png)
+![demonstration](https://i.imgur.com/GENZjuK.png)
 
 ### 🟫 Minecraft
 
@@ -151,11 +149,11 @@ A couple fun hybrid commands involving random seeds, including:
 
 ### 🖌️ Draw
 
-A couple fun hybrid commands with image filters for you and your friends' avatars. Also includes an avatar command and an avatar context menu. May take a minute to install due to the image processing libraries (opencv and Pillow).
+A couple fun hybrid commands with image filters for you and your friends' avatars. Also includes an avatar command and an avatar context menu.
 
 ### ⏺ Autoreact
 
-You can give a chance for the bot to copy someone else's reactions, making it seem more interactive in everyday conversations.
+You can give a chance for the bot to copy someone else's reaction, making it seem more interactive in everyday conversations.
 
 Another feature is for the bot owner to set regex patterns that will cause the bot to react with a specific emoji. You may be able to think of useful or funny uses for this.
 
@@ -164,3 +162,11 @@ Another feature is for the bot owner to set regex patterns that will cause the b
 ### 📢 GameAlert
 
 Sends a configured message when a guild member starts playing a specific game or has been playing for some time. The purpose is to alert friends or just to be silly.
+
+### 🎐 ImageLog
+
+Logs and stores deleted images in a designated moderation channel. Useful for moderating servers with image boards or similar.
+
+❌ Has been partially broken for a while because Discord changed how its cdn works.
+
+**⚠️ Usage Warning:** Content saved by this method is NOT usable for reporting users to Discord. You also may be liable for keeping content that breaks Discord TOS.
