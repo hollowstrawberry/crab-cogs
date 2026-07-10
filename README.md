@@ -32,7 +32,7 @@ Live audio player for the Audio cog with buttons for queue/pause/play/skip/rewin
 
 ⚠️ Discord guidelines don't like when things update periodically without human input, even when it follows ratelimits, so use this at your own risk. It *should* be fine conceptually as it requires humans to be listening in voice chat, but I'm not sure.
 
-![demonstration](https://i.imgur.com/at1WsvX.png)
+![demonstration](https://i.imgur.com/xL2Q929.png)
 
 
 ### 😶 EmojiSteal
