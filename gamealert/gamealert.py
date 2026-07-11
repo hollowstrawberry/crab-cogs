@@ -44,22 +44,25 @@ class GameAlert(commands.Cog):
                 continue
             for member in guild.members:
                 activity = next(iter(act for act in member.activities if act.type == discord.ActivityType.playing), None)
-                if activity and activity.name and activity.created_at:
-                    alert = next(iter(a for a in self.alerts[guild.id] if a['game_name'] == activity.name), None)
-                    if alert and (datetime.now(timezone.utc) - activity.created_at).total_seconds() > 60 * alert['delay_minutes']:
-                        if member.id in self.alerted or not await self.bot.allowed_by_whitelist_blacklist(member):
-                            continue
-                        channel = guild.get_channel(alert['channel_id'])
-                        message = alert['message']\
-                            .replace("{user}", member.display_name)\
-                            .replace("{mention}", member.mention)
-                        try:
-                            await channel.send(message)
-                            self.alerted.append(member.id)
-                        except Exception as error:
-                            log.warning(f"Failed to send game alert in {alert['channel_id']} - {type(error).__name__}: {error}", exc_info=True)
-                elif member.id in self.alerted:
-                    self.alerted.remove(member.id)
+                if not activity or not activity.name or not activity.created_at:
+                    if member.id in self.alerted:
+                        self.alerted.remove(member.id)
+                    continue
+                alert = next(iter(a for a in self.alerts[guild.id] if a['game_name'] == activity.name), None)
+                if not alert or (datetime.now(timezone.utc) - activity.created_at).total_seconds() < 60 * alert['delay_minutes']:
+                    continue
+                if member.id in self.alerted or not await self.bot.allowed_by_whitelist_blacklist(member):
+                    continue
+                if not (channel := guild.get_channel(alert['channel_id'])):
+                    continue
+                message = alert['message']\
+                    .replace("{user}", member.display_name)\
+                    .replace("{mention}", member.mention)
+                try:
+                    await channel.send(message)
+                    self.alerted.append(member.id)
+                except Exception as error:
+                    log.warning(f"Failed to send game alert in {alert['channel_id']} - {type(error).__name__}: {error}", exc_info=True)
 
     @alert_loop.before_loop
     async def alert_loop_before(self):
@@ -77,7 +80,7 @@ class GameAlert(commands.Cog):
     @commands.has_permissions(manage_guild=True)
     async def add(self, ctx: commands.Context, game: str, delay: int, *, message: str):
         """Add a new game alert to this channel. Usage:
-        `[p]gamealert add \"game\" <delay in minutes> <message>`
+        `[p]gamealert add "game" <delay in minutes> <message>`
         The message may contain {user} or {mention}"""
         if len(message) > 1000:
             await ctx.send("Sorry, the message may not be longer than 1000 characters.")
