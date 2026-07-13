@@ -237,6 +237,8 @@ class LinkFixer(commands.Cog):
         if not link_names:
             return await ctx.send_help()
         all_links = set(link.name for link in ALL_LINKS)
+        if len(link_names) == 1 and link_names[0].lower() == "all":
+            link_names = list(all_links)
         disabled_links = await self.config.guild(ctx.guild).disabled_links()
         disabled_links = list(set(disabled_links) - set(link_names))
         await self.config.guild(ctx.guild).disabled_links.set(disabled_links)
@@ -255,6 +257,8 @@ class LinkFixer(commands.Cog):
         if not link_names:
             return await ctx.send_help()
         all_links = set(link.name for link in ALL_LINKS)
+        if len(link_names) == 1 and link_names[0].lower() == "all":
+            link_names = list(all_links)
         disabled_links = await self.config.guild(ctx.guild).disabled_links()
         disabled_links = list(all_links & (set(disabled_links) | set(link_names)))
         await self.config.guild(ctx.guild).disabled_links.set(disabled_links)
