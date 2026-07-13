@@ -10,7 +10,7 @@ log = logging.getLogger("red.crab-cogs.linkfixer")
 
 Span = Tuple[int, int]
 
-@dataclass
+@dataclass(frozen=True)
 class Link:
     name: str
     pattern: re.Pattern
@@ -135,7 +135,7 @@ class LinkFixer(commands.Cog):
         if not matched_links:
             return
 
-        language = await seld.config.guild(message.guild).language()
+        language = await self.config.guild(message.guild).language()
         any_fixed = False
         link_types = [link for link in ALL_LINKS if link.name not in self.disabled_links.get(message.guild.id, [])]
         for i in range(len(matched_links)):
@@ -190,19 +190,19 @@ class LinkFixer(commands.Cog):
         await ctx.reply(f"✅ LinkFixer disabled in {ctx.guild.name}")
 
     
-    @command_linkfixer.group(name="translate", aliases=["english"], invoke_without_command=True)
+    @command_linkfixer.group(name="translate", aliases=["language", "english"], invoke_without_command=True)
     async def command_linkfixer_translate(self, ctx: commands.Context):
         """Controls automatic embed translations."""
         await ctx.send_help()
     
-    @command_linkfixer_translate.command(name="enable")
+    @command_linkfixer_translate.command(name="enable", aliases=["english", "on", "yes", "true"])
     async def command_linkfixer_translate_enable(self, ctx: commands.Context):
         """Enables compatible links to be translated to English."""
         assert ctx.guild
         await self.config.guild(ctx.guild).language.set("en")
         await ctx.reply(f"✅ Compatible links will be translated to English (such as fxtwitter).")
 
-    @command_linkfixer_translate.command(name="disable")
+    @command_linkfixer_translate.command(name="disable", aliases=["off", "no", "false"])
     async def command_linkfixer_translate_disable(self, ctx: commands.Context):
         """Disables compatible links from being translated to English."""
         assert ctx.guild
