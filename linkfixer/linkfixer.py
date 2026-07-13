@@ -230,12 +230,12 @@ class LinkFixer(commands.Cog):
             links.append(f" `{'⛔' if link.name in disabled_links else '✅'} {link.name}`")
         await ctx.send(">>> " + "\n".join(links))
 
-    @command_linkfixer_links.command(name="enable")
+    @command_linkfixer_links.command(name="enable", aliases=["add"])
     async def command_linkfixer_links_enable(self, ctx: commands.Context, *link_names: str):
         """Enables one or more link fixes."""
         assert ctx.guild
         if ctx.guild.id not in self.enabled_guilds:
-            return await ctx.reply("⚠️ LinkFixer is not enabled in {ctx.guild.name}")
+            return await ctx.reply(f"⚠️ LinkFixer is not enabled in {ctx.guild.name}")
         if not link_names:
             return await ctx.send_help()
         all_links = set(link.name for link in ALL_LINKS)
@@ -252,12 +252,12 @@ class LinkFixer(commands.Cog):
             await ctx.tick(message="Done")
         await self.command_linkfixer_links_list(ctx)
 
-    @command_linkfixer_links.command(name="disable")
+    @command_linkfixer_links.command(name="disable", aliases=["remove"])
     async def command_linkfixer_links_disable(self, ctx: commands.Context, *link_names: str):
         """Disables one or more link fixes."""
         assert ctx.guild
         if ctx.guild.id not in self.enabled_guilds:
-            return await ctx.reply("⚠️ LinkFixer is not enabled in {ctx.guild.name}")
+            return await ctx.reply(f"⚠️ LinkFixer is not enabled in {ctx.guild.name}")
         if not link_names:
             return await ctx.send_help()
         all_links = set(link.name for link in ALL_LINKS)
