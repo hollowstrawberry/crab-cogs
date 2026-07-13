@@ -118,6 +118,10 @@ class LinkFixer(commands.Cog):
             return
 
         code_spans, spoiler_spans = get_code_and_spoiler_spans(message.content)
+        
+        # stupid edge case
+        # as of july 2026 in discord for android, an unclosed "||" can get closed by a codeblocked "||" even though a codeblocked "||" normally does not constitute a spoiler delimiter
+        spoiler_edge_case = any("||" in message.content[start:end] for start, end in code_spans)
 
         matched_links: List[str] = []
         for match in GENERIC_LINK.finditer(message.content):
@@ -125,7 +129,7 @@ class LinkFixer(commands.Cog):
                 continue
             link = match.group(0)
             spoilered_link = f"|| {link} ||"
-            should_spoiler = is_in_span(spoiler_spans, match.start())
+            should_spoiler = is_in_span(spoiler_spans, match.start()) or spoiler_edge_case
             if link in matched_links or spoilered_link in matched_links:
                 if should_spoiler and link in matched_links:
                     matched_links[matched_links.index(link)] = spoilered_link
