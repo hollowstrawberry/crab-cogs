@@ -231,7 +231,7 @@ class LinkFixer(commands.Cog):
         await ctx.send(">>> " + "\n".join(links))
 
     @command_linkfixer_links.command(name="enable")
-    async def command_linkfixer_links_enable(self, ctx: commands.Context, link_names: *str):
+    async def command_linkfixer_links_enable(self, ctx: commands.Context, *link_names: str):
         """Enables one or more link fixes."""
         assert ctx.guild
         disabled_links = await self.config.guild(ctx.guild).disabled_links()
@@ -242,7 +242,7 @@ class LinkFixer(commands.Cog):
         await self.command_linkfixer_links_list(ctx)
 
     @command_linkfixer_links.command(name="disable")
-    async def command_linkfixer_links_disable(self, ctx: commands.Context, link_names: *str):
+    async def command_linkfixer_links_disable(self, ctx: commands.Context, *link_names: str):
         """Disables one or more link fixes."""
         assert ctx.guild
         all_links = set(link.name for link in ALL_LINKS)
