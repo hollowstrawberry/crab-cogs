@@ -124,7 +124,7 @@ class LinkFixer(commands.Cog):
             if is_in_span(code_spans, match.start()):
                 continue
             link = match.group(0)
-            spoilered_link = f"||{link}||"
+            spoilered_link = f"|| {link} ||"
             should_spoiler = is_in_span(spoiler_spans, match.start())
             if link in matched_links or spoilered_link in matched_links:
                 if should_spoiler and link in matched_links:
