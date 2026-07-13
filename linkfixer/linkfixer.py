@@ -192,7 +192,7 @@ class LinkFixer(commands.Cog):
         await self.config.guild(ctx.guild).enabled.set(False)
         if ctx.guild.id in self.enabled_guilds:
             self.enabled_guilds.remove(ctx.guild.id)
-        await ctx.reply(f"✅ LinkFixer disabled in {ctx.guild.name}")
+        await ctx.reply(f"⛔ LinkFixer disabled in {ctx.guild.name}")
 
     
     @command_linkfixer.group(name="translate", aliases=["language", "english"], invoke_without_command=True)
@@ -212,7 +212,7 @@ class LinkFixer(commands.Cog):
         """Disables compatible links from being translated to English."""
         assert ctx.guild
         await self.config.guild(ctx.guild).language.set(None)
-        await ctx.reply(f"✅ Embeds will not be translated.")
+        await ctx.reply(f"⛔ Embeds will not be translated.")
 
     
     @command_linkfixer.group(name="link", aliases=["links"], invoke_without_command=True)
@@ -234,6 +234,8 @@ class LinkFixer(commands.Cog):
     async def command_linkfixer_links_enable(self, ctx: commands.Context, *link_names: str):
         """Enables one or more link fixes."""
         assert ctx.guild
+        if ctx.guild.id not in self.enabled_guilds:
+            return await ctx.reply("⚠️ LinkFixer is not enabled in {ctx.guild.name}")
         if not link_names:
             return await ctx.send_help()
         all_links = set(link.name for link in ALL_LINKS)
@@ -254,6 +256,8 @@ class LinkFixer(commands.Cog):
     async def command_linkfixer_links_disable(self, ctx: commands.Context, *link_names: str):
         """Disables one or more link fixes."""
         assert ctx.guild
+        if ctx.guild.id not in self.enabled_guilds:
+            return await ctx.reply("⚠️ LinkFixer is not enabled in {ctx.guild.name}")
         if not link_names:
             return await ctx.send_help()
         all_links = set(link.name for link in ALL_LINKS)
