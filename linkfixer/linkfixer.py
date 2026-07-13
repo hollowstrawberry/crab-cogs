@@ -121,6 +121,7 @@ class LinkFixer(commands.Cog):
         
         # stupid edge case
         # as of july 2026 in discord for android, an unclosed "||" can get closed by a codeblocked "||" even though a codeblocked "||" normally does not constitute a spoiler delimiter
+        # but this whole thing is kinda pointless, as any spoilered url makes all embeds get spoilered
         spoiler_edge_case = any("||" in message.content[start:end] for start, end in code_spans)
 
         matched_links: List[str] = []
