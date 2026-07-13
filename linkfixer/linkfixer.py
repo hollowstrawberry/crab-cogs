@@ -215,7 +215,7 @@ class LinkFixer(commands.Cog):
         await ctx.reply(f"⛔ Embeds will not be translated.")
 
     
-    @command_linkfixer.group(name="link", aliases=["links"], invoke_without_command=True)
+    @command_linkfixer.group(name="links", aliases=["link", "fix"], invoke_without_command=True)
     async def command_linkfixer_links(self, ctx: commands.Context):
         """List or toggle available links for the fixer."""
         await ctx.send_help()
