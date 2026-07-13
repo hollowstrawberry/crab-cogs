@@ -234,21 +234,34 @@ class LinkFixer(commands.Cog):
     async def command_linkfixer_links_enable(self, ctx: commands.Context, *link_names: str):
         """Enables one or more link fixes."""
         assert ctx.guild
+        if not link_names:
+            return await ctx.send_help()
+        all_links = set(link.name for link in ALL_LINKS)
         disabled_links = await self.config.guild(ctx.guild).disabled_links()
         disabled_links = list(set(disabled_links) - set(link_names))
         await self.config.guild(ctx.guild).disabled_links.set(disabled_links)
         self.disabled_links[ctx.guild.id] = disabled_links
-        await ctx.tick(message="Done")
+        invalid_links = list(set(link_names) - all_links)
+        if invalid_links:
+            await ctx.send("⚠️ Invalid options: " + ", ".join([f"`{link}`" for link in invalid_links]))
+        else:
+            await ctx.tick(message="Done")
         await self.command_linkfixer_links_list(ctx)
 
     @command_linkfixer_links.command(name="disable")
     async def command_linkfixer_links_disable(self, ctx: commands.Context, *link_names: str):
         """Disables one or more link fixes."""
         assert ctx.guild
+        if not link_names:
+            return await ctx.send_help()
         all_links = set(link.name for link in ALL_LINKS)
         disabled_links = await self.config.guild(ctx.guild).disabled_links()
         disabled_links = list(all_links & (set(disabled_links) | set(link_names)))
         await self.config.guild(ctx.guild).disabled_links.set(disabled_links)
         self.disabled_links[ctx.guild.id] = disabled_links
-        await ctx.tick(message="Done")
+        invalid_links = list(set(link_names) - all_links)
+        if invalid_links:
+            await ctx.send("⚠️ Invalid options: " + ", ".join([f"`{link}`" for link in invalid_links]))
+        else:
+            await ctx.tick(message="Done")
         await self.command_linkfixer_links_list(ctx)
