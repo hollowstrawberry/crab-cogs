@@ -1,13 +1,14 @@
 import re
 import logging
 import discord
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from dataclasses import dataclass
 from redbot.core import commands, Config
 from redbot.core.bot import Red
 
 log = logging.getLogger("red.crab-cogs.linkfixer")
 
+Span = Tuple[int, int]
 
 @dataclass
 class Link:
@@ -17,6 +18,7 @@ class Link:
 
 
 GENERIC_LINK = re.compile(r"(?<!<)(https?://[^\s|)>\]]+)")
+BLOCK_OR_DELIMITER = re.compile(r"```.*?```|`[^`]*?`|\\.|\|\|", re.DOTALL)
 
 ALL_LINKS = [
     Link(
@@ -56,6 +58,28 @@ ALL_LINKS = [
     ),
 ]
 
+def get_code_and_spoiler_spans(content: str) -> Tuple[List[Span], List[Span]]:
+    """
+    Returns lists of ```code blocks```/`code blocks` and ||spoiler blocks||
+    """
+    code_spans = []
+    spoiler_spans = []
+    spoiler_start = None
+    for m in BLOCK_OR_DELIMITER.finditer(content):
+        token = m.group(0)
+        if token == "||":
+            if spoiler_start is None:
+                spoiler_start = m.end()
+            else:
+                spoiler_spans.append((spoiler_start, m.start()))
+                spoiler_start = None
+        elif token.startswith("`"):
+            code_spans.append((m.start(), m.end()))
+    return code_spans, spoiler_spans
+
+def is_in_span(spans: List[Span], pos: int) -> bool:
+    return any(start <= pos < end for start, end in spans)
+
 
 class LinkFixer(commands.Cog):
     """Sends modified links to embed content from popular social media sites."""
@@ -67,6 +91,7 @@ class LinkFixer(commands.Cog):
         self.config.register_guild(**{
             "enabled": False,
             "disabled_links": [],
+            "language": None,
         })
         self.enabled_guilds: List[int] = []
         self.disabled_links: Dict[int, List[str]] = {}
@@ -91,16 +116,26 @@ class LinkFixer(commands.Cog):
             return
         if not await self.is_valid_red_message(message):
             return
-        
-        matched_links: List[str] = list(dict.fromkeys(GENERIC_LINK.findall(message.content)))
-        for i in range(len(matched_links)):
-            spoilered = f"||{matched_links[i]}||"
-            if spoilered in message.content:
-                matched_links[i] = spoilered
-        
+
+        code_spans, spoiler_spans = get_code_and_spoiler_spans(message.content)
+
+        matched_links: List[str] = []
+        for match in GENERIC_LINK.finditer(message.content):
+            if is_in_span(code_spans, match.start()):
+                continue
+            link = match.group(0)
+            spoilered_link = f"||{link}||"
+            should_spoiler = is_in_span(spoiler_spans, match.start())
+            if link in matched_links or spoilered_link in matched_links:
+                if should_spoiler and link in matched_links:
+                    matched_links[matched_links.index(link)] = spoilered_link
+                continue
+            matched_links.append(spoilered_link if should_spoiler else link)
+
         if not matched_links:
             return
 
+        language = await seld.config.guild(message.guild).language()
         any_fixed = False
         link_types = [link for link in ALL_LINKS if link.name not in self.disabled_links.get(message.guild.id, [])]
         for i in range(len(matched_links)):
@@ -109,22 +144,25 @@ class LinkFixer(commands.Cog):
                 if match := link_type.pattern.search(link):
                     any_fixed = True
                     tail = [g for g in match.groups() if g][-1].split("?")[0]
+                    if language and "fxtwitter" in link_type.fixed:
+                        tail = tail.rstrip("/") + "/en"
                     matched_links[i] = link.replace(match.group(0), f"{link_type.fixed}{tail}")
-                    if "fxtwitter" in link_type.fixed:
-                        matched_links[i] = matched_links[i].rstrip("/") + "/en"
-                    
+                    break
+
         if not any_fixed:
             return
-        
+
         matched_links.insert(0, f"-# {message.author.mention} I fixed the links so the content embeds better.")
         await message.channel.send("\n".join(matched_links), allowed_mentions=discord.AllowedMentions.none())
         if message.channel.permissions_for(message.guild.me).manage_messages:
             await message.edit(suppress=True)
 
+    
     async def is_valid_red_message(self, message: discord.Message) -> bool:
         return await self.bot.allowed_by_whitelist_blacklist(message.author) \
             and await self.bot.ignored_channel_or_guild(message) \
             and not await self.bot.cog_disabled_in_guild(self, message.guild)
+
     
     @commands.group(name="linkfixer", aliases=["linkfix"], invoke_without_command=True)  # type: ignore
     @commands.guild_only()
@@ -150,7 +188,28 @@ class LinkFixer(commands.Cog):
         if ctx.guild.id in self.enabled_guilds:
             self.enabled_guilds.remove(ctx.guild.id)
         await ctx.reply(f"✅ LinkFixer disabled in {ctx.guild.name}")
-       
+
+    
+    @command_linkfixer.group(name="translate", aliases=["english"], invoke_without_command=True)
+    async def command_linkfixer_translate(self, ctx: commands.Context):
+        """Controls automatic embed translations."""
+        await ctx.send_help()
+    
+    @command_linkfixer_translate.command(name="enable")
+    async def command_linkfixer_translate_enable(self, ctx: commands.Context):
+        """Enables compatible links to be translated to English."""
+        assert ctx.guild
+        await self.config.guild(ctx.guild).language.set("en")
+        await ctx.reply(f"✅ Compatible links will be translated to English (such as fxtwitter).")
+
+    @command_linkfixer_translate.command(name="disable")
+    async def command_linkfixer_translate_disable(self, ctx: commands.Context):
+        """Disables compatible links from being translated to English."""
+        assert ctx.guild
+        await self.config.guild(ctx.guild).language.set(None)
+        await ctx.reply(f"✅ Embeds will not be translated.")
+
+    
     @command_linkfixer.group(name="link", aliases=["links"], invoke_without_command=True)
     async def command_linkfixer_links(self, ctx: commands.Context):
         """List or toggle available links for the fixer."""
