@@ -163,6 +163,11 @@ Another feature is for the bot owner to set regex patterns that will cause the b
 
 Sends a configured message when a guild member starts playing a specific game or has been playing for some time. The purpose is to alert friends or just to be silly.
 
+
+### 🔧 TypingFix
+
+Lets all cogs work normally even if `bot is typing...` breaks on Discord's end. This has happened at least 3 times in 2026, which led to this cog's creation. This cog exists because, from a design perspective, a malfunctioning visual indicator should not stop command execution, particularly in core commands like `[p]cog update`. Ironically, if you're currently experiencing an outage that would need this cog, you'll need to use an eval, as `[p]cog install` depends on the typing indicator.
+
 ### 🎐 ImageLog
 
 Logs and stores deleted images in a designated moderation channel. Useful for moderating servers with image boards or similar.
