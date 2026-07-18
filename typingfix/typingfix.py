@@ -11,6 +11,7 @@ TIMEOUT = 2.0
 
 async def patched_typer(self: Typing):
     try:
+        log.info("test")
         channel = await self._get_channel()
         await asyncio.wait_for(channel._state.http.send_typing(channel.id), timeout=TIMEOUT)
     except Exception:
@@ -18,7 +19,9 @@ async def patched_typer(self: Typing):
 
 async def patched_aenter(self: Typing):
     async def do_typing():
+        log.info("test raise")
         try:
+            raise RuntimeError()
             channel = await self._get_channel()
             while True:
                 await asyncio.wait_for(channel._state.http.send_typing(channel.id), timeout=TIMEOUT)
