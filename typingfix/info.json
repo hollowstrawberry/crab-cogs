@@ -2,12 +2,12 @@
     "author": ["hollowstrawberry"],
     "min_bot_version": "3.5.0",
     "min_python_version": [3,8,0],
-    "description": "Lets the bot work normally even if \"bot is typing...\" breaks on Discord's end. This has happened at least 3 times in 2026, which led to this cog's creation. This cog exists because, from a design perspective, a malfunctioning visual indicator should not stop command execution, particularly in core commands like [p]cog update. Ironically, if you're currently experiencing an outage that would need this cog, you'll need to use an eval, as cog install depends on the typing indicator.",
+    "description": "Lets all cogs work normally even if \"bot is typing...\" breaks on Discord's end. This has happened at least 3 times in 2026, which led to this cog's creation. This cog exists because, from a design perspective, a malfunctioning visual indicator should not stop command execution, particularly in core commands like [p]cog update. Ironically, if you're currently experiencing an outage that would need this cog, you'll need to use an eval, as cog install depends on the typing indicator.",
     "hidden": false,
-    "install_msg": "🔗 __**TypingFix**__\n```Cog installed. Instructions:\n1. Load it with [p]load typingfix\n2. All set. In the rare case that \"bot is typing...\" breaks on Discord's end, the bot will continue working normally.```",
+    "install_msg": "🔗 __**TypingFix**__\n```Cog installed. Instructions:\n1. Load it with [p]load typingfix\n2. All set. In the rare case that \"bot is typing...\" breaks on Discord's end, all cogs will continue working normally.```",
     "required_cogs": {},
     "requirements": [],
-    "short": "Lets the bot work normally even if \"bot is typing...\" breaks on Discord's end.",
+    "short": "Lets all cogs work normally even if \"bot is typing...\" breaks on Discord's end.",
     "end_user_data_statement": "This cog does not store user data.",
     "tags": ["crab", "fix", "indicator", "typing", "error", "exception", "safe"]
 }
