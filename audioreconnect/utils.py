@@ -8,6 +8,7 @@ from typing import Optional
 from dataclasses import dataclass
 from redbot.core.bot import Red
 from redbot.core._cli import ExitCodes
+from redbot.cogs.audio.core import Audio
 from redbot.cogs.audio.apis.persist_queue_wrapper import QueueInterface
 
 log = logging.getLogger("red.crab-cogs.audioreconnect")
@@ -70,6 +71,12 @@ async def heal_persistent_queue():
     QUEUE_API = None
     log.info("Restored builtin persist_queue behavior")
 
+async def get_auto_deafen(bot: Red, guild: discord.Guild) -> bool:
+    try:
+        audio: Audio = bot.get_cog("Audio")  # type: ignore
+        return await audio.config.guild(guild).auto_deafen()
+    except:
+        return True
 
 @dataclass
 class QueueState:
