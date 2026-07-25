@@ -49,6 +49,9 @@ class AudioReconnect(Cog):
         # and also store any player queues that have changed since the last loop
         players = utils.all_lavalink_players()
         for player in players:
+            if not player.guild.me.voice:
+                asyncio.create_task(self.heal_player(player))
+                continue
             guild_id = player.guild.id
             entry = self.queues.setdefault(guild_id, utils.QueueState(guild_id))
             entry.position = player.position
@@ -149,6 +152,18 @@ class AudioReconnect(Cog):
         else:
             queue[0].start_timestamp = position
             await player.play()
+
+    async def heal_player(self, player: lavalink.Player):
+        try:
+            await player.node.destroy_guild(guild_id)
+            player.node.remove_player(self)
+            player.cleanup()
+            if entry := self.queues.get(player.guild.id):
+                auto_deafen = await utils.get_auto_deafen(self.bot, player.guild)
+                await self.reconnect(player.channel, entry.queue_pickle, entry.position, auto_deafen)
+        except Exception:
+            log.exception("Failed to heal broken player")
+             
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
