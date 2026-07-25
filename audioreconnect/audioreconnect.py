@@ -14,6 +14,7 @@ from redbot.cogs.audio.core import Audio
 from audioreconnect import utils
 
 log = utils.log
+INTERVAL = 5
 
 
 class AudioReconnect(Cog):
@@ -43,7 +44,7 @@ class AudioReconnect(Cog):
             await self.config.clear_all()
             await utils.heal_persistent_queue()
 
-    @tasks.loop(seconds=5)
+    @tasks.loop(seconds=INTERVAL)
     async def save_current_tracks(self):
         # every n seconds, store the positions of all players at the same time
         # and also store any player queues that have changed since the last loop
@@ -127,7 +128,8 @@ class AudioReconnect(Cog):
             for player in players:
                 await self.config.guild(player.guild).channel.set(player.channel.id)
             log.info(f"Cold start of {len(players)} guilds")
-        
+
+        await asyncio.sleep(INTERVAL)
         self.save_current_tracks.start()
 
     async def reconnect(self, channel: discord.channel.VocalGuildChannel, queue_pickle: Optional[str], position: int, self_deaf: bool):
