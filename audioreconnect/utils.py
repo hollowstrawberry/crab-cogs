@@ -13,6 +13,8 @@ from redbot.cogs.audio.apis.persist_queue_wrapper import QueueInterface
 
 log = logging.getLogger("red.crab-cogs.audioreconnect")
 
+SESSION_RECONNECT_ATTEMPTS = 10
+
 QUEUE_API: Optional[QueueInterface] = None
 QUEUE_API_METHODS = {
     # technically we only need to override fetch_all to disable the persist_queue behavior
@@ -37,6 +39,14 @@ def pickle_track(track: lavalink.Track):
 def is_shutting_down(bot: Red) -> bool:
     # yes we will rely on internal values, I don't like it but it's the cleanest way
     return bot._shutdown_mode in (ExitCodes.SHUTDOWN, ExitCodes.RESTART)
+
+def shard_is_healthy(bot: Red, guild: discord.Guild, max_latency: float = 5.0) -> bool:
+    shard = bot.get_shard(guild.shard_id)
+    if not shard or shard.is_closed() or shard.is_ws_ratelimited():
+        return False
+    if not shard.latency or shard.latency > max_latency:
+        return False
+    return True
 
 async def dummy_method(self, *args, **kwargs):
     return []
