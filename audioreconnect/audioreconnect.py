@@ -148,7 +148,7 @@ class AudioReconnect(Cog):
             if isinstance(track, lavalink.Track) and isinstance(track.requester, int):
                 track.requester = channel.guild.get_member(track.requester)  # type: ignore
         queue_id = tuple(track.track_identifier if track else None for track in queue)
-        self.queues[channel.guild.id] = utils.QueueState(guild_id, position, queue_id, queue_pickle))
+        self.queues[channel.guild.id] = utils.QueueState(channel.guild.id, position, queue_id, queue_pickle)
         player.queue = queue
         if queue[0] is None:
             queue.pop(0)
@@ -178,7 +178,7 @@ class AudioReconnect(Cog):
         backoff = ExponentialBackoff()
         for attempt in range(utils.SESSION_RECONNECT_ATTEMPTS):
             try:
-                await self.reconnect(channel, entry.queue_pickle, entry.position, auto_deafen)
+                await self.reconnect(player.channel, entry.queue_pickle, entry.position, auto_deafen)
                 log.info(f"Reconnected player for {player.guild.id}")
                 return
             except Exception:
