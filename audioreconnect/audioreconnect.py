@@ -175,7 +175,7 @@ class AudioReconnect(Cog):
             await asyncio.sleep(1)
     
         auto_deafen = await utils.get_auto_deafen(self.bot, player.guild)
-        backoff = ExponentialBackoff(base=utils.SESSION_RECONNECT_DELAY)
+        backoff = ExponentialBackoff()
         for attempt in range(utils.SESSION_RECONNECT_ATTEMPTS):
             try:
                 await self.reconnect(channel, entry.queue_pickle, entry.position, auto_deafen)
