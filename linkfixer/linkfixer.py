@@ -109,9 +109,7 @@ class LinkFixer(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_without_command(self, message: discord.Message):
-        if not message.guild or message.guild.id not in self.enabled_guilds:
-            return
-        if not isinstance(message.author, discord.Member) or message.author == message.guild.me:
+        if not message.guild or message.guild.id not in self.enabled_guilds or message.author == message.guild.me:
             return
         perms = message.channel.permissions_for(message.guild.me)
         if not perms.send_messages or not perms.embed_links:
@@ -166,9 +164,12 @@ class LinkFixer(commands.Cog):
 
     
     async def is_valid_red_message(self, message: discord.Message) -> bool:
-        return await self.bot.allowed_by_whitelist_blacklist(message.author) \
-            and await self.bot.ignored_channel_or_guild(message) \
+        return (
+            isinstance(message.author, discord.Member)
+            and await self.bot.allowed_by_whitelist_blacklist(message.author)
+            and await self.bot.ignored_channel_or_guild(message)
             and not await self.bot.cog_disabled_in_guild(self, message.guild)
+        )
 
     
     @commands.group(name="linkfixer", aliases=["linkfix"], invoke_without_command=True)  # type: ignore
