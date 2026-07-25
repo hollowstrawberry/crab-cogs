@@ -6,7 +6,6 @@ import lavalink
 from typing import Optional
 from base64 import b64encode, b64decode
 from discord.ext import tasks
-from discord.backoff import ExponentialBackoff
 from redbot.core import commands
 from redbot.core.bot import Red, Config
 from redbot.core.commands import Cog
@@ -170,19 +169,22 @@ class AudioReconnect(Cog):
         perms = player.channel.permissions_for(player.guild.me)
         if not perms.connect or not perms.speak:
             return
-
-        while not utils.shard_is_healthy(self.bot, player.guild):
-            await asyncio.sleep(1)
     
         auto_deafen = await utils.get_auto_deafen(self.bot, player.guild)
-        backoff = ExponentialBackoff()
-        for attempt in range(utils.SESSION_RECONNECT_ATTEMPTS):
+        
+        attempt, backoff = 0, utils.backoff()
+        while attempt < utils.SESSION_RECONNECT_ATTEMPTS:
+            if not utils.shard_is_healthy(self.bot, player.guild):
+                attempt, backoff = 0, utils.backoff()
+                while not utils.shard_is_healthy(self.bot, player.guild):
+                    await asyncio.sleep(1)
+            attempt += 1
             try:
                 await self.reconnect(player.channel, entry.queue_pickle, entry.position, auto_deafen)
                 log.info(f"Reconnected player for {player.guild.id}")
                 return
             except Exception:
-                if attempt == utils.SESSION_RECONNECT_ATTEMPTS - 1:
+                if attempt == utils.SESSION_RECONNECT_ATTEMPTS:
                     log.exception(f"Failed to reconnect player for {player.guild.id}")
                     return
             await asyncio.sleep(backoff.delay())
