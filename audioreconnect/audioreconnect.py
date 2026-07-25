@@ -176,13 +176,13 @@ class AudioReconnect(Cog):
     
         auto_deafen = await utils.get_auto_deafen(self.bot, player.guild)
         backoff = ExponentialBackoff(base=utils.SESSION_RECONNECT_DELAY)
-        for attempt in range(SESSION_RECONNECT_ATTEMPTS):
+        for attempt in range(utils.SESSION_RECONNECT_ATTEMPTS):
             try:
                 await self.reconnect(channel, entry.queue_pickle, entry.position, auto_deafen)
                 log.info(f"Reconnected player for {player.guild.id}")
                 return
             except Exception:
-                if attempt >= utils.RECONNECT_MAX_ATTEMPTS - 1:
+                if attempt == utils.SESSION_RECONNECT_ATTEMPTS - 1:
                     log.exception(f"Failed to reconnect player for {player.guild.id}")
                     return
             await asyncio.sleep(backoff.delay())
