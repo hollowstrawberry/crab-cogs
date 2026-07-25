@@ -14,7 +14,7 @@ from redbot.cogs.audio.apis.persist_queue_wrapper import QueueInterface
 log = logging.getLogger("red.crab-cogs.audioreconnect")
 
 SESSION_RECONNECT_ATTEMPTS = 10
-SESSION_RECONNECT_BACKOFF = 2
+backoff = lambda: discord.backoff.ExponentialBackoff(base=2)
 
 QUEUE_API: Optional[QueueInterface] = None
 QUEUE_API_METHODS = {
