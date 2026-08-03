@@ -23,39 +23,44 @@ BLOCK_OR_DELIMITER = re.compile(r"```.*?```|`[^`]*?`|\\.|\|\|", re.DOTALL)
 ALL_LINKS = [
     Link(
         "twitter",
-        re.compile(r"(?<!<)(https?://(?:www\.|m\.)?(?:x|twitter)\.com/([^\s]+status/[^\s|)>\]]+))"),
+        re.compile(r"(?<!<)(https?://(?:www\.|m\.)?(?:x|twitter)\.com/([^\s]+status/[^\s|)>\]]+))", re.IGNORECASE),
         "https://fxtwitter.com/"
     ),
     Link(
         "tiktok",
-        re.compile(r"(?<!<)(https?://(?:www\.)?tiktok\.com/([^\s/]+/[^/]+/[^\s|)>\]]+))"),
+        re.compile(r"(?<!<)(https?://(?:www\.)?tiktok\.com/([^\s/]+/[^/]+/[^\s|)>\]]+))", re.IGNORECASE),
         "https://tiktokez.com/"
     ),
     Link(
         "vmtiktok",
-        re.compile(r"(?<!<)(https?://vm\.tiktok\.com/([^\s|)>\]]+))"),
+        re.compile(r"(?<!<)(https?://vm\.tiktok\.com/([^\s|)>\]]+))", re.IGNORECASE),
         "https://vm.tiktokez.com/"
     ),
     Link(
         "instagram",
-        re.compile(r"(?<!<)(https?://(?:www\.)?instagram\.com/([^\s/]+/[^\s|)>\]]+))"),
+        re.compile(r"(?<!<)(https?://(?:www\.)?instagram\.com/([^\s/]+/[^\s|)>\]]+))", re.IGNORECASE),
         "https://kkinstagram.com/"
     ),
     Link(
         "reddit",
-        re.compile(r"(?<!<)(https?://(?:www\.|old\.)?reddit\.com/(r/[^\s/]+/[^\s|)>\]]+))"),
+        re.compile(r"(?<!<)(https?://(?:www\.|old\.)?reddit\.com/(r/[^\s/]+/[^\s|)>\]]+))", re.IGNORECASE),
         "https://redditez.com/"
     ),
     Link(
         "pixiv",
-        re.compile(r"(?<!<)(https?://(?:www\.)?pixiv\.net/([^\s|)>\]]+))"),
+        re.compile(r"(?<!<)(https?://(?:www\.)?pixiv\.net/([^\s|)>\]]+))", re.IGNORECASE),
         "https://phixiv.net/"
     ),
     Link(
         "threads",
-        re.compile(r"(?<!<)(https?://(?:www\.)?threads\.com/(@[^\s/]+/[^\s|)>\]]+))"),
+        re.compile(r"(?<!<)(https?://(?:www\.)?threads\.com/(@[^\s/]+/[^\s|)>\]]+))", re.IGNORECASE),
         "https://viewthreads.com/"
     ),
+    Link(
+        "fixembed",
+        re.compile("/(?<![<=])(https?:\/\/(?:[^\s\/]+\.)?(?:twitter\.com|x\.com|instagram\.com|reddit\.com|redd\.it|threads\.(?:net|com)|pixiv\.net|bsky\.app|bilibili\.com|b23\.tv|youtube\.com\/post|pinterest\.com\/pin|pin\.it|tiktok\.com|tumblr\.com|twitch\.tv|twitch\.tv|deviantart\.com\/[^\s\/]+\/art\/|sta\.sh)\/[^\s|)>\]]+)/gm", re.IGNORECASE),
+        "https://fixembed.app/embed?url="
+    )
 ]
 
 def get_code_and_spoiler_spans(content: str) -> Tuple[List[Span], List[Span]]:
