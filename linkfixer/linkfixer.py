@@ -22,39 +22,59 @@ BLOCK_OR_DELIMITER = re.compile(r"```.*?```|`[^`]*?`|\\.|\|\|", re.DOTALL)
 
 ALL_LINKS = [
     Link(
-        "twitter",
+        "fxtwitter",
         re.compile(r"(?<!<)(https?://(?:www\.|m\.)?(?:x|twitter)\.com/([^\s]+status/[^\s|)>\]]+))", re.IGNORECASE),
         "https://fxtwitter.com/"
     ),
     Link(
-        "tiktok",
-        re.compile(r"(?<!<)(https?://(?:www\.)?tiktok\.com/([^\s/]+/[^/]+/[^\s|)>\]]+))", re.IGNORECASE),
-        "https://tiktokez.com/"
+        "vxtwitter",
+        re.compile(r"(?<!<)(https?://(?:www\.|m\.)?(?:x|twitter)\.com/([^\s]+status/[^\s|)>\]]+))", re.IGNORECASE),
+        "https://vxtwitter.com/"
     ),
     Link(
-        "vmtiktok",
-        re.compile(r"(?<!<)(https?://vm\.tiktok\.com/([^\s|)>\]]+))", re.IGNORECASE),
-        "https://vm.tiktokez.com/"
-    ),
-    Link(
-        "instagram",
+        "kkinstagram",
         re.compile(r"(?<!<)(https?://(?:www\.)?instagram\.com/([^\s/]+/[^\s|)>\]]+))", re.IGNORECASE),
         "https://kkinstagram.com/"
     ),
     Link(
-        "reddit",
+        "vxreddit",
+        re.compile(r"(?<!<)(https?://(?:www\.|old\.)?reddit\.com/(r/[^\s/]+/[^\s|)>\]]+))", re.IGNORECASE),
+        "https://vxreddit.com/"
+    ),
+    Link(
+        "redditez",
         re.compile(r"(?<!<)(https?://(?:www\.|old\.)?reddit\.com/(r/[^\s/]+/[^\s|)>\]]+))", re.IGNORECASE),
         "https://redditez.com/"
     ),
     Link(
-        "pixiv",
+        "phixiv",
         re.compile(r"(?<!<)(https?://(?:www\.)?pixiv\.net/([^\s|)>\]]+))", re.IGNORECASE),
         "https://phixiv.net/"
     ),
     Link(
-        "threads",
+        "viewthreads",
         re.compile(r"(?<!<)(https?://(?:www\.)?threads\.com/(@[^\s/]+/[^\s|)>\]]+))", re.IGNORECASE),
         "https://viewthreads.com/"
+    ),
+    Link(
+        "tnktok",
+        re.compile(r"(?<!<)(https?://(?:www\.)?tiktok\.com/([^\s/]+/[^/]+/[^\s|)>\]]+))", re.IGNORECASE),
+        "https://tnktok.com/"
+    ),
+    Link(
+        "vm.tnktok",
+        re.compile(r"(?<!<)(https?://vm\.tiktok\.com/([^\s|)>\]]+))", re.IGNORECASE),
+        "https://vm.tnktok.com/"
+    ),
+    Link(
+        "tiktokez",
+        re.compile(r"(?<!<)(https?://(?:www\.)?tiktok\.com/([^\s/]+/[^/]+/[^\s|)>\]]+))", re.IGNORECASE),
+        "https://tiktokez.com/"
+    ),
+    Link(
+        "vm.tiktokez",
+        re.compile(r"(?<!<)(https?://vm\.tiktok\.com/([^\s|)>\]]+))", re.IGNORECASE),
+        "https://vm.tiktokez.com/"
     ),
     Link(
         "fixembed",
@@ -95,7 +115,7 @@ class LinkFixer(commands.Cog):
         self.config = Config.get_conf(self, identifier=44141349)
         self.config.register_guild(**{
             "enabled": False,
-            "disabled_links": [],
+            "disabled_links": ["vxtwitter", "kkinstagram", "redditez", "tiktokez", "vm.tiktokez"],
             "language": None,
         })
         self.enabled_guilds: List[int] = []
@@ -236,7 +256,7 @@ class LinkFixer(commands.Cog):
         links = []
         for link in ALL_LINKS:
             links.append(f" `{'⛔' if link.name in disabled_links else '✅'} {link.name}`")
-        await ctx.send(">>> " + "\n".join(links))
+        await ctx.send("-# (Links will be fixed with the first matching fixer in the list)\n>>> " + "\n".join(links))
 
     @command_linkfixer_links.command(name="enable", aliases=["add"])
     async def command_linkfixer_links_enable(self, ctx: commands.Context, *link_names: str):
