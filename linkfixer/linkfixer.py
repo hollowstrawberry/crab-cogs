@@ -22,40 +22,65 @@ BLOCK_OR_DELIMITER = re.compile(r"```.*?```|`[^`]*?`|\\.|\|\|", re.DOTALL)
 
 ALL_LINKS = [
     Link(
-        "twitter",
-        re.compile(r"(?<!<)(https?://(?:www\.|m\.)?(?:x|twitter)\.com/([^\s]+status/[^\s|)>\]]+))"),
+        "fxtwitter",
+        re.compile(r"(?<!<)(https?://(?:www\.|m\.)?(?:x|twitter)\.com/([^\s]+status/[^\s|)>\]]+))", re.IGNORECASE),
         "https://fxtwitter.com/"
     ),
     Link(
-        "tiktok",
-        re.compile(r"(?<!<)(https?://(?:www\.)?tiktok\.com/([^\s/]+/[^/]+/[^\s|)>\]]+))"),
-        "https://tiktokez.com/"
+        "vxtwitter",
+        re.compile(r"(?<!<)(https?://(?:www\.|m\.)?(?:x|twitter)\.com/([^\s]+status/[^\s|)>\]]+))", re.IGNORECASE),
+        "https://vxtwitter.com/"
     ),
     Link(
-        "vmtiktok",
-        re.compile(r"(?<!<)(https?://vm\.tiktok\.com/([^\s|)>\]]+))"),
-        "https://vm.tiktokez.com/"
-    ),
-    Link(
-        "instagram",
-        re.compile(r"(?<!<)(https?://(?:www\.)?instagram\.com/([^\s/]+/[^\s|)>\]]+))"),
+        "kkinstagram",
+        re.compile(r"(?<!<)(https?://(?:www\.)?instagram\.com/([^\s/]+/[^\s|)>\]]+))", re.IGNORECASE),
         "https://kkinstagram.com/"
     ),
     Link(
-        "reddit",
-        re.compile(r"(?<!<)(https?://(?:www\.|old\.)?reddit\.com/(r/[^\s/]+/[^\s|)>\]]+))"),
+        "vxreddit",
+        re.compile(r"(?<!<)(https?://(?:www\.|old\.)?reddit\.com/(r/[^\s/]+/[^\s|)>\]]+))", re.IGNORECASE),
+        "https://vxreddit.com/"
+    ),
+    Link(
+        "redditez",
+        re.compile(r"(?<!<)(https?://(?:www\.|old\.)?reddit\.com/(r/[^\s/]+/[^\s|)>\]]+))", re.IGNORECASE),
         "https://redditez.com/"
     ),
     Link(
-        "pixiv",
-        re.compile(r"(?<!<)(https?://(?:www\.)?pixiv\.net/([^\s|)>\]]+))"),
+        "phixiv",
+        re.compile(r"(?<!<)(https?://(?:www\.)?pixiv\.net/([^\s|)>\]]+))", re.IGNORECASE),
         "https://phixiv.net/"
     ),
     Link(
-        "threads",
-        re.compile(r"(?<!<)(https?://(?:www\.)?threads\.com/(@[^\s/]+/[^\s|)>\]]+))"),
+        "viewthreads",
+        re.compile(r"(?<!<)(https?://(?:www\.)?threads\.com/(@[^\s/]+/[^\s|)>\]]+))", re.IGNORECASE),
         "https://viewthreads.com/"
     ),
+    Link(
+        "tnktok",
+        re.compile(r"(?<!<)(https?://(?:www\.)?tiktok\.com/([^\s/]+/[^/]+/[^\s|)>\]]+))", re.IGNORECASE),
+        "https://tnktok.com/"
+    ),
+    Link(
+        "vm.tnktok",
+        re.compile(r"(?<!<)(https?://vm\.tiktok\.com/([^\s|)>\]]+))", re.IGNORECASE),
+        "https://vm.tnktok.com/"
+    ),
+    Link(
+        "tiktokez",
+        re.compile(r"(?<!<)(https?://(?:www\.)?tiktok\.com/([^\s/]+/[^/]+/[^\s|)>\]]+))", re.IGNORECASE),
+        "https://tiktokez.com/"
+    ),
+    Link(
+        "vm.tiktokez",
+        re.compile(r"(?<!<)(https?://vm\.tiktok\.com/([^\s|)>\]]+))", re.IGNORECASE),
+        "https://vm.tiktokez.com/"
+    ),
+    Link(
+        "fixembed",
+        re.compile("(?<![<=])(https?:\/\/(?:[^\s\/]+\.)?(?:twitter\.com|x\.com|instagram\.com|reddit\.com|redd\.it|threads\.(?:net|com)|pixiv\.net|bsky\.app|bilibili\.com|b23\.tv|youtube\.com\/post|pinterest\.com\/pin|pin\.it|tiktok\.com|tumblr\.com|twitch\.tv|twitch\.tv|deviantart\.com\/[^\s\/]+\/art\/|sta\.sh)\/[^\s|)>\]]+)", re.IGNORECASE),
+        "https://fixembed.app/embed?url="
+    )
 ]
 
 def get_code_and_spoiler_spans(content: str) -> Tuple[List[Span], List[Span]]:
@@ -90,7 +115,7 @@ class LinkFixer(commands.Cog):
         self.config = Config.get_conf(self, identifier=44141349)
         self.config.register_guild(**{
             "enabled": False,
-            "disabled_links": [],
+            "disabled_links": ["vxtwitter", "kkinstagram", "redditez", "tiktokez", "vm.tiktokez"],
             "language": None,
         })
         self.enabled_guilds: List[int] = []
@@ -109,7 +134,7 @@ class LinkFixer(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_without_command(self, message: discord.Message):
-        if not message.guild or message.guild.id not in self.enabled_guilds or not isinstance(message.author, discord.Member) or message.author == message.guild.me:
+        if not message.guild or message.guild.id not in self.enabled_guilds or message.author == message.guild.me:
             return
         perms = message.channel.permissions_for(message.guild.me)
         if not perms.send_messages or not perms.embed_links:
@@ -164,9 +189,12 @@ class LinkFixer(commands.Cog):
 
     
     async def is_valid_red_message(self, message: discord.Message) -> bool:
-        return await self.bot.allowed_by_whitelist_blacklist(message.author) \
-            and await self.bot.ignored_channel_or_guild(message) \
+        return (
+            isinstance(message.author, discord.Member)
+            and await self.bot.allowed_by_whitelist_blacklist(message.author)
+            and await self.bot.ignored_channel_or_guild(message)
             and not await self.bot.cog_disabled_in_guild(self, message.guild)
+        )
 
     
     @commands.group(name="linkfixer", aliases=["linkfix"], invoke_without_command=True)  # type: ignore
@@ -228,7 +256,7 @@ class LinkFixer(commands.Cog):
         links = []
         for link in ALL_LINKS:
             links.append(f" `{'⛔' if link.name in disabled_links else '✅'} {link.name}`")
-        await ctx.send(">>> " + "\n".join(links))
+        await ctx.send("-# (Links will be fixed with the first matching fixer in the list)\n>>> " + "\n".join(links))
 
     @command_linkfixer_links.command(name="enable", aliases=["add"])
     async def command_linkfixer_links_enable(self, ctx: commands.Context, *link_names: str):
@@ -273,4 +301,3 @@ class LinkFixer(commands.Cog):
         else:
             await ctx.tick(message="Done")
         await self.command_linkfixer_links_list(ctx)
-    
