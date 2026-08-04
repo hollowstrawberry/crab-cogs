@@ -78,7 +78,7 @@ ALL_LINKS = [
     ),
     Link(
         "fixembed",
-        re.compile(r"(?<![<=])(https?:\/\/(?:(?:www|m)\.)?(?:twitter\.com|x\.com|instagram\.com|reddit\.com|redd\.it|threads\.(?:net|com)|pixiv\.net|bilibili\.com|b23\.tv|youtube\.com\/post|pinterest\.com\/pin|pin\.it|(?:v[tm]\.)?tiktok\.com|(?:[^\s\/]+\.)?tumblr\.com|(?:clips\.)?twitch\.tv|deviantart\.com\/[^\s\/]+\/art\/|sta\.sh)\/[^\s|)>\]]+)", re.IGNORECASE),
+        re.compile(r"(?<![<=])(https?:\/\/(?:(?:www|\w\w?)\.)?(?:twitter\.com|x\.com|instagram\.com|reddit\.com|redd\.it|threads\.(?:net|com)|pixiv\.net|bilibili\.com|b23\.tv|youtube\.com\/post|pinterest\.com\/pin|pin\.it|tiktok\.com|deviantart\.com\/[^\s\/]+\/art\/|sta\.sh)\/[^\s|)>\]]+)", re.IGNORECASE),
         "https://fixembed.app/embed?url="
     )
 ]
