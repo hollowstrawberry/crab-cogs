@@ -32,6 +32,11 @@ ALL_LINKS = [
         "https://vxtwitter.com/"
     ),
     Link(
+        "oginstagram",
+        re.compile(r"(?<!<)(https?://(?:www\.)?instagram\.com/([^\s/]+/[^\s|)>\]]+))", re.IGNORECASE),
+        "https://oginstagram.com/"
+    ),
+    Link(
         "kkinstagram",
         re.compile(r"(?<!<)(https?://(?:www\.)?instagram\.com/([^\s/]+/[^\s|)>\]]+))", re.IGNORECASE),
         "https://kkinstagram.com/"
