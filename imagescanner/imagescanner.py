@@ -51,9 +51,12 @@ class ImageScanner(ImageScannerCommands):
             await self.session.close()
 
     async def is_valid_red_message(self, message: discord.Message) -> bool:
-        return await self.bot.allowed_by_whitelist_blacklist(message.author) \
-               and await self.bot.ignored_channel_or_guild(message) \
-               and not await self.bot.cog_disabled_in_guild(self, message.guild)
+        return (
+            isinstance(message.author, discord.Member)
+            and await self.bot.allowed_by_whitelist_blacklist(message.author)
+            and await self.bot.ignored_channel_or_guild(message)
+            and not await self.bot.cog_disabled_in_guild(self, message.guild)
+        )
 
     async def grab_metadata_dict(self, message: discord.Message) -> dict:  # used by agent cog
         assert self.image_cache is not None

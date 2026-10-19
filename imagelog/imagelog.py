@@ -72,10 +72,12 @@ class ImageLog(commands.Cog):
         self.logchannels = {guild_id: conf['channel'] for guild_id, conf in all_config.items()}
 
     async def is_valid_red_message(self, message: discord.Message) -> bool:
-        return await self.bot.allowed_by_whitelist_blacklist(message.author) \
-               and await self.bot.ignored_channel_or_guild(message) \
-               and not await self.bot.cog_disabled_in_guild(self, message.guild)
-
+        return (
+            isinstance(message.author, discord.Member)
+            and await self.bot.allowed_by_whitelist_blacklist(message.author)
+            and await self.bot.ignored_channel_or_guild(message)
+            and not await self.bot.cog_disabled_in_guild(self, message.guild)
+        )
 
     @commands.Cog.listener()
     async def on_raw_message_delete(self, ctx: discord.RawMessageDeleteEvent):

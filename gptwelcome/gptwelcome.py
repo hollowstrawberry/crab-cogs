@@ -88,12 +88,14 @@ class GptWelcome(commands.Cog):
 
     @commands.Cog.listener()
     async def on_red_api_tokens_update(self, service_name, _):
-        if service_name == "openai":
+        if service_name in ("openai", "openrouter"):
             await self.initialize_client()
 
     @commands.Cog.listener()
     async def on_message_without_command(self, message: discord.Message):
         if message.type != discord.MessageType.new_member:
+            return
+        if not message.guild or not isinstance(message.author, discord.Member):
             return
         
         ctx: commands.Context = await self.bot.get_context(message)
