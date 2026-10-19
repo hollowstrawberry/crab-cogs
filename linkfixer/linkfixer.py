@@ -3,7 +3,7 @@ import logging
 import discord
 from typing import Dict, List, Tuple
 from dataclasses import dataclass
-from redbot.core import commands, Config
+from redbot.core import commands, app_commands, Config
 from redbot.core.bot import Red
 
 log = logging.getLogger("red.crab-cogs.linkfixer")
@@ -88,6 +88,9 @@ ALL_LINKS = [
     )
 ]
 
+DEFAULT_DISABLED_LINKS = ["vxtwitter", "kkinstagram", "redditez", "tiktokez", "vm.tiktokez"]
+
+
 def get_code_and_spoiler_spans(content: str) -> Tuple[List[Span], List[Span]]:
     """
     Returns lists of ```code blocks```/`code blocks` and ||spoiler blocks||
@@ -120,7 +123,7 @@ class LinkFixer(commands.Cog):
         self.config = Config.get_conf(self, identifier=44141349)
         self.config.register_guild(**{
             "enabled": False,
-            "disabled_links": ["vxtwitter", "kkinstagram", "redditez", "tiktokez", "vm.tiktokez"],
+            "disabled_links": list(DEFAULT_DISABLED_LINKS),
             "language": None,
         })
         self.enabled_guilds: List[int] = []
@@ -147,15 +150,44 @@ class LinkFixer(commands.Cog):
         if not await self.is_valid_red_message(message):
             return
 
-        code_spans, spoiler_spans = get_code_and_spoiler_spans(message.content)
-        
+        link_types = [link for link in ALL_LINKS if link.name not in self.disabled_links.get(message.guild.id, [])]
+        language = await self.config.guild(message.guild).language()
+        fixed = await self.fix_links(message.content, link_types, language)
+        if not fixed:
+            return
+
+        fixed = f"-# {message.author.mention} I fixed the links so the content embeds better.\n" + fixed
+        await message.channel.send(fixed, allowed_mentions=discord.AllowedMentions.none())
+        if message.channel.permissions_for(message.guild.me).manage_messages:
+            await message.edit(suppress=True)
+
+    @app_commands.command(name="fixlink", description="Send a fixed social media link with better embeds.")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    @app_commands.choices(language=[app_commands.Choice(name="Unchanged", value=""),
+                                    app_commands.Choice(name="English", value="en")])
+    @app_commands.describe(link="One or more links to send as fixed embeds.",
+                           language="If possible, translate the contents of the embed. Only works for twitter.")
+    async def fix_links_command(self, inter: discord.Interaction, link: str, language: str = ""):
+        link_types = [link for link in ALL_LINKS if link.name not in DEFAULT_DISABLED_LINKS]
+        fixed = await self.fix_links(link, link_types, language)
+        if fixed:
+            await inter.response.send_message(fixed, allowed_mentions=discord.AllowedMentions.none())
+        elif GENERIC_LINK.search(language):
+            await inter.response.send_message("The link(s) you provided are not supported, sorry!", ephemeral=True)
+        else:
+            await inter.response.send_message("You didn't provide a valid link!", ephemeral=True)
+
+
+    async def fix_links(self, content: str, link_types: list[Link], language: str) -> str | None:
+        code_spans, spoiler_spans = get_code_and_spoiler_spans(content)
         # stupid edge case
         # as of july 2026 in discord for android, an unclosed "||" can get closed by a codeblocked "||" even though a codeblocked "||" normally does not constitute a spoiler delimiter
         # but this whole thing is kinda pointless, as any spoilered url makes all embeds get spoilered
-        spoiler_edge_case = any("||" in message.content[start:end] for start, end in code_spans)
+        spoiler_edge_case = any("||" in content[start:end] for start, end in code_spans)
 
         matched_links: List[str] = []
-        for match in GENERIC_LINK.finditer(message.content):
+        for match in GENERIC_LINK.finditer(content):
             if is_in_span(code_spans, match.start()):
                 continue
             link = match.group(0)
@@ -168,11 +200,10 @@ class LinkFixer(commands.Cog):
             matched_links.append(spoilered_link if should_spoiler else link)
 
         if not matched_links:
-            return
-
-        language = await self.config.guild(message.guild).language()
+            return None
+        
         any_fixed = False
-        link_types = [link for link in ALL_LINKS if link.name not in self.disabled_links.get(message.guild.id, [])]
+        
         for i in range(len(matched_links)):
             link = matched_links[i]
             for link_type in link_types:
@@ -180,19 +211,16 @@ class LinkFixer(commands.Cog):
                     any_fixed = True
                     tail = [g for g in match.groups() if g][-1].split("?")[0]
                     if language and "fxtwitter" in link_type.fixed:
-                        tail = tail.rstrip("/") + "/en"
+                        tail = f"{tail.rstrip('/')}/{language}"
                     matched_links[i] = link.replace(match.group(0), f"{link_type.fixed}{tail}")
                     break
 
         if not any_fixed:
-            return
+            return None
 
-        matched_links.insert(0, f"-# {message.author.mention} I fixed the links so the content embeds better.")
-        await message.channel.send("\n".join(matched_links), allowed_mentions=discord.AllowedMentions.none())
-        if message.channel.permissions_for(message.guild.me).manage_messages:
-            await message.edit(suppress=True)
+        return "\n".join(matched_links)
 
-    
+
     async def is_valid_red_message(self, message: discord.Message) -> bool:
         return (
             isinstance(message.author, discord.Member)
@@ -273,7 +301,7 @@ class LinkFixer(commands.Cog):
             return await ctx.send_help()
         all_links = set(link.name for link in ALL_LINKS)
         if len(link_names) == 1 and link_names[0].lower() == "all":
-            link_names = list(all_links)
+            link_names = tuple(all_links)
         disabled_links = await self.config.guild(ctx.guild).disabled_links()
         disabled_links = list(set(disabled_links) - set(link_names))
         await self.config.guild(ctx.guild).disabled_links.set(disabled_links)
@@ -295,7 +323,7 @@ class LinkFixer(commands.Cog):
             return await ctx.send_help()
         all_links = set(link.name for link in ALL_LINKS)
         if len(link_names) == 1 and link_names[0].lower() == "all":
-            link_names = list(all_links)
+            link_names = tuple(all_links)
         disabled_links = await self.config.guild(ctx.guild).disabled_links()
         disabled_links = list(all_links & (set(disabled_links) | set(link_names)))
         await self.config.guild(ctx.guild).disabled_links.set(disabled_links)
