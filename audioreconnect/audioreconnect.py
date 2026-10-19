@@ -14,6 +14,7 @@ from redbot.cogs.audio.core import Audio
 from audioreconnect import utils
 
 log = utils.log
+INTERVAL = 5
 
 
 class AudioReconnect(Cog):
@@ -43,12 +44,15 @@ class AudioReconnect(Cog):
             await self.config.clear_all()
             await utils.heal_persistent_queue()
 
-    @tasks.loop(seconds=5)
+    @tasks.loop(seconds=INTERVAL)
     async def save_current_tracks(self):
         # every n seconds, store the positions of all players at the same time
         # and also store any player queues that have changed since the last loop
         players = utils.all_lavalink_players()
         for player in players:
+            if not player.guild.me.voice:
+                asyncio.create_task(self.reconnect_player(player))
+                continue
             guild_id = player.guild.id
             entry = self.queues.setdefault(guild_id, utils.QueueState(guild_id))
             entry.position = player.position
@@ -124,7 +128,8 @@ class AudioReconnect(Cog):
             for player in players:
                 await self.config.guild(player.guild).channel.set(player.channel.id)
             log.info(f"Cold start of {len(players)} guilds")
-        
+
+        await asyncio.sleep(INTERVAL)
         self.save_current_tracks.start()
 
     async def reconnect(self, channel: discord.channel.VocalGuildChannel, queue_pickle: Optional[str], position: int, self_deaf: bool):
@@ -143,6 +148,8 @@ class AudioReconnect(Cog):
         for track in queue:
             if isinstance(track, lavalink.Track) and isinstance(track.requester, int):
                 track.requester = channel.guild.get_member(track.requester)  # type: ignore
+        queue_id = tuple(track.track_identifier if track else None for track in queue)
+        self.queues[channel.guild.id] = utils.QueueState(channel.guild.id, position, queue_id, queue_pickle)
         player.queue = queue
         if queue[0] is None:
             queue.pop(0)
@@ -150,6 +157,40 @@ class AudioReconnect(Cog):
             queue[0].start_timestamp = position
             await player.play()
 
+    async def reconnect_player(self, player: lavalink.Player):
+        try:
+            player.node.remove_player(player)
+            player.cleanup()
+            await player.node.destroy_guild(player.guild.id)
+        except Exception:
+            log.exception(f"Failed to destroy broken player for {player.guild.id}")
+            return
+
+        if not (entry := self.queues.get(player.guild.id)):
+            return
+        perms = player.channel.permissions_for(player.guild.me)
+        if not perms.connect or not perms.speak:
+            return
+    
+        auto_deafen = await utils.get_auto_deafen(self.bot, player.guild)
+        
+        attempt, backoff = 0, utils.backoff()
+        while attempt < utils.SESSION_RECONNECT_ATTEMPTS:
+            if not utils.shard_is_healthy(self.bot, player.guild):
+                attempt, backoff = 0, utils.backoff()
+                while not utils.shard_is_healthy(self.bot, player.guild):
+                    await asyncio.sleep(1)
+            attempt += 1
+            try:
+                await self.reconnect(player.channel, entry.queue_pickle, entry.position, auto_deafen)
+                log.info(f"Reconnected player for {player.guild.id}")
+                return
+            except Exception:
+                if attempt == utils.SESSION_RECONNECT_ATTEMPTS:
+                    log.exception(f"Failed to reconnect player for {player.guild.id}")
+                    return
+            await asyncio.sleep(backoff.delay())
+            
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
         if member is not member.guild.me or utils.is_shutting_down(self.bot):
