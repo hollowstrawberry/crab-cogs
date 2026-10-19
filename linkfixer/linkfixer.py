@@ -169,7 +169,8 @@ class LinkFixer(commands.Cog):
     @app_commands.describe(link="One or more links to send as fixed embeds.",
                            language="If possible, translate the contents of the embed. Only works for twitter.")
     async def fix_links_command(self, inter: discord.Interaction, link: str, language: str = ""):
-        link_types = [link for link in ALL_LINKS if link.name not in DEFAULT_DISABLED_LINKS]
+        disallowed_links = self.disabled_links.get(inter.guild.id, []) if inter.guild else DEFAULT_DISABLED_LINKS
+        link_types = [link for link in ALL_LINKS if link.name not in disallowed_links]
         fixed = await self.fix_links(link, link_types, language)
         if fixed:
             await inter.response.send_message(fixed, allowed_mentions=discord.AllowedMentions.none())
