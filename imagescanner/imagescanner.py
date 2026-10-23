@@ -13,7 +13,15 @@ from imagescanner.comfy import ComfyMetadata
 from imagescanner.commands import ImageScannerCommands
 from imagescanner.metadata import Metadata, WebuiMetadata, StableSwarmMetadata
 from imagescanner.imageview import ImageView
+from imagescanner.moss_metadata import from_params
+from imagescanner.moss_metadata.view import LayoutSource, add_summary_fields
 from imagescanner.constants import PARAM_REGEX, log, SUPPORTED_FORMATS, RESOURCE_HASH_REGEX, RESOURCE_FILE_REGEX
+
+def moss_source(metadata: Metadata, attachment: discord.Attachment, image_bytes: bytes | None) -> LayoutSource | None:
+    resolved = (getattr(metadata, "moss_prompt", None) or "") if getattr(metadata, "is_comfy", False) else None
+    layout = from_params(metadata.as_dict(), resolved)
+    return LayoutSource(layout, attachment, image_bytes, attachment.is_spoiler()) if layout else None
+
 
 MODEL = "Model"
 MODEL_HASH = "Model hash"
@@ -83,7 +91,14 @@ class ImageScanner(ImageScannerCommands):
     async def prepare_embed(self, message: discord.Message, metadata: Metadata, i: int, total=1) -> discord.Embed:
         assert isinstance(message.author, discord.Member)
         params = metadata.as_dict()
-        embed = utils.build_embed(params, message.author)
+        resolved = (getattr(metadata, "moss_prompt", None) or "") if getattr(metadata, "is_comfy", False) else None
+        layout = from_params(params, resolved)
+        if layout is not None:
+            embed = discord.Embed(title="Image Parameters · MOSS", color=message.author.color)
+            add_summary_fields(embed, params, layout)
+            embed.set_footer(text=f"Posted by {message.author}", icon_url=message.author.display_avatar.url)
+        else:
+            embed = utils.build_embed(params, message.author)
         embed.description = message.jump_url if self.civitai_emoji else f":arrow_right: {message.jump_url}"
         if total > 1:
             embed.title = f"{embed.title or ''} ({i+1}/{total})"
@@ -91,6 +106,8 @@ class ImageScanner(ImageScannerCommands):
         if isinstance(metadata, (ComfyMetadata, StableSwarmMetadata)):
             hyperlinks = await self.resolve_arcenciel_resources(metadata)
             embed.description += "\n" + "\n".join([f"{self.arcenciel_emoji} {link}" for link in hyperlinks])
+            if layout is not None:
+                embed.description = (embed.description or "")[:1500]
             return embed
         # this is old and ugly don't look at it
         if self.use_civitai:
@@ -131,6 +148,8 @@ class ImageScanner(ImageScannerCommands):
                         desc_ext.append(self.build_arcenciel_hyperlink(models[0]))
             if desc_ext:
                 embed.description += "\n" + "\n".join([f"{self.arcenciel_emoji} {link}" for link in desc_ext])
+        if layout is not None:
+            embed.description = (embed.description or "")[:1500]
         return embed
 
 
@@ -203,7 +222,8 @@ class ImageScanner(ImageScannerCommands):
         if not metadata:
             embed = utils.build_embed({}, message.author)
             embed.description = f"{message.jump_url}\nThis post contains no image generation data."
-            embed.set_thumbnail(url=attachments[0].url)
+            if not attachments[0].is_spoiler():
+                embed.set_thumbnail(url=attachments[0].url)
             try:
                 await ctx.member.send(embed=embed)
             except discord.Forbidden:
@@ -212,19 +232,21 @@ class ImageScanner(ImageScannerCommands):
         
         for i, md in sorted(metadata.items(), key=lambda m: m[0]):
             embed = await self.prepare_embed(message, md, i, len(attachments))
-            view = ImageView([md.raw or ""], [embed], ephemeral=False)
+            source = moss_source(md, attachments[i], image_bytes.get(i))
+            view = ImageView([md.raw or ""], [embed], ephemeral=False, layout_sources=[source])
             if self.attach_images and i in image_bytes:
                 img = io.BytesIO(image_bytes[i])
                 filename = md5(image_bytes[i]).hexdigest() + ".png"
-                file = discord.File(img, filename=filename)
-                embed.set_image(url=f"attachment://{filename}")
+                file = discord.File(img, filename=filename, spoiler=attachments[i].is_spoiler())
+                if not attachments[i].is_spoiler():
+                    embed.set_image(url=f"attachment://{filename}")
                 try:
                     msg = await ctx.member.send(embed=embed, file=file, view=view)
                     view.message = msg
                 except discord.Forbidden:
                     log.debug(f"User {ctx.member.id} does not accept DMs")
             else:
-                if len(attachments) > i:
+                if len(attachments) > i and not attachments[i].is_spoiler():
                     embed.set_thumbnail(url=attachments[i].url)
                 try:
                     msg = await ctx.member.send(embed=embed, view=view)
@@ -255,19 +277,23 @@ class ImageScanner(ImageScannerCommands):
         if not metadata:
             embed = discord.Embed(title="Image Info", color=message.author.color)
             embed.description = "This message contains no image generation data."
-            embed.set_thumbnail(url=attachments[0].url)
+            if not attachments[0].is_spoiler():
+                embed.set_thumbnail(url=attachments[0].url)
             embed.set_footer(text=f'Posted by {message.author}', icon_url=message.author.display_avatar.url)
             await interaction.followup.send(embed=embed)
             return
         
         embeds = []
         params = []
+        layout_sources = []
         for i, data in sorted(metadata.items(), key=lambda m: m[0]):
             embed = await self.prepare_embed(message, data, i, len(attachments))
-            embed.set_thumbnail(url=attachments[i].url or attachments[i].proxy_url or None)
+            if not attachments[i].is_spoiler():
+                embed.set_thumbnail(url=attachments[i].url or attachments[i].proxy_url or None)
+            layout_sources.append(moss_source(data, attachments[i], image_bytes.get(i)))
             embeds.append(embed)
             params.append(data.raw or "")
-        view = ImageView(params, embeds, ephemeral=True)
+        view = ImageView(params, embeds, ephemeral=True, layout_sources=layout_sources)
 
         await interaction.followup.send(embed=embeds[0], view=view)
 
