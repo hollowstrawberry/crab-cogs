@@ -5,16 +5,22 @@ from discord.ui import View
 from typing import List, Optional
 
 from imagescanner.constants import VIEW_TIMEOUT
+from imagescanner.moss_metadata.view import LayoutSource, send_layout
 
 
 class ImageView(View):
-    def __init__(self, raw_metadata: List[str], embeds: List[discord.Embed], ephemeral: bool):
+    def __init__(self, raw_metadata: List[str], embeds: List[discord.Embed], ephemeral: bool,
+                 layout_sources: list[LayoutSource | None] | None = None):
         super().__init__(timeout=VIEW_TIMEOUT)
         self.raw_metadata = raw_metadata
         self.embeds = embeds
         self.ephemeral = ephemeral
         self.pressed = False
         self.current = 0
+        self.layout_sources = layout_sources or [None] * len(embeds)
+        self.button_layout = discord.ui.Button(label="View layout", emoji="📐")
+        self.button_layout.callback = self.view_layout
+        self.button_layout.disabled = self.layout_sources[0] is None
         self.message: Optional[discord.Message] = None
 
         self.button_full = discord.ui.Button(emoji='🔧', label='View Full', style=discord.ButtonStyle.blurple)
@@ -28,12 +34,19 @@ class ImageView(View):
         if len(embeds) > 1:
             self.button_left.disabled = True
             self.add_item(self.button_left)
+        if any(self.layout_sources):
+            self.add_item(self.button_layout)
         self.add_item(self.button_full)
         if len(embeds) > 1:
             self.add_item(self.button_right)
 
+    async def view_layout(self, interaction: discord.Interaction) -> None:
+        source = self.layout_sources[self.current]
+        if source is not None:
+            await send_layout(interaction, source, VIEW_TIMEOUT)
+
     async def view_full_parameters(self, interaction: discord.Interaction):
-        if len(self.embeds) == 1:
+        if len(self.embeds) == 1 and not any(self.layout_sources):
             self.pressed = True
             self.stop()
 
@@ -54,7 +67,7 @@ class ImageView(View):
                 file = discord.File(f, f"parameters_{interaction.id}.{ext}")  # type: ignore
                 await interaction.response.send_message(file=file, ephemeral=self.ephemeral)
 
-        if interaction.message and len(self.embeds) == 1:
+        if interaction.message and len(self.embeds) == 1 and not any(self.layout_sources):
             try:
                 await interaction.message.edit(view=None)
             except discord.NotFound:
@@ -65,6 +78,7 @@ class ImageView(View):
             self.current -= 1
         elif self.current < len(self.embeds) - 1 and not left:
             self.current += 1
+        self.button_layout.disabled = self.layout_sources[self.current] is None
         self.button_left.disabled = self.current == 0
         self.button_right.disabled = self.current == len(self.embeds) - 1
         await interaction.response.edit_message(embed=self.embeds[self.current], view=self)

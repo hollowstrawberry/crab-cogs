@@ -10,6 +10,9 @@ from PIL import Image
 
 from imagescanner.metadata import Metadata
 
+from imagescanner.moss_metadata import read_layout
+from imagescanner.moss_metadata.workflow import resolve_moss_prompt
+
 NEGATIVE_HINTS = (
     "negative prompt",
     "worst quality",
@@ -59,6 +62,7 @@ PROMPT_NODE_TYPES = {
     "cliptextencodesdxlrefiner",
     "cliptextencodesd3",
     "pclazytextencode",
+    "arcencielmosstextencode",
     "clip text encode (shinsplat)",
     "clip text encode alt (shinsplat)",
     "fooocus positive",
@@ -169,6 +173,7 @@ class ComfyMetadata(Metadata):
     resource_hints: ComfyResourceHints = field(default_factory=ComfyResourceHints)
     error: str | None = None
     raw: str | None = None
+    moss_prompt: str | None = None  # Read-only, sampler-connected prompt for the viewer.
     width: int | None = None
     height: int | None = None
 
@@ -595,6 +600,9 @@ class ComfyMetadataReader:
             )
             return result
 
+        merged.moss_prompt = next(
+            (prompt for workflow in candidates if (prompt := resolve_moss_prompt(workflow)) is not None), None
+        )
         merged.is_comfy = True
         merged.resource_hints = ComfyResourceHintExtractor.from_sources(merged, meta)
         merged.raw = ", ".join(str(val) for val in meta.values())
@@ -746,6 +754,8 @@ class ComfyMetadataReader:
 
     @staticmethod
     def looks_negative(text: str) -> bool:
+        if read_layout(text) is not None:
+            return False
         lower = text.lower()
         return any(hint in lower for hint in NEGATIVE_HINTS)
 
@@ -826,7 +836,7 @@ class ComfyMetadataReader:
         if stripped.lower() in TEXT_NOISE_VALUES:
             return False
         if stripped.startswith("{") and stripped.endswith("}"):
-            return False
+            return read_layout(stripped) is not None
         return any(char.isalnum() for char in stripped)
 
     @staticmethod
