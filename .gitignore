@@ -153,3 +153,4 @@ cython_debug/
 .python-version
 main.py
 pyproject.toml
+.vscode/
