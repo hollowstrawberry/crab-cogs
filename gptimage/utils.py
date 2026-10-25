@@ -4,6 +4,8 @@ from typing import Tuple, Union
 
 MODELS = {
     "gpt-image-2": ["low", "medium", "high"],
+    "gpt-image-2.5-flare": ["low", "medium", "high"],
+    "gpt-image-2.5-sunburst": ["low", "medium", "high"],
 }
 
 MIN_PIXELS = 700000
