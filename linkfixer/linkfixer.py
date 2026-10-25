@@ -19,7 +19,7 @@ class Link:
     translatable: bool = False
 
     def fix(self, url: str) -> str:
-        return self.pattern.sub(self.sub, url.split("?")[0])
+        return self.pattern.sub(self.sub, url.split("?")[0].rstrip("/"))
 
 
 GENERIC_LINK = regex.compile(r"(?<!<)(https?://[^\s|)>\]]+)")
@@ -113,7 +113,7 @@ def fix_links(content: str, link_types: list[Link], language: str) -> str | None
             if fixer.pattern.match(url):
                 url = fixer.fix(url)
                 if language and fixer.translatable:
-                    url = f"{url.rstrip('/')}/{language}"
+                    url = f"{url}/{language}"
                 any_fixed = True
                 break
         spoiled_url = f"|| {url} ||"
