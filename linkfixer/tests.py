@@ -268,7 +268,7 @@ def check_performance():
             continue
         elapsed = time.perf_counter() - start
         if elapsed > 2.0:
-            print(f"FAIL [performance] {label}: took {elapsed:.1f}s")
+            print(f"FAIL [performance] {label}: took {elapsed:.1f}s which is above 2000")
             failed += 1
         if label.startswith("300") and (got is None or got.count("\n") != 299):
             print(f"FAIL [performance] {label}: expected 300 lines")
