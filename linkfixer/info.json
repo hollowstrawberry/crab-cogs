@@ -6,7 +6,7 @@
     "hidden": false,
     "install_msg": "🔗 __**LinkFixer**__\n```Cog installed. Instructions:\n1. Load it with [p]load linkfixer\n2. Enable for the current server with [p]linkfixer enable\n3. Try sending a twitter link, tiktok link, etc.```",
     "required_cogs": {},
-    "requirements": [],
+    "requirements": ["regex"],
     "short": "Sends modified links to embed content from popular social media sites.",
     "end_user_data_statement": "This cog does not store user data.",
     "tags": ["crab", "link", "url", "fix", "embed", "twitter", "x", "instagram", "pixiv", "reddit", "tiktok", "social"]
