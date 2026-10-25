@@ -20,75 +20,35 @@ class Link:
 GENERIC_LINK = re.compile(r"(?<!<)(https?://[^\s|)>\]]+)")
 BLOCK_OR_DELIMITER = re.compile(r"```.*?```|`[^`]*?`|\\.|\|\|", re.DOTALL)
 
+TWITTER_RE = re.compile(r"(?<!<)(https?://(?:www\.|m\.)?(?:x|twitter)\.com/([^\s]+status/[^\s|)>\]]+))", re.IGNORECASE)
+INSTAGRAM_RE = re.compile(r"(?<!<)(https?://(?:www\.)?instagram\.com/([^\s/]+/[^\s|)>\]]+))", re.IGNORECASE)
+REDDIT_RE = re.compile(r"(?<!<)(https?://(?:www\.|old\.)?reddit\.com/(r/[^\s/]+/[^\s|)>\]]+))", re.IGNORECASE)
+PIXIV_RE = re.compile(r"(?<!<)(https?://(?:www\.)?pixiv\.net/([^\s|)>\]]+))", re.IGNORECASE)
+THREADS_RE = re.compile(r"(?<!<)(https?://(?:www\.)?threads\.com/(@[^\s/]+/[^\s|)>\]]+))", re.IGNORECASE)
+TIKTOK_RE = re.compile(r"(?<!<)(https?://(?:www\.)?tiktok\.com/([^\s/]+/[^/]+/[^\s|)>\]]+))", re.IGNORECASE)
+VM_TIKTOK_RE = re.compile(r"(?<!<)(https?://vm\.tiktok\.com/([^\s|)>\]]+))", re.IGNORECASE)
+BILIBILI_RE = re.compile(r"(?<![<=])(https?://(?:(?:www|\w\w?)\.)?(?:bilibili\.com|b23\.tv)/([^\s|)>\]]+))", re.IGNORECASE)
+FIXEMBED_RE = re.compile(r"(?<![<=])(https?:\/\/(?:(?:www|\w\w?)\.)?(?:twitter\.com|x\.com|instagram\.com|reddit\.com|redd\.it|threads\.(?:net|com)|pixiv\.net|bilibili\.com|b23\.tv|youtube\.com\/post|pinterest\.com\/pin|pin\.it|tiktok\.com|sta\.sh)\/[^\s|)>\]]+)", re.IGNORECASE)
+
 ALL_LINKS = [
-    Link(
-        "fxtwitter",
-        re.compile(r"(?<!<)(https?://(?:www\.|m\.)?(?:x|twitter)\.com/([^\s]+status/[^\s|)>\]]+))", re.IGNORECASE),
-        "https://fxtwitter.com/"
-    ),
-    Link(
-        "vxtwitter",
-        re.compile(r"(?<!<)(https?://(?:www\.|m\.)?(?:x|twitter)\.com/([^\s]+status/[^\s|)>\]]+))", re.IGNORECASE),
-        "https://vxtwitter.com/"
-    ),
-    Link(
-        "oginstagram",
-        re.compile(r"(?<!<)(https?://(?:www\.)?instagram\.com/([^\s/]+/[^\s|)>\]]+))", re.IGNORECASE),
-        "https://oginstagram.com/"
-    ),
-    Link(
-        "kkinstagram",
-        re.compile(r"(?<!<)(https?://(?:www\.)?instagram\.com/([^\s/]+/[^\s|)>\]]+))", re.IGNORECASE),
-        "https://kkinstagram.com/"
-    ),
-    Link(
-        "vxreddit",
-        re.compile(r"(?<!<)(https?://(?:www\.|old\.)?reddit\.com/(r/[^\s/]+/[^\s|)>\]]+))", re.IGNORECASE),
-        "https://vxreddit.com/"
-    ),
-    Link(
-        "redditez",
-        re.compile(r"(?<!<)(https?://(?:www\.|old\.)?reddit\.com/(r/[^\s/]+/[^\s|)>\]]+))", re.IGNORECASE),
-        "https://redditez.com/"
-    ),
-    Link(
-        "phixiv",
-        re.compile(r"(?<!<)(https?://(?:www\.)?pixiv\.net/([^\s|)>\]]+))", re.IGNORECASE),
-        "https://phixiv.net/"
-    ),
-    Link(
-        "viewthreads",
-        re.compile(r"(?<!<)(https?://(?:www\.)?threads\.com/(@[^\s/]+/[^\s|)>\]]+))", re.IGNORECASE),
-        "https://viewthreads.com/"
-    ),
-    Link(
-        "tnktok",
-        re.compile(r"(?<!<)(https?://(?:www\.)?tiktok\.com/([^\s/]+/[^/]+/[^\s|)>\]]+))", re.IGNORECASE),
-        "https://tnktok.com/"
-    ),
-    Link(
-        "vm.tnktok",
-        re.compile(r"(?<!<)(https?://vm\.tiktok\.com/([^\s|)>\]]+))", re.IGNORECASE),
-        "https://vm.tnktok.com/"
-    ),
-    Link(
-        "tiktokez",
-        re.compile(r"(?<!<)(https?://(?:www\.)?tiktok\.com/([^\s/]+/[^/]+/[^\s|)>\]]+))", re.IGNORECASE),
-        "https://tiktokez.com/"
-    ),
-    Link(
-        "vm.tiktokez",
-        re.compile(r"(?<!<)(https?://vm\.tiktok\.com/([^\s|)>\]]+))", re.IGNORECASE),
-        "https://vm.tiktokez.com/"
-    ),
-    Link(
-        "fixembed",
-        re.compile(r"(?<![<=])(https?:\/\/(?:(?:www|\w\w?)\.)?(?:twitter\.com|x\.com|instagram\.com|reddit\.com|redd\.it|threads\.(?:net|com)|pixiv\.net|bilibili\.com|b23\.tv|youtube\.com\/post|pinterest\.com\/pin|pin\.it|tiktok\.com|sta\.sh)\/[^\s|)>\]]+)", re.IGNORECASE),
-        "https://fixembed.app/embed?url="
-    )
+    Link("fxtwitter",   TWITTER_RE,   "https://fxtwitter.com/"),
+    Link("vxtwitter",   TWITTER_RE,   "https://vxtwitter.com/"),
+    Link("oginstagram", INSTAGRAM_RE, "https://oginstagram.com/"),
+    Link("vxinstagram", INSTAGRAM_RE, "https://vxinstagram.com"),
+    Link("kkinstagram", INSTAGRAM_RE, "https://kkinstagram.com/"),
+    Link("vxreddit",    REDDIT_RE,    "https://vxreddit.com/"),
+    Link("redditez",    REDDIT_RE,    "https://redditez.com/"),
+    Link("phixiv",      PIXIV_RE,     "https://phixiv.net/"),
+    Link("viewthreads", THREADS_RE,   "https://viewthreads.com/"),
+    Link("tnktok",      TIKTOK_RE,    "https://tnktok.com/"),
+    Link("vm.tnktok",   VM_TIKTOK_RE, "https://vm.tnktok.com/"),
+    Link("tiktokez",    TIKTOK_RE,    "https://tiktokez.com/"),
+    Link("vm.tiktokez", VM_TIKTOK_RE, "https://vm.tiktokez.com/"),
+    LINK("vxbilibili",  BILIBILI_RE,  "https://vxbilibili.com/"),
+    Link("fixembed",    FIXEMBED_RE,  "https://fixembed.app/embed?url="),
 ]
 
-DEFAULT_DISABLED_LINKS = ["vxtwitter", "kkinstagram", "redditez", "tiktokez", "vm.tiktokez"]
+DEFAULT_DISABLED_LINKS = ["vxtwitter", "kkinstagram", "vxinstagram", "redditez", "tiktokez", "vm.tiktokez"]
 
 
 def get_code_and_spoiler_spans(content: str) -> Tuple[List[Span], List[Span]]:
