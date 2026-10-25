@@ -35,12 +35,7 @@ PIXIV_RE = regex.compile(NOT + r"https?://(?:www\.)?pixiv\.net/(?P<tail>" + TAIL
 THREADS_RE = regex.compile(NOT + r"https?://(?:www\.)?threads\.(?:net|com)/(?P<tail>@[^\s/]+/" + TAIL, FLAGS)
 BILIBILI_RE = regex.compile(NOT + r"https?://(?P<pre>\w+\.)?bilibili\.com/(?P<tail>" + TAIL, FLAGS)
 B23_RE = regex.compile(NOT + r"https?://(?P<pre>\w+\.)?b23\.tv/(?P<tail>" + TAIL, FLAGS)
-TIKTOK_RE = regex.compile("".join([
-    NOT, r"https?://(?:",
-    r"(?P<pre>www\.)?tiktok\.com/(?P<tail>(?:[^\s/]+/[^\s/]+|t)/", TAIL,
-    r"|(?P<pre>v[mt]\.)tiktok\.com/(?P<tail>", TAIL,
-    r")"
-]), FLAGS)
+TIKTOK_RE = regex.compile(NOT + r"https?://(?P<pre>www\.|v[mt]\.)?tiktok\.com/(?P<tail>" + TAIL, FLAGS)
 FIXEMBED_RE = regex.compile("".join([
     NOT, r"https?://(?:[\w-]+\.)?(?:",
     r"twitter\.com|x\.com|instagram\.com|reddit\.com|redd\.it",
