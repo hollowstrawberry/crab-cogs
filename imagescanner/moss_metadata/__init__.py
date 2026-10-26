@@ -9,12 +9,13 @@ import math
 from collections import Counter
 from collections.abc import Mapping
 from contextlib import suppress
-from dataclasses import dataclass
-from typing import TypeGuard
+from dataclasses import dataclass, replace
+from typing import TypeGuard, cast
+
+from .types import Box, Metadata, MossLayout, MossMetadata
 
 MAX_TEXT = 131072
 MAX_REGIONS = 128
-Box = tuple[float, float, float, float]
 
 
 def record(value: object) -> TypeGuard[dict[str, object]]:
@@ -35,6 +36,12 @@ def text(value: object) -> str:
     return value if isinstance(value, str) else ""
 
 
+def read_box(value: object) -> Box | None:
+    if sequence(value) and len(value) == 4 and all(number(n) for n in value):
+        return cast(Box, tuple(value))
+    return None
+
+
 @dataclass(frozen=True)
 class Region:
     label: str
@@ -42,6 +49,18 @@ class Region:
     text: str | None
     bbox: Box | None
     normalized: Box | None
+
+    @classmethod
+    def from_raw(cls, value: object) -> "Region":
+        item = value if record(value) else {}
+        literal = item.get("text")
+        return cls(
+            text(item.get("label")) or "region",
+            text(item.get("caption")),
+            literal if isinstance(literal, str) else None,
+            read_box(item.get("bbox")),
+            None,
+        )
 
 
 @dataclass(frozen=True)
@@ -70,38 +89,27 @@ def read_layout(prompt: object, width: object = None, height: object = None) -> 
         or len(items) > MAX_REGIONS
     ):
         return None
-    valid_size = number(width) and number(height) and width > 0 and height > 0
+    size = (width, height) if number(width) and number(height) and width > 0 and height > 0 else None
     single = summary.get("canvas") in (None, "single")
     regions: list[Region] = []
     warnings: list[str] = []
     for entry in items:
-        item = entry if record(entry) else {}
-        coords = item.get("bbox")
-        bbox: Box | None = None
+        region = Region.from_raw(entry)
+        bbox = region.bbox
         normalized: Box | None = None
-        if sequence(coords) and len(coords) == 4 and all(number(n) for n in coords):
-            # Check each element explicitly for static type narrowing as well.
-            top, left, bottom, right = coords
-            if number(top) and number(left) and number(bottom) and number(right):
-                bbox = (top, left, bottom, right)
-                if single and valid_size and number(width) and number(height) and top < bottom and left < right:
-                    points = [
-                        max(0.0, min(1.0, n / dim + 0.5))
-                        for n, dim in zip(bbox, (height, width, height, width), strict=True)
-                    ]
-                    if points[0] < points[2] and points[1] < points[3]:
-                        normalized = (points[0], points[1], points[2], points[3])
-                        if top < -height / 2 or left < -width / 2 or bottom > height / 2 or right > width / 2:
-                            warnings.append("Some regions extend beyond the image; only the visible area is shown.")
-        regions.append(
-            Region(
-                text(item.get("label")) or "region",
-                text(item.get("caption")),
-                text(item["text"]) if isinstance(item.get("text"), str) else None,
-                bbox,
-                normalized,
-            )
-        )
+        if bbox is not None and single and size is not None:
+            width, height = size
+            top, left, bottom, right = bbox
+            if top < bottom and left < right:
+                points = [
+                    max(0.0, min(1.0, n / dim + 0.5))
+                    for n, dim in zip(bbox, (height, width, height, width), strict=True)
+                ]
+                if points[0] < points[2] and points[1] < points[3]:
+                    normalized = (points[0], points[1], points[2], points[3])
+                    if top < -height / 2 or left < -width / 2 or bottom > height / 2 or right > width / 2:
+                        warnings.append("Some regions extend beyond the image; only the visible area is shown.")
+        regions.append(replace(region, normalized=normalized))
     if not single:
         warnings.append("This canvas layout cannot be overlaid on a single image.")
     elif any(region.normalized is None for region in regions):
@@ -124,7 +132,13 @@ def from_params(params: Mapping[str, object], resolved_prompt: object = None) ->
     return read_layout(resolved_prompt if isinstance(resolved_prompt, str) else params.get("Prompt"), width, height)
 
 
-def summary_params(params: Mapping[str, object], layout: Layout | None) -> dict[str, object]:
+def from_metadata(metadata: Metadata) -> Layout | None:
+    # A failed Comfy resolution must not fall back to an unrelated text node.
+    resolved = (metadata.moss_prompt or "") if isinstance(metadata, MossMetadata) and metadata.is_comfy else None
+    return from_params(metadata.as_dict(), resolved)
+
+
+def summary_params(params: Mapping[str, object], layout: MossLayout | None) -> dict[str, object]:
     """Only the display copy changes. Raw metadata and regeneration inputs survive."""
     if layout is None:
         return dict(params)

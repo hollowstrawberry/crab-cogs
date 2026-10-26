@@ -8,7 +8,8 @@ import math
 import re
 from dataclasses import dataclass
 
-from . import MAX_REGIONS, MAX_TEXT, number, read_layout, record, sequence, text
+from . import MAX_REGIONS, MAX_TEXT, number, read_box, read_layout, record, sequence, text
+from .types import Box
 
 WIDGETS = {
     "CLIPTextEncode": ["text"],
@@ -27,6 +28,29 @@ class Node:
     widgets: list[object]
     named: dict[str, object]
     mode: object
+
+
+@dataclass(frozen=True)
+class Element:
+    kind: str
+    bbox: Box
+    caption: str
+    text: str
+
+
+def read_elements(value: object) -> list[Element] | None:
+    """Normalize raw workflow inputs once; resolved nodes already return Elements."""
+    if not sequence(value) or len(value) > MAX_REGIONS:
+        return None
+    result: list[Element] = []
+    for item in value:
+        if isinstance(item, Element):
+            result.append(item)
+        elif record(item) and (bbox := read_box(item.get("bbox"))) is not None:
+            result.append(Element(text(item.get("type")), bbox, text(item.get("desc")), text(item.get("text"))))
+        else:
+            return None
+    return result
 
 
 def dimension(value: object) -> bool:
@@ -139,7 +163,7 @@ def resolve_moss_prompt(flow: dict[str, object]) -> str | None:
                 or len(state) > MAX_REGIONS
             ):
                 return None
-            editor_elements: list[dict[str, object]] = []
+            editor_elements: list[Element] = []
             for item in state:
                 if not record(item):
                     return None
@@ -153,19 +177,16 @@ def resolve_moss_prompt(flow: dict[str, object]) -> str | None:
                 ys = sorted(max(0, min(1000, round(n / height * 1000))) for n in (y, y + h))
                 xs = sorted(max(0, min(1000, round(n / width * 1000))) for n in (x, x + w))
                 editor_elements.append(
-                    {
-                        "type": meta.get("type"),
-                        "bbox": [ys[0], xs[0], ys[1], xs[1]],
-                        "desc": meta.get("desc", ""),
-                        "text": meta.get("text", ""),
-                    }
+                    Element(text(meta.get("type")), (ys[0], xs[0], ys[1], xs[1]),
+                            text(meta.get("desc")), text(meta.get("text")))
                 )
             return editor_elements
         if node.kind == "MOSSImageLayoutPrompt" and slot == 0:
-            prompt, elements, width, height, characters = (
+            prompt, raw_elements, width, height, characters = (
                 field(node, key) for key in ("prompt", "element", "width", "height", "character_boxes")
             )
-            if not isinstance(prompt, str) or not sequence(elements) or len(elements) > MAX_REGIONS:
+            elements = read_elements(raw_elements)
+            if not isinstance(prompt, str) or elements is None:
                 return None
             if not elements:
                 return prompt
@@ -181,25 +202,18 @@ def resolve_moss_prompt(flow: dict[str, object]) -> str | None:
             char_ids = set(map(int, re.findall(r"\d+", text(characters))))
             items: list[dict[str, object]] = []
             for index, element in enumerate(elements):
-                if not record(element):
-                    return None
-                coords = element.get("bbox")
-                if not sequence(coords) or len(coords) != 4:
-                    return None
                 bbox: list[int] = []
-                for edge, coordinate in enumerate(coords):
-                    if not number(coordinate):
-                        return None
+                for edge, coordinate in enumerate(element.bbox):
                     size = height if edge % 2 == 0 else width
                     pixel = round(coordinate * size / 1000, 9)
                     bbox.append((math.floor(pixel) if edge < 2 else math.ceil(pixel)) - math.floor(size / 2))
-                label = "text" if element.get("type") == "text" else "character" if index + 1 in char_ids else "object"
+                label = "text" if element.kind == "text" else "character" if index + 1 in char_ids else "object"
                 items.append(
                     {
                         "label": label,
-                        "caption": element.get("desc", ""),
+                        "caption": element.caption,
                         "bbox": bbox,
-                        **({"text": element.get("text", "")} if label == "text" else {}),
+                        **({"text": element.text} if label == "text" else {}),
                     }
                 )
             return json.dumps(

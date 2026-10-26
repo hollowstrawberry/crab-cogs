@@ -32,25 +32,27 @@ def normalize_hash(value: str) -> str | None:
     return token
 
 
-@dataclass
 @runtime_checkable
 class Metadata(Protocol):
-    """"
-    Metadata subclasses must be Protocols too
-    in order to allow external cogs to use ImageScanner's public interface with compatible objects.
-    """
-    raw: str | None = None
+    """Public interface shared with independently installed cogs."""
+    @property
+    def raw(self) -> str | None: ...
 
     @property
     def source(self) -> str: ...
 
-    def as_dict(self) -> OrderedDict[str, Any]: ...
+    def as_dict(self) -> dict[str, Any]: ...
     
 
-@dataclass
 @runtime_checkable
 class WebuiMetadata(Metadata, Protocol):
-    source = "webui"  # type: ignore
+    pass
+
+
+@dataclass
+class WebuiMetadataInstance(WebuiMetadata):
+    raw: str | None = None
+    source = "webui"
 
     def as_dict(self):
         if not self.raw:
@@ -81,14 +83,18 @@ class WebuiMetadata(Metadata, Protocol):
         return output_dict
 
 
-class WebuiMetadataInstance(WebuiMetadata):
-    pass
+@runtime_checkable
+class StableSwarmMetadata(Metadata, Protocol):
+    @property
+    def is_stable_swarm(self) -> bool: ...
+
+    def resource_hint_strings(self) -> list[str]: ...
 
 
 @dataclass
-@runtime_checkable
-class StableSwarmMetadata(Metadata, Protocol):
-    source = "stable_swarm"  # type: ignore
+class StableSwarmMetadataInstance(StableSwarmMetadata):
+    raw: str | None = None
+    source = "stable_swarm"
     is_stable_swarm: bool = False
     prompt: str | None = None
     negative_prompt: str | None = None
@@ -207,7 +213,3 @@ class StableSwarmMetadata(Metadata, Protocol):
         self.resources = list(set(resources))
         self.hashes = list(set(self.hashes))
         self.is_stable_swarm = touched
-
-
-class StableSwarmMetadataInstance(StableSwarmMetadata):
-    pass

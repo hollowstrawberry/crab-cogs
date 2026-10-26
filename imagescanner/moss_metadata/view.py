@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 import discord
 from PIL import Image, ImageDraw
 
-from . import Layout, Region
+from .types import MossLayout, MossRegion
 
 PREVIEW_SIZE = 1024
 MAX_PIXELS = 64_000_000
@@ -22,7 +22,7 @@ def display(value: str, limit: int) -> str:
     return escaped if len(escaped) <= limit else escaped[: limit - 1] + "…"
 
 
-def render_overlay(data: bytes, layout: Layout) -> bytes:
+def render_overlay(data: bytes, layout: MossLayout) -> bytes:
     with Image.open(io.BytesIO(data)) as source:
         if source.width * source.height > MAX_PIXELS:
             raise ValueError("Image is too large for a layout preview.")
@@ -60,7 +60,7 @@ def render_overlay(data: bytes, layout: Layout) -> bytes:
 
 @dataclass
 class LayoutSource:
-    layout: Layout
+    layout: MossLayout
     attachment: discord.Attachment | None = None
     image_bytes: bytes | None = None
     spoiler: bool = False
@@ -115,7 +115,7 @@ class LayoutView(discord.ui.LayoutView):
         self.refresh()
 
     @property
-    def region(self) -> Region | None:
+    def region(self) -> MossRegion | None:
         regions = self.source.layout.regions
         return regions[self.selected] if regions else None
 
@@ -231,7 +231,7 @@ async def send_layout(interaction: discord.Interaction, source: LayoutSource, ti
             file.close()
 
 
-def add_summary_fields(embed: discord.Embed, params: dict[str, object], layout: Layout) -> None:
+def add_summary_fields(embed: discord.Embed, params: dict[str, object], layout: MossLayout) -> None:
     from . import summary_params
 
     # Reserve room for resource links/title/footer. Full metadata stays downloadable.

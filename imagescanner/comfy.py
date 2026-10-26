@@ -150,10 +150,20 @@ class ComfyResourceHints:
     hashes: list[str] = field(default_factory=list)
 
 
-@dataclass
 @runtime_checkable
 class ComfyMetadata(Metadata, Protocol):
-    source = "comfy"  # type: ignore
+    @property
+    def is_comfy(self) -> bool: ...
+
+    @property
+    def moss_prompt(self) -> str | None: ...
+
+    def resource_hint_strings(self) -> list[str]: ...
+
+
+@dataclass
+class ComfyMetadataInstance(ComfyMetadata):
+    source = "comfy"
     is_comfy: bool = False
     prompt: str | None = None
     negative_prompt: str | None = None
@@ -225,10 +235,6 @@ class ComfyMetadata(Metadata, Protocol):
 
     def resource_hint_strings(self) -> list[str]:
         return self.resource_hints.hashes + [cand.value for cand in self.resource_hints.candidates if RESOURCE_EXT_RE.search(cand.value)]
-
-
-class ComfyMetadataInstance(ComfyMetadata):
-    pass
 
 
 @dataclass
@@ -518,7 +524,7 @@ class ComfyResourceHintExtractor:
     @classmethod
     def from_sources(
         cls,
-        metadata: ComfyMetadata | None,
+        metadata: ComfyMetadataInstance | None,
         raw_info: dict[str, Any] | None,
         payload: dict[str, Any] | None = None,
     ) -> ComfyResourceHints:
@@ -559,7 +565,7 @@ class ComfyResourceHintExtractor:
 
 class ComfyMetadataReader:
     @classmethod
-    def from_bytes(cls, b) -> ComfyMetadata:
+    def from_bytes(cls, b) -> ComfyMetadataInstance:
         result = ComfyMetadataInstance()
         try:
             image = Image.open(BytesIO(b))
@@ -569,7 +575,7 @@ class ComfyMetadataReader:
         return result
 
     @classmethod
-    def from_info(cls, meta: dict[str, Any], width: int, height: int) -> ComfyMetadata:
+    def from_info(cls, meta: dict[str, Any], width: int, height: int) -> ComfyMetadataInstance:
         candidates = cls.extract_workflow_candidates(meta)
         if not candidates:
             result = ComfyMetadataInstance(error="Workflow not found")
@@ -620,7 +626,7 @@ class ComfyMetadataReader:
         meta: dict[str, Any],
         *,
         payload: dict[str, Any] | None = None,
-        parsed: ComfyMetadata | None = None,
+        parsed: ComfyMetadataInstance | None = None,
     ) -> ComfyResourceHints:
         metadata = parsed or cls.from_info(meta, 0, 0)
         return ComfyResourceHintExtractor.from_sources(metadata, meta, payload)
@@ -866,14 +872,14 @@ class ComfyMetadataReader:
         return ()
 
     @staticmethod
-    def set_if_missing(meta: ComfyMetadata, key: str, value: Any) -> None:
+    def set_if_missing(meta: ComfyMetadataInstance, key: str, value: Any) -> None:
         if value is None:
             return
         if getattr(meta, key) is None:
             setattr(meta, key, value)
 
     @staticmethod
-    def add_lora(meta: ComfyMetadata, name: str, weight: float) -> None:
+    def add_lora(meta: ComfyMetadataInstance, name: str, weight: float) -> None:
         name = name.strip()
         if not name:
             return
@@ -883,7 +889,7 @@ class ComfyMetadataReader:
         meta.loras.append(ComfyLora(name=name, weight=weight))
 
     @staticmethod
-    def merge_metadata(target: ComfyMetadata, source: ComfyMetadata) -> None:
+    def merge_metadata(target: ComfyMetadataInstance, source: ComfyMetadataInstance) -> None:
         fields = (
             "prompt",
             "negative_prompt",
@@ -935,7 +941,7 @@ class ComfyMetadataReader:
         return name, weight
 
     @classmethod
-    def parse_nodes(cls, nodes: list[Node], meta: ComfyMetadata) -> None:
+    def parse_nodes(cls, nodes: list[Node], meta: ComfyMetadataInstance) -> None:
         text_candidates: list[tuple[str, str, bool]] = []
 
         for node in nodes:
@@ -1057,7 +1063,7 @@ class ComfyMetadataReader:
     def parse_single_node(
         cls,
         node: Node,
-        meta: ComfyMetadata,
+        meta: ComfyMetadataInstance,
         text_candidates: list[tuple[str, str, bool]],
     ) -> None:
         node_type_lower = node.node_type.lower()
