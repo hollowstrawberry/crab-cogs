@@ -163,7 +163,7 @@ class ComfyMetadata(Metadata, Protocol):
 
 @dataclass
 class ComfyMetadataInstance(ComfyMetadata):
-    source = "comfy"
+    source: str = "comfy"
     is_comfy: bool = False
     prompt: str | None = None
     negative_prompt: str | None = None

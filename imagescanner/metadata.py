@@ -52,7 +52,7 @@ class WebuiMetadata(Metadata, Protocol):
 @dataclass
 class WebuiMetadataInstance(WebuiMetadata):
     raw: str | None = None
-    source = "webui"
+    source: str = "webui"
 
     def as_dict(self):
         if not self.raw:
@@ -94,7 +94,7 @@ class StableSwarmMetadata(Metadata, Protocol):
 @dataclass
 class StableSwarmMetadataInstance(StableSwarmMetadata):
     raw: str | None = None
-    source = "stable_swarm"
+    source: str = "stable_swarm"
     is_stable_swarm: bool = False
     prompt: str | None = None
     negative_prompt: str | None = None
