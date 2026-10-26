@@ -3,7 +3,7 @@ import re
 import math
 import json
 from io import BytesIO
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from PIL import Image
@@ -151,7 +151,8 @@ class ComfyResourceHints:
 
 
 @dataclass
-class ComfyMetadata(Metadata):
+@runtime_checkable
+class ComfyMetadata(Metadata, Protocol):
     source = "comfy"  # type: ignore
     is_comfy: bool = False
     prompt: str | None = None
@@ -224,6 +225,10 @@ class ComfyMetadata(Metadata):
 
     def resource_hint_strings(self) -> list[str]:
         return self.resource_hints.hashes + [cand.value for cand in self.resource_hints.candidates if RESOURCE_EXT_RE.search(cand.value)]
+
+
+class ComfyMetadataInstance(ComfyMetadata):
+    pass
 
 
 @dataclass
@@ -555,7 +560,7 @@ class ComfyResourceHintExtractor:
 class ComfyMetadataReader:
     @classmethod
     def from_bytes(cls, b) -> ComfyMetadata:
-        result = ComfyMetadata()
+        result = ComfyMetadataInstance()
         try:
             image = Image.open(BytesIO(b))
             return cls.from_info(image.info, image.width, image.height)
@@ -567,13 +572,13 @@ class ComfyMetadataReader:
     def from_info(cls, meta: dict[str, Any], width: int, height: int) -> ComfyMetadata:
         candidates = cls.extract_workflow_candidates(meta)
         if not candidates:
-            result = ComfyMetadata(error="Workflow not found")
+            result = ComfyMetadataInstance(error="Workflow not found")
             result.resource_hints = ComfyResourceHintExtractor.from_sources(
                 result, meta
             )
             return result
 
-        merged = ComfyMetadata(is_comfy=True)
+        merged = ComfyMetadataInstance(is_comfy=True)
         parsed_any = False
         candidate_errors: list[str] = []
 
@@ -581,7 +586,7 @@ class ComfyMetadataReader:
             nodes = cls.normalize_nodes(workflow)
             if not nodes:
                 continue
-            partial = ComfyMetadata(is_comfy=True)
+            partial = ComfyMetadataInstance(is_comfy=True)
             try:
                 cls.parse_nodes(nodes, partial)
             except Exception as error:
@@ -594,7 +599,7 @@ class ComfyMetadataReader:
             error = (
                 candidate_errors[0] if candidate_errors else "Workflow nodes not found"
             )
-            result = ComfyMetadata(error=error)
+            result = ComfyMetadataInstance(error=error)
             result.resource_hints = ComfyResourceHintExtractor.from_sources(
                 result, meta
             )

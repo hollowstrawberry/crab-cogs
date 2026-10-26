@@ -1,7 +1,6 @@
 import re
 import json
-from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 from collections import OrderedDict
 from dataclasses import dataclass, field
 
@@ -34,21 +33,23 @@ def normalize_hash(value: str) -> str | None:
 
 
 @dataclass
-class Metadata(ABC):
+@runtime_checkable
+class Metadata(Protocol):
+    """"
+    Metadata subclasses must be Protocols too
+    in order to allow external cogs to use ImageScanner's public interface with compatible objects.
+    """
     raw: str | None = None
 
     @property
-    @abstractmethod
-    def source(self) -> str:
-        pass
+    def source(self) -> str: ...
 
-    @abstractmethod
-    def as_dict(self) -> OrderedDict[str, Any]:
-        pass
+    def as_dict(self) -> OrderedDict[str, Any]: ...
     
 
 @dataclass
-class WebuiMetadata(Metadata):
+@runtime_checkable
+class WebuiMetadata(Metadata, Protocol):
     source = "webui"  # type: ignore
 
     def as_dict(self):
@@ -80,8 +81,13 @@ class WebuiMetadata(Metadata):
         return output_dict
 
 
+class WebuiMetadataInstance(WebuiMetadata):
+    pass
+
+
 @dataclass
-class StableSwarmMetadata(Metadata):
+@runtime_checkable
+class StableSwarmMetadata(Metadata, Protocol):
     source = "stable_swarm"  # type: ignore
     is_stable_swarm: bool = False
     prompt: str | None = None
@@ -201,3 +207,7 @@ class StableSwarmMetadata(Metadata):
         self.resources = list(set(resources))
         self.hashes = list(set(self.hashes))
         self.is_stable_swarm = touched
+
+
+class StableSwarmMetadataInstance(StableSwarmMetadata):
+    pass

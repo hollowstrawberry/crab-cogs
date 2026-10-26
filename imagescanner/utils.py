@@ -1,17 +1,15 @@
-import re
-import json
 import asyncio
 import discord
 import PIL.Image
 from io import BytesIO
-from typing import Any, Dict
+from typing import Any
 
 from imagescanner.comfy import ComfyMetadataReader
-from imagescanner.metadata import Metadata, StableSwarmMetadata, WebuiMetadata
-from imagescanner.constants import SUPPORTED_FORMATS, RESOURCE_HASH_REGEX, log
+from imagescanner.metadata import Metadata, StableSwarmMetadataInstance, WebuiMetadataInstance
+from imagescanner.constants import SUPPORTED_FORMATS, log
 
 
-def build_embed(embed_dict: Dict[str, Any], author: discord.Member) -> discord.Embed:
+def build_embed(embed_dict: dict[str, Any], author: discord.Member) -> discord.Embed:
     embed = discord.Embed(title="Here's your image!", color=author.color)
     for key in embed_dict.keys():
         if len(str(embed_dict[key])) > 1000:
@@ -29,10 +27,10 @@ def read_metadata(image_data: bytes) -> Metadata | None:
     b = BytesIO(image_data)
     img = PIL.Image.open(b)
     raw = img.info.get("parameters") or img.getexif().get(0x9286)
-    metadata = StableSwarmMetadata(raw)
+    metadata = StableSwarmMetadataInstance(raw)
     if metadata.is_stable_swarm:
         return metadata
-    metadata = WebuiMetadata(raw)
+    metadata = WebuiMetadataInstance(raw)
     if metadata.as_dict():
         return metadata
     metadata = ComfyMetadataReader.from_info(img.info, img.width, img.height)
@@ -40,7 +38,7 @@ def read_metadata(image_data: bytes) -> Metadata | None:
         return metadata
     return None
 
-async def grab_attachment_metadata(i: int, attachment: discord.Attachment, metadata: Dict[int, Metadata], image_bytes: Dict[int, bytes]) -> None:
+async def grab_attachment_metadata(i: int, attachment: discord.Attachment, metadata: dict[int, Metadata], image_bytes: dict[int, bytes]) -> None:
     if not attachment.filename.endswith(SUPPORTED_FORMATS):
         return
     try:

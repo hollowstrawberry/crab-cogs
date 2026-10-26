@@ -11,14 +11,14 @@ from redbot.core.bot import Red
 import imagescanner.utils as utils
 from imagescanner.comfy import ComfyMetadata
 from imagescanner.commands import ImageScannerCommands
-from imagescanner.metadata import Metadata, WebuiMetadata, StableSwarmMetadata
+from imagescanner.metadata import Metadata, StableSwarmMetadata
 from imagescanner.imageview import ImageView
 from imagescanner.moss_metadata import from_params
 from imagescanner.moss_metadata.view import LayoutSource, add_summary_fields
 from imagescanner.constants import PARAM_REGEX, log, SUPPORTED_FORMATS, RESOURCE_HASH_REGEX, RESOURCE_FILE_REGEX
 
 def moss_source(metadata: Metadata, attachment: discord.Attachment, image_bytes: bytes | None) -> LayoutSource | None:
-    resolved = (getattr(metadata, "moss_prompt", None) or "") if getattr(metadata, "is_comfy", False) else None
+    resolved = metadata.moss_prompt if isinstance(metadata, ComfyMetadata) else None
     layout = from_params(metadata.as_dict(), resolved)
     return LayoutSource(layout, attachment, image_bytes, attachment.is_spoiler()) if layout else None
 
@@ -91,7 +91,7 @@ class ImageScanner(ImageScannerCommands):
     async def prepare_embed(self, message: discord.Message, metadata: Metadata, i: int, total=1) -> discord.Embed:
         assert isinstance(message.author, discord.Member)
         params = metadata.as_dict()
-        resolved = (getattr(metadata, "moss_prompt", None) or "") if getattr(metadata, "is_comfy", False) else None
+        resolved = metadata.moss_prompt if isinstance(metadata, ComfyMetadata) else None
         layout = from_params(params, resolved)
         if layout is not None:
             embed = discord.Embed(title="Image Parameters · MOSS", color=message.author.color)
