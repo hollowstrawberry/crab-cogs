@@ -52,10 +52,11 @@ class GptImage(GptImageSettings):
 
     @staticmethod
     async def normalize_attachments(attachments: List[discord.Attachment]) -> Tuple[List[bytes], str]:
-        fp = [BytesIO() for _ in attachments]
-        for i in range(len(attachments)):
-            await attachments[i].save(fp[i])
-        results = [await asyncio.to_thread(normalize_image, b) for b in fp]
+        return await GptImage.normalize_images([await attachment.read() for attachment in attachments])
+
+    @staticmethod
+    async def normalize_images(data: List[bytes]) -> Tuple[List[bytes], str]:
+        results = [await asyncio.to_thread(normalize_image, b) for b in data]
         images = [img[0] for img in results]
         resolution = results[0][1] if results else "1536x1024"
         return images, resolution
