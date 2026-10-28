@@ -1,6 +1,6 @@
 import logging
 import asyncio
-from typing import Callable, Optional
+from typing import Callable
 from discord.context_managers import Typing
 from redbot.core import commands
 
@@ -31,8 +31,8 @@ async def patched_aenter(self: Typing):
 class TypingFix(commands.Cog):
     """Lets the bot work normally even if "bot is typing..." breaks on Discord's end."""
 
-    original_typer: Optional[Callable] = None
-    original_aenter: Optional[Callable] = None
+    original_typer: Callable
+    original_aenter: Callable
     
     def cog_load(self):
         self.original_typer, Typing.wrapped_typer = Typing.wrapped_typer, patched_typer
