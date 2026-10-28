@@ -1,5 +1,6 @@
 import regex
 import logging
+import asyncio
 import discord
 from typing import Dict, List, Tuple
 from dataclasses import dataclass
@@ -141,6 +142,7 @@ class LinkFixer(commands.Cog):
         })
         self.enabled_guilds: List[int] = []
         self.disabled_links: Dict[int, List[str]] = {}
+        self._fix_tasks: Dict[int, asyncio.Task[discord.Message | None]] = {}
 
     async def cog_load(self):
         all_guilds = await self.config.all_guilds()
@@ -155,27 +157,41 @@ class LinkFixer(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_without_command(self, message: discord.Message):
+        await self.get_fixed_message(message)
+
+    async def get_fixed_message(self, message: discord.Message) -> discord.Message | None:
+        """Share one fix between the listener and other cogs, regardless of call order."""
+        if message.id not in self._fix_tasks:
+            task = asyncio.create_task(self.fix_message(message))
+            self._fix_tasks[message.id] = task
+            task.add_done_callback(lambda _: asyncio.get_running_loop().call_later(
+                60, self._fix_tasks.pop, message.id, None
+            ))
+        return await asyncio.shield(self._fix_tasks[message.id])
+
+    async def fix_message(self, message: discord.Message) -> discord.Message | None:
         if not message.guild or message.guild.id not in self.enabled_guilds or message.author == message.guild.me:
-            return
+            return None
         perms = message.channel.permissions_for(message.guild.me)
         if not perms.send_messages or not perms.embed_links:
-            return
+            return None
         if not await self.is_valid_red_message(message):
-            return
+            return None
 
         link_types = [link for link in ALL_LINKS if link.name not in self.disabled_links.get(message.guild.id, [])]
         language = await self.config.guild(message.guild).language()
         fixed = fix_links(message.content, link_types, language)
         if not fixed:
-            return
+            return None
 
         fixed = f"-# {message.author.mention} I fixed the links so the content embeds better.\n" + fixed
-        await message.channel.send(fixed, allowed_mentions=discord.AllowedMentions.none())
+        fixed_message = await message.channel.send(fixed, allowed_mentions=discord.AllowedMentions.none())
         if message.channel.permissions_for(message.guild.me).manage_messages:
             try:
                 await message.edit(suppress=True)
             except discord.NotFound:
                 pass
+        return fixed_message
 
     @app_commands.command(name="fixlink", description="Send a fixed social media link with better embeds.")
     @app_commands.allowed_installs(guilds=True, users=True)
