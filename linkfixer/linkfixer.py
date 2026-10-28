@@ -142,7 +142,7 @@ class LinkFixer(commands.Cog):
         })
         self.enabled_guilds: List[int] = []
         self.disabled_links: Dict[int, List[str]] = {}
-        self._fix_tasks: Dict[int, asyncio.Task[discord.Message | None]] = {}
+        self.fix_tasks: Dict[int, asyncio.Task[discord.Message | None]] = {}
 
     async def cog_load(self):
         all_guilds = await self.config.all_guilds()
@@ -161,13 +161,11 @@ class LinkFixer(commands.Cog):
 
     async def get_fixed_message(self, message: discord.Message) -> discord.Message | None:
         """Share one fix between the listener and other cogs, regardless of call order."""
-        if message.id not in self._fix_tasks:
+        if message.id not in self.fix_tasks:
             task = asyncio.create_task(self.fix_message(message))
-            self._fix_tasks[message.id] = task
-            task.add_done_callback(lambda _: asyncio.get_running_loop().call_later(
-                60, self._fix_tasks.pop, message.id, None
-            ))
-        return await asyncio.shield(self._fix_tasks[message.id])
+            self.fix_tasks[message.id] = task
+            task.add_done_callback(lambda _: self.bot.loop.call_later(60, self.fix_tasks.pop, message.id, None))
+        return await asyncio.shield(self.fix_tasks[message.id])
 
     async def fix_message(self, message: discord.Message) -> discord.Message | None:
         if not message.guild or message.guild.id not in self.enabled_guilds or message.author == message.guild.me:
