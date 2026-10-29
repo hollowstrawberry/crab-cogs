@@ -6,6 +6,7 @@ import lavalink
 import itertools
 from typing import Optional
 from dataclasses import dataclass
+from discord.backoff import ExponentialBackoff
 from redbot.core.bot import Red
 from redbot.core._cli import ExitCodes
 from redbot.cogs.audio.core import Audio
@@ -14,7 +15,7 @@ from redbot.cogs.audio.apis.persist_queue_wrapper import QueueInterface
 log = logging.getLogger("red.crab-cogs.audioreconnect")
 
 SESSION_RECONNECT_ATTEMPTS = 10
-backoff = lambda: discord.backoff.ExponentialBackoff(base=2)
+backoff = lambda: ExponentialBackoff(base=2)
 
 QUEUE_API: Optional[QueueInterface] = None
 QUEUE_API_METHODS = {
