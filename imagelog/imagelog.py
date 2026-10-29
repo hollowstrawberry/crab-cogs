@@ -1,9 +1,9 @@
 import io
 import logging
 import discord
-from discord.ui import View
-from datetime import datetime
 from typing import Optional, Dict
+from datetime import datetime
+from discord.ui import View
 from redbot.core import commands, Config
 
 log = logging.getLogger("red.crab-cogs.imagelog")
